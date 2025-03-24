@@ -1,5 +1,7 @@
 # **Masterplan for AI-Powered Education Management Platform**
 
+[Mermaid ERD](https://www.mermaidchart.com/raw/2b886511-0556-411a-a197-006a0187ede2?theme=light&version=v0.1&format=svg)
+
 ## **App Overview and Objectives**
 The goal of this web app is to assist **teachers**, **colleges**, and **universities** by automating and digitizing repetitive tasks, reducing teacher workload, and providing insightful data on **attendance**, **performance**, and **educational quality**. The platform uses **AI** and **digital logging** to streamline processes such as attendance tracking, paper checking, and generating educational content, enabling educators to focus more on teaching and less on administrative duties.
 
@@ -135,3 +137,224 @@ The goal of this web app is to assist **teachers**, **colleges**, and **universi
 - **Advanced Analytics:** Add more complex data analysis tools, such as trend forecasting for student performance.
 - **Mobile App:** Develop mobile versions of the platform for teachers and admins.
 - **Integration with Learning Management Systems (LMS):** Integrate with existing LMS like Moodle or Google Classroom for seamless data exchange.
+
+
+---
+
+
+
+
+
+
+
+<br>
+
+# Database schema example usecase
+
+
+### Table of Contents
+
+1. [Institution and Departments](#institution-and-departments)
+2. [Users and Roles](#users-and-roles)
+3. [Academic Structure](#academic-structure)
+4. [Attendance Management](#attendance-management)
+5. [Examination System](#examination-system)
+6. [Conclusion](#conclusion)
+
+---
+
+### Institution and Departments
+
+- **Institution**: Represents ABC Tech University.
+  - **Model**: `Institution`
+  - **Key Fields**:
+    - `name`: "ABC Tech University"
+    - `type`: "University"
+    - `address`: Physical location of the institution
+  - **Purpose**: Serves as the top-level entity encompassing all departments and users.
+
+- **Departments**: Academic units within the university, e.g., CSE, IT, IoT, CSBS, ECE, EE, CHE, MECH, BIOTECH, CIVIL.
+  - **Model**: `Department`
+  - **Key Fields**:
+    - `name`: e.g., "CSE" (Computer Science and Engineering)
+    - `code`: e.g., "CSE01"
+    - `institutionId`: Links to ABC Tech University
+  - **Purpose**: Organizes the academic structure into specialized branches.
+  - **Example**: The CSE department has 180 students split into 3 sections (60 students each).
+
+---
+
+### Users and Roles
+
+The system supports multiple user types with distinct roles:
+
+- **Admin (College Dean)**:
+  - **Role**: `ADMIN`
+  - **Responsibilities**: Oversees the entire system, manages departments, users, and settings.
+  - **Example**: The dean of ABC Tech University.
+
+- **Department Head (HOD)**:
+  - **Role**: `DEPARTMENT_HEAD`
+  - **Responsibilities**: Manages their department, assigns teachers, and monitors performance.
+  - **Model**: `DepartmentHead`
+  - **Key Fields**:
+    - `userId`: Links to their user account
+    - `departmentId`: Links to their department (e.g., CSE)
+  - **Example**: The HOD of the IT department.
+
+- **Teacher**:
+  - **Role**: `TEACHER`
+  - **Responsibilities**: Teaches subjects, manages attendance, and conducts exams.
+  - **Model**: `Teacher`
+  - **Key Fields**:
+    - `userId`: Links to their user account
+    - `departmentId`: Links to their department
+  - **Example**: A teacher assigned to "Data Structures" for CSE Section A.
+
+- **Student**:
+  - **Role**: `STUDENT`
+  - **Responsibilities**: Attends classes, takes exams, and tracks performance.
+  - **Model**: `Student`
+  - **Key Fields**:
+    - `userId`: Links to their user account
+    - `departmentId`: e.g., "CSE"
+    - `batchId`: Links to their year (e.g., 1st year)
+  - **Example**: A 1st-year CSE student in Section B.
+
+- **User Model**:
+  - **Model**: `User`
+  - **Key Fields**:
+    - `email`: Unique identifier (e.g., "student1@abctech.edu")
+    - `role`: `ADMIN`, `DEPARTMENT_HEAD`, `TEACHER`, or `STUDENT`
+    - `institutionId`: Links to ABC Tech University
+
+---
+
+### Academic Structure
+
+The academic structure is built around batches, semesters, courses, and class sections:
+
+1. **Batches**:
+   - **Model**: `Batch`
+   - **Key Fields**:
+     - `batchName`: e.g., "CSE_2023" (1st year CSE students starting in 2023)
+     - `year`: e.g., "1" (1st year)
+     - `departmentId`: Links to a department
+   - **Purpose**: Groups students by their admission year and department.
+   - **Example**: 180 CSE students in the 2023 batch, divided into 3 sections (A, B, C) of 60 students each.
+
+2. **Semesters**:
+   - **Model**: `Semester`
+   - **Key Fields**:
+     - `name`: e.g., "Semester 1"
+     - `startDate`: e.g., "2023-08-01"
+     - `endDate`: e.g., "2023-12-15"
+     - `institutionId`: Links to ABC Tech University
+   - **Purpose**: Defines the 8 semesters over 4 years (2 per year).
+   - **Example**: Semester 1 for 1st-year students.
+
+3. **Courses**:
+   - **Model**: `Course`
+   - **Key Fields**:
+     - `courseCode`: e.g., "CS101"
+     - `name`: e.g., "Data Structures"
+     - `departmentId`: Links to a department
+   - **Purpose**: Represents the 6 subjects per semester for each class.
+   - **Example**: "Data Structures" taught in Semester 1 for CSE.
+
+4. **Class Sections**:
+   - **Model**: `ClassSection`
+   - **Key Fields**:
+     - `sectionName`: e.g., "Section A"
+     - `batchId`: Links to a batch
+     - `courseId`: Links to a course
+     - `semesterId`: Links to a semester
+     - `teacherId`: Links to the assigned teacher
+   - **Purpose**: Represents a specific class (e.g., 60 students in Section A taking "Data Structures").
+   - **Example**: Section A of 1st-year CSE students in Semester 1, taught "Data Structures" by a specific teacher.
+
+5. **Student Enrollments**:
+   - **Model**: `StudentClassEnrollment`
+   - **Key Fields**:
+     - `studentId`: Links to a student
+     - `classSectionId`: Links to a class section
+   - **Purpose**: Tracks which students are enrolled in which sections.
+   - **Example**: A student enrolled in Section A for "Data Structures."
+
+**Workflow Example**:
+- A 1st-year CSE student in Section A (part of the 2023 batch) is enrolled in "Data Structures" during Semester 1, taught by a teacher with a daily timetable.
+
+---
+
+### Attendance Management
+
+Attendance is tracked for each class session:
+
+- **Attendance Sessions**:
+  - **Model**: `AttendanceSession`
+  - **Key Fields**:
+    - `classSectionId`: Links to a class section
+    - `teacherId`: Links to the teacher
+    - `sessionDate`: e.g., "2023-09-10"
+    - `startTime`: e.g., "09:00"
+    - `endTime`: e.g., "10:00"
+  - **Purpose**: Represents a single lecture or class session.
+
+- **Attendance Records**:
+  - **Model**: `Attendance`
+  - **Key Fields**:
+    - `attendanceSessionId`: Links to a session
+    - `studentId`: Links to a student
+    - `status`: e.g., "Present" or "Absent"
+  - **Purpose**: Records each student’s attendance for a session.
+
+**Workflow Example**:
+- On September 10, 2023, a teacher conducts a "Data Structures" lecture for Section A from 9:00 to 10:00 and marks attendance for all 60 students.
+
+---
+
+### Examination System
+
+The system supports three types of exams with specific weightages:
+
+- **Exam Types**:
+  - **Model**: `ExamType`
+  - **Key Fields**:
+    - `name`: e.g., "Surprise Test", "Mid-term", "Final Semester"
+    - `weightage`: 10, 20, or 60 marks respectively
+  - **Purpose**: Defines the exam categories.
+
+- **Exams**:
+  - **Model**: `Exam`
+  - **Key Fields**:
+    - `title`: e.g., "Surprise Test 1 - Data Structures"
+    - `examTypeId`: Links to an exam type
+    - `classSectionId`: Links to a class section
+    - `examDate`: e.g., "2023-09-15"
+    - `totalMarks`: Matches the exam type weightage (e.g., 10)
+  - **Purpose**: Represents a specific exam instance.
+
+- **Questions**:
+  - **Model**: `Question`
+  - **Key Fields**:
+    - `examId`: Links to an exam
+    - `questionText`: e.g., "What is a binary tree?"
+    - `marks`: e.g., 5
+  - **Purpose**: Stores individual questions for an exam.
+
+- **Exam Submissions**:
+  - **Model**: `ExamSubmission`
+  - **Key Fields**:
+    - `examId`: Links to an exam
+    - `studentId`: Links to a student
+    - `obtainedMarks`: e.g., 8 out of 10
+    - `status`: e.g., "Graded"
+  - **Purpose**: Tracks student submissions and grades.
+
+**Workflow Example**:
+- A teacher schedules a Surprise Test (10 marks) for "Data Structures" in Section A on September 15, 2023.
+- The test includes 2 questions (5 marks each).
+- Students submit answers, and the teacher grades them, recording scores in `ExamSubmission`.
+
+
+

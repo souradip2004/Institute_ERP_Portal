@@ -1,0 +1,574 @@
+erDiagram
+    %% Core User Management
+    Users {
+        uuid id PK
+        string email UK
+        string password_hash
+        string role "admin|teacher|department_head|student"
+        boolean is_active
+        datetime created_at
+        datetime updated_at
+        datetime last_login
+        string reset_token
+        datetime reset_token_expires
+        boolean is_email_verified
+        string two_factor_secret
+        boolean two_factor_enabled
+        string profile_image_url
+        string timezone
+        uuid institution_id FK
+    }
+
+    Institutions {
+        uuid id PK
+        string name
+        string type "school|college|university|training_center"
+        string address
+        string city
+        string state
+        string country
+        string postal_code
+        string phone
+        string email
+        string website
+        datetime created_at
+        datetime updated_at
+        string logo_url
+        string primary_color
+        string subscription_status
+        date subscription_end_date
+        uuid subscription_plan_id FK
+    }
+
+    Departments {
+        uuid id PK
+        string name
+        string code
+        string description
+        uuid institution_id FK
+        uuid department_head_id FK
+        datetime created_at
+        datetime updated_at
+    }
+
+    %% Student Information
+    Students {
+        uuid id PK
+        uuid user_id FK
+        string student_id "roll number / registration"
+        string first_name
+        string last_name
+        string gender
+        date date_of_birth
+        string address
+        string phone
+        string parent_guardian_name
+        string parent_guardian_phone
+        string parent_guardian_email
+        uuid department_id FK
+        uuid batch_id FK
+        datetime created_at
+        datetime updated_at
+        int current_semester
+        int current_year
+        string enrollment_status "active|graduated|suspended|withdrawn"
+    }
+
+    %% Teacher Information
+    Teachers {
+        uuid id PK
+        uuid user_id FK
+        string teacher_id
+        string first_name
+        string last_name
+        string gender
+        date date_of_birth
+        string address
+        string phone
+        string qualification
+        date joining_date
+        string employment_status "full-time|part-time|contract|guest"
+        uuid department_id FK
+        datetime created_at
+        datetime updated_at
+        float performance_score
+        date last_evaluation_date
+    }
+
+    %% Department Head Information
+    DepartmentHeads {
+        uuid id PK
+        uuid user_id FK
+        uuid teacher_id FK
+        uuid department_id FK
+        date appointment_date
+        date end_date
+        datetime created_at
+        datetime updated_at
+    }
+
+    %% Course Structure
+    Courses {
+        uuid id PK
+        string course_code UK
+        string name
+        string description
+        int credit_hours
+        string course_type "core|elective"
+        uuid department_id FK
+        datetime created_at
+        datetime updated_at
+        uuid created_by FK
+    }
+
+    Batches {
+        uuid id PK
+        string batch_name
+        int year
+        uuid department_id FK
+        int max_students
+        datetime created_at
+        datetime updated_at
+    }
+
+    Semesters {
+        uuid id PK
+        string name
+        date start_date
+        date end_date
+        uuid institution_id FK
+        boolean is_current
+        datetime created_at
+        datetime updated_at
+    }
+
+    ClassSections {
+        uuid id PK
+        string section_name
+        uuid batch_id FK
+        uuid course_id FK
+        uuid semester_id FK
+        uuid teacher_id FK
+        int max_students
+        datetime created_at
+        datetime updated_at
+    }
+
+    StudentClassEnrollments {
+        uuid id PK
+        uuid student_id FK
+        uuid class_section_id FK
+        datetime created_at
+        datetime updated_at
+        string enrollment_status "active|dropped|completed"
+    }
+
+    %% Attendance Management
+    AttendanceSessions {
+        uuid id PK
+        uuid class_section_id FK
+        uuid teacher_id FK
+        date session_date
+        time start_time
+        time end_time
+        string session_type "lecture|lab|tutorial"
+        string status "scheduled|in-progress|completed|cancelled"
+        datetime created_at
+        datetime updated_at
+    }
+
+    Attendance {
+        uuid id PK
+        uuid attendance_session_id FK
+        uuid student_id FK
+        string status "present|absent|late|excused"
+        string remarks
+        uuid recorded_by FK
+        datetime recorded_at
+        datetime updated_at
+        boolean is_locked
+    }
+
+    AttendanceSettings {
+        uuid id PK
+        uuid institution_id FK
+        float minimum_attendance_percentage
+        boolean auto_lock_attendance
+        int auto_lock_after_hours
+        boolean allow_excused_absences
+        datetime created_at
+        datetime updated_at
+    }
+
+    %% Examination and Assessment
+    ExamTypes {
+        uuid id PK
+        string name
+        string description
+        uuid institution_id FK
+        float weightage
+        datetime created_at
+        datetime updated_at
+    }
+
+    Exams {
+        uuid id PK
+        string title
+        string description
+        uuid exam_type_id FK
+        uuid class_section_id FK
+        date exam_date
+        time start_time
+        time end_time
+        int duration_minutes
+        float total_marks
+        float passing_marks
+        boolean is_published
+        datetime created_at
+        datetime updated_at
+        uuid created_by FK
+        string status "draft|published|in-progress|completed|graded"
+        boolean is_ai_generated
+    }
+
+    Questions {
+        uuid id PK
+        uuid exam_id FK
+        string question_text
+        string question_type "mcq|short-answer|long-answer|coding"
+        float marks
+        string difficulty_level "easy|medium|hard"
+        json correct_answer
+        json options "for MCQs"
+        uuid created_by FK
+        datetime created_at
+        datetime updated_at
+        boolean is_ai_generated
+    }
+
+    ExamSubmissions {
+        uuid id PK
+        uuid exam_id FK
+        uuid student_id FK
+        datetime submission_time
+        float obtained_marks
+        string status "pending|graded|reviewed"
+        string feedback
+        uuid graded_by FK
+        datetime graded_at
+        datetime created_at
+        datetime updated_at
+    }
+
+    AnswerScripts {
+        uuid id PK
+        uuid exam_submission_id FK
+        uuid question_id FK
+        text student_answer
+        float obtained_marks
+        string remarks
+        string status "pending|graded|reviewed"
+        uuid graded_by FK
+        datetime graded_at
+        datetime created_at
+        datetime updated_at
+        boolean is_ai_graded
+        json ai_feedback
+    }
+
+    %% AI Content Generation
+    AIVideoContent {
+        uuid id PK
+        string title
+        text description
+        uuid course_id FK
+        uuid teacher_id FK
+        uuid class_section_id FK
+        string video_url
+        string thumbnail_url
+        int duration_seconds
+        json chunk_data
+        string voice_uri
+        string teacher_model_uri
+        text summary
+        text notes
+        string status "processing|ready|failed"
+        int credits_used
+        datetime created_at
+        datetime updated_at
+        uuid created_by FK
+    }
+
+    VideoViewLogs {
+        uuid id PK
+        uuid video_id FK
+        uuid student_id FK
+        datetime view_started
+        datetime view_ended
+        int duration_watched_seconds
+        float completion_percentage
+        text feedback
+        int rating
+        datetime created_at
+    }
+
+    AIQuestionBanks {
+        uuid id PK
+        string title
+        uuid course_id FK
+        uuid teacher_id FK
+        string question_type "mcq|short-answer|long-answer|coding"
+        int question_count
+        string difficulty_level "easy|medium|hard|mixed"
+        json metadata
+        string status "processing|ready|failed"
+        datetime created_at
+        datetime updated_at
+        uuid created_by FK
+    }
+
+    %% Subscription and Billing
+    SubscriptionPlans {
+        uuid id PK
+        string name
+        string description
+        float price_monthly
+        float price_yearly
+        float price_per_student
+        int max_teachers
+        int max_students
+        int video_credits_included
+        int question_paper_credits_included
+        int copy_checking_credits_included
+        boolean attendance_feature
+        boolean performance_analytics
+        boolean ai_video_generation
+        boolean ai_question_generation
+        boolean ai_paper_checking
+        datetime created_at
+        datetime updated_at
+    }
+
+    Subscriptions {
+        uuid id PK
+        uuid institution_id FK
+        uuid plan_id FK
+        date start_date
+        date end_date
+        string status "active|expired|cancelled|pending"
+        float amount_paid
+        string payment_frequency "monthly|yearly|one-time"
+        int teachers_count
+        int students_count
+        datetime created_at
+        datetime updated_at
+    }
+
+    Credits {
+        uuid id PK
+        uuid institution_id FK
+        int video_credits_balance
+        int question_paper_credits_balance
+        int copy_checking_credits_balance
+        datetime last_updated
+    }
+
+    CreditTransactions {
+        uuid id PK
+        uuid institution_id FK
+        string transaction_type "purchase|usage|refund|expiry|bonus"
+        string credit_type "video|question_paper|copy_checking"
+        int quantity
+        string description
+        uuid related_entity_id "related video/exam/etc"
+        uuid performed_by FK
+        datetime created_at
+    }
+
+    Invoices {
+        uuid id PK
+        uuid institution_id FK
+        uuid subscription_id FK
+        string invoice_number
+        date issue_date
+        date due_date
+        float amount
+        string status "pending|paid|overdue|cancelled"
+        string payment_method
+        string payment_reference
+        datetime paid_at
+        datetime created_at
+        datetime updated_at
+    }
+
+    %% Performance Analytics
+    TeacherPerformanceMetrics {
+        uuid id PK
+        uuid teacher_id FK
+        uuid department_id FK
+        uuid semester_id FK
+        float attendance_regularity_score
+        float student_performance_score
+        float content_quality_score
+        float overall_score
+        json detailed_metrics
+        datetime evaluation_date
+        uuid evaluated_by FK
+        datetime created_at
+        datetime updated_at
+    }
+
+    StudentPerformanceMetrics {
+        uuid id PK
+        uuid student_id FK
+        uuid class_section_id FK
+        uuid semester_id FK
+        float attendance_percentage
+        float overall_grade_points
+        float assignment_completion_rate
+        json detailed_metrics
+        string performance_category "excellent|good|satisfactory|needs_improvement|poor"
+        datetime created_at
+        datetime updated_at
+    }
+
+    %% Notifications and Communications
+    Notifications {
+        uuid id PK
+        uuid user_id FK
+        string title
+        text message
+        string notification_type "attendance|exam|performance|system"
+        boolean is_read
+        datetime read_at
+        string action_url
+        datetime created_at
+    }
+
+    Announcements {
+        uuid id PK
+        string title
+        text content
+        uuid created_by FK
+        uuid institution_id FK
+        uuid department_id FK "optional"
+        uuid class_section_id FK "optional"
+        boolean is_important
+        date expiry_date
+        datetime created_at
+        datetime updated_at
+    }
+
+    %% Audit and Security
+    AuditLogs {
+        uuid id PK
+        uuid user_id FK
+        string action "login|logout|create|update|delete|view"
+        string entity_type "user|attendance|exam|etc"
+        uuid entity_id
+        json old_values
+        json new_values
+        string ip_address
+        string user_agent
+        datetime created_at
+    }
+
+    LoginAttempts {
+        uuid id PK
+        string email
+        string ip_address
+        string user_agent
+        boolean success
+        string failure_reason
+        datetime attempted_at
+    }
+
+    %% System Settings
+    SystemSettings {
+        uuid id PK
+        uuid institution_id FK
+        json attendance_settings
+        json examination_settings
+        json notification_settings
+        json security_settings
+        datetime created_at
+        datetime updated_at
+        uuid last_updated_by FK
+    }
+
+    APIKeys {
+        uuid id PK
+        uuid institution_id FK
+        string key_name
+        string api_key_hash
+        datetime expires_at
+        string permissions
+        boolean is_active
+        uuid created_by FK
+        datetime created_at
+        datetime updated_at
+    }
+
+    %% Relationships
+    Users ||--o{ Teachers : "teacher profile"
+    Users ||--o{ Students : "student profile"
+    Users ||--o{ DepartmentHeads : "department head profile"
+    Users }|--|| Institutions : "belongs to"
+    
+    Institutions ||--o{ Departments : "has many"
+    Institutions ||--o{ SubscriptionPlans : "subscribes to"
+    Institutions ||--o{ Subscriptions : "has"
+    Institutions ||--o{ Credits : "has balance of"
+    Institutions ||--o{ CreditTransactions : "performs"
+    Institutions ||--o{ Invoices : "receives"
+    Institutions ||--o{ SystemSettings : "configures"
+    Institutions ||--o{ APIKeys : "manages"
+    Institutions ||--o{ Semesters : "schedules"
+    
+    Departments ||--o{ Courses : "offers"
+    Departments ||--o{ Batches : "manages"
+    Departments ||--o{ Teachers : "employs"
+    Departments ||--o{ Students : "enrolls"
+    Departments ||--|| DepartmentHeads : "headed by"
+    
+    Batches ||--o{ ClassSections : "divided into"
+    Batches ||--o{ Students : "contains"
+    
+    Courses ||--o{ ClassSections : "taught in"
+    
+    Semesters ||--o{ ClassSections : "schedules"
+    
+    ClassSections ||--o{ StudentClassEnrollments : "enrolls"
+    ClassSections ||--o{ AttendanceSessions : "schedules"
+    ClassSections ||--o{ Exams : "conducts"
+    ClassSections ||--o{ AIVideoContent : "has content for"
+    ClassSections }|--|| Teachers : "taught by"
+    
+    Students ||--o{ StudentClassEnrollments : "enrolls in"
+    Students ||--o{ Attendance : "marked in"
+    Students ||--o{ ExamSubmissions : "submits"
+    Students ||--o{ VideoViewLogs : "watches"
+    Students ||--o{ StudentPerformanceMetrics : "evaluated by"
+    
+    Teachers ||--o{ ClassSections : "teaches"
+    Teachers ||--o{ AttendanceSessions : "conducts"
+    Teachers ||--o{ AIVideoContent : "creates"
+    Teachers ||--o{ AIQuestionBanks : "creates"
+    Teachers ||--o{ TeacherPerformanceMetrics : "evaluated by"
+    
+    AttendanceSessions ||--o{ Attendance : "records"
+    
+    ExamTypes ||--o{ Exams : "categorizes"
+    
+    Exams ||--o{ Questions : "contains"
+    Exams ||--o{ ExamSubmissions : "receives"
+    
+    ExamSubmissions ||--o{ AnswerScripts : "contains"
+    
+    Questions ||--o{ AnswerScripts : "answered in"
+    
+    AIVideoContent ||--o{ VideoViewLogs : "viewed"
+    
+    SubscriptionPlans ||--o{ Subscriptions : "purchased as"
+    
+    Subscriptions ||--o{ Invoices : "billed through"
