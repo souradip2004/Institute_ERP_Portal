@@ -2,6 +2,7 @@
   "name": "abiv_nextjs",
   "version": "0.1.0",
   "private": true,
+  "type":"module",
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",
@@ -11,6 +12,7 @@
   "dependencies": {
     "@prisma/client": "^6.5.0",
     "@radix-ui/react-slot": "^1.1.2",
+    "bcrypt": "^5.1.1",
     "bcryptjs": "^3.0.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

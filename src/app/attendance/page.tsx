@@ -1,12 +1,12 @@
 "use client";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
-const teachers = ["Preloaded Data"];
+const teachers:string[] = [];
 
 type Student = {
   id: string;
@@ -26,9 +26,54 @@ type AlertMessage = {
   isError: boolean;
   teacherId: string | null;
 };
+type Department={
+  name:string;
+  code:string;
+  description:string;
+  institutionId:string;
+  createdAt:Date;
+  updatedAt:Date;
+}
 
 export default function Home() {
   const [selectedTeacher, setSelectedTeacher] = useState<string | null>(null);
+  const [departmentid,setdepartmentid]=useState<string | null>(null);
+  useEffect(() => {
+    let department:Department={
+      name:"CSE",
+      code:"CSE",
+      description:"Computer Science and Engineering",
+      institutionId:"123",
+      createdAt:new Date(),
+      updatedAt:new Date()
+    } 
+    fetch("/api/attendance/department", {
+      method: "POST",
+      body: JSON.stringify(department),
+      headers: {
+        "Content-Type": "application/json"
+      }
+    })
+      .then(res => res.json())
+      .then(data => {
+setdepartmentid(data.id);
+        console.log(data);
+      });
+    },[]);
+    useEffect(() => {
+    fetch("/api/attendance/fetchTeachers", {
+      method: "POST",
+      body: JSON.stringify({ classId: departmentid }),
+      headers: {
+        "Content-Type": "application/json"
+      }
+    })
+      .then(res => res.json())
+      .then(data => {
+        teachers.push(data);
+      });
+  }
+  , [departmentid]);
   const [teacherData, setTeacherData] = useState<TeacherData>(() => {
     // Initialize with empty student arrays for each teacher
     const initialData: TeacherData = {};
@@ -265,13 +310,13 @@ export default function Home() {
   return (
     <div className="flex flex-col md:flex-row min-h-screen">
       {/* Sidebar */}
-      <aside className="w-full md:w-64 bg-gray-900 text-white p-4">
+      <aside className="w-full md:w-64 bg-gray-900 text-black p-4">
         <h2 className="text-lg font-bold mb-4">Select a Teacher</h2>
         <ul>
           {teachers.map((teacher) => (
             <li
               key={teacher}
-              className={`cursor-pointer p-2 rounded-md mb-1 ${
+              className={`cursor-pointer p-2 rounded-md mb-1 text-black ${
                 selectedTeacher === teacher ? "bg-gray-700" : "hover:bg-gray-800"
               }`}
               onClick={() => handleTeacherSelect(teacher)}
