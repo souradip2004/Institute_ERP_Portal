@@ -61,6 +61,8 @@ setdepartmentid(data.id);
       });
     },[]);
     useEffect(() => {
+      if(departmentid==null)
+      return;
     fetch("/api/attendance/fetchTeachers", {
       method: "POST",
       body: JSON.stringify({ classId: departmentid }),

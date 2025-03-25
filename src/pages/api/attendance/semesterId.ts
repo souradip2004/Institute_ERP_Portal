@@ -1,47 +1,43 @@
 import { NextApiRequest, NextApiResponse
 } from "next";
 import prisma from "@/lib/prisma";
-import { v4 as uuidv4 } from 'uuid';
-import { UUID } from "crypto";
 /*
-model Department {
   id            String   @id @default(uuid()) @db.Uuid
   name          String
-  code          String
-  description   String?
+  startDate     DateTime @map("start_date") @db.Date
+  endDate       DateTime @map("end_date") @db.Date
   institutionId String   @map("institution_id") @db.Uuid
+  isCurrent     Boolean  @map("is_current")
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
 */
-
-type Department={
+type Semester={
     name:string;
-    code:string;
-    description:string;
+    startDate:Date;
+    endDate:Date;
     institutionId:string;
+    isCurrent:boolean;
     createdAt:Date;
     updatedAt:Date;
 }
-
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method !== 'POST')
         return res.status(405).json({ error: 'Method not allowed' });
     try {
-        const department:Department = req.body;
-        department.institutionId=crypto.randomUUID();
-        const departmentid=await prisma.department.findFirst({
+        const semester:Semester = req.body;
+        const semesterid=await prisma.semester.findFirst({
             where:{
-                name:department.name
+                name:semester.name
             }
         });
-        if (departmentid) {
-            return res.status(404).json({ error: 'Department already exists',id: departmentid.id });
+        if (semesterid) {
+            return res.status(404).json({ error: 'Semester already exists',id: semesterid.id });
         }
-        const newDepartment = await prisma.department.create({
-            data: department,
+        const newSemester = await prisma.semester.create({
+            data: semester,
             
         });
-        return res.status(201).json({ message: 'Department created successfully', departmentId: newDepartment.id });
+        return res.status(201).json({ message: 'Semester created successfully', id: newSemester.id });
     } catch (e) {
         console.log(e);
         return res.status(500).json({ error: 'Internal Server Error' });
