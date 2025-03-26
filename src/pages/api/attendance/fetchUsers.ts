@@ -10,11 +10,20 @@ const User = objectType({
     t.boolean("isActive");
     t.field("institution", {
       type: "Institution",
-      resolve: (parent) => {
+      resolve: async (parent) => {
         if (!parent.id) {
           throw new Error("User ID is required");
         }
-        return prisma.user.findUnique({ where: { id: parent.id } }).institution();
+        const institution = await prisma.user.findUnique({ where: { id: parent.id } }).institution();
+        if (institution) {
+          return {
+            ...institution,
+            createdAt: institution.createdAt.toISOString(),
+            updatedAt: institution.updatedAt.toISOString(),
+            subscriptionEndDate: institution.subscriptionEndDate ? institution.subscriptionEndDate.toISOString() : null,
+          };
+        }
+        return null;
       },
     });
   },

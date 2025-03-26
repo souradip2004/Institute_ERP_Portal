@@ -3,20 +3,7 @@ import { PrismaClient } from "@prisma/client";
 import path from "path"
 const prisma = new PrismaClient();
 import User from "../pages/api/attendance/fetchUsers";
-import { Teacher, Department} from "../pages/api/attendance/fetchTeachers";
-
-const Institution = objectType({
-  name: "Institution",
-  definition(t) {
-    t.string("id");
-    t.string("name");
-    t.list.field("users", {
-      type: "User",
-      resolve: (parent) =>
-        parent.id ? prisma.institution.findUnique({ where: { id: parent.id } }).users() : null,
-    });
-  },
-});
+import { Teacher, Department,Institution} from "../pages/api/attendance/fetchTeachers";
 
 const Query = objectType({
   name: "Query",
@@ -27,32 +14,92 @@ const Query = objectType({
     });
     t.list.field("teachers", {
       type: "Teacher",
-      resolve: () => prisma.teacher.findMany(),
+      resolve: async () => {
+        const teachers = await prisma.teacher.findMany();
+        return teachers.map((teacher) => ({
+          ...teacher,
+          createdAt: teacher.createdAt.toISOString(),
+          updatedAt: teacher.updatedAt.toISOString(),
+          dateOfBirth: teacher.dateOfBirth ? teacher.dateOfBirth.toISOString() : null,
+          joiningDate: teacher.joiningDate ? teacher.joiningDate.toISOString() : null,
+          lastEvaluationDate: teacher.lastEvaluationDate ? teacher.lastEvaluationDate.toISOString() : null,
+        }));
+      },
     });
     t.list.field("departments", {
       type: "Department",
-      resolve: () => prisma.department.findMany(),
+      resolve: async () => {
+        const departments = await prisma.department.findMany();
+        return departments.map((department) => ({
+          ...department,
+          createdAt: department.createdAt.toISOString(),
+          updatedAt: department.updatedAt.toISOString(),
+        }));
+      },
     });
     t.field("teacher", {
       type: "Teacher",
       args: { id: nonNull(stringArg()) },
-      resolve: (_, { id }) => prisma.teacher.findUnique({ where: { id } }),
+      resolve: async (_, { id }) => {
+        const teacher = await prisma.teacher.findUnique({ where: { id } });
+        return teacher
+          ? {
+              ...teacher,
+              createdAt: teacher.createdAt.toISOString(),
+              updatedAt: teacher.updatedAt.toISOString(),
+              dateOfBirth: teacher.dateOfBirth ? teacher.dateOfBirth.toISOString() : null,
+              joiningDate: teacher.joiningDate ? teacher.joiningDate.toISOString() : null,
+              lastEvaluationDate: teacher.lastEvaluationDate ? teacher.lastEvaluationDate.toISOString() : null,
+            }
+          : null;
+      },
     });
+
     t.field("department", {
       type: "Department",
       args: { id: nonNull(stringArg()) },
-      resolve: (_, { id }) => prisma.department.findUnique({ where: { id } }),
+      resolve: async (_, { id }) => {
+        const department = await prisma.department.findUnique({ where: { id } });
+        return department
+          ? {
+              ...department,
+              createdAt: department.createdAt.toISOString(),
+              updatedAt: department.updatedAt.toISOString(),
+            }
+          : null;
+      },
     });
-
+t.field("institution", {
+      type: "Institution",
+      args: { id: nonNull(stringArg()) },
+      resolve: async (_, { id }) => {
+        const institution = await prisma.institution.findUnique({ where: { id } });
+        return institution
+          ? {
+              ...institution,
+              createdAt: institution.createdAt.toISOString(),
+              updatedAt: institution.updatedAt.toISOString(),
+              subscriptionEndDate: institution.subscriptionEndDate ? institution.subscriptionEndDate.toISOString() : null,
+            }
+          : null;
+      },
+    });
+    t.list.field("institutions", {
+      type: "Institution",
+      resolve: async () => {
+        const institutions = await prisma.institution.findMany();
+        return institutions.map((institution) => ({
+          ...institution,
+          createdAt: institution.createdAt.toISOString(),
+          updatedAt: institution.updatedAt.toISOString(),
+          subscriptionEndDate: institution.subscriptionEndDate ? institution.subscriptionEndDate.toISOString() : null,
+        }));
+      },
+    });
     t.field("user", {
       type: "User",
       args: { id: nonNull(stringArg()) },
       resolve: (_, { id }) => prisma.user.findUnique({ where: { id } }),
-    });
-
-    t.list.field("institutions", {
-      type: "Institution",
-      resolve: () => prisma.institution.findMany(),
     });
   },
 });

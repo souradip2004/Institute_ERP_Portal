@@ -4,17 +4,35 @@
 
 type Department {
   code: String
+  createdAt: String
   description: String
   id: String
   institutionId: String
   name: String
   teachers: [Teacher]
+  updatedAt: String
 }
 
 type Institution {
+  address: String
+  city: String
+  country: String
+  createdAt: String
+  email: String
   id: String
+  logoUrl: String
   name: String
+  phone: String
+  postalCode: String
+  primaryColor: String
+  state: String
+  subscriptionEndDate: String
+  subscriptionPlanId: String
+  subscriptionStatus: String
+  type: String
+  updatedAt: String
   users: [User]
+  website: String
 }
 
 type Mutation {
@@ -26,6 +44,7 @@ type Mutation {
 type Query {
   department(id: String!): Department
   departments: [Department]
+  institution(id: String!): Institution
   institutions: [Institution]
   teacher(id: String!): Teacher
   teachers: [Teacher]
@@ -34,11 +53,24 @@ type Query {
 }
 
 type Teacher {
+  address: String
+  createdAt: String
+  dateOfBirth: String
   department: Department
   departmentId: String
-  email: String
+  employmentStatus: String
+  firstName: String
+  gender: String
   id: String
-  name: String
+  joiningDate: String
+  lastEvaluationDate: String
+  lastName: String
+  performanceScore: Float
+  phone: String
+  qualification: String
+  teacherId: String
+  updatedAt: String
+  userId: String
 }
 
 type User {

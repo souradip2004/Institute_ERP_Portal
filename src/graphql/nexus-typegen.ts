@@ -30,22 +30,53 @@ export interface NexusGenScalars {
 export interface NexusGenObjects {
   Department: { // root type
     code?: string | null; // String
+    createdAt?: string | null; // String
     description?: string | null; // String
     id?: string | null; // String
     institutionId?: string | null; // String
     name?: string | null; // String
+    updatedAt?: string | null; // String
   }
   Institution: { // root type
+    address?: string | null; // String
+    city?: string | null; // String
+    country?: string | null; // String
+    createdAt?: string | null; // String
+    email?: string | null; // String
     id?: string | null; // String
+    logoUrl?: string | null; // String
     name?: string | null; // String
+    phone?: string | null; // String
+    postalCode?: string | null; // String
+    primaryColor?: string | null; // String
+    state?: string | null; // String
+    subscriptionEndDate?: string | null; // String
+    subscriptionPlanId?: string | null; // String
+    subscriptionStatus?: string | null; // String
+    type?: string | null; // String
+    updatedAt?: string | null; // String
+    website?: string | null; // String
   }
   Mutation: {};
   Query: {};
   Teacher: { // root type
+    address?: string | null; // String
+    createdAt?: string | null; // String
+    dateOfBirth?: string | null; // String
     departmentId?: string | null; // String
-    email?: string | null; // String
+    employmentStatus?: string | null; // String
+    firstName?: string | null; // String
+    gender?: string | null; // String
     id?: string | null; // String
-    name?: string | null; // String
+    joiningDate?: string | null; // String
+    lastEvaluationDate?: string | null; // String
+    lastName?: string | null; // String
+    performanceScore?: number | null; // Float
+    phone?: string | null; // String
+    qualification?: string | null; // String
+    teacherId?: string | null; // String
+    updatedAt?: string | null; // String
+    userId?: string | null; // String
   }
   User: { // root type
     email?: string | null; // String
@@ -67,16 +98,34 @@ export type NexusGenAllTypes = NexusGenRootTypes & NexusGenScalars
 export interface NexusGenFieldTypes {
   Department: { // field return type
     code: string | null; // String
+    createdAt: string | null; // String
     description: string | null; // String
     id: string | null; // String
     institutionId: string | null; // String
     name: string | null; // String
     teachers: Array<NexusGenRootTypes['Teacher'] | null> | null; // [Teacher]
+    updatedAt: string | null; // String
   }
   Institution: { // field return type
+    address: string | null; // String
+    city: string | null; // String
+    country: string | null; // String
+    createdAt: string | null; // String
+    email: string | null; // String
     id: string | null; // String
+    logoUrl: string | null; // String
     name: string | null; // String
+    phone: string | null; // String
+    postalCode: string | null; // String
+    primaryColor: string | null; // String
+    state: string | null; // String
+    subscriptionEndDate: string | null; // String
+    subscriptionPlanId: string | null; // String
+    subscriptionStatus: string | null; // String
+    type: string | null; // String
+    updatedAt: string | null; // String
     users: Array<NexusGenRootTypes['User'] | null> | null; // [User]
+    website: string | null; // String
   }
   Mutation: { // field return type
     createUser: NexusGenRootTypes['User'] | null; // User
@@ -86,6 +135,7 @@ export interface NexusGenFieldTypes {
   Query: { // field return type
     department: NexusGenRootTypes['Department'] | null; // Department
     departments: Array<NexusGenRootTypes['Department'] | null> | null; // [Department]
+    institution: NexusGenRootTypes['Institution'] | null; // Institution
     institutions: Array<NexusGenRootTypes['Institution'] | null> | null; // [Institution]
     teacher: NexusGenRootTypes['Teacher'] | null; // Teacher
     teachers: Array<NexusGenRootTypes['Teacher'] | null> | null; // [Teacher]
@@ -93,11 +143,24 @@ export interface NexusGenFieldTypes {
     users: Array<NexusGenRootTypes['User'] | null> | null; // [User]
   }
   Teacher: { // field return type
+    address: string | null; // String
+    createdAt: string | null; // String
+    dateOfBirth: string | null; // String
     department: NexusGenRootTypes['Department'] | null; // Department
     departmentId: string | null; // String
-    email: string | null; // String
+    employmentStatus: string | null; // String
+    firstName: string | null; // String
+    gender: string | null; // String
     id: string | null; // String
-    name: string | null; // String
+    joiningDate: string | null; // String
+    lastEvaluationDate: string | null; // String
+    lastName: string | null; // String
+    performanceScore: number | null; // Float
+    phone: string | null; // String
+    qualification: string | null; // String
+    teacherId: string | null; // String
+    updatedAt: string | null; // String
+    userId: string | null; // String
   }
   User: { // field return type
     email: string | null; // String
@@ -110,16 +173,34 @@ export interface NexusGenFieldTypes {
 export interface NexusGenFieldTypeNames {
   Department: { // field return type name
     code: 'String'
+    createdAt: 'String'
     description: 'String'
     id: 'String'
     institutionId: 'String'
     name: 'String'
     teachers: 'Teacher'
+    updatedAt: 'String'
   }
   Institution: { // field return type name
+    address: 'String'
+    city: 'String'
+    country: 'String'
+    createdAt: 'String'
+    email: 'String'
     id: 'String'
+    logoUrl: 'String'
     name: 'String'
+    phone: 'String'
+    postalCode: 'String'
+    primaryColor: 'String'
+    state: 'String'
+    subscriptionEndDate: 'String'
+    subscriptionPlanId: 'String'
+    subscriptionStatus: 'String'
+    type: 'String'
+    updatedAt: 'String'
     users: 'User'
+    website: 'String'
   }
   Mutation: { // field return type name
     createUser: 'User'
@@ -129,6 +210,7 @@ export interface NexusGenFieldTypeNames {
   Query: { // field return type name
     department: 'Department'
     departments: 'Department'
+    institution: 'Institution'
     institutions: 'Institution'
     teacher: 'Teacher'
     teachers: 'Teacher'
@@ -136,11 +218,24 @@ export interface NexusGenFieldTypeNames {
     users: 'User'
   }
   Teacher: { // field return type name
+    address: 'String'
+    createdAt: 'String'
+    dateOfBirth: 'String'
     department: 'Department'
     departmentId: 'String'
-    email: 'String'
+    employmentStatus: 'String'
+    firstName: 'String'
+    gender: 'String'
     id: 'String'
-    name: 'String'
+    joiningDate: 'String'
+    lastEvaluationDate: 'String'
+    lastName: 'String'
+    performanceScore: 'Float'
+    phone: 'String'
+    qualification: 'String'
+    teacherId: 'String'
+    updatedAt: 'String'
+    userId: 'String'
   }
   User: { // field return type name
     email: 'String'
@@ -168,6 +263,9 @@ export interface NexusGenArgTypes {
   }
   Query: {
     department: { // args
+      id: string; // String!
+    }
+    institution: { // args
       id: string; // String!
     }
     teacher: { // args
