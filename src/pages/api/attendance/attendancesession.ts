@@ -100,3 +100,4 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(500).json({ error: 'Internal Server Error' });
     }
 }
+//curl -X POST http://localhost:3000/api/attendance/attendancesession -H "Content-Type: application/json" -d '{"teacherID":"1","classSectionID":"1","sessionType":"lecture","students":[{"userId":"1","studentId":"1","firstName":"John","lastName":"Doe","present":true},{"userId":"2","studentId":"2","firstName":"Jane","lastName":"Doe","present":false}]}'

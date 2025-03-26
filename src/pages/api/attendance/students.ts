@@ -201,3 +201,27 @@ export default async function handler(req:NextApiRequest,res:NextApiResponse){
         return res.status(500).json({error:"Internal Server Error"});
     }
 }
+// curl -X POST http://localhost:3000/api/attendance/students \
+// -H "Content-Type: application/json" \
+// -d '{
+//   "classId": "example-class-id",
+//   "students": [
+//     {
+//       "email": "student1@example.com",
+//       "firstName": "John",
+//       "lastName": "Doe",
+//       "gender": "Male",
+//       "dateOfBirth": "2000-01-01",
+//       "address": "123 Main St",
+//       "phone": "1234567890",
+//       "parentGuardianName": "Jane Doe",
+//       "parentGuardianPhone": "0987654321",
+//       "parentGuardianEmail": "jane.doe@example.com",
+//       "departmentId": "example-department-id",
+//       "batchId": "example-batch-id",
+//       "currentSemester": 1,
+//       "currentYear": 2023,
+//       "enrollmentStatus": "active"
+//     }
+//   ]
+// }'

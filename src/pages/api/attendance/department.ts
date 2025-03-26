@@ -28,7 +28,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(405).json({ error: 'Method not allowed' });
     try {
         const department:Department = req.body;
-        department.institutionId=crypto.randomUUID();
         const departmentid=await prisma.department.findFirst({
             where:{
                 name:department.name
@@ -47,3 +46,4 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(500).json({ error: 'Internal Server Error' });
     }
 }
+//curl -X POST http://localhost:3000/api/attendance/department -H "Content-Type: application/json" -d '{"name":"CSE","code":"CSE","description":"Computer Science and Engineering","institutionId":"1"}'

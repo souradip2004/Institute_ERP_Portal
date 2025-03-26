@@ -27,7 +27,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (req.method !== 'POST')
         return res.status(405).json({ error: 'Method not allowed' });
     try {
-        const classSection:ClassSection = req.body;
+        const classSection:ClassSection = {...req.body,maxStudents:parseInt(req.body.maxStudents, 10)};
         const classSectionid=await prisma.classSection.findFirst({
             where:{
                 sectionName:classSection.sectionName
@@ -46,3 +46,4 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(500).json({ error: 'Internal Server Error' });
     }
 }
+//curl -X POST http://localhost:3000/api/attendance/classSection -H "Content-Type: application/json" -d '{"sectionName":"A","batchId":"1","courseId":"1","semesterId":"1","teacherId":"1","maxStudents":50}'

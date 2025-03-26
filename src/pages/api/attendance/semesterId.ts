@@ -24,7 +24,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (req.method !== 'POST')
         return res.status(405).json({ error: 'Method not allowed' });
     try {
-        const semester:Semester = req.body;
+        const semester: Semester = {
+            ...req.body,
+            isCurrent: req.body.isCurrent === 'true',
+        };
         const semesterid=await prisma.semester.findFirst({
             where:{
                 name:semester.name
@@ -43,3 +46,4 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(500).json({ error: 'Internal Server Error' });
     }
 }
+//curl -X POST http://localhost:3000/api/attendance/semester -H "Content-Type: application/json" -d '{"name":"Spring 2022","startDate":"2022-01-01","endDate":"2022-05-01","institutionId":"1","isCurrent":true}'

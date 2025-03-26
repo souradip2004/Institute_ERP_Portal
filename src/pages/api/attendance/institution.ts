@@ -36,6 +36,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         if (institutionid) {
             return res.status(404).json({ error: 'Institution already exists',id: institutionid.id });
         }
+        console.log(institution)
         const newInstitution = await prisma.institution.create({
             data: institution,
             
@@ -46,3 +47,4 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(500).json({ error: 'Internal Server Error' });
     }
 }
+//curl http://localhost:3000/api/attendance/department -X POST -H "Content-Type: application/json" -d '{"name":"Computer Science","code":"CS","description":"Computer Science Department"}'

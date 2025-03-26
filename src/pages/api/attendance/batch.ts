@@ -22,7 +22,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (req.method !== 'POST')
         return res.status(405).json({ error: 'Method not allowed' });
     try {
-        const batch:Batch = req.body;
+        const batch: Batch = {
+            ...req.body,
+            year: parseInt(req.body.year, 10),
+            maxStudents: parseInt(req.body.maxStudents, 10),
+        };
         const batchid=await prisma.batch.findFirst({
             where:{
                 batchName:batch.batchName
@@ -41,3 +45,4 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(500).json({ error: 'Internal Server Error' });
     }
 }
+//curl -X POST http://localhost:3000/api/attendance/batch -H "Content-Type: application/json" -d '{"batchName":"2021","year":2021,"departmentId":"1","maxStudents":50}'

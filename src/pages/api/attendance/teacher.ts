@@ -1,6 +1,7 @@
 import { NextApiRequest, NextApiResponse
 } from "next";
 import prisma from "@/lib/prisma";
+import { hashPassword } from '@/lib/auth';
 
 // The data type of the request body
 /*  id                 String           @id @default(uuid()) @db.Uuid
@@ -60,9 +61,9 @@ type User={
 }
 type inputType={
     email:string;
-    passwordHash:string;
+    password:string;
     role:"STUDENT" | "TEACHER" | "ADMIN";
-    isActive:boolean;
+    isActive:string;
     createdAt:Date;
     updatedAt:Date;
     lastLogin:Date;
@@ -109,11 +110,12 @@ type Data = {
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     let user:inputType=req.body;
+    let hashedPassword:string = await hashPassword(user.password);
  let d: User = {
         email: user.email,
-        passwordHash: user.passwordHash,
+        passwordHash: hashedPassword,
         role: user.role,
-        isActive: user.isActive,
+        isActive: user.isActive.includes("true") ? true : false,
         createdAt: new Date(),
         updatedAt: new Date(),
         lastLogin: new Date(),
@@ -136,7 +138,16 @@ let user1 = await prisma.user.findFirst({
    }
 })
 if(user1){
-    return res.status(404).json({ error: 'User already exists',userId: user1.id });
+    let teacher = await prisma.teacher.findFirst({
+        where:{
+            userId:user1.id
+        }
+    });
+
+    if (!teacher) {
+        return res.status(404).json({ error: 'Teacher not found',userId: user1.id });
+    }
+    return res.status(404).json({ error: 'User already exists',userId: user1.id,teacherId:teacher.id });
 }
 let u = await prisma.user.create({
     data:d
@@ -164,9 +175,24 @@ let e: Data = {
 
 let teacher = await prisma.teacher.create({
    data:e })
-   return res.status(201).json({ message: 'Teacher created successfully', userId: teacher.id });
+   return res.status(201).json({ message: 'Teacher created successfully', techerid: teacher.id });
 }catch(e){
     console.log(e);
     return res.status(500).json({ error: 'Internal Server Error' });
 }   
 }
+// Example usage with curl:
+// curl -X POST http://localhost:3000/api/attendance/teacher -H "Content-Type: application/json" -d '{
+//   "email": "teacher@example.com",
+//   "password": "password",
+//   "role": "TEACHER",
+//   "firstName": "John",
+//   "lastName": "Doe",
+//   "employmentStatus": "fullTime",
+//   "gender": "male",
+//   "dateOfBirth": "1980-01-01T00:00:00.000Z",
+//   "departmentId": "department-id"
+//  "isActive": true,
+// institutionId: "institution-id"
+// }'
+
