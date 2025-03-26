@@ -51,6 +51,7 @@ The goal of this web app is to assist **teachers**, **colleges**, and **universi
 2. **Backend**
    - **Node.js** for RESTful APIs to handle user management, AI integrations, and report generation.
    - **Middleware** for authentication, real-time data, and (NeonDB)PostgreSQL database management.
+   - **GraphQL** for efficient data fetching and API queries.
    - **Redis** for session management, caching, background job queues, and real-time updates.
    - Prisma ORM
    
