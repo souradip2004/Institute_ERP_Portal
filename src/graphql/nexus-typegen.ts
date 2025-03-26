@@ -93,6 +93,7 @@ export interface NexusGenFieldTypes {
     users: Array<NexusGenRootTypes['User'] | null> | null; // [User]
   }
   Teacher: { // field return type
+    department: NexusGenRootTypes['Department'] | null; // Department
     departmentId: string | null; // String
     email: string | null; // String
     id: string | null; // String
@@ -135,6 +136,7 @@ export interface NexusGenFieldTypeNames {
     users: 'User'
   }
   Teacher: { // field return type name
+    department: 'Department'
     departmentId: 'String'
     email: 'String'
     id: 'String'

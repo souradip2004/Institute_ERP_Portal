@@ -34,6 +34,7 @@ type Query {
 }
 
 type Teacher {
+  department: Department
   departmentId: String
   email: String
   id: String
