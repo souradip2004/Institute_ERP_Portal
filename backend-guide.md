@@ -251,8 +251,8 @@ education-management-platform/
 ├── prisma/                    # Prisma schema and migrations
 │   ├── schema.prisma          # Database schema
 │   └── migrations/            # Migration files
-├── src/                       # Source code
-│   ├── api/                   # API routes (Next.js API Routes)
+├── src/                       # Source code (shared between frontend and backend)
+│   ├── api/                   # Backend: API routes (Next.js API Routes)
 │   │   ├── auth/              # Authentication routes
 │   │   ├── institutions/      # Institution-related routes
 │   │   ├── departments/       # Department-related routes
@@ -264,43 +264,99 @@ education-management-platform/
 │   │   ├── analytics/         # Performance analytics routes
 │   │   ├── notifications/     # Notifications and announcements routes
 │   │   └── settings/          # System settings routes
-│   ├── controllers/           # Business logic for each route
+│   ├── controllers/           # Backend: Business logic for each route
 │   │   ├── authController.ts  # Auth-related logic
 │   │   ├── institutionController.ts
 │   │   └── ...                # One per feature module
-│   ├── services/              # Reusable service layer (e.g., database, AI, email)
+│   ├── services/              # Backend: Reusable service layer
 │   │   ├── prismaService.ts   # Prisma database operations
 │   │   ├── aiService.ts       # AI integration (video, question generation)
 │   │   ├── emailService.ts    # Email sending logic
 │   │   └── redisService.ts    # Redis operations
-│   ├── models/                # TypeScript types and interfaces
+│   ├── models/                # Shared: TypeScript types and interfaces
 │   │   ├── user.ts            # User-related types
 │   │   ├── institution.ts     # Institution-related types
 │   │   └── ...                # One per entity
-│   ├── middleware/            # Custom middleware
+│   ├── middleware/            # Backend: Custom middleware
 │   │   ├── authMiddleware.ts  # JWT and RBAC checks
 │   │   ├── errorMiddleware.ts # Global error handling
 │   │   └── rateLimitMiddleware.ts # Rate limiting
-│   ├── utils/                 # Utility functions
+│   ├── utils/                 # Shared: Utility functions
 │   │   ├── logger.ts          # Logging (e.g., Winston)
 │   │   ├── validator.ts       # Input validation (e.g., Zod)
 │   │   └── helpers.ts         # General helper functions
-│   ├── jobs/                  # Background job definitions (e.g., BullMQ)
+│   ├── jobs/                  # Backend: Background job definitions (e.g., BullMQ)
 │   │   ├── videoGenerationJob.ts
 │   │   └── questionGenerationJob.ts
-│   ├── config/                # Configuration files
+│   ├── config/                # Shared: Configuration files
 │   │   ├── database.ts        # Database connection config
 │   │   ├── redis.ts           # Redis config
 │   │   └── env.ts             # Environment variable parsing (e.g., Zod)
-│   └── tests/                 # Test files
-│       ├── unit/              # Unit tests
-│       └── integration/       # Integration tests
-├── public/                    # Static assets (optional for frontend)
-├── .env                       # Environment variables
-├── .env.example               # Example env file
-├── tsconfig.json              # TypeScript configuration
-├── package.json               # Dependencies and scripts
-└── README.md                  # Project documentation
+│   ├── app/                   # Frontend: App Router (Next.js routing)
+│   │   ├── layout.tsx         # Root layout (shared across all pages)
+│   │   ├── page.tsx           # Home page (root route: "/")
+│   │   ├── login/             # Login route
+│   │   │   └── page.tsx       # Login page ("/login")
+│   │   ├── dashboard/         # Dashboard routes
+│   │   │   ├── layout.tsx     # Dashboard-specific layout
+│   │   │   ├── teacher/       # Teacher dashboard
+│   │   │   │   └── page.tsx   # "/dashboard/teacher"
+│   │   │   ├── student/       # Student dashboard
+│   │   │   │   └── page.tsx   # "/dashboard/student"
+│   │   │   ├── admin/         # Admin dashboard
+│   │   │   │   └── page.tsx   # "/dashboard/admin"
+│   │   │   └── dept-head/     # Department head dashboard
+│   │   │       └── page.tsx   # "/dashboard/dept-head"
+│   │   ├── attendance/        # Attendance management route
+│   │   │   └── page.tsx       # "/attendance"
+│   │   ├── exams/             # Exam management route
+│   │   │   └── page.tsx       # "/exams"
+│   │   ├── videos/            # AI-generated video route
+│   │   │   └── page.tsx       # "/videos"
+│   │   ├── subscriptions/     # Subscription management route
+│   │   │   └── page.tsx       # "/subscriptions"
+│   │   ├── settings/          # Settings route
+│   │   │   └── page.tsx       # "/settings"
+│   │   └── globals.css        # Global styles (optional, can move to styles/)
+│   ├── components/            # Frontend: Reusable React components
+│   │   ├── common/            # General-purpose components
+│   │   │   ├── Button.tsx     # Button component
+│   │   │   ├── Modal.tsx      # Modal component
+│   │   │   └── Navbar.tsx     # Navigation bar
+│   │   ├── auth/              # Auth-specific components
+│   │   │   ├── LoginForm.tsx  # Login form
+│   │   │   └── RegisterForm.tsx # Registration form
+│   │   ├── dashboard/         # Dashboard-specific components
+│   │   │   ├── AttendanceChart.tsx # Attendance visualization
+│   │   │   └── PerformanceMetrics.tsx # Performance metrics display
+│   │   ├── exams/             # Exam-related components
+│   │   │   ├── QuestionEditor.tsx # Question creation/editing
+│   │   │   └── ExamResults.tsx # Exam results display
+│   │   └── videos/            # Video-related components
+│   │       ├── VideoPlayer.tsx # Video player component
+│   │       └── VideoList.tsx   # List of AI-generated videos
+│   ├── hooks/                 # Frontend: Custom React hooks
+│   │   ├── useAuth.ts         # Authentication state management
+│   │   ├── useAttendance.ts    # Attendance data fetching
+│   │   └── useApi.ts           # API call wrapper
+│   ├── styles/                # Frontend: CSS/SCSS/Tailwind styles
+│   │   ├── tailwind.css       # Tailwind CSS configuration
+│   │   └── components/         # Component-specific styles (optional)
+│   ├── contexts/              # Frontend: React contexts
+│   │   ├── AuthContext.tsx    # Authentication context
+│   │   └── ThemeContext.tsx   # Theme management context
+│   └── tests/                 # Shared: Test files
+│       ├── unit/              # Unit tests (backend + frontend)
+│       └── integration/       # Integration tests (backend + frontend)
+├── public/                    # Frontend: Static assets
+│   ├── images/                # Image files (e.g., logos, icons)
+│   ├── fonts/                 # Custom fonts
+│   └── favicon.ico            # Favicon
+├── .env                       # Shared: Environment variables
+├── .env.example               # Shared: Example env file
+├── tsconfig.json              # Shared: TypeScript configuration
+├── package.json               # Shared: Dependencies and scripts
+└── README.md                  # Shared: Project documentation
 ```
 
 ### Directory Purposes
