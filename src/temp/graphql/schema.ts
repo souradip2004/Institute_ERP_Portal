@@ -2,8 +2,8 @@ import { makeSchema, objectType, stringArg, nonNull } from "nexus";
 import { PrismaClient } from "@prisma/client";
 import path from "path"
 const prisma = new PrismaClient();
-import User from "../pages/api/attendance/fetchUsers";
-import { Teacher, Department, Institution } from "../pages/api/attendance/fetchTeachers";
+import User from "../../pages/api/attendance/fetchUsers";
+import { Teacher, Department, Institution } from "../../pages/api/attendance/fetchTeachers";
 import { hashPassword } from '@/lib/auth';
 enum Role {
   ADMIN = "ADMIN",
