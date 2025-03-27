@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
-const teachers:string[] = [];
+const teachers:string[] = ["Shubham"];
 
 type Student = {
   id: string;

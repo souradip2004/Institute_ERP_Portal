@@ -89,15 +89,19 @@ const Institution = objectType({
         t.field("updatedAt", { type: "String" });
         t.string("logoUrl");
         t.string("primaryColor");
-        t.field("subscriptionStatus", { 
+        t.nullable.field("subscriptionStatus", { 
             type: "String", 
         });
-        t.field("subscriptionEndDate", { type: "String" });
-        t.string("subscriptionPlanId");
-        t.list.field("users", {
-            type: "User",
-            resolve: (parent) =>
-                parent.id ? prisma.institution.findUnique({ where: { id: parent.id } }).users() : null,
+     
+        t.nullable.field("subscriptionEndDate", { 
+            type: "String", 
+        });
+        t.nullable.string("subscriptionPlanId", {
+            resolve: async (parent) => {
+                if (!parent.id) return null;
+                const users = await prisma.institution.findUnique({ where: { id: parent.id } })?.users();
+                return users ? users.map(user => user.id).join(", ") : null;
+            },
         });
     },
 });

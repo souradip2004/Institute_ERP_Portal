@@ -51,7 +51,6 @@ export interface NexusGenObjects {
     primaryColor?: string | null; // String
     state?: string | null; // String
     subscriptionEndDate?: string | null; // String
-    subscriptionPlanId?: string | null; // String
     subscriptionStatus?: string | null; // String
     type?: string | null; // String
     updatedAt?: string | null; // String
@@ -124,10 +123,10 @@ export interface NexusGenFieldTypes {
     subscriptionStatus: string | null; // String
     type: string | null; // String
     updatedAt: string | null; // String
-    users: Array<NexusGenRootTypes['User'] | null> | null; // [User]
     website: string | null; // String
   }
   Mutation: { // field return type
+    createInstitution: NexusGenRootTypes['Institution'] | null; // Institution
     createUser: NexusGenRootTypes['User'] | null; // User
     deleteUser: NexusGenRootTypes['User'] | null; // User
     updateUser: NexusGenRootTypes['User'] | null; // User
@@ -199,10 +198,10 @@ export interface NexusGenFieldTypeNames {
     subscriptionStatus: 'String'
     type: 'String'
     updatedAt: 'String'
-    users: 'User'
     website: 'String'
   }
   Mutation: { // field return type name
+    createInstitution: 'Institution'
     createUser: 'User'
     deleteUser: 'User'
     updateUser: 'User'
@@ -247,6 +246,23 @@ export interface NexusGenFieldTypeNames {
 
 export interface NexusGenArgTypes {
   Mutation: {
+    createInstitution: { // args
+      address?: string | null; // String
+      city?: string | null; // String
+      country?: string | null; // String
+      email?: string | null; // String
+      logoUrl?: string | null; // String
+      name: string; // String!
+      phone?: string | null; // String
+      postalCode?: string | null; // String
+      primaryColor?: string | null; // String
+      state?: string | null; // String
+      subscriptionEndDate?: string | null; // String
+      subscriptionPlanId?: string | null; // String
+      subscriptionStatus: string; // String!
+      type: string; // String!
+      website?: string | null; // String
+    }
     createUser: { // args
       email: string; // String!
       institutionId: string; // String!

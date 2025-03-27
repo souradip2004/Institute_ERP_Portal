@@ -31,11 +31,11 @@ type Institution {
   subscriptionStatus: String
   type: String
   updatedAt: String
-  users: [User]
   website: String
 }
 
 type Mutation {
+  createInstitution(address: String, city: String, country: String, email: String, logoUrl: String, name: String!, phone: String, postalCode: String, primaryColor: String, state: String, subscriptionEndDate: String, subscriptionPlanId: String, subscriptionStatus: String!, type: String!, website: String): Institution
   createUser(email: String!, institutionId: String!, passwordHash: String!): User
   deleteUser(id: String!): User
   updateUser(email: String, id: String!, isActive: String): User

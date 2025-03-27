@@ -3,7 +3,8 @@ import { PrismaClient } from "@prisma/client";
 import path from "path"
 const prisma = new PrismaClient();
 import User from "../pages/api/attendance/fetchUsers";
-import { Teacher, Department,Institution} from "../pages/api/attendance/fetchTeachers";
+import { Teacher, Department, Institution } from "../pages/api/attendance/fetchTeachers";
+import { hashPassword } from '@/lib/auth';
 
 const Query = objectType({
   name: "Query",
@@ -115,17 +116,53 @@ const Mutation = objectType({
         institutionId: nonNull(stringArg()),
       },
       resolve: async (_, { email, passwordHash, institutionId }) => {
+      let hashPassword1:string=await hashPassword(passwordHash); 
         return prisma.user.create({
           data: { 
             email, 
-            passwordHash, 
+            passwordHash:hashPassword1, 
             institution: { connect: { id: institutionId } }, 
             isActive: true 
           },
         });
       },
     });
-
+t.field("createInstitution", {
+      type: "Institution",
+      args: {
+        name: nonNull(stringArg()),
+        type: nonNull(stringArg()),
+        address: stringArg(),
+        city: stringArg(),
+        state: stringArg(),
+        country: stringArg(),
+        postalCode: stringArg(),
+        phone: stringArg(),
+        email: stringArg(),
+        website: stringArg(),
+        logoUrl: stringArg(),
+        primaryColor: stringArg(),
+        subscriptionStatus: nonNull(stringArg()),
+        subscriptionEndDate: stringArg(),
+        subscriptionPlanId: stringArg(),
+      },
+      resolve: async (_, args) => {
+        const institution = await prisma.institution.create({ 
+          data: {
+            ...args,
+            subscriptionStatus: null,
+            subscriptionPlanId: args.subscriptionPlanId ?? null,
+          },
+        });
+        return {
+          ...institution,
+          createdAt: institution.createdAt.toISOString(),
+          updatedAt: institution.updatedAt.toISOString(),
+          subscriptionEndDate: institution.subscriptionEndDate ? institution.subscriptionEndDate.toISOString() : null,
+        };
+      },
+    }
+);
     t.field("updateUser", {
       type: "User",
       args: {
