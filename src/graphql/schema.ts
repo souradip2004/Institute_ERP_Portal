@@ -5,7 +5,12 @@ const prisma = new PrismaClient();
 import User from "../pages/api/attendance/fetchUsers";
 import { Teacher, Department, Institution } from "../pages/api/attendance/fetchTeachers";
 import { hashPassword } from '@/lib/auth';
-
+enum Role {
+  ADMIN = "ADMIN",
+  TEACHER = "TEACHER",
+  STUDENT = "STUDENT",
+  DEPARTMENT_HEAD="DEPARTMENT_HEAD",
+}
 const Query = objectType({
   name: "Query",
   definition(t) {
@@ -114,15 +119,18 @@ const Mutation = objectType({
         email: nonNull(stringArg()),
         passwordHash: nonNull(stringArg()),
         institutionId: nonNull(stringArg()),
+        role: stringArg(),
       },
-      resolve: async (_, { email, passwordHash, institutionId }) => {
+      resolve: async (_, { email, passwordHash, institutionId,role }) => {
       let hashPassword1:string=await hashPassword(passwordHash); 
-        return prisma.user.create({
+      const userRole: Role = role ? (Role[role as keyof typeof Role] ?? Role.STUDENT) : Role.STUDENT;
+      return prisma.user.create({
           data: { 
             email, 
             passwordHash:hashPassword1, 
             institution: { connect: { id: institutionId } }, 
-            isActive: true 
+            isActive: true,
+            role: userRole, 
           },
         });
       },

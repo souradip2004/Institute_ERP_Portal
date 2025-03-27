@@ -4,7 +4,12 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
-
+enum Role {
+  ADMIN = "ADMIN",
+  TEACHER = "TEACHER",
+  STUDENT = "STUDENT",
+  DEPARTMENT_HEAD="DEPARTMENT_HEAD",
+}
 const LoginSignupPage = () => {
   // State variables
   const [email, setEmail] = useState("");
@@ -75,16 +80,18 @@ fetch("http://localhost:3000/api/graphql", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify({
-    query:`mutation CreateUser($email: String!, $password: String!, $institutionId: String!) {
-      createUser(email: $email, passwordHash: $password, institutionId: $institutionId) {
+    query:`mutation CreateUser($email: String!, $password: String!, $institutionId: String!,$role: String) {
+      createUser(email: $email, passwordHash: $password, institutionId: $institutionId,role:$role) {
         id
         email
+        role
         }
         }`,
     variables: {
       email:email,
       password:password,
-      institutionId:data.data.createInstitution.id
+      institutionId:data.data.createInstitution.id,
+      role:"ADMIN"
     },
   }),
 })

@@ -8,6 +8,7 @@ const User = objectType({
     t.string("id");
     t.string("email");
     t.boolean("isActive");
+    t.nullable.string("role");
     t.field("institution", {
       type: "Institution",
       resolve: async (parent) => {
