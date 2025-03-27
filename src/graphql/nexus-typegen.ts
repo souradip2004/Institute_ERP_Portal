@@ -81,6 +81,7 @@ export interface NexusGenObjects {
     email?: string | null; // String
     id?: string | null; // String
     isActive?: boolean | null; // Boolean
+    passwordHash?: string | null; // String
     role?: string | null; // String
   }
 }
@@ -167,6 +168,7 @@ export interface NexusGenFieldTypes {
     id: string | null; // String
     institution: NexusGenRootTypes['Institution'] | null; // Institution
     isActive: boolean | null; // Boolean
+    passwordHash: string | null; // String
     role: string | null; // String
   }
 }
@@ -243,6 +245,7 @@ export interface NexusGenFieldTypeNames {
     id: 'String'
     institution: 'Institution'
     isActive: 'Boolean'
+    passwordHash: 'String'
     role: 'String'
   }
 }
@@ -292,7 +295,7 @@ export interface NexusGenArgTypes {
       id: string; // String!
     }
     user: { // args
-      id: string; // String!
+      email: string; // String!
     }
   }
 }

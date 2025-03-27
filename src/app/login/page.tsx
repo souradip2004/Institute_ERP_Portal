@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
-
+import {comparePassword} from "@/lib/auth";
 const LoginSignupPage = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -11,7 +11,42 @@ const LoginSignupPage = () => {
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     console.log("Logging in with", { email, password });
-    // Handle login logic here
+    try{
+       fetch("http://localhost:3000/api/graphql", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          query:`query User($email: String!) {
+  user(email: $email) {
+    id
+    passwordHash
+    role
+  }
+} `,
+variables: {
+  email: email,
+}})
+  }).then(response=>response.json()).then(async data=>{console.log(data)
+let validatePassword= await comparePassword(password,data.data.user.passwordHash);
+if(validatePassword){
+  console.log("Login successful");
+  if(data.data.user.role=="ADMIN"){
+    alert("Welcome Admin");
+    window.location.href = "/admin";
+  }else if(data.data.user.role=="TEACHER"){
+    alert("Welcome Teacher");
+    window.location.href = "/teachermain";
+  }else if(data.data.user.role=="STUDENT"){
+    alert("Welcome Student");
+    window.location.href = "/studentscreen";
+  }
+}else{
+  console.log("Invalid credentials");
+}
+  });
+    }catch(e){
+      console.log(e);
+    }
   };
 
   return (

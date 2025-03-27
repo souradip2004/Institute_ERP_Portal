@@ -69,7 +69,7 @@ const LoginSignupPage = () => {
             email: email || null,
             website: website || null,
             logoUrl: logoUrl || null,
-            primaryColor: primaryColor || null
+            primaryColor: primaryColor || null,
           },
         }),
       })
@@ -85,6 +85,7 @@ fetch("http://localhost:3000/api/graphql", {
         id
         email
         role
+        password
         }
         }`,
     variables: {

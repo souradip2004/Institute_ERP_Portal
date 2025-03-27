@@ -48,7 +48,7 @@ type Query {
   institutions: [Institution]
   teacher(id: String!): Teacher
   teachers: [Teacher]
-  user(id: String!): User
+  user(email: String!): User
   users: [User]
 }
 
@@ -78,5 +78,6 @@ type User {
   id: String
   institution: Institution
   isActive: Boolean
+  passwordHash: String
   role: String
 }

@@ -104,8 +104,8 @@ t.field("institution", {
     });
     t.field("user", {
       type: "User",
-      args: { id: nonNull(stringArg()) },
-      resolve: (_, { id }) => prisma.user.findUnique({ where: { id } }),
+      args: { email: nonNull(stringArg()) },
+      resolve: (_, { email }) => prisma.user.findUnique({ where: { email } }),
     });
   },
 });
@@ -123,6 +123,7 @@ const Mutation = objectType({
       },
       resolve: async (_, { email, passwordHash, institutionId,role }) => {
       let hashPassword1:string=await hashPassword(passwordHash); 
+      console.log(hashPassword1);
       const userRole: Role = role ? (Role[role as keyof typeof Role] ?? Role.STUDENT) : Role.STUDENT;
       return prisma.user.create({
           data: { 

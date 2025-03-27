@@ -7,6 +7,7 @@ const User = objectType({
   definition(t: import("nexus/dist/core").ObjectDefinitionBlock<"User">) {
     t.string("id");
     t.string("email");
+    t.string("passwordHash");
     t.boolean("isActive");
     t.nullable.string("role");
     t.field("institution", {
