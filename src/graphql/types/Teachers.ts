@@ -1,5 +1,6 @@
 import { objectType, stringArg, nonNull } from "nexus";
 import prisma from "../prisma";
+import {redis} from "../../redis/redis";
 /*
  id                 String           @id @default(uuid()) @db.Uuid
   userId             String           @unique @map("user_id") @db.Uuid
