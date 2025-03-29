@@ -52,38 +52,38 @@ const userWorker = new Worker(
 );
 
 userWorker.on('completed', (job) => {
-    console.log(`✅ Batch Job ${job.id} completed`);
+    console.log(`✅ User Job ${job.id} completed`);
 }
 );
 userWorker.on('failed', (job, err) => {
-    console.error(`❌ Batch Job ${job?.id} failed:`, err);
+    console.error(`❌ User Job ${job?.id} failed:`, err);
 }
 );
 userWorker.on('progress', (job, progress) => {
-    console.log(` Batch Job ${job.id} is ${progress}% complete`);
+    console.log(` User Job ${job.id} is ${progress}% complete`);
 }
 );
 userWorker.on('stalled', (job) => {
-    console.log(`Batch Job ${job} has stalled`);
+    console.log(`User Job ${job} has stalled`);
 }
 );
 userWorker.on('error', (error) => {
-    console.error(`Batch Worker error: ${error}`);
+    console.error(`User Worker error: ${error}`);
 }
 );
 userWorker.on('paused', () => {
-    console.log('Batch Worker paused');
+    console.log('User Worker paused');
 }
 );
 userWorker.on('resumed', () => {
-    console.log('Batch Worker resumed');
+    console.log('User Worker resumed');
 }
 );
 userWorker.on('drained', () => {
-    console.log('Batch Worker drained');
+    console.log('User Worker drained');
 }
 );
 (async () => {
     await userWorker.waitUntilReady();
-    console.log("batch Worker is ready 🚀");
+    console.log("User Worker is ready 🚀");
 })();
