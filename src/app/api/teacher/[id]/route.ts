@@ -1,16 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { ExamController } from '@/controllers/examController';
+import { TeacherController } from '@/controllers/teacherController';
 
-const examController = new ExamController();
+const teacherController = new TeacherController();
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
-  return examController.getExamById(params.id);
+  return teacherController.getTeacherById(params.id);
 }
 
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
-  return examController.updateExam(params.id, req);
+  return teacherController.updateTeacher(params.id, req);
 }
 
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
-  return examController.deleteExam(params.id);
+  return teacherController.deleteTeacher(params.id);
 }
