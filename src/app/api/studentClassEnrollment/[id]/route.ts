@@ -1,19 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { ExamSubmissionController } from '@/controllers/examSubmissionController';
+import { StudentClassEnrollmentController } from '@/controllers/studentClassEnrollmentController';
 
-const examSubmissionController = new ExamSubmissionController();
+const studentClassEnrollmentController = new StudentClassEnrollmentController();
 
 export async function GET(req: NextRequest, context: { params: { id: string } }) {
   const { id } = context.params;
-  return examSubmissionController.getExamSubmissionById(id);
+  return studentClassEnrollmentController.getEnrollmentById(id);
 }
 
 export async function PUT(req: NextRequest, context: { params: { id: string } }) {
   const { id } = context.params;
-  return examSubmissionController.updateExamSubmission(id, req);
+  return studentClassEnrollmentController.updateEnrollment(id, req);
 }
 
 export async function DELETE(req: NextRequest, context: { params: { id: string } }) {
   const { id } = context.params;
-  return examSubmissionController.deleteExamSubmission(id);
+  return studentClassEnrollmentController.deleteEnrollment(id);
 }
