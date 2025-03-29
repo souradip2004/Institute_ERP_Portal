@@ -1,21 +1,51 @@
 import { NextRequest, NextResponse } from "next/server";
-import { AuthController } from "@/controllers/authController";
+import prisma from "@/config/prisma";
+import bcrypt from "bcryptjs";
 
-const authController = new AuthController();
-
-export const POST = async (req: NextRequest) => {
-  console.log(`Incoming request method: POST`);
-
+export async function POST(request: NextRequest) {
   try {
-    return await authController.register(req);
+    const { email, password, name } = await request.json();
+
+    if (!email || !password) {
+      return NextResponse.json(
+        { error: "Email and password are required" },
+        { status: 400 }
+      );
+    }
+
+    // Check if user already exists
+    const existingUser = await prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (existingUser) {
+      return NextResponse.json(
+        { error: "User already exists" },
+        { status: 400 }
+      );
+    }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Create user
+    const user = await prisma.user.create({
+      data: {
+        email,
+        name,
+        password: hashedPassword,
+        role: "STUDENT", // Default role
+      },
+    });
+
+    return NextResponse.json(
+      { message: "User created successfully" },
+      { status: 201 }
+    );
   } catch (error) {
-    console.error("Error in register handler:", error);
-    return new NextResponse(
-      JSON.stringify({ error: "Internal Server Error" }),
-      {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
-      }
+    return NextResponse.json(
+      { error: "Something went wrong" },
+      { status: 500 }
     );
   }
-};
+}

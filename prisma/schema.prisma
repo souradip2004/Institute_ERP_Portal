@@ -134,27 +134,28 @@ enum SessionType {
   tutorial
 }
 
-// Core User Management
+// Models necessary for next-auth
 model User {
-  id                String    @id @default(uuid()) @db.Uuid
-  email             String    @unique
-  passwordHash      String    @map("password_hash")
-  role              Role      @default(STUDENT)
-  isActive          Boolean   @map("is_active")
-  createdAt         DateTime  @default(now()) @map("created_at")
-  updatedAt         DateTime  @updatedAt @map("updated_at")
-  lastLogin         DateTime? @map("last_login")
-  resetToken        String?   @map("reset_token")
-  resetTokenExpires DateTime? @map("reset_token_expires")
-  isEmailVerified   Boolean   @default(false) @map("is_email_verified")
-  twoFactorSecret   String?   @map("two_factor_secret")
-  twoFactorEnabled  Boolean   @default(false) @map("two_factor_enabled")
-  profileImageUrl   String?   @map("profile_image_url")
-  timezone          String?
-  institutionId     String    @map("institution_id") @db.Uuid
+  id            String          @id @default(cuid())
+  name          String?
+  email         String?         @unique
+  emailVerified DateTime?       @map("email_verified")
+  image         String?
+  password      String?
+  accounts      Account[]
+  sessions      Session[]
+  // Optional for WebAuthn support
+  Authenticator Authenticator[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Fields related to application
+  role          Role   @default(STUDENT)
+  institutionId String? @map("institution_id")  
 
   // Relations
-  institution           Institution                @relation(fields: [institutionId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  institution           Institution?                @relation(fields: [institutionId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   teacher               Teacher?
   student               Student?
   departmentHead        DepartmentHead?
@@ -177,8 +178,70 @@ model User {
   @@map("users")
 }
 
+model Account {
+  id                String  @id @default(cuid())
+  userId            String  @map("user_id")
+  type              String
+  provider          String
+  providerAccountId String  @map("provider_account_id")
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique @map("session_token")
+  userId       String   @map("user_id")
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+// Optional for WebAuthn support
+model Authenticator {
+  credentialID         String  @unique @map("credential_id")
+  userId               String  @map("user_id")
+  providerAccountId    String  @map("provider_account_id")
+  credentialPublicKey  String  @map("credential_public_key")
+  counter              Int
+  credentialDeviceType String  @map("credential_device_type")
+  credentialBackedUp   Boolean @map("credential_backup")
+  transports           String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, credentialID])
+  @@map("authenticators")
+}
+
 model Institution {
-  id                  String              @id @default(uuid()) @db.Uuid
+  id                  String              @id @default(cuid())  
   name                String
   type                String // Consider creating an enum if types are fixed
   address             String?
@@ -195,7 +258,7 @@ model Institution {
   primaryColor        String?             @map("primary_color")
   subscriptionStatus  SubscriptionStatus? @map("subscription_status")
   subscriptionEndDate DateTime?           @map("subscription_end_date")
-  subscriptionPlanId  String?             @map("subscription_plan_id") @db.Uuid
+  subscriptionPlanId  String?             @map("subscription_plan_id")  
 
   // Relations
   subscriptionPlan   SubscriptionPlan?    @relation(fields: [subscriptionPlanId], references: [id], onDelete: SetNull, onUpdate: Cascade)
@@ -216,11 +279,11 @@ model Institution {
 }
 
 model Department {
-  id            String   @id @default(uuid()) @db.Uuid
+  id            String   @id @default(cuid())  
   name          String
   code          String
   description   String?
-  institutionId String   @map("institution_id") @db.Uuid
+  institutionId String   @map("institution_id")  
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
 
@@ -240,8 +303,8 @@ model Department {
 
 // Student Information
 model Student {
-  id                  String           @id @default(uuid()) @db.Uuid
-  userId              String           @unique @map("user_id") @db.Uuid
+  id                  String           @id @default(cuid())  
+  userId              String           @unique @map("user_id")  
   studentId           String           @unique @map("student_id") // Roll number/registration, now unique
   firstName           String           @map("first_name")
   lastName            String           @map("last_name")
@@ -252,8 +315,8 @@ model Student {
   parentGuardianName  String?          @map("parent_guardian_name")
   parentGuardianPhone String?          @map("parent_guardian_phone")
   parentGuardianEmail String?          @map("parent_guardian_email")
-  departmentId        String           @map("department_id") @db.Uuid
-  batchId             String           @map("batch_id") @db.Uuid
+  departmentId        String           @map("department_id")  
+  batchId             String           @map("batch_id")  
   createdAt           DateTime         @default(now()) @map("created_at")
   updatedAt           DateTime         @updatedAt @map("updated_at")
   currentSemester     Int?             @map("current_semester")
@@ -275,8 +338,8 @@ model Student {
 
 // Teacher Information
 model Teacher {
-  id                 String           @id @default(uuid()) @db.Uuid
-  userId             String           @unique @map("user_id") @db.Uuid
+  id                 String           @id @default(cuid())  
+  userId             String           @unique @map("user_id")  
   teacherId          String           @unique @map("teacher_id") // Teacher ID now unique
   firstName          String           @map("first_name")
   lastName           String           @map("last_name")
@@ -287,7 +350,7 @@ model Teacher {
   qualification      String?
   joiningDate        DateTime?        @map("joining_date") @db.Date
   employmentStatus   EmploymentStatus @map("employment_status")
-  departmentId       String           @map("department_id") @db.Uuid
+  departmentId       String           @map("department_id")  
   createdAt          DateTime         @default(now()) @map("created_at")
   updatedAt          DateTime         @updatedAt @map("updated_at")
   performanceScore   Float?           @map("performance_score")
@@ -308,10 +371,10 @@ model Teacher {
 
 // Department Head Information
 model DepartmentHead {
-  id              String    @id @default(uuid()) @db.Uuid
-  userId          String    @unique @map("user_id") @db.Uuid
-  teacherId       String    @unique @map("teacher_id") @db.Uuid
-  departmentId    String    @unique @map("department_id") @db.Uuid
+  id              String    @id @default(cuid())  
+  userId          String    @unique @map("user_id")  
+  teacherId       String    @unique @map("teacher_id")  
+  departmentId    String    @unique @map("department_id")  
   appointmentDate DateTime  @map("appointment_date") @db.Date
   endDate         DateTime? @map("end_date") @db.Date
   createdAt       DateTime  @default(now()) @map("created_at")
@@ -327,16 +390,16 @@ model DepartmentHead {
 
 // Course Structure
 model Course {
-  id           String     @id @default(uuid()) @db.Uuid
+  id           String     @id @default(cuid())  
   courseCode   String     @unique @map("course_code")
   name         String
   description  String?
   creditHours  Int        @map("credit_hours")
   courseType   CourseType @map("course_type")
-  departmentId String     @map("department_id") @db.Uuid
+  departmentId String     @map("department_id")  
   createdAt    DateTime   @default(now()) @map("created_at")
   updatedAt    DateTime   @updatedAt @map("updated_at")
-  createdById  String     @map("created_by") @db.Uuid
+  createdById  String     @map("created_by")  
 
   // Relations
   department      Department       @relation(fields: [departmentId], references: [id], onDelete: Restrict, onUpdate: Cascade)
@@ -349,10 +412,10 @@ model Course {
 }
 
 model Batch {
-  id           String   @id @default(uuid()) @db.Uuid
+  id           String   @id @default(cuid())  
   batchName    String   @map("batch_name")
   year         Int
-  departmentId String   @map("department_id") @db.Uuid
+  departmentId String   @map("department_id")  
   maxStudents  Int      @map("max_students")
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
@@ -366,11 +429,11 @@ model Batch {
 }
 
 model Semester {
-  id            String   @id @default(uuid()) @db.Uuid
+  id            String   @id @default(cuid())  
   name          String
   startDate     DateTime @map("start_date") @db.Date
   endDate       DateTime @map("end_date") @db.Date
-  institutionId String   @map("institution_id") @db.Uuid
+  institutionId String   @map("institution_id")  
   isCurrent     Boolean  @map("is_current")
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
@@ -385,12 +448,12 @@ model Semester {
 }
 
 model ClassSection {
-  id          String   @id @default(uuid()) @db.Uuid
+  id          String   @id @default(cuid())  
   sectionName String   @map("section_name")
-  batchId     String   @map("batch_id") @db.Uuid
-  courseId    String   @map("course_id") @db.Uuid
-  semesterId  String   @map("semester_id") @db.Uuid
-  teacherId   String   @map("teacher_id") @db.Uuid
+  batchId     String   @map("batch_id")  
+  courseId    String   @map("course_id")  
+  semesterId  String   @map("semester_id")  
+  teacherId   String   @map("teacher_id")  
   maxStudents Int      @map("max_students")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
@@ -411,9 +474,9 @@ model ClassSection {
 }
 
 model StudentClassEnrollment {
-  id               String                @id @default(uuid()) @db.Uuid
-  studentId        String                @map("student_id") @db.Uuid
-  classSectionId   String                @map("class_section_id") @db.Uuid
+  id               String                @id @default(cuid())  
+  studentId        String                @map("student_id")  
+  classSectionId   String                @map("class_section_id")  
   createdAt        DateTime              @default(now()) @map("created_at")
   updatedAt        DateTime              @updatedAt @map("updated_at")
   enrollmentStatus ClassEnrollmentStatus @map("enrollment_status")
@@ -427,9 +490,9 @@ model StudentClassEnrollment {
 
 // Attendance Management
 model AttendanceSession {
-  id             String      @id @default(uuid()) @db.Uuid
-  classSectionId String      @map("class_section_id") @db.Uuid
-  teacherId      String      @map("teacher_id") @db.Uuid
+  id             String      @id @default(cuid())  
+  classSectionId String      @map("class_section_id")  
+  teacherId      String      @map("teacher_id")  
   sessionDate    DateTime    @map("session_date") @db.Date
   startTime      DateTime    @map("start_time") @db.Time
   endTime        DateTime    @map("end_time") @db.Time
@@ -447,12 +510,12 @@ model AttendanceSession {
 }
 
 model Attendance {
-  id                  String           @id @default(uuid()) @db.Uuid
-  attendanceSessionId String           @map("attendance_session_id") @db.Uuid
-  studentId           String           @map("student_id") @db.Uuid
+  id                  String           @id @default(cuid())  
+  attendanceSessionId String           @map("attendance_session_id")  
+  studentId           String           @map("student_id")  
   status              AttendanceStatus
   remarks             String?
-  recordedById        String           @map("recorded_by") @db.Uuid
+  recordedById        String           @map("recorded_by")  
   recordedAt          DateTime         @map("recorded_at")
   updatedAt           DateTime         @updatedAt @map("updated_at")
   isLocked            Boolean          @default(false) @map("is_locked")
@@ -466,8 +529,8 @@ model Attendance {
 }
 
 model AttendanceSettings {
-  id                          String   @id @default(uuid()) @db.Uuid
-  institutionId               String   @map("institution_id") @db.Uuid
+  id                          String   @id @default(cuid())  
+  institutionId               String   @map("institution_id")  
   minimumAttendancePercentage Float    @map("minimum_attendance_percentage")
   autoLockAttendance          Boolean  @map("auto_lock_attendance")
   autoLockAfterHours          Int      @map("auto_lock_after_hours")
@@ -483,10 +546,10 @@ model AttendanceSettings {
 
 // Examination and Assessment
 model ExamType {
-  id            String   @id @default(uuid()) @db.Uuid
+  id            String   @id @default(cuid())  
   name          String
   description   String?
-  institutionId String   @map("institution_id") @db.Uuid
+  institutionId String   @map("institution_id")  
   weightage     Float
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
@@ -499,11 +562,11 @@ model ExamType {
 }
 
 model Exam {
-  id              String     @id @default(uuid()) @db.Uuid
+  id              String     @id @default(cuid())  
   title           String
   description     String?
-  examTypeId      String     @map("exam_type_id") @db.Uuid
-  classSectionId  String     @map("class_section_id") @db.Uuid
+  examTypeId      String     @map("exam_type_id")  
+  classSectionId  String     @map("class_section_id")  
   examDate        DateTime   @map("exam_date") @db.Date
   startTime       DateTime   @map("start_time") @db.Time
   endTime         DateTime   @map("end_time") @db.Time
@@ -513,7 +576,7 @@ model Exam {
   isPublished     Boolean    @default(false) @map("is_published")
   createdAt       DateTime   @default(now()) @map("created_at")
   updatedAt       DateTime   @updatedAt @map("updated_at")
-  createdById     String     @map("created_by") @db.Uuid
+  createdById     String     @map("created_by")  
   status          ExamStatus
   isAiGenerated   Boolean    @default(false) @map("is_ai_generated")
 
@@ -528,15 +591,15 @@ model Exam {
 }
 
 model Question {
-  id              String       @id @default(uuid()) @db.Uuid
-  examId          String       @map("exam_id") @db.Uuid
+  id              String       @id @default(cuid())  
+  examId          String       @map("exam_id")  
   questionText    String       @map("question_text")
   questionType    QuestionType @map("question_type")
   marks           Float
   difficultyLevel String       @map("difficulty_level") // Consider enum if fixed values
   correctAnswer   Json         @map("correct_answer")
   options         Json? // For MCQs
-  createdById     String       @map("created_by") @db.Uuid
+  createdById     String       @map("created_by")  
   createdAt       DateTime     @default(now()) @map("created_at")
   updatedAt       DateTime     @updatedAt @map("updated_at")
   isAiGenerated   Boolean      @default(false) @map("is_ai_generated")
@@ -550,14 +613,14 @@ model Question {
 }
 
 model ExamSubmission {
-  id             String             @id @default(uuid()) @db.Uuid
-  examId         String             @map("exam_id") @db.Uuid
-  studentId      String             @map("student_id") @db.Uuid
+  id             String             @id @default(cuid())  
+  examId         String             @map("exam_id")  
+  studentId      String             @map("student_id")  
   submissionTime DateTime           @map("submission_time")
   obtainedMarks  Float              @map("obtained_marks")
   status         AnswerScriptStatus @map("status")
   feedback       String?
-  gradedById     String?            @map("graded_by") @db.Uuid
+  gradedById     String?            @map("graded_by")  
   gradedAt       DateTime?          @map("graded_at")
   createdAt      DateTime           @default(now()) @map("created_at")
   updatedAt      DateTime           @updatedAt @map("updated_at")
@@ -572,14 +635,14 @@ model ExamSubmission {
 }
 
 model AnswerScript {
-  id               String             @id @default(uuid()) @db.Uuid
-  examSubmissionId String             @map("exam_submission_id") @db.Uuid
-  questionId       String             @map("question_id") @db.Uuid
+  id               String             @id @default(cuid())  
+  examSubmissionId String             @map("exam_submission_id")  
+  questionId       String             @map("question_id")  
   studentAnswer    String             @map("student_answer") @db.Text
   obtainedMarks    Float              @map("obtained_marks")
   remarks          String?
   status           AnswerScriptStatus @map("status")
-  gradedById       String?            @map("graded_by") @db.Uuid
+  gradedById       String?            @map("graded_by")  
   gradedAt         DateTime?          @map("graded_at")
   createdAt        DateTime           @default(now()) @map("created_at")
   updatedAt        DateTime           @updatedAt @map("updated_at")
@@ -596,12 +659,12 @@ model AnswerScript {
 
 // AI Content Generation
 model AIVideoContent {
-  id              String          @id @default(uuid()) @db.Uuid
+  id              String          @id @default(cuid())  
   title           String
   description     String          @db.Text
-  courseId        String          @map("course_id") @db.Uuid
-  teacherId       String          @map("teacher_id") @db.Uuid
-  classSectionId  String?         @map("class_section_id") @db.Uuid
+  courseId        String          @map("course_id")  
+  teacherId       String          @map("teacher_id")  
+  classSectionId  String?         @map("class_section_id")  
   videoUrl        String          @map("video_url")
   thumbnailUrl    String          @map("thumbnail_url")
   durationSeconds Int             @map("duration_seconds")
@@ -614,7 +677,7 @@ model AIVideoContent {
   creditsUsed     Int             @map("credits_used")
   createdAt       DateTime        @default(now()) @map("created_at")
   updatedAt       DateTime        @updatedAt @map("updated_at")
-  createdById     String          @map("created_by") @db.Uuid
+  createdById     String          @map("created_by")  
 
   // Relations
   course        Course         @relation(fields: [courseId], references: [id], onDelete: Restrict, onUpdate: Cascade)
@@ -627,9 +690,9 @@ model AIVideoContent {
 }
 
 model VideoViewLog {
-  id                     String   @id @default(uuid()) @db.Uuid
-  videoId                String   @map("video_id") @db.Uuid
-  studentId              String   @map("student_id") @db.Uuid
+  id                     String   @id @default(cuid())  
+  videoId                String   @map("video_id")  
+  studentId              String   @map("student_id")  
   viewStarted            DateTime @map("view_started")
   viewEnded              DateTime @map("view_ended")
   durationWatchedSeconds Int      @map("duration_watched_seconds")
@@ -646,10 +709,10 @@ model VideoViewLog {
 }
 
 model AIQuestionBank {
-  id              String          @id @default(uuid()) @db.Uuid
+  id              String          @id @default(cuid())  
   title           String
-  courseId        String          @map("course_id") @db.Uuid
-  teacherId       String          @map("teacher_id") @db.Uuid
+  courseId        String          @map("course_id")  
+  teacherId       String          @map("teacher_id")  
   questionType    QuestionType    @map("question_type")
   questionCount   Int             @map("question_count")
   difficultyLevel String          @map("difficulty_level") // Consider enum if fixed
@@ -657,7 +720,7 @@ model AIQuestionBank {
   status          AIContentStatus @map("status")
   createdAt       DateTime        @default(now()) @map("created_at")
   updatedAt       DateTime        @updatedAt @map("updated_at")
-  createdById     String          @map("created_by") @db.Uuid
+  createdById     String          @map("created_by")  
 
   // Relations
   course    Course  @relation(fields: [courseId], references: [id], onDelete: Restrict, onUpdate: Cascade)
@@ -669,7 +732,7 @@ model AIQuestionBank {
 
 // Subscription and Billing
 model SubscriptionPlan {
-  id                           String   @id @default(uuid()) @db.Uuid
+  id                           String   @id @default(cuid())  
   name                         String
   description                  String?
   priceMonthly                 Float    @map("price_monthly")
@@ -696,9 +759,9 @@ model SubscriptionPlan {
 }
 
 model Subscription {
-  id               String             @id @default(uuid()) @db.Uuid
-  institutionId    String             @map("institution_id") @db.Uuid
-  planId           String             @map("plan_id") @db.Uuid
+  id               String             @id @default(cuid())  
+  institutionId    String             @map("institution_id")  
+  planId           String             @map("plan_id")  
   startDate        DateTime           @map("start_date") @db.Date
   endDate          DateTime           @map("end_date") @db.Date
   status           SubscriptionStatus @map("status")
@@ -718,8 +781,8 @@ model Subscription {
 }
 
 model Credit {
-  id                          String   @id @default(uuid()) @db.Uuid
-  institutionId               String   @unique @map("institution_id") @db.Uuid
+  id                          String   @id @default(cuid())  
+  institutionId               String   @unique @map("institution_id")  
   videoCreditsBalance         Int      @map("video_credits_balance")
   questionPaperCreditsBalance Int      @map("question_paper_credits_balance")
   copyCheckingCreditsBalance  Int      @map("copy_checking_credits_balance")
@@ -732,14 +795,14 @@ model Credit {
 }
 
 model CreditTransaction {
-  id              String          @id @default(uuid()) @db.Uuid
-  institutionId   String          @map("institution_id") @db.Uuid
+  id              String          @id @default(cuid())  
+  institutionId   String          @map("institution_id")  
   transactionType TransactionType @map("transaction_type")
   creditType      CreditType      @map("credit_type")
   quantity        Int
   description     String?
   relatedEntityId String?         @map("related_entity_id")
-  performedById   String          @map("performed_by") @db.Uuid
+  performedById   String          @map("performed_by")  
   createdAt       DateTime        @default(now()) @map("created_at")
 
   // Relations
@@ -750,9 +813,9 @@ model CreditTransaction {
 }
 
 model Invoice {
-  id               String        @id @default(uuid()) @db.Uuid
-  institutionId    String        @map("institution_id") @db.Uuid
-  subscriptionId   String        @map("subscription_id") @db.Uuid
+  id               String        @id @default(cuid())  
+  institutionId    String        @map("institution_id")  
+  subscriptionId   String        @map("subscription_id")  
   invoiceNumber    String        @map("invoice_number")
   issueDate        DateTime      @map("issue_date") @db.Date
   dueDate          DateTime      @map("due_date") @db.Date
@@ -773,17 +836,17 @@ model Invoice {
 
 // Performance Analytics
 model TeacherPerformanceMetric {
-  id                        String   @id @default(uuid()) @db.Uuid
-  teacherId                 String   @map("teacher_id") @db.Uuid
-  departmentId              String   @map("department_id") @db.Uuid
-  semesterId                String   @map("semester_id") @db.Uuid
+  id                        String   @id @default(cuid())  
+  teacherId                 String   @map("teacher_id")  
+  departmentId              String   @map("department_id")  
+  semesterId                String   @map("semester_id")  
   attendanceRegularityScore Float    @map("attendance_regularity_score")
   studentPerformanceScore   Float    @map("student_performance_score")
   contentQualityScore       Float    @map("content_quality_score")
   overallScore              Float    @map("overall_score")
   detailedMetrics           Json     @map("detailed_metrics")
   evaluationDate            DateTime @map("evaluation_date")
-  evaluatedById             String   @map("evaluated_by") @db.Uuid
+  evaluatedById             String   @map("evaluated_by")  
   createdAt                 DateTime @default(now()) @map("created_at")
   updatedAt                 DateTime @updatedAt @map("updated_at")
 
@@ -797,10 +860,10 @@ model TeacherPerformanceMetric {
 }
 
 model StudentPerformanceMetric {
-  id                       String              @id @default(uuid()) @db.Uuid
-  studentId                String              @map("student_id") @db.Uuid
-  classSectionId           String              @map("class_section_id") @db.Uuid
-  semesterId               String              @map("semester_id") @db.Uuid
+  id                       String              @id @default(cuid())  
+  studentId                String              @map("student_id")  
+  classSectionId           String              @map("class_section_id")  
+  semesterId               String              @map("semester_id")  
   attendancePercentage     Float               @map("attendance_percentage")
   overallGradePoints       Float               @map("overall_grade_points")
   assignmentCompletionRate Float               @map("assignment_completion_rate")
@@ -819,8 +882,8 @@ model StudentPerformanceMetric {
 
 // Notifications and Communications
 model Notification {
-  id               String    @id @default(uuid()) @db.Uuid
-  userId           String    @map("user_id") @db.Uuid
+  id               String    @id @default(cuid())  
+  userId           String    @map("user_id")  
   title            String
   message          String    @db.Text
   notificationType String    @map("notification_type") // Consider enum if fixed
@@ -836,13 +899,13 @@ model Notification {
 }
 
 model Announcement {
-  id             String    @id @default(uuid()) @db.Uuid
+  id             String    @id @default(cuid())  
   title          String
   content        String    @db.Text
-  createdById    String    @map("created_by") @db.Uuid
-  institutionId  String    @map("institution_id") @db.Uuid
-  departmentId   String?   @map("department_id") @db.Uuid
-  classSectionId String?   @map("class_section_id") @db.Uuid
+  createdById    String    @map("created_by")  
+  institutionId  String    @map("institution_id")  
+  departmentId   String?   @map("department_id")  
+  classSectionId String?   @map("class_section_id")  
   isImportant    Boolean   @default(false) @map("is_important")
   expiryDate     DateTime? @map("expiry_date") @db.Date
   createdAt      DateTime  @default(now()) @map("created_at")
@@ -859,11 +922,11 @@ model Announcement {
 
 // Audit and Security
 model AuditLog {
-  id         String     @id @default(uuid()) @db.Uuid
-  userId     String     @map("user_id") @db.Uuid
+  id         String     @id @default(cuid())  
+  userId     String     @map("user_id")  
   action     ActionType @map("action")
   entityType String     @map("entity_type") // Consider enum if fixed
-  entityId   String     @map("entity_id") @db.Uuid
+  entityId   String     @map("entity_id")  
   oldValues  Json?      @map("old_values")
   newValues  Json?      @map("new_values")
   ipAddress  String     @map("ip_address")
@@ -877,7 +940,7 @@ model AuditLog {
 }
 
 model LoginAttempt {
-  id            String   @id @default(uuid()) @db.Uuid
+  id            String   @id @default(cuid())  
   email         String
   ipAddress     String   @map("ip_address")
   userAgent     String   @map("user_agent")
@@ -890,15 +953,15 @@ model LoginAttempt {
 
 // System Settings
 model SystemSettings {
-  id                   String   @id @default(uuid()) @db.Uuid
-  institutionId        String   @map("institution_id") @db.Uuid
+  id                   String   @id @default(cuid())  
+  institutionId        String   @map("institution_id")  
   attendanceSettings   Json     @map("attendance_settings")
   examinationSettings  Json     @map("examination_settings")
   notificationSettings Json     @map("notification_settings")
   securitySettings     Json     @map("security_settings")
   createdAt            DateTime @default(now()) @map("created_at")
   updatedAt            DateTime @updatedAt @map("updated_at")
-  lastUpdatedById      String   @map("last_updated_by") @db.Uuid
+  lastUpdatedById      String   @map("last_updated_by")  
 
   // Relations
   institution   Institution @relation(fields: [institutionId], references: [id], onDelete: Restrict, onUpdate: Cascade)
@@ -908,14 +971,14 @@ model SystemSettings {
 }
 
 model APIKey {
-  id            String   @id @default(uuid()) @db.Uuid
-  institutionId String   @map("institution_id") @db.Uuid
+  id            String   @id @default(cuid())  
+  institutionId String   @map("institution_id")  
   keyName       String   @map("key_name")
   apiKeyHash    String   @map("api_key_hash")
   expiresAt     DateTime @map("expires_at")
   permissions   String
   isActive      Boolean  @default(true) @map("is_active")
-  createdById   String   @map("created_by") @db.Uuid
+  createdById   String   @map("created_by")  
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
 
@@ -925,3 +988,46 @@ model APIKey {
 
   @@map("api_keys")
 }
+
+// Core User Management
+// model User {
+// id                String    @id @default(cuid())  
+// email             String    @unique
+// passwordHash      String    @map("password_hash")
+// role              Role      @default(STUDENT)
+// isActive          Boolean   @map("is_active")
+// createdAt         DateTime  @default(now()) @map("created_at")
+// updatedAt         DateTime  @updatedAt @map("updated_at")
+// lastLogin         DateTime? @map("last_login")
+// resetToken        String?   @map("reset_token")
+// resetTokenExpires DateTime? @map("reset_token_expires")
+// isEmailVerified   Boolean   @default(false) @map("is_email_verified")
+// twoFactorSecret   String?   @map("two_factor_secret")
+// twoFactorEnabled  Boolean   @default(false) @map("two_factor_enabled")
+// profileImageUrl   String?   @map("profile_image_url")
+// timezone          String?
+// institutionId     String    @map("institution_id")  
+
+// // Relations
+// institution           Institution                @relation(fields: [institutionId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+// teacher               Teacher?
+// student               Student?
+// departmentHead        DepartmentHead?
+// auditLogs             AuditLog[]
+// notifications         Notification[]
+// announcements         Announcement[]             @relation("CreatedByUser")
+// createdCourses        Course[]                   @relation("CourseCreator")
+// createdExams          Exam[]                     @relation("ExamCreator")
+// createdQuestions      Question[]                 @relation("QuestionCreator")
+// examGrader            ExamSubmission[]           @relation("GradedByUser")
+// answerGrader          AnswerScript[]             @relation("AnswerGrader")
+// attendanceRecorder    Attendance[]               @relation("RecordedByUser")
+// systemSettingsUpdater SystemSettings[]           @relation("UpdatedByUser")
+// evaluatedTeachers     TeacherPerformanceMetric[] @relation("EvaluatedBy")
+// apiKeyCreator         APIKey[]                   @relation("CreatedByUser")
+// creditTransactions    CreditTransaction[]        @relation("PerformedByUser")
+// aiVideoContents       AIVideoContent[]           @relation("VideoCreator")
+// AIQuestionBank        AIQuestionBank[]
+
+// @@map("users")
+// }
