@@ -5,6 +5,7 @@ const userWorker = new Worker(
     'user-queue',
 
     async (job) => {
+        console.log("User Worker is processing job:", job.name, job.data);
         switch(job.name){
             case "create-user":
         const result = await prisma.user.create({
