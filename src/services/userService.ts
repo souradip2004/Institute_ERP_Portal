@@ -1,12 +1,13 @@
 import prisma from '@/config/prisma';
-
+import {userQueue} from '@/bullmq/queues/userqueue';
 export class UserService {
   async getAllUsers() {
     return prisma.user.findMany();
   }
 
   async createUser(data: any) {
-    return prisma.user.create({ data });
+    return userQueue.add('create-user', {
+      data});
   }
 
   async getUserById(id: string) {
@@ -14,10 +15,13 @@ export class UserService {
   }
 
   async updateUser(id: string, data: any) {
-    return prisma.user.update({ where: { id }, data });
+    return userQueue.add('update-user', {
+      data,
+      identity:id});
   }
 
   async deleteUser(id: string) {
-    return prisma.user.delete({ where: { id } });
+    return userQueue.add('delete-user', {
+      identity:id});
   }
 }
