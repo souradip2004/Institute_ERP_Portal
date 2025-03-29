@@ -6,28 +6,38 @@ const courseWorker = new Worker(
     async (job) => {
         switch(job.name){
         case "create-course":
-        await prisma.course.create({
+        const result=await prisma.course.create({
             data: job.data.data,
-        }).then(() => {
+        }).then((data) => {
             console.log(`Batch ${job.data.data} created`);
+            return data;
         }).catch((err) => {
             console.error(`Error creating Course ${job.name}:`, err);
+            return null;
         });
-        break;
+        return result;
         case "update-course":
-            await prisma.course.update({
+          const update=  await prisma.course.update({
                 where: { id: job.data.identity },
                 data: job.data.data 
             })
-        break;
+            if(update?.id){
+                const redisKey = `course:${update.id}`;
+                redis.set(redisKey, JSON.stringify({ ...job.data.data, id: update.id }));
+            }
+            return update;
         case "delete-course":
-            await prisma.batch.delete({
+            const del=await prisma.batch.delete({
                 where:{id:job.data.identity}
             })
-            break;
+            if(del?.id){
+                const redisKey = `course:${del.id}`;
+                redis.del(redisKey);
+            }
+            return del;
         default:
-            console.log("Invalid Operation in course work");
-    }},
+            throw new Error('Invalid job name');
+        }},
     {
         connection: redis
     }

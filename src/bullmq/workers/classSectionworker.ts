@@ -6,28 +6,42 @@ const classSection = new Worker(
     async (job) => {
         switch(job.name){
             case "create-section":
-        await prisma.classSection.create({
+        const result = await prisma.classSection.create({
             data: job.data.data,
-        }).then(() => {
+        }).then((data) => {
             console.log(`Batch ${job.data.name} created`);
+            return data;
         }).catch((err) => {
             console.error(`Error creating department ${job.data.name}:`, err);
+            return null;
         });
-        break;
+        if(result?.id){
+            const redisKey = `classSection:${result.id}`;
+            redis.set(redisKey, JSON.stringify({ ...job.data.data, id: result.id }));
+        }
+        return result;
         case "update-section":
-            await prisma.classSection.update({
+            const update=await prisma.classSection.update({
                 where: { id: job.data.identity },
                 data: job.data.data   
             })
-        break;
+            if(update?.id){
+                const redisKey = `classSection:${update.id}`;
+                redis.set(redisKey, JSON.stringify({ ...job.data.data, id: update.id }));
+            }
+            return update;
         case "delete-section":
-            await prisma.classSection.delete({
+            const del=await prisma.classSection.delete({
                 where:{id:job.data.identity}
             })
-            break;
+            if(del?.id){
+                const redisKey = `classSection:${del.id}`;
+                redis.del(redisKey);
+            }
+            return del;
         default:
-            console.log("Invalid Operation in Section work");
-    }
+            throw new Error('Invalid job name');
+        }
     },
     {
         connection: redis

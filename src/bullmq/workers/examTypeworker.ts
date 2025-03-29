@@ -6,28 +6,42 @@ const examhWorker = new Worker(
     async (job) => {
         switch(job.name){
             case "create-examtype":
-        await prisma.examType.create({
+        const result=await prisma.examType.create({
             data: job.data.data,
-        }).then(() => {
+        }).then((data) => {
             console.log(`examtype ${job.data.data} created`);
+            return data;
         }).catch((err) => {
             console.error(`Error creating examtype ${job.data.data}:`, err);
+            return null;
         });
-        break;
+        if(result?.id){
+            const redisKey = `examtype:${result.id}`;
+            redis.set(redisKey, JSON.stringify({ ...job.data.data, id: result.id }));
+        }
+        return result;
         case "update-examtype":
-            await prisma.examType.update({
+            const update=await prisma.examType.update({
                 where: { id: job.data.identity },
                 data: job.data.data   
             })
-        break;
+            if(update?.id){
+                const redisKey = `examtype:${update.id}`;
+                redis.set(redisKey, JSON.stringify({ ...job.data.data, id: update.id }));
+            }
+            return update;
         case "delete-course":
-            await prisma.examType.delete({
+            const del=await prisma.examType.delete({
                 where:{id:job.data.identity}
             })
-            break;
+            if(del?.id){
+                const redisKey = `examtype:${del.id}`;
+                redis.del(redisKey);
+            }
+            return del;
         default:
-            console.log("Invalid Operation in examtype work");
-    }
+            throw new Error('Invalid job name');
+        }
      },
     {
         connection: redis

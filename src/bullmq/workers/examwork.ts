@@ -6,27 +6,41 @@ const examhWorker = new Worker(
     async (job) => {
         switch(job.name){
             case "create-exam":
-        await prisma.batch.create({
+        const result=await prisma.batch.create({
             data: job.data.data,
-        }).then(() => {
+        }).then((data) => {
             console.log(`Batch ${job.data.data} created`);
+            return data;
         }).catch((err) => {
             console.error(`Error creating department ${job.data.data}:`, err);
+            return null;
         });
-      break;
+        if(result?.id){
+            const redisKey = `exam:${result.id}`;
+            redis.set(redisKey, JSON.stringify({ ...job.data.data, id: result.id }));
+        }
+        return result;
       case "update-exam":
-          await prisma.exam.update({
+          const update=await prisma.exam.update({
               where: { id: job.data.identity },
               data: job.data.data   
           })
-      break;
+            if(update?.id){
+                const redisKey = `exam:${update.id}`;
+                redis.set(redisKey, JSON.stringify({ ...job.data.data, id: update.id }));
+            }
+            return update;
       case "delete-exam":
-        await prisma.exam.delete({
+        const del=await prisma.exam.delete({
             where:{id:job.data.identity}
         })
-          break;
+        if(del?.id){
+            const redisKey = `exam:${del.id}`;
+            redis.del(redisKey);
+        }
+        return del;
       default:
-          console.log("Invalid Operation in exam work");
+        throw new Error('Invalid job name');
     }  },
     {
         connection: redis

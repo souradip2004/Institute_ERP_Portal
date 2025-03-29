@@ -6,28 +6,41 @@ const teacherWorker = new Worker(
     async (job) => {
         switch(job.name){
             case "create-teacher":
-        await prisma.teacher.create({
+       const result= await prisma.teacher.create({
             data: job.data.data,
-        }).then(() => {
+        }).then((data) => {
             console.log(`teacher ${job.data.data} created`);
+            return data;
         }).catch((err) => {
             console.error(`Error creating department ${job.data.data}:`, err);
         });
-        break;
+        if(result?.id){
+            const redisKey = `teacher:${result.id}`;
+            redis.set(redisKey, JSON.stringify({ ...job.data.data, id: result.id }));
+        }
+        return result;
         case "update-teacher":
-            await prisma.teacher.update({
+            const update=await prisma.teacher.update({
                 where: { id: job.data.identity },
                 data: job.data.data   
             })
-        break;
+            if(update?.id){
+                const redisKey = `teacher:${update.id}`;
+                redis.set(redisKey, JSON.stringify({ ...job.data.data, id: update.id }));
+            }
+            return update;
         case "delete-teacher":
-            await prisma.teacher.delete({
+            const del=await prisma.teacher.delete({
                 where:{id:job.data.identity}
             })
-            break;
+            if(del?.id){
+                const redisKey = `teacher:${del.id}`;
+                redis.del(redisKey);
+            }
+            return del;
         default:
-            console.log("Invalid Operation in teacher work");
-      }  },
+            throw new Error('Invalid job name');
+        }  },
     {
         connection: redis
     }

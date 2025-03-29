@@ -9,16 +9,30 @@ const institutionWorker = new Worker('institution-queue', async (job) => {
             data: job.data.data,
         });
         console.log(`Institution ${job.data.data} created`);
+        if(result?.id){
+            const redisKey = `institution:${result.id}`;
+            redis.set(redisKey, JSON.stringify({ ...job.data.data, id: result.id }));
+        }
         return result;  
         case 'update-institution':
-        return await prisma.institution.update({
+        const update= await prisma.institution.update({
             where: { id: job.data.identity },
             data: job.data.data,
         });
+        if(update?.id){
+            const redisKey = `institution:${update.id}`;
+            redis.set(redisKey, JSON.stringify({ ...job.data.data, id: update.id }));
+        }
+        return update;
         case 'delete-institution':
-        return await prisma.institution.delete({
+        const del= await prisma.institution.delete({
             where: { id: job.data.identity },
         });
+        if(del?.id){
+            const redisKey = `institution:${del.id}`;
+            redis.del(redisKey);
+        }
+        return del;
         default:
         throw new Error('Invalid job name');
     }

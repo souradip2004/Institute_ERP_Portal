@@ -6,31 +6,44 @@ const departmentWorker = new Worker(
     async (job) => {
         switch (job.name){
             case "create-department":
-        await prisma.department.create({
+        const result = await prisma.department.create({
             data: job.data.data,
-        }).then(() => {
+        }).then((data) => {
             console.log(`Department ${job.data.data} created`);
+            return data;
         }).catch((err) => {
             console.error(`Error creating department ${job.data}:`, err);
+            return null
         });
-    break;
+        if(result?.id){
+            const redisKey = `department:${result.id}`;
+            redis.set(redisKey, JSON.stringify({ ...job.data.data, id: result.id }));
+        }
+        return result;
     case "update-department":
-        await prisma.department.update({
+       const update= await prisma.department.update({
 where: { id: job.data.identity },
 data: job.data.data,
         }
             
         )
-        break;
+        if(update?.id){
+            const redisKey = `department:${update.id}`;
+            redis.set(redisKey, JSON.stringify({ ...job.data.data, id: update.id }));
+        }
+        return update;
+        
     case "delete-department":
-        await prisma.department.delete({
+        const del=await prisma.department.delete({
             where:{id:job.data.identity}
         })
-        break;
+        if(del?.id){
+            const redisKey = `department:${del.id}`;
+            redis.del(redisKey);
+        }
+        return del;
     default:
-        console.log("Invalid Job");
-
-    
+        throw new Error('Invalid job name');
     }},
     {
         connection: redis

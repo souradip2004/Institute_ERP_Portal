@@ -18,7 +18,7 @@ export class ExamService {
   async updateExam(id: string, data: any) {
     return await examQueue.add('update-exam',{
       identity:id,
-      data:data
+      data
     });
   }
 

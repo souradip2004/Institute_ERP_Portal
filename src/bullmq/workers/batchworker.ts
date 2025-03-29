@@ -7,26 +7,40 @@ const batchWorker = new Worker(
     async (job) => {
         switch(job.name){
             case "create-batch":
-        await prisma.batch.create({
+        const result = await prisma.batch.create({
             data: job.data.data,
-        }).then(() => {
+        }).then((batch) => {
             console.log(`Batch ${job.data.name} created`);
+            return batch;
         }).catch((err) => {
-            console.error(`Error creating department ${job.data.name}:`, err);
+            console.error(`Error creating batch ${job.data.name}:`, err);
+            return null;
         });
-        break;
+        if(result?.id){
+            const redisKey = `batch:${result.id}`;
+            redis.set(redisKey, JSON.stringify({ ...job.data.data, id: result.id }));
+        }
+        return result;
         case "update-batch":
-            await prisma.batch.update({
+           const update= await prisma.batch.update({
                 where: { id: job.data.identity },
                 data: job.data.data            })
-                 break;
+            if(update?.id){
+                const redisKey = `batch:${update.id}`;
+                redis.set(redisKey, JSON.stringify({ ...job.data.data, id: update.id }));
+            }
+            return update;
         case "delete-batch":
-            await prisma.batch.delete({
+         const del=await prisma.batch.delete({
                 where:{id:job.data.identity}
             })
-            break;
+            if(del?.id){
+                const redisKey = `batch:${del.id}`;
+                redis.del(redisKey);
+            }
+            return del;
         default :
-        console.log("Ivalid Operation in Batch")
+        throw new Error('Invalid job name');
 
             }
 

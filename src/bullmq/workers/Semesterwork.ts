@@ -6,28 +6,43 @@ const semesterhWorker = new Worker(
     async (job) => {
         switch(job.name){
             case "create-semester":
-        await prisma.semester.create({
+       const result= await prisma.semester.create({
             data: job.data.data,
-        }).then(() => {
+        }).then((data) => {
             console.log(`Batch ${job.data.data} created`);
+            return data;
         }).catch((err) => {
             console.error(`Error creating department ${job.data.data}:`, err);
+            return null;
         });
-        break;
+        if(result?.id){
+            const redisKey = `semester:${result.id}`;
+            redis.set(redisKey, JSON.stringify({ ...job.data.data, id: result.id }));
+        }
+        return result;
         case "update-semester":
-            await prisma.semester.update({
+            const update=await prisma.semester.update({
                 where: { id: job.data.identity },
                 data: job.data.data   
             })
-        break;
+            if(update?.id){
+                const redisKey = `semester:${update.id}`;
+                redis.set(redisKey, JSON.stringify({ ...job.data.data, id: update.id }));
+            }
+            return update;
         case "delete-semester":
-            await prisma.semester.delete({
+            const del=await prisma.semester.delete({
                 where:{id:job.data.identity}
             })
-            break;
+            if(del?.id){
+                const redisKey = `semester:${del.id}`;
+                redis.del(redisKey);
+            }
+            return del;
+        
         default:
-            console.log("Invalid Operation in semester work");
-    }},
+            throw new Error('Invalid job name');
+        }},
     {
         connection: redis
     }
