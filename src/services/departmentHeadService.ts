@@ -1,12 +1,14 @@
 import prisma from '@/config/prisma';
-
+import { DheadQueue } from '@/bullmq/queues/departmentHead';
 export class DepartmentHeadService {
   async getAllDepartmentHeads() {
     return prisma.departmentHead.findMany();
   }
 
   async createDepartmentHead(data: any) {
-    return prisma.departmentHead.create({ data });
+    return DheadQueue.add('create-dhead', {
+      data,
+    });
   }
 
   async getDepartmentHeadById(id: string) {
@@ -14,10 +16,15 @@ export class DepartmentHeadService {
   }
 
   async updateDepartmentHead(id: string, data: any) {
-    return prisma.departmentHead.update({ where: { id }, data });
+    return DheadQueue.add('update-dhead', {
+      identity: id,
+      data,
+    });
   }
 
   async deleteDepartmentHead(id: string) {
-    return prisma.departmentHead.delete({ where: { id } });
+    return DheadQueue.add('delete-dhead', {
+      identity: id,
+    });
   }
 }

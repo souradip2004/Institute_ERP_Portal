@@ -1,12 +1,14 @@
 import prisma from '@/config/prisma';
-
+import { questionQueue } from '@/bullmq/queues/question';
 export class QuestionService {
   async getAllQuestions() {
     return prisma.question.findMany();
   }
 
   async createQuestion(data: any) {
-    return prisma.question.create({ data });
+    return questionQueue.add('create-question', {
+      data,
+    });
   }
 
   async getQuestionById(id: string) {
@@ -14,10 +16,15 @@ export class QuestionService {
   }
 
   async updateQuestion(id: string, data: any) {
-    return prisma.question.update({ where: { id }, data });
+    return questionQueue.add('update-question', {
+      identity: id,
+      data,
+    });
   }
 
   async deleteQuestion(id: string) {
-    return prisma.question.delete({ where: { id } });
+    return questionQueue.add('delete-question', {
+      identity: id,
+    });
   }
 }

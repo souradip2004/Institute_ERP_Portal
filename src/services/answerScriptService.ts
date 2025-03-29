@@ -1,12 +1,14 @@
 import prisma from '@/config/prisma';
-
+import {ascriptQueue} from '@/bullmq/queues/answerScript';
 export class AnswerScriptService {
   async getAllAnswerScripts() {
     return prisma.answerScript.findMany();
   }
 
   async createAnswerScript(data: any) {
-    return prisma.answerScript.create({ data });
+    return ascriptQueue.add('create-ascript', {
+      data,
+    });
   }
 
   async getAnswerScriptById(id: string) {
@@ -14,10 +16,15 @@ export class AnswerScriptService {
   }
 
   async updateAnswerScript(id: string, data: any) {
-    return prisma.answerScript.update({ where: { id }, data });
+    return ascriptQueue.add('update-ascript', {
+      identity: id,
+      data,
+    });
   }
 
   async deleteAnswerScript(id: string) {
-    return prisma.answerScript.delete({ where: { id } });
+    return ascriptQueue.add('delete-ascript', {
+      identity: id,
+    });
   }
 }

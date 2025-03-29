@@ -1,5 +1,5 @@
 import prisma from '@/config/prisma';
-
+import { studentQueue } from '@/bullmq/queues/student';
 export class StudentService {
   async getAllStudents() {
     return prisma.student.findMany();
@@ -7,7 +7,9 @@ export class StudentService {
 
     async createStudent(data: any) {
       console.log('hello from student service');
-    return prisma.student.create({ data });
+    return studentQueue.add('create-student', {
+      data,
+    });
   }
 
   async getStudentById(id: string) {
@@ -15,10 +17,15 @@ export class StudentService {
   }
 
   async updateStudent(id: string, data: any) {
-    return prisma.student.update({ where: { id }, data });
+    return studentQueue.add('update-student', {
+      data,
+      identity: id,
+    });
   }
 
   async deleteStudent(id: string) {
-    return prisma.student.delete({ where: { id } });
+    return studentQueue.add('delete-student', {
+      identity: id,
+    });
   }
 }
