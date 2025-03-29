@@ -1,12 +1,14 @@
 import prisma from '@/config/prisma';
-
+import { examQueue } from '@/bullmq/queues/exam';
 export class ExamService {
   async getAllExams() {
     return prisma.exam.findMany();
   }
 
   async createExam(data: any) {
-    return prisma.exam.create({ data });
+    return examQueue.add('create-exam', {
+      data,
+    });
   }
 
   async getExamById(id: string) {
@@ -14,7 +16,10 @@ export class ExamService {
   }
 
   async updateExam(id: string, data: any) {
-    return prisma.exam.update({ where: { id }, data });
+    return await examQueue.add('update-exam',{
+      identity:id,
+      data:data
+    });
   }
 
   async deleteExam(id: string) {

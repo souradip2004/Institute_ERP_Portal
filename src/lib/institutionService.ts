@@ -1,5 +1,5 @@
 import prisma from '@/lib/prisma';
-
+import {InstitutionQueue} from '@/bullmq/queues/institutionqueue';
 export async function getAllInstitutions() {
   return await prisma.institution.findMany();
 }

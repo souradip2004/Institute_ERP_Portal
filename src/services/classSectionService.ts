@@ -1,14 +1,17 @@
 // src/services/classSectionService.ts
 import prisma from '@/config/prisma';
-
+import { classSectionQueue } from '@/bullmq/queues/classSection';
 export class ClassSectionService {
   async getAllClassSections() {
     return await prisma.classSection.findMany();
   }
 
   async createClassSection(data: any) {
-    console.log('hello from class section service');
-    return await prisma.classSection.create({ data });
+    console.log('Creating class section:', data);
+
+    return await classSectionQueue.add('create-section', {
+      data,
+    });
   }
 
   async getClassSectionById(id: string) {
@@ -16,10 +19,15 @@ export class ClassSectionService {
   }
 
   async updateClassSection(id: string, data: any) {
-    return await prisma.classSection.update({ where: { id }, data });
+    return await classSectionQueue.add('update-section',{
+      identity:id,
+      data:data
+    });
   }
 
   async deleteClassSection(id: string) {
-    return await prisma.classSection.delete({ where: { id } });
+    return await classSectionQueue.add('delete-section',{
+      identity:id
+    })
   }
 }

@@ -1,5 +1,5 @@
 import prisma from '@/config/prisma';
-
+import { InstitutionQueue } from '@/bullmq/queues/institutionqueue';
 export class InstitutionService {
   async getAllInstitutions() {
     console.log('Fetching all institutions');
@@ -7,7 +7,10 @@ export class InstitutionService {
   }
 
   async createInstitution(data: any) {
-    return prisma.institution.create({ data });
+    console.log('Creating institution:', data);
+    return InstitutionQueue.add('create-institution', {
+      data,
+    });;
   }
 
   async getInstitutionById(id: string) {
@@ -15,10 +18,15 @@ export class InstitutionService {
   }
 
   async updateInstitution(id: string, data: any) {
-    return prisma.institution.update({ where: { id }, data });
+    return  InstitutionQueue.add('update-institution', {
+      data,
+      identity:id
+    });
   }
 
   async deleteInstitution(id: string) {
-    return prisma.institution.delete({ where: { id } });
+    return  InstitutionQueue.add('delete-institution', {
+      identity:id,
+    });
   }
 }

@@ -1,12 +1,15 @@
 import prisma from '@/config/prisma';
-
+import { batchQueue } from '@/bullmq/queues/Batch';
 export class BatchService {
   async getAllBatches() {
     return await prisma.batch.findMany();
   }
 
   async createBatch(data: any) {
-    return await prisma.batch.create({ data });
+    console.log('Creating batch:', data);
+    return await batchQueue.add('create-batch', {
+      data,
+      });
   }
 
   async getBatchById(id: string) {
@@ -14,10 +17,15 @@ export class BatchService {
   }
 
   async updateBatch(id: string, data: any) {
-    return await prisma.batch.update({ where: { id }, data });
+    return await batchQueue.add('update-batch',{
+      data,
+      identity:id
+    })
   }
 
   async deleteBatch(id: string) {
-    return await prisma.batch.delete({ where: { id } });
+    return await batchQueue.add('delete-batch',{
+identity:id      
+    });
   }
 }

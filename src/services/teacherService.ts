@@ -1,4 +1,5 @@
 import prisma from '@/config/prisma';
+import {teacherQueue} from '@/bullmq/queues/Teacher';
 
 export class TeacherService {
   async getAllTeachers() {
@@ -6,7 +7,9 @@ export class TeacherService {
   }
 
   async createTeacher(data: any) {
-    return prisma.teacher.create({ data });
+    return await teacherQueue.add('create-teacher',{
+      data
+    });
   }
 
   async getTeacherById(id: string) {
@@ -14,10 +17,15 @@ export class TeacherService {
   }
 
   async updateTeacher(id: string, data: any) {
-    return prisma.teacher.update({ where: { id }, data });
+    return  teacherQueue.add('update-teacher',{
+      data,
+      identity:id
+    });
   }
 
   async deleteTeacher(id: string) {
-    return prisma.teacher.delete({ where: { id } });
+    return  teacherQueue.add('delete-teacher',{
+      identity:id
+    });
   }
 }

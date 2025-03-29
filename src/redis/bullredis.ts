@@ -1,7 +1,9 @@
 import Redis from 'ioredis';
 
 
-export const redis = new Redis('redis://localhost:6379');
+export const redis = new Redis('redis://localhost:6379',{
+    maxRetriesPerRequest: null, 
+});
 
 
 redis.on('connect', () => console.log('Redis connected ✅'));

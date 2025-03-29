@@ -7,7 +7,8 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "worker": "npx tsx src/bullmq/workers/workers.ts"
   },
   "dependencies": {
     "@apollo/client": "^3.13.5",
