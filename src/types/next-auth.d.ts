@@ -4,12 +4,14 @@ import { JWT } from "next-auth/jwt";
 declare module "next-auth" {
   interface User extends DafaultUser {
     role?: string;
+    emailVerified?: Date | null;
   }
 
   interface Session {
     user: {
       id: string;
       role?: string;
+      emailVerified?: Date | null;
     } & DefaultSession["user"];
   }
 }
@@ -18,5 +20,6 @@ declare module "next-auth/jwt" {
   interface JWT {
     id?: string;
     role?: string;
+    emailVerified?: Date | null;
   }
 }

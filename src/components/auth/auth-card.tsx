@@ -18,12 +18,12 @@ interface AuthCardProps {
   showSocialLogin?: boolean;
 }
 
-export function AuthCard({ 
-  title, 
-  description, 
-  type, 
-  footer, 
-  showSocialLogin = true 
+export function AuthCard({
+  title,
+  description,
+  type,
+  footer,
+  showSocialLogin = true
 }: AuthCardProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -157,13 +157,28 @@ export function AuthCard({
               {loading ? "Loading..." : type === "login" ? "Sign in" : "Create account"}
             </Button>
           </form>
-          
+
           {showSocialLogin && (
             <>
               <FormDivider />
               <SocialLoginButtons isLoading={loading} />
             </>
           )}
+
+
+{/* 
+          {type === "login" && (
+            <p className="text-sm text-muted-foreground">
+              {new URLSearchParams(window.location.search).get("verified") === "true"
+                ? "Email verified! Please sign in."
+                : new URLSearchParams(window.location.search).get("error") === "invalid_token"
+                  ? "Invalid verification token."
+                  : new URLSearchParams(window.location.search).get("error") === "expired_token"
+                    ? "Verification token expired. Please try again."
+                    : ""}
+            </p>
+          )} */}
+
         </CardContent>
         {footer && <CardFooter>{footer}</CardFooter>}
       </Card>
