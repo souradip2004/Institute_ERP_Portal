@@ -1,41 +1,86 @@
-"use client"
+"use client";
 import { useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { v4 as uuidv4 } from "uuid";
+import * as XLSX from "xlsx";
 
 export default function AdminPage() {
-  const [className, setClassName] = useState("");
-  const [subscription, setSubscription] = useState("");
-  const [credits, setCredits] = useState(0);
+  const [teachers, setTeachers] = useState<{ name: string; email: string; id: string }[]>([]);
+  const [students, setStudents] = useState<{ name: string; id: string; email?: string; rollNumber?: string }[]>([]);
   const [classes, setClasses] = useState<{
     name: string;
     token: string;
-    subscription: string;
-    credits: number;
+    teachers: string[];
+    students: string[];
   }[]>([]);
   const [activeSection, setActiveSection] = useState("classManagement");
-  const [reportToken, setReportToken] = useState("");
+  const [fileError, setFileError] = useState("");
 
-  const addClass = () => {
-    if (!className || !subscription || credits <= 0) return;
-    const newClass = {
-      name: className,
-      token: uuidv4(),
-      subscription,
-      credits,
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, type: "Teacher" | "Student" | "Class") => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const data = new Uint8Array(event.target?.result as ArrayBuffer);
+        const workbook = XLSX.read(data, { type: "array" });
+        const sheetName = workbook.SheetNames[0];
+        const sheet = workbook.Sheets[sheetName];
+        const jsonData: any[] = XLSX.utils.sheet_to_json(sheet);
+
+        jsonData.forEach((row) => {
+          if (type === "Teacher" && row.Name && row.Email) {
+            setTeachers((prev) => [
+              ...prev,
+              { name: row.Name, email: row.Email, id: uuidv4() },
+            ]);
+          } else if (type === "Student" && row.Name) {
+            setStudents((prev) => [
+              ...prev,
+              {
+                name: row.Name,
+                id: uuidv4(),
+                email: row.Email || undefined,
+                rollNumber: row.RollNumber || undefined,
+              },
+            ]);
+          } else if (type === "Class" && row.Name) {
+            setClasses((prev) => [
+              ...prev,
+              {
+                name: row.Name,
+                token: uuidv4(),
+                teachers: [],
+                students: [],
+              },
+            ]);
+          } else {
+            throw new Error("Invalid row format");
+          }
+        });
+        setFileError("");
+      } catch (error) {
+        setFileError("Invalid file format. Please check the demo format.");
+      }
     };
-    setClasses([...classes, newClass]);
-    setClassName("");
-    setSubscription("");
-    setCredits(0);
+    reader.readAsArrayBuffer(file);
   };
 
-  const handleReport = () => {
-    if (!reportToken) return;
-    alert(`Fetching report for Token: ${reportToken}`);
-    setReportToken("");
+  const handleManualAdd = (type: "Teacher" | "Student" | "Class", data: any) => {
+    if (type === "Teacher" && data.name && data.email) {
+      setTeachers((prev) => [...prev, { name: data.name, email: data.email, id: uuidv4() }]);
+    } else if (type === "Student" && data.name) {
+      setStudents((prev) => [
+        ...prev,
+        { name: data.name, email: data.email, rollNumber: data.rollNumber, id: uuidv4() },
+      ]);
+    } else if (type === "Class" && data.name) {
+      setClasses((prev) => [...prev, { name: data.name, token: uuidv4(), teachers: [], students: [] }]);
+    } else {
+      alert("Invalid input. Please fill in all required fields.");
+    }
   };
 
   return (
@@ -44,77 +89,132 @@ export default function AdminPage() {
       <div className="w-1/4 p-4 bg-gray-100 h-screen">
         <h2 className="text-2xl font-bold mb-4">Admin Panel</h2>
         <ul className="space-y-2">
-          <li onClick={() => setActiveSection("attendance")} className="cursor-pointer hover:text-blue-500">Attendance</li>
-          <li onClick={() => setActiveSection("reports")} className="cursor-pointer hover:text-blue-500">Reports</li>
-          <li onClick={() => setActiveSection("notifications")} className="cursor-pointer hover:text-blue-500">Notifications</li>
-          <li onClick={() => setActiveSection("classManagement")} className="cursor-pointer hover:text-blue-500">Class Management</li>
+          <li
+            onClick={() => setActiveSection("classManagement")}
+            className="cursor-pointer hover:text-blue-500"
+          >
+            Class Management
+          </li>
+          <li
+            onClick={() => setActiveSection("addTeacher")}
+            className="cursor-pointer hover:text-blue-500"
+          >
+            Add Teacher
+          </li>
+          <li
+            onClick={() => setActiveSection("addStudent")}
+            className="cursor-pointer hover:text-blue-500"
+          >
+            Add Student
+          </li>
+          <li
+            onClick={() => setActiveSection("addClass")}
+            className="cursor-pointer hover:text-blue-500"
+          >
+            Add Class
+          </li>
+          <li
+            onClick={() => setActiveSection("viewTeachers")}
+            className="cursor-pointer hover:text-blue-500"
+          >
+            View Teachers
+          </li>
+          <li
+            onClick={() => setActiveSection("viewStudents")}
+            className="cursor-pointer hover:text-blue-500"
+          >
+            View Students
+          </li>
+          <li
+            onClick={() => setActiveSection("viewClasses")}
+            className="cursor-pointer hover:text-blue-500"
+          >
+            View Classes
+          </li>
         </ul>
       </div>
 
       {/* Main Content */}
       <div className="p-6 space-y-4 flex-1">
-        {activeSection === "classManagement" && (
+        {fileError && <div className="text-red-500">{fileError}</div>}
+        {activeSection === "addTeacher" && (
           <Card className="p-4 shadow-xl">
-            <h2 className="text-xl font-bold mb-4">Add Class</h2>
-            <Input
-              value={className}
-              onChange={(e) => setClassName(e.target.value)}
-              placeholder="Enter class name"
-              className="mb-2"
+            <h2 className="text-xl font-bold mb-4">Add Teacher</h2>
+            <input
+              type="file"
+              accept=".xlsx, .xls"
+              onChange={(e) => handleFileUpload(e, "Teacher")}
+              className="mb-4"
             />
-            <Input
-              value={subscription}
-              onChange={(e) => setSubscription(e.target.value)}
-              placeholder="Enter subscription type"
-              className="mb-2"
-            />
-            <Input
-              type="number"
-              value={credits}
-              onChange={(e) => setCredits(Number(e.target.value))}
-              placeholder="Enter credits"
-              className="mb-2"
-            />
-            <Button onClick={addClass}>Add Class</Button>
+            <div className="space-y-4">
+              <div>
+                <label className="block font-semibold mb-1">Name</label>
+                <input
+                  type="text"
+                  id="teacherName"
+                  className="border border-gray-300 rounded px-2 py-1 w-full"
+                  placeholder="Enter teacher's name"
+                />
+              </div>
+              <div>
+                <label className="block font-semibold mb-1">Email</label>
+                <input
+                  type="email"
+                  id="teacherEmail"
+                  className="border border-gray-300 rounded px-2 py-1 w-full"
+                  placeholder="Enter teacher's email"
+                />
+              </div>
+              <Button
+                onClick={() => {
+                  const name = (document.getElementById("teacherName") as HTMLInputElement).value;
+                  const email = (document.getElementById("teacherEmail") as HTMLInputElement).value;
+                  if (name && email) {
+                    handleManualAdd("Teacher", { name, email });
+                  } else {
+                    alert("Please fill in all fields.");
+                  }
+                }}
+              >
+                Add Teacher
+              </Button>
+            </div>
           </Card>
         )}
-
-        {activeSection === "reports" && (
+        {activeSection === "viewTeachers" && (
           <Card className="p-4 shadow-xl">
-            <h2 className="text-xl font-bold mb-4">Reports</h2>
-            <Input
-              value={reportToken}
-              onChange={(e) => setReportToken(e.target.value)}
-              placeholder="Enter token number"
-              className="mb-2"
-            />
-            <Button onClick={handleReport}>Get Report</Button>
+            <h2 className="text-xl font-bold mb-4">Teachers</h2>
+            <ul>
+              {teachers.map((teacher) => (
+                <li key={teacher.id}>
+                  {teacher.name} - {teacher.email}
+                </li>
+              ))}
+            </ul>
           </Card>
         )}
-
-        {activeSection === "classManagement" && (
+        {activeSection === "viewStudents" && (
           <Card className="p-4 shadow-xl">
-            <h2 className="text-xl font-bold mb-4">Classes List</h2>
-            <table className="w-full text-left">
-              <thead>
-                <tr>
-                  <th>Class Name</th>
-                  <th>Token</th>
-                  <th>Subscription</th>
-                  <th>Credits</th>
-                </tr>
-              </thead>
-              <tbody>
-                {classes.map((cls, index) => (
-                  <tr key={index} className="border-t">
-                    <td>{cls.name}</td>
-                    <td className="text-gray-500">{cls.token}</td>
-                    <td>{cls.subscription}</td>
-                    <td>{cls.credits}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <h2 className="text-xl font-bold mb-4">Students</h2>
+            <ul>
+              {students.map((student) => (
+                <li key={student.id}>
+                  {student.name} - {student.email || "No Email"} - {student.rollNumber || "No Roll Number"}
+                </li>
+              ))}
+            </ul>
+          </Card>
+        )}
+        {activeSection === "viewClasses" && (
+          <Card className="p-4 shadow-xl">
+            <h2 className="text-xl font-bold mb-4">Classes</h2>
+            <ul>
+              {classes.map((classItem) => (
+                <li key={classItem.token}>
+                  {classItem.name} - Token: {classItem.token}
+                </li>
+              ))}
+            </ul>
           </Card>
         )}
       </div>
