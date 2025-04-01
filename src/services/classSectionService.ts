@@ -1,59 +1,124 @@
-// src/services/classSectionService.ts
 import prisma from '@/config/prisma';
-import { classSectionQueue } from '@/bullmq/queues/classSection';
-export class ClassSectionService {
-  async getAllClassSections() {
-    return await prisma.classSection.findMany();
-  }
-async createClassSection(data: any) {
-  console.log('try to Create class section:', data);
+import { ClassSection } from '@prisma/client';
 
-  // Hardcoded data to be used if necessary
-  const hardcodedData = {
-    sectionName: "ECEA",
-    batchId: "cm8vrfoge0003xz8f3s0d9zl9",
-    courseId: "cm8y67lem0015xz78ye5i3zam",
-    semesterId: "cm8y6iptp001oxz78kgncnldc",
-    teacherId: "cm8y2odeq000bxz78qlvergnf",
-    maxStudents: 60
-  };
-
-  // Check for missing attributes in the `data` and fill them with hardcoded values
-  const classData = {
-    sectionName: data.sectionName || hardcodedData.sectionName,
-    batchId: data.batchId || hardcodedData.batchId,
-    courseId: data.courseId || hardcodedData.courseId,
-    semesterId: data.semesterId || hardcodedData.semesterId,
-    teacherId: data.teacherId || hardcodedData.teacherId,
-    maxStudents: data.maxStudents || hardcodedData.maxStudents
-  };
-
-  // You can add the data to the queue if necessary
-  // return await classSectionQueue.add('create-section', {
-  //   data,
-  // });
-
-  // Use Prisma to create the class section with the final data
-  return await prisma.classSection.create({
-    data:classData,
-  });
+export interface CreateClassSectionDTO {
+  sectionName: string;
+  batchId: string;
+  courseId: string;
+  semesterId: string;
+  teacherId: string;
+  maxStudents?: number;
 }
 
+export interface UpdateClassSectionDTO {
+  sectionName?: string;
+  batchId?: string;
+  courseId?: string;
+  semesterId?: string;
+  teacherId?: string;
+  maxStudents?: number;
+}
 
-  async getClassSectionById(id: string) {
-    return await prisma.classSection.findUnique({ where: { id } });
-  }
+export interface ClassSectionFilter {
+  batchId?: string;
+  courseId?: string;
+}
 
-  async updateClassSection(id: string, data: any) {
-    return await classSectionQueue.add('update-section',{
-      identity:id,
-      data:data
+export class ClassSectionService {
+  async getAllClassSections(filters: ClassSectionFilter = {}): Promise<ClassSection[]> {
+    const { batchId, courseId } = filters;
+    return prisma.classSection.findMany({
+      where: {
+        batchId,
+        courseId,
+      },
+      include: {
+        batch: { select: { id: true, batchName: true, year: true } },
+        course: { select: { id: true, courseCode: true, name: true } },
+        semester: { select: { id: true, name: true, startDate: true, endDate: true } },
+        teacher: { select: { id: true, teacherCode: true, user: { select: { name: true } } } },
+      },
+      orderBy: { createdAt: 'desc' },
     });
   }
 
-  async deleteClassSection(id: string) {
-    return await classSectionQueue.add('delete-section',{
-      identity:id
-    })
+  async createClassSection(data: CreateClassSectionDTO): Promise<ClassSection> {
+    const { sectionName, batchId, courseId, semesterId, teacherId, maxStudents = 0 } = data;
+
+    // Validate required fields
+    if (!sectionName || !batchId || !courseId || !semesterId || !teacherId) {
+      throw new Error('sectionName, batchId, courseId, semesterId, and teacherId are required');
+    }
+
+    // Uncomment for Redis/BullMQ integration
+    // return await classSectionQueue.add('create-section', { data });
+
+    return prisma.classSection.create({
+      data: {
+        sectionName,
+        batchId,
+        courseId,
+        semesterId,
+        teacherId,
+        maxStudents,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    });
+  }
+
+  async getClassSectionById(id: string): Promise<ClassSection | null> {
+    if (!id) throw new Error('Class Section ID is required');
+
+    return prisma.classSection.findUnique({
+      where: { id },
+      include: {
+        batch: { select: { id: true, batchName: true, year: true } },
+        course: { select: { id: true, courseCode: true, name: true } },
+        semester: { select: { id: true, name: true, startDate: true, endDate: true } },
+        teacher: { select: { id: true, teacherCode: true, user: { select: { name: true } } } },
+        studentEnrollments: { select: { id: true, studentId: true, enrollmentStatus: true } },
+        attendanceSessions: { select: { id: true, sessionDate: true, sessionType: true } },
+        exams: { select: { id: true, title: true, examDate: true } },
+      },
+    });
+  }
+
+  async updateClassSection(id: string, data: UpdateClassSectionDTO): Promise<ClassSection> {
+    if (!id) throw new Error('Class Section ID is required');
+
+    const { sectionName, batchId, courseId, semesterId, teacherId, maxStudents } = data;
+
+    // Check if class section exists
+    const existingClassSection = await prisma.classSection.findUnique({ where: { id } });
+    if (!existingClassSection) throw new Error('Class Section not found');
+
+    // Uncomment for Redis/BullMQ integration
+    // return await classSectionQueue.add('update-section', { identity: id, data });
+
+    return prisma.classSection.update({
+      where: { id },
+      data: {
+        sectionName,
+        batchId,
+        courseId,
+        semesterId,
+        teacherId,
+        maxStudents,
+        updatedAt: new Date(),
+      },
+    });
+  }
+
+  async deleteClassSection(id: string): Promise<void> {
+    if (!id) throw new Error('Class Section ID is required');
+
+    const existingClassSection = await prisma.classSection.findUnique({ where: { id } });
+    if (!existingClassSection) throw new Error('Class Section not found');
+
+    // Uncomment for Redis/BullMQ integration
+    // await classSectionQueue.add('delete-section', { identity: id });
+
+    await prisma.classSection.delete({ where: { id } });
   }
 }

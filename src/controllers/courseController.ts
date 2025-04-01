@@ -1,74 +1,122 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { CourseService } from '@/services/courseService';
+import { CourseService, CreateCourseDTO, UpdateCourseDTO, CourseFilter } from '@/services/courseService';
 
 const courseService = new CourseService();
 
 export class CourseController {
-  async getAllCourses() {
+  async getAllCourses(req: NextRequest) {
     try {
-      const courses = await courseService.getAllCourses();
+      const url = new URL(req.url);
+      const departmentId = url.searchParams.get('departmentId') || undefined;
+      const institutionId = url.searchParams.get('institutionId') || undefined;
+      const filters: CourseFilter = { departmentId, institutionId };
+
+      const courses = await courseService.getAllCourses(filters);
       return NextResponse.json(courses);
-    } catch (error: any) {
-      console.error('Error fetching courses:', error);
-      return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error('Error fetching courses:', error.message);
+      } else {
+        console.error('Error fetching courses:', error);
+      }
+      return NextResponse.json({ error: error instanceof Error ? error.message : 'An error occurred while fetching courses' }, { status: 500 });
     }
   }
 
   async createCourse(req: NextRequest) {
     try {
       const data = await req.json();
-      const course = await courseService.createCourse(data);
+      const { courseCode, name, description, creditHours, courseType, departmentId, createdById } = data;
+
+      if (!departmentId || !createdById) {
+        return NextResponse.json({ error: 'departmentId and createdById are required' }, { status: 400 });
+      }
+
+      const createData: CreateCourseDTO = {
+        courseCode,
+        name,
+        description,
+        creditHours,
+        courseType,
+        departmentId,
+        createdById,
+      };
+      const course = await courseService.createCourse(createData);
       return NextResponse.json(course, { status: 201 });
-    } catch (error: any) {
-      console.error('Error creating course:', error);
-      return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error('Error creating course:', error.message);
+      } else {
+        console.error('Error creating course:', error);
+      }
+      if (error instanceof Error) {
+        return NextResponse.json({ error: error.message || 'An error occurred while creating the course' }, { status: error.message.includes('already exists') ? 409 : 500 });
+      } else {
+        return NextResponse.json({ error: 'An error occurred while creating the course' }, { status: 500 });
+      }
     }
   }
 
-  async getCourseById(courseId: string) {
+  async getCourseById(id: string) {
     try {
-      if (!courseId) {
-        return NextResponse.json({ error: 'Course ID is required' }, { status: 400 });
-      }
+      if (!id) return NextResponse.json({ error: 'Course ID is required' }, { status: 400 });
 
-      const course = await courseService.getCourseById(courseId);
-      if (!course) {
-        return NextResponse.json({ error: 'Course not found' }, { status: 404 });
-      }
+      const course = await courseService.getCourseById(id);
+      if (!course) return NextResponse.json({ error: 'Course not found' }, { status: 404 });
 
       return NextResponse.json(course);
-    } catch (error: any) {
-      console.error('Error fetching course by ID:', error);
-      return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error(`Error fetching course ${id}:`, error.message);
+      } else {
+        console.error(`Error fetching course ${id}:`, error);
+      }
+      return NextResponse.json({ error: error instanceof Error ? error.message : 'An error occurred while fetching the course' }, { status: 500 });
     }
   }
 
-  async updateCourse(courseId: string, req: NextRequest) {
+  async updateCourse(id: string, req: NextRequest) {
     try {
-      if (!courseId) {
-        return NextResponse.json({ error: 'Course ID is required' }, { status: 400 });
-      }
+      if (!id) return NextResponse.json({ error: 'Course ID is required' }, { status: 400 });
 
       const data = await req.json();
-      const course = await courseService.updateCourse(courseId, data);
-      return NextResponse.json(course);
-    } catch (error: any) {
-      console.error('Error updating course:', error);
-      return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+      const updateData: UpdateCourseDTO = {
+        courseCode: data.courseCode,
+        name: data.name,
+        description: data.description,
+        creditHours: data.creditHours,
+        courseType: data.courseType,
+      };
+
+      const updatedCourse = await courseService.updateCourse(id, updateData);
+      return NextResponse.json(updatedCourse);
+    } catch (error:unknown) {
+      if (error instanceof Error) {
+        console.error(`Error updating course ${id}:`, error.message);
+      } else {
+        console.error(`Error updating course ${id}:`, error);
+      }
+      if (error instanceof Error) {
+        return NextResponse.json({ error: error.message || 'An error occurred while updating the course' }, { status: error.message.includes('already exists') ? 409 : 500 });
+      } else {
+        return NextResponse.json({ error: 'An error occurred while updating the course' }, { status: 500 });
+      }
     }
   }
 
-  async deleteCourse(courseId: string) {
+  async deleteCourse(id: string) {
     try {
-      if (!courseId) {
-        return NextResponse.json({ error: 'Course ID is required' }, { status: 400 });
-      }
+      if (!id) return NextResponse.json({ error: 'Course ID is required' }, { status: 400 });
 
-      await courseService.deleteCourse(courseId);
+      await courseService.deleteCourse(id);
       return NextResponse.json({ message: 'Course deleted successfully' });
-    } catch (error: any) {
-      console.error('Error deleting course:', error);
-      return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error(`Error deleting course ${id}:`, error.message);
+      } else {
+        console.error(`Error deleting course ${id}:`, error);
+      }
+      return NextResponse.json({ error: error instanceof Error ? error.message : 'An error occurred while deleting the course' }, { status: 500 });
     }
   }
 }
