@@ -7,9 +7,13 @@ export class BatchService {
 
   async createBatch(data: any) {
     console.log('Creating batch:', data);
-    return await batchQueue.add('create-batch', {
-      data,
-      });
+    // return await batchQueue.add('create-batch', {
+    //   data,
+    //   });
+
+    return await prisma.batch.create({
+      data: data,
+    });
   }
 
   async getBatchById(id: string) {
