@@ -1,16 +1,16 @@
 import { NextRequest} from 'next/server';
 import { AttendanceSettingsController } from '@/controllers/attendanceSettingsController';
 
-const attendanceSettingsController = new AttendanceSettingsController();
+const controller = new AttendanceSettingsController();
 
 export async function GET(req: NextRequest) {
-  return attendanceSettingsController.getAttendanceSettings(req);
+  return controller.getAttendanceSettings(req);
 }
 
 export async function POST(req: NextRequest) {
-  return attendanceSettingsController.createAttendanceSettings(req);
+  return controller.createAttendanceSettings(req);
 }
 
 export async function PUT(req: NextRequest) {
-  return attendanceSettingsController.updateAttendanceSettings(req);
+  return controller.updateAttendanceSettings(req);
 }
