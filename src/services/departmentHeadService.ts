@@ -5,11 +5,16 @@ export class DepartmentHeadService {
     return prisma.departmentHead.findMany();
   }
 
-  async createDepartmentHead(data: any) {
-    return DheadQueue.add('create-dhead', {
-      data,
-    });
-  }
+async createDepartmentHead(data: any) {
+  const formattedData = {
+    ...data,
+    appointmentDate: new Date(data.appointmentDate).toISOString(),
+  };
+  
+  return await prisma.departmentHead.create({
+    data: formattedData,
+  });
+}
 
   async getDepartmentHeadById(id: string) {
     return prisma.departmentHead.findUnique({ where: { id } });

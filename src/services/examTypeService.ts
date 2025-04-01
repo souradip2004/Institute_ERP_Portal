@@ -8,8 +8,12 @@ export class ExamTypeService {
 
   async createExamType(data: any) {
     const { name, description, institutionId, weightage } = data;
-    return await examtypeQueue.add('create-examtype', {
-      data
+    // return await examtypeQueue.add('create-examtype', {
+    //   data
+    // });
+
+    return await prisma.examType.create({
+      data: { name, description, institutionId, weightage },
     });
   }
 
