@@ -7,6 +7,8 @@ export class TeacherController {
   async getAllTeachers(req: NextRequest) {
     try {
       const teachers = await teacherService.getAllTeachers();
+      console.log('send all teachers to frontend: ');
+      console.log(teachers);
       return NextResponse.json(teachers);
     } catch (error: any) {
       return NextResponse.json({ error: error.message }, { status: 500 });
@@ -17,8 +19,10 @@ export class TeacherController {
     try {
       const data = await req.json();
       const teacher = await teacherService.createTeacher(data);
+      console.log('teacher created', teacher);
       return NextResponse.json(teacher, { status: 201 });
     } catch (error: any) {
+      console.error(error.message);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
   }

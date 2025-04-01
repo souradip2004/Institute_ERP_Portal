@@ -7,9 +7,11 @@ export class DepartmentService {
   }
 
   async createDepartment(data: any) {
-    return await DepartmentQueue.add('create-department', {
-      data,
-      });
+    // return await DepartmentQueue.add('create-department', {
+    //   data,
+    //   });
+
+    return await prisma.department.create({ data });
   }
 
   async getDepartmentById(id: string) {

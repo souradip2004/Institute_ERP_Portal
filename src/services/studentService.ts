@@ -2,7 +2,9 @@ import prisma from '@/config/prisma';
 import { studentQueue } from '@/bullmq/queues/student';
 export class StudentService {
   async getAllStudents() {
-    return prisma.student.findMany();
+    return prisma.student.findMany({  include: {
+    user: true, 
+  },});
   }
 
     async createStudent(data: any) {

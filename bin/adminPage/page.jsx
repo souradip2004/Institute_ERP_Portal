@@ -1,116 +1,104 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { v4 as uuidv4 } from "uuid";
 import * as XLSX from "xlsx";
 import { useAddTeacher } from "@/hooks/useAddTeacher";
 import { useFetchTeacher } from "@/hooks/useFetchTeacher";
-import { useFetchStudent } from "@/hooks/useFetchStudent";
-import { useFetchClass } from "@/hooks/useFetchClass";
+
+
+
 
 export default function AdminPage() {
-  const { getAllTeachers, error:teacherError } = useFetchTeacher();
-  const { getAllStudents ,error:studentError} = useFetchStudent();
-  const { getAllClasses, error: classError } = useFetchClass();
-  const [teachers, setTeachers] = useState<{ name: string; email: string; id: string,[key: string]: any; }[]>([]);
+    const {
+        getTeacher,
+        getAllTeachers,
+        teacher,
+        teachers: teacherss,
 
-  const [students, setStudents] = useState<{ name: string; id: string; email?: string; rollNumber?: string }[]>([]);
-  
-  const [classes, setClasses] = useState<{ name: string; token?: string; id:string; teachers: string[]; students: string[] ;[key:string]:any}[]>([]);
+        error
+    } = useFetchTeacher();
+    const [teachers, setTeachers] = useState < { name: string; email: string; id: string }[] > ([]);
 
-  const { addTeacher, loading } = useAddTeacher();
-  const [activeSection, setActiveSection] = useState("classManagement");
-  const [fileError, setFileError] = useState("");
+    const [students, setStudents] = useState < { name: string; id: string; email?: string; rollNumber?: string }[] > ([]);
+    const [classes, setClasses] = useState < {
+        name: string;
+        token: string;
+        teachers: string[];
+        students: string[];
+    }[] > ([]);
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, type: "Teacher" | "Student" | "Class") => {
-    const file = e.target.files?.[0];
-    if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      try {
-        const data = new Uint8Array(event.target?.result as ArrayBuffer);
-        const workbook = XLSX.read(data, { type: "array" });
-        const sheetName = workbook.SheetNames[0];
-        const sheet = workbook.Sheets[sheetName];
-        const jsonData: any[] = XLSX.utils.sheet_to_json(sheet);
+    const { addTeacher, loading } = useAddTeacher();
+    const [activeSection, setActiveSection] = useState("classManagement");
+    const [fileError, setFileError] = useState("");
 
-        jsonData.forEach((row) => {
-          if (type === "Teacher" && row.Name && row.Email) {
-            setTeachers((prev) => [
-              ...prev,
-              { name: row.Name, email: row.Email, id: uuidv4() },
-            ]);
-          } else if (type === "Student" && row.Name) {
+    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, type: "Teacher" | "Student" | "Class") => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            try {
+                const data = new Uint8Array(event.target?.result as ArrayBuffer);
+                const workbook = XLSX.read(data, { type: "array" });
+                const sheetName = workbook.SheetNames[0];
+                const sheet = workbook.Sheets[sheetName];
+                const jsonData: any[] = XLSX.utils.sheet_to_json(sheet);
+
+                jsonData.forEach((row) => {
+                    if (type === "Teacher" && row.Name && row.Email) {
+                        setTeachers((prev) => [
+                            ...prev,
+                            { name: row.Name, email: row.Email, id: uuidv4() },
+                        ]);
+                    } else if (type === "Student" && row.Name) {
+                        setStudents((prev) => [
+                            ...prev,
+                            {
+                                name: row.Name,
+                                id: uuidv4(),
+                                email: row.Email || undefined,
+                                rollNumber: row.RollNumber || undefined,
+                            },
+                        ]);
+                    } else if (type === "Class" && row.Name) {
+                        setClasses((prev) => [
+                            ...prev,
+                            {
+                                name: row.Name,
+                                token: uuidv4(),
+                                teachers: [],
+                                students: [],
+                            },
+                        ]);
+                    } else {
+                        throw new Error("Invalid row format");
+                    }
+                });
+                setFileError("");
+            } catch (error) {
+                setFileError("Invalid file format. Please check the demo format.");
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    };
+
+    const handleManualAdd = (type: "Teacher" | "Student" | "Class", data: any) => {
+        if (type === "Teacher" && data.name && data.email) {
+            setTeachers((prev) => [...prev, { name: data.name, email: data.email, id: uuidv4() }]);
+        } else if (type === "Student" && data.name) {
             setStudents((prev) => [
-              ...prev,
-              {
-                name: row.Name,
-                id: uuidv4(),
-                email: row.Email || undefined,
-                rollNumber: row.RollNumber || undefined,
-              },
+                ...prev,
+                { name: data.name, email: data.email, rollNumber: data.rollNumber, id: uuidv4() },
             ]);
-          } else if (type === "Class" && row.Name) {
-            setClasses((prev) => [
-              ...prev,
-              {
-                name: row.Name,
-                token: uuidv4(),
-                teachers: [],
-                students: [],
-              },
-            ]);
-          } else {
-            throw new Error("Invalid row format");
-          }
-        });
-        setFileError("");
-      } catch (error) {
-        setFileError("Invalid file format. Please check the demo format.");
-      }
+        } else if (type === "Class" && data.name) {
+            setClasses((prev) => [...prev, { name: data.name, token: uuidv4(), teachers: [], students: [] }]);
+        } else {
+            alert("Invalid input. Please fill in all required fields.");
+        }
     };
-    reader.readAsArrayBuffer(file);
-  };
-
-  const handleManualAdd = (type: "Teacher" | "Student" | "Class", data: any) => {
-    if (type === "Teacher" && data.name && data.email) {
-      setTeachers((prev) => [...prev, { name: data.name, email: data.email, id: uuidv4() }]);
-    } else if (type === "Student" && data.name) {
-      setStudents((prev) => [
-        ...prev,
-        { name: data.name, email: data.email, rollNumber: data.rollNumber, id: uuidv4() },
-      ]);
-    } else if (type === "Class" && data.name) {
-      setClasses((prev) => [...prev, { name: data.name, token: uuidv4(), teachers: [], students: [] }]);
-    } else {
-      alert("Invalid input. Please fill in all required fields.");
-    }
-  };
-
-  useEffect(() => {
-    const fetchTeachers = async () => {
-      if (activeSection === "viewTeachers") {
-        const temp = await getAllTeachers();
-        setTeachers(temp);
-        console.log("teachers: ", temp);
-      }
-      else if (activeSection === "viewStudents") {
-        const temp = await getAllStudents();
-        setStudents(temp);
-        console.log("students: ", temp);
-      } else if (activeSection === "viewClasses") {
-        const temp = await getAllClasses();
-        setClasses(temp);
-        console.log("classes: ", temp);
-      }
-    };
-
-    fetchTeachers();
-  }, [activeSection]);
-
-
 
     return (
         <div className="flex">
@@ -195,12 +183,12 @@ export default function AdminPage() {
                                 />
                             </div>
                             <div>
-                                <label className="block font-semibold mb-1"> user id</label>
+                                <label className="block font-semibold mb-1">teacher code</label>
                                 <input
                                     type="text"
-                                    id="userId"
+                                    id="teacherId"
                                     className="border border-gray-300 rounded px-2 py-1 w-full"
-                                    placeholder="Enter userId "
+                                    placeholder="Enter teacherId "
                                 />
                             </div>
 
@@ -208,23 +196,23 @@ export default function AdminPage() {
                                 onClick={async () => {
                                     const name = (document.getElementById("teacherName") as HTMLInputElement).value;
                                     const email = (document.getElementById("teacherEmail") as HTMLInputElement).value;
-                                    const userId = (document.getElementById("userId") as HTMLInputElement).value;
+                                    const teacherId = (document.getElementById("teacherId") as HTMLInputElement).value;
 
-                                    if (!name || !email || !userId) {
+                                    if (!name || !email || !teacherId) {
                                         alert("Please fill in all fields.");
                                         return;
                                     }
 
-                                    const success = await addTeacher({ name, email, userId });
+                                    const success = await addTeacher({ name, email, teacherId });
 
-                                    // if (success) {
-                                    //     setTeachers((prev) => [...prev, { name, email, id: uuidv4() }]);
-                                    // }
+                                    if (success) {
+                                        setTeachers((prev) => [...prev, { name, email, id: uuidv4() }]);
+                                    }
                                 }}
                                 disabled={loading}
                             >
                                 {loading ? "Adding..." : "Add Teacher"}
-                            </Button>
+                            </Button>;
                         </div>
                     </Card>
                 )}
@@ -233,9 +221,8 @@ export default function AdminPage() {
                         <h2 className="text-xl font-bold mb-4">Teachers</h2>
                         <ul>
                             {teachers.map((teacher) => (
-                                <li key={teacher.id} className="p-2">
-                               name: {teacher?.user?.name} &nbsp;&nbsp;
-                               email: {teacher?.user?.email}
+                                <li key={teacher.id}>
+                                    {teacher.name} - {teacher.email}
                                 </li>
                             ))}
                         </ul>
@@ -245,9 +232,9 @@ export default function AdminPage() {
                     <Card className="p-4 shadow-xl">
                         <h2 className="text-xl font-bold mb-4">Students</h2>
                         <ul>
-                            {students?.map((student) => (
+                            {students.map((student) => (
                                 <li key={student.id}>
-                                    {student?.user?.name} - {student.user?.email || "No Email"} - {student.user?.rollNumber || "No Roll Number"}
+                                    {student.name} - {student.email || "No Email"} - {student.rollNumber || "No Roll Number"}
                                 </li>
                             ))}
                         </ul>
@@ -258,8 +245,8 @@ export default function AdminPage() {
                         <h2 className="text-xl font-bold mb-4">Classes</h2>
                         <ul>
                             {classes.map((classItem) => (
-                                <li key={classItem.id}>
-                                    {classItem.sectionName} - maxStudent: {classItem.maxStudents}
+                                <li key={classItem.token}>
+                                    {classItem.name} - Token: {classItem.token}
                                 </li>
                             ))}
                         </ul>

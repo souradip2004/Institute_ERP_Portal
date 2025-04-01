@@ -6,8 +6,10 @@ export class UserService {
   }
 
   async createUser(data: any) {
-    return userQueue.add('create-user', {
-      data});
+    // return userQueue.add('create-user', {
+    //   data});
+
+    return prisma.user.create({ data });
   }
 
   async getUserById(id: string) {
