@@ -4,28 +4,28 @@ import { UserService } from '@/services/userService';
 const userService = new UserService();
 
 export class UserController {
-  async getAllUsers(req: NextRequest) {
+  async getAll(req: NextRequest) {
     try {
-      const users = await userService.getAllUsers();
+      const users = await userService.getAll();
       return NextResponse.json(users);
     } catch (error: any) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
   }
 
-  async createUser(req: NextRequest) {
+  async create(req: NextRequest) {
     try {
       const data = await req.json();
-      const user = await userService.createUser(data);
+      const user = await userService.create(data);
       return NextResponse.json(user, { status: 201 });
     } catch (error: any) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
   }
 
-  async getUserById(id: string) {
+  async getById(id: string) {
     try {
-      const user = await userService.getUserById(id);
+      const user = await userService.getById(id);
       if (!user) {
         return NextResponse.json({ error: 'User not found' }, { status: 404 });
       }
@@ -35,19 +35,19 @@ export class UserController {
     }
   }
 
-  async updateUser(id: string, req: NextRequest) {
+  async update(id: string, req: NextRequest) {
     try {
       const data = await req.json();
-      const user = await userService.updateUser(id, data);
+      const user = await userService.update(id, data);
       return NextResponse.json(user);
     } catch (error: any) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
   }
 
-  async deleteUser(id: string) {
+  async delete(id: string) {
     try {
-      await userService.deleteUser(id);
+      await userService.delete(id);
       return NextResponse.json({ message: 'User deleted successfully' });
     } catch (error: any) {
       return NextResponse.json({ error: error.message }, { status: 500 });
