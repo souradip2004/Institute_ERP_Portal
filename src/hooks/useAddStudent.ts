@@ -2,10 +2,8 @@
 import { useState } from "react";
 
 interface Student {
-  name?: string;
-  email?: string;
-  rollNumber?: string;
-  userId: string; // Assuming there's a user ID that links the student to a user
+  rollNumber: string;
+  userId: string; 
 }
 
 export function useAddStudent() {

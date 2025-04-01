@@ -9,16 +9,17 @@ import { useFetchTeacher } from "@/hooks/useFetchTeacher";
 import { useFetchStudent } from "@/hooks/useFetchStudent";
 import { useFetchClass } from "@/hooks/useFetchClass";
 import AddClassComponent from "@/components/admin/AddClass";
+import AddStudentComponent from "@/components/admin/AddStudent";
 
 export default function AdminPage() {
-  const { getAllTeachers, error:teacherError } = useFetchTeacher();
-  const { getAllStudents ,error:studentError} = useFetchStudent();
+  const { getAllTeachers, error: teacherError } = useFetchTeacher();
+  const { getAllStudents, error: studentError } = useFetchStudent();
   const { getAllClasses, error: classError } = useFetchClass();
-  const [teachers, setTeachers] = useState<{ name: string; email: string; id: string,[key: string]: any; }[]>([]);
+  const [teachers, setTeachers] = useState<{ name: string; email: string; id: string, [key: string]: any; }[]>([]);
 
   const [students, setStudents] = useState<{ name: string; id: string; email?: string; rollNumber?: string }[]>([]);
-  
-  const [classes, setClasses] = useState<{ name: string; token?: string; id:string; teachers: string[]; students: string[] ;[key:string]:any}[]>([]);
+
+  const [classes, setClasses] = useState<{ name: string; token?: string; id: string; teachers: string[]; students: string[];[key: string]: any }[]>([]);
 
   const { addTeacher, loading } = useAddTeacher();
   const [activeSection, setActiveSection] = useState("classManagement");
@@ -113,163 +114,166 @@ export default function AdminPage() {
 
 
 
-    return (
-        <div className="flex">
-            {/* Sidebar */}
-            <div className="w-1/4 p-4 bg-gray-100 h-screen">
-                <h2 className="text-2xl font-bold mb-4">Admin Panel</h2>
-                <ul className="space-y-2">
-                    <li
-                        onClick={() => setActiveSection("classManagement")}
-                        className="cursor-pointer hover:text-blue-500"
-                    >
-                        Class Management
-                    </li>
-                    <li
-                        onClick={() => setActiveSection("addTeacher")}
-                        className="cursor-pointer hover:text-blue-500"
-                    >
-                        Add Teacher
-                    </li>
-                    <li
-                        onClick={() => setActiveSection("addStudent")}
-                        className="cursor-pointer hover:text-blue-500"
-                    >
-                        Add Student
-                    </li>
-                    <li
-                        onClick={() => setActiveSection("addClass")}
-                        className="cursor-pointer hover:text-blue-500"
-                    >
-                        Add Class
-                    </li>
-                    <li
-                        onClick={() => setActiveSection("viewTeachers")}
-                        className="cursor-pointer hover:text-blue-500"
-                    >
-                        View Teachers
-                    </li>
-                    <li
-                        onClick={() => setActiveSection("viewStudents")}
-                        className="cursor-pointer hover:text-blue-500"
-                    >
-                        View Students
-                    </li>
-                    <li
-                        onClick={() => setActiveSection("viewClasses")}
-                        className="cursor-pointer hover:text-blue-500"
-                    >
-                        View Classes
-                    </li>
-                </ul>
+  return (
+    <div className="flex">
+      {/* Sidebar */}
+      <div className="w-1/4 p-4 bg-gray-100 h-screen">
+        <h2 className="text-2xl font-bold mb-4">Admin Panel</h2>
+        <ul className="space-y-2">
+          <li
+            onClick={() => setActiveSection("classManagement")}
+            className="cursor-pointer hover:text-blue-500"
+          >
+            Class Management
+          </li>
+          <li
+            onClick={() => setActiveSection("addTeacher")}
+            className="cursor-pointer hover:text-blue-500"
+          >
+            Add Teacher
+          </li>
+          <li
+            onClick={() => setActiveSection("addStudent")}
+            className="cursor-pointer hover:text-blue-500"
+          >
+            Add Student
+          </li>
+          <li
+            onClick={() => setActiveSection("addClass")}
+            className="cursor-pointer hover:text-blue-500"
+          >
+            Add Class
+          </li>
+          <li
+            onClick={() => setActiveSection("viewTeachers")}
+            className="cursor-pointer hover:text-blue-500"
+          >
+            View Teachers
+          </li>
+          <li
+            onClick={() => setActiveSection("viewStudents")}
+            className="cursor-pointer hover:text-blue-500"
+          >
+            View Students
+          </li>
+          <li
+            onClick={() => setActiveSection("viewClasses")}
+            className="cursor-pointer hover:text-blue-500"
+          >
+            View Classes
+          </li>
+        </ul>
+      </div>
+
+      {/* Main Content */}
+      <div className="p-6 space-y-4 flex-1">
+        {fileError && <div className="text-red-500">{fileError}</div>}
+        {activeSection === "addTeacher" && (
+          <Card className="p-4 shadow-xl">
+            <h2 className="text-xl font-bold mb-4">Add Teacher</h2>
+            <input
+              type="file"
+              accept=".xlsx, .xls"
+              onChange={(e) => handleFileUpload(e, "Teacher")}
+              className="mb-4"
+            />
+            <div className="space-y-4">
+              <div>
+                <label className="block font-semibold mb-1">Name</label>
+                <input
+                  type="text"
+                  id="teacherName"
+                  className="border border-gray-300 rounded px-2 py-1 w-full"
+                  placeholder="Enter teacher's name"
+                />
+              </div>
+              <div>
+                <label className="block font-semibold mb-1">Email</label>
+                <input
+                  type="email"
+                  id="teacherEmail"
+                  className="border border-gray-300 rounded px-2 py-1 w-full"
+                  placeholder="Enter teacher's email"
+                />
+              </div>
+              <div>
+                <label className="block font-semibold mb-1"> user id</label>
+                <input
+                  type="text"
+                  id="userId"
+                  className="border border-gray-300 rounded px-2 py-1 w-full"
+                  placeholder="Enter userId "
+                />
+              </div>
+
+              <Button
+                onClick={async () => {
+                  const name = (document.getElementById("teacherName") as HTMLInputElement).value;
+                  const email = (document.getElementById("teacherEmail") as HTMLInputElement).value;
+                  const userId = (document.getElementById("userId") as HTMLInputElement).value;
+
+                  if (!name || !email || !userId) {
+                    alert("Please fill in all fields.");
+                    return;
+                  }
+
+                  const success = await addTeacher({ name, email, userId });
+
+                  // if (success) {
+                  //     setTeachers((prev) => [...prev, { name, email, id: uuidv4() }]);
+                  // }
+                }}
+                disabled={loading}
+              >
+                {loading ? "Adding..." : "Add Teacher"}
+              </Button>
             </div>
-
-            {/* Main Content */}
-            <div className="p-6 space-y-4 flex-1">
-                {fileError && <div className="text-red-500">{fileError}</div>}
-                {activeSection === "addTeacher" && (
-                    <Card className="p-4 shadow-xl">
-                        <h2 className="text-xl font-bold mb-4">Add Teacher</h2>
-                        <input
-                            type="file"
-                            accept=".xlsx, .xls"
-                            onChange={(e) => handleFileUpload(e, "Teacher")}
-                            className="mb-4"
-                        />
-                        <div className="space-y-4">
-                            <div>
-                                <label className="block font-semibold mb-1">Name</label>
-                                <input
-                                    type="text"
-                                    id="teacherName"
-                                    className="border border-gray-300 rounded px-2 py-1 w-full"
-                                    placeholder="Enter teacher's name"
-                                />
-                            </div>
-                            <div>
-                                <label className="block font-semibold mb-1">Email</label>
-                                <input
-                                    type="email"
-                                    id="teacherEmail"
-                                    className="border border-gray-300 rounded px-2 py-1 w-full"
-                                    placeholder="Enter teacher's email"
-                                />
-                            </div>
-                            <div>
-                                <label className="block font-semibold mb-1"> user id</label>
-                                <input
-                                    type="text"
-                                    id="userId"
-                                    className="border border-gray-300 rounded px-2 py-1 w-full"
-                                    placeholder="Enter userId "
-                                />
-                            </div>
-
-                            <Button
-                                onClick={async () => {
-                                    const name = (document.getElementById("teacherName") as HTMLInputElement).value;
-                                    const email = (document.getElementById("teacherEmail") as HTMLInputElement).value;
-                                    const userId = (document.getElementById("userId") as HTMLInputElement).value;
-
-                                    if (!name || !email || !userId) {
-                                        alert("Please fill in all fields.");
-                                        return;
-                                    }
-
-                                    const success = await addTeacher({ name, email, userId });
-
-                                    // if (success) {
-                                    //     setTeachers((prev) => [...prev, { name, email, id: uuidv4() }]);
-                                    // }
-                                }}
-                                disabled={loading}
-                            >
-                                {loading ? "Adding..." : "Add Teacher"}
-                            </Button>
-                        </div>
-                    </Card>
-          )}
-          {activeSection === "addClass" && (
-                   < AddClassComponent/>
-                )}
-                {activeSection === "viewTeachers" && (
-                    <Card className="p-4 shadow-xl">
-                        <h2 className="text-xl font-bold mb-4">Teachers</h2>
-                        <ul>
-                            {teachers.map((teacher) => (
-                                <li key={teacher.id} className="p-2">
-                               name: {teacher?.user?.name} &nbsp;&nbsp;
-                               email: {teacher?.user?.email}
-                                </li>
-                            ))}
-                        </ul>
-                    </Card>
-                )}
-                {activeSection === "viewStudents" && (
-                    <Card className="p-4 shadow-xl">
-                        <h2 className="text-xl font-bold mb-4">Students</h2>
-                        <ul>
-                            {students?.map((student) => (
-                                <li key={student.id}>
-                                    {student?.user?.name} - {student.user?.email || "No Email"} - {student.user?.rollNumber || "No Roll Number"}
-                                </li>
-                            ))}
-                        </ul>
-                    </Card>
-                )}
-                {activeSection === "viewClasses" && (
-                    <Card className="p-4 shadow-xl">
-                        <h2 className="text-xl font-bold mb-4">Classes</h2>
-                        <ul>
-                            {classes.map((classItem) => (
-                                <li key={classItem.id}>
-                                    {classItem.sectionName} - maxStudent: {classItem.maxStudents}
-                                </li>
-                            ))}
-                        </ul>
-                    </Card>
-                )}
-            </div>
-        </div>
-    );
+          </Card>
+        )}
+        {activeSection === "addClass" && (
+          < AddClassComponent />
+        )}
+        {activeSection === "addStudent" && (
+          < AddStudentComponent />
+        )}
+        {activeSection === "viewTeachers" && (
+          <Card className="p-4 shadow-xl">
+            <h2 className="text-xl font-bold mb-4">Teachers</h2>
+            <ul>
+              {teachers.map((teacher) => (
+                <li key={teacher.id} className="p-2">
+                  name: {teacher?.user?.name} &nbsp;&nbsp;
+                  email: {teacher?.user?.email}
+                </li>
+              ))}
+            </ul>
+          </Card>
+        )}
+        {activeSection === "viewStudents" && (
+          <Card className="p-4 shadow-xl">
+            <h2 className="text-xl font-bold mb-4">Students</h2>
+            <ul>
+              {students?.map((student) => (
+                <li key={student.id}>
+                  {student?.user?.name} - {student.user?.email || "No Email"} - {student.user?.rollNumber || "No Roll Number"}
+                </li>
+              ))}
+            </ul>
+          </Card>
+        )}
+        {activeSection === "viewClasses" && (
+          <Card className="p-4 shadow-xl">
+            <h2 className="text-xl font-bold mb-4">Classes</h2>
+            <ul>
+              {classes.map((classItem) => (
+                <li key={classItem.id}>
+                  {classItem.sectionName} - maxStudent: {classItem.maxStudents}
+                </li>
+              ))}
+            </ul>
+          </Card>
+        )}
+      </div>
+    </div>
+  );
 }
