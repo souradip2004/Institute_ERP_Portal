@@ -1,21 +1,12 @@
-// src/app/api/attendance/route.ts
-import { NextRequest } from 'next/server';
+import { NextRequest} from 'next/server';
 import { AttendanceController } from '@/controllers/attendanceController';
 
-const attendanceController = new AttendanceController();
+const controller = new AttendanceController();
 
-/**
- * POST /api/attendance
- * Record attendance for a session (teacher)
- */
 export async function POST(req: NextRequest) {
-  return attendanceController.createAttendance(req);
+  return controller.createAttendance(req);
 }
 
-/**
- * GET /api/attendance
- * Get attendance records (filtered by session, student, or class)
- */
 export async function GET(req: NextRequest) {
-  return attendanceController.getAttendanceRecords(req);
+  return controller.getAttendanceRecords(req);
 }
