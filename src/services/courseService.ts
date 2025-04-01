@@ -9,10 +9,14 @@ export class CourseService {
 
   async createCourse(data: any) {
     console.log('Creating course:', data);
-    return await 
-      courseQueue.add('create-course', {
-        data
-      });
+    // return await 
+    //   courseQueue.add('create-course', {
+    //     data
+    //   });
+
+    return await prisma.course.create({
+      data: data,
+    });
   }
 
   async getCourseById(id: string) {

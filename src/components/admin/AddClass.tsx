@@ -1,24 +1,41 @@
-"use client";
-import { Button } from "@/components/ui/button";
-import { v4 as uuidv4 } from "uuid";
+import { useState } from "react";
+import { useAddClass } from "@/hooks/useAddClass";
 
-export default function AddClass({ setClasses }: { setClasses: any }) {
-  const handleAddClass = () => {
-    const name = (document.getElementById("className") as HTMLInputElement).value;
+export default function AddClassComponent() {
+  const [classData, setClassData] = useState({
+    sectionName: "",
+    maxStudents: 60,
+  });
 
-    if (!name) {
-      alert("Please enter class name.");
-      return;
-    }
+  const { addClass, loading, error } = useAddClass();
 
-    setClasses((prev: any) => [...prev, { name, token: uuidv4(), teachers: [], students: [] }]);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    // Send data including sectionName and maxStudents to the backend
+    await addClass(classData);
   };
 
   return (
-    <div className="p-4 shadow-xl">
-      <h2 className="text-xl font-bold mb-4">Add Class</h2>
-      <input id="className" type="text" placeholder="Enter class name" className="border px-2 py-1 w-full" />
-      <Button onClick={handleAddClass}>Add Class</Button>
+    <div className="flex ">
+      <form onSubmit={handleSubmit}>
+        <h2 className="p-5">Add Class</h2>
+        <input
+          type="text"
+          placeholder="Section Name"
+          value={classData.sectionName}
+          onChange={(e) => setClassData({ ...classData, sectionName: e.target.value })}
+       className="border border-black w-45 m-5 p-2" />
+        <input
+          type="number"
+          placeholder="Max Students"
+          value={classData.maxStudents}
+          onChange={(e) => setClassData({ ...classData, maxStudents: Number(e.target.value) })}
+           className="border border-black w-15 mr-5 p-2" />
+        <button type="submit" disabled={loading}    className="border border-black w-25 rounded-2xl bg-black text-white" >
+          {loading ? "Adding Class..." : "Add Class"}
+        </button>
+      </form>
+      {error && <p className="text-red-500">{error}</p>}
     </div>
   );
 }

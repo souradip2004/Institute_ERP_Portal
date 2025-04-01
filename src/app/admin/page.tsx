@@ -8,6 +8,7 @@ import { useAddTeacher } from "@/hooks/useAddTeacher";
 import { useFetchTeacher } from "@/hooks/useFetchTeacher";
 import { useFetchStudent } from "@/hooks/useFetchStudent";
 import { useFetchClass } from "@/hooks/useFetchClass";
+import AddClassComponent from "@/components/admin/AddClass";
 
 export default function AdminPage() {
   const { getAllTeachers, error:teacherError } = useFetchTeacher();
@@ -227,6 +228,9 @@ export default function AdminPage() {
                             </Button>
                         </div>
                     </Card>
+          )}
+          {activeSection === "addClass" && (
+                   < AddClassComponent/>
                 )}
                 {activeSection === "viewTeachers" && (
                     <Card className="p-4 shadow-xl">

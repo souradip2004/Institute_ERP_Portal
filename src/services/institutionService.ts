@@ -8,9 +8,13 @@ export class InstitutionService {
 
   async createInstitution(data: any) {
     console.log('Creating institution:', data);
-    return InstitutionQueue.add('create-institution', {
-      data,
-    });;
+    // return InstitutionQueue.add('create-institution', {
+    //   data,
+    // });;
+
+    return await prisma.institution.create({
+      data: data,
+    });
   }
 
   async getInstitutionById(id: string) {

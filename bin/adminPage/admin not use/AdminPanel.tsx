@@ -1,13 +1,13 @@
 // app/admin/AdminPage.tsx
 "use client";
 import { useState } from "react";
-import Sidebar from "@/components/admin/Sidebar";
-import AddTeacher from "@/components/admin/AddTeacher";
-import AddStudent from "@/components/admin/AddStudent";
+import Sidebar from "@/components/admin not use/Sidebar";
+import AddTeacher from "@/components/admin not use/AddTeacher";
+import AddStudent from "@/components/admin not use/AddStudent";
 import AddClass from "@/components/admin/AddClass";
-import ViewTeachers from "@/components/admin/ViewTeachers";
-import ViewStudents from "@/components/admin/ViewStudents";
-import ViewClasses from "@/components/admin/ViewClasses";
+import ViewTeachers from "@/components/admin not use/ViewTeachers";
+import ViewStudents from "@/components/admin not use/ViewStudents";
+import ViewClasses from "@/components/admin not use/ViewClasses";
 import { useFileUpload } from "@/hooks/admin/useFileUpload";
 
 export default function AdminPage() {

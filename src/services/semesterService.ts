@@ -5,9 +5,20 @@ export class SemesterService {
     return await prisma.semester.findMany();
   }
   async createSemester(data: any) {
-    return await semesterQueue.add('create-semester',{
-     data
-    })
+    // return await semesterQueue.add('create-semester',{
+    //  data
+    // })
+
+     const semesterData = {
+    name: data.name || "Fall 2022",
+    startDate: data.startDate ? new Date(data.startDate) : new Date('2022-09-01'),
+    endDate: data.endDate ? new Date(data.endDate) : new Date('2022-12-31'),
+    institutionId: data.institutionId,
+    isCurrent: data.isCurrent,
+  };
+   return await prisma.semester.create({
+      data: semesterData,
+    });
   }
 
   async updateSemester(id: string, data: any) {
