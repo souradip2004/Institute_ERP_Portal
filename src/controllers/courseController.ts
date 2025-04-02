@@ -119,4 +119,8 @@ export class CourseController {
       return NextResponse.json({ error: error instanceof Error ? error.message : 'An error occurred while deleting the course' }, { status: 500 });
     }
   }
+
+   async getCoursesByDepartment(departmentId: string) {
+        return courseService.fetchCoursesByDepartment(departmentId);
+    }
 }

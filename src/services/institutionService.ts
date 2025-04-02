@@ -22,10 +22,12 @@ export class InstitutionService {
   }
 
   async updateInstitution(id: string, data: any) {
-    return  InstitutionQueue.add('update-institution', {
-      data,
-      identity:id
-    });
+    // return  InstitutionQueue.add('update-institution', {
+    //   data,
+    //   identity:id
+    // });
+
+    return await prisma.institution.update({ where: { id }, data });
   }
 
   async deleteInstitution(id: string) {
@@ -33,4 +35,11 @@ export class InstitutionService {
       identity:id,
     });
   }
+
+
+  async getAllDepartmentsByInstitute (institutionId: string) {
+  return await prisma.department.findMany({
+    where: { institutionId },
+  });
+};
 }

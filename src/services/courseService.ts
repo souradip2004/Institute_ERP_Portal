@@ -129,4 +129,11 @@ export class CourseService {
 
     await prisma.course.delete({ where: { id } });
   }
+
+   async fetchCoursesByDepartment(departmentId: string) {
+        return prisma.course.findMany({
+            where: { departmentId },
+        });
+    }
+
 }

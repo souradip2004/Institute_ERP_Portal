@@ -53,4 +53,19 @@ export class DepartmentHeadController {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
   }
+
+    async getDeptHeadByDepartment(departmentId: string) {
+    try {
+      const hod = await departmentHeadService.fetchDeptHeadByDepartment(departmentId);
+      // console.log('hod: ');
+      // console.log(hod);
+      if (!hod) {
+        return NextResponse.json({ error: 'Department Head not found' }, { status: 210 });
+      }
+      return NextResponse.json({hod, message: 'Department Head detail fetch successfully' });
+    } catch (error: any) {
+      console.error(error);
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+  }
 }

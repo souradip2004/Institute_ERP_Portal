@@ -102,4 +102,10 @@ export class BatchService {
 
     await prisma.batch.delete({ where: { id } });
   }
+
+    async fetchBatchesByDepartment(departmentId: string) {
+        return prisma.batch.findMany({
+            where: { departmentId },
+        });
+    }
 }

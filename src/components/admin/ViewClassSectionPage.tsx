@@ -44,7 +44,7 @@ export default function ClassSectionsPage() {
   }, []);
 
   // Function to handle viewing a specific class section's details
-  const handleViewClassSection = (sectionId) => {
+  const handleViewClassSection = (sectionId:any) => {
     // Find the selected class section from the classSections array
     const section = classSections.find(s => s.id === sectionId);
     if (section) {

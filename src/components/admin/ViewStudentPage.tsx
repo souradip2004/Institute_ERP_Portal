@@ -44,7 +44,7 @@ export default function StudentsPage() {
   }, []);
 
   // Function to handle viewing a specific student's details
-  const handleViewStudent = (studentId) => {
+  const handleViewStudent = (studentId:any) => {
     // Find the selected student from the students array
     const student = students.find(s => s.id === studentId);
     if (student) {

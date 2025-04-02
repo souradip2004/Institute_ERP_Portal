@@ -117,4 +117,10 @@ export class DepartmentService {
 
     await prisma.department.delete({ where: { id } });
   }
+
+  async getAllDepartmentsByInstitute(institutionId: string) {
+    return await prisma.department.findMany({
+      where: { institutionId },
+    });
+  }
 }

@@ -23,6 +23,6 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "prisma/seed.mts", "prisma/seed.js", "src/bullmq/workers/instituionworker.js"],
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "prisma/seed.mts", "prisma/seed.js", "src/bullmq/workers/instituionworker.js", "src/components/hod/AddHodComponent.jsx"],
   "exclude": ["node_modules"]
 }

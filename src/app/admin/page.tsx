@@ -10,6 +10,7 @@ import AddStudentComponent from "@/components/admin/AddStudent";
 import ViewTeachers from "@/components/admin/ViewTeachersComponent";
 import ViewClassSectionsPage from "@/components/admin/ViewClassSectionPage";
 import ViewStudentPage from "@/components/admin/ViewStudentPage";
+import Link from "next/link";
 
 export default function AdminPage() {
   const [teachers, setTeachers] = useState<{ name: string; email: string; id: string, [key: string]: any; }[]>([]);
@@ -100,6 +101,7 @@ export default function AdminPage() {
       {/* Sidebar */}
       <div className="w-1/4 p-4 bg-gray-100 h-screen">
         <h2 className="text-2xl font-bold mb-4">Admin Panel</h2>
+        <div className="flex flex-col justify-between h-[80%]">
         <ul className="space-y-2">
           <li
             onClick={() => setActiveSection("classManagement")}
@@ -143,7 +145,12 @@ export default function AdminPage() {
           >
             View Classes
           </li>
-        </ul>
+          </ul>
+          <div className="flex flex-col">
+          <Link href={"/admin/department"}>Manage Department</Link>
+            <Link href={"/admin/profile"}>Profile</Link>
+            </div>
+          </div>
       </div>
 
       {/* Main Content */}
