@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest} from 'next/server';
 import { QuestionController } from '@/controllers/questionController';
 
 const questionController = new QuestionController();
 
-export async function GET() {
-  return questionController.getAllQuestions();
+export async function GET(req: NextRequest) {
+  return questionController.getAllQuestions(req);
 }
 
 export async function POST(req: NextRequest) {
