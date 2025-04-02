@@ -37,4 +37,21 @@ export class DepartmentHeadService {
     //   identity: id,
     // });
   }
+
+
+ async fetchDeptHeadByDepartment(departmentId: string) {
+    console.log('Trying to fetch HOD details where deptId is ' + departmentId);
+    
+    return prisma.departmentHead.findUnique({
+        where: { departmentId },
+        include: {
+            teacher: {  // This assumes your DepartmentHead model has a relation field named 'teacher'
+                include: {
+                    user: true  // This assumes your Teacher model has a relation field named 'user'
+                }
+            }
+        }
+    });
+
+}
 }

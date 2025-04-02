@@ -11,6 +11,7 @@ export class TeacherController {
       console.log(teachers);
       return NextResponse.json(teachers);
     } catch (error: any) {
+      console.error(error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
   }

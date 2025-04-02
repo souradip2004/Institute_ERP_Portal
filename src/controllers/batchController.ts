@@ -100,4 +100,8 @@ export class BatchController {
       return NextResponse.json({ error: error instanceof Error ? error.message : 'An error occurred while deleting the batch' }, { status: 500 });
     }
   }
+
+    async getBatchesByDepartment(departmentId: string) {
+        return batchService.fetchBatchesByDepartment(departmentId);
+    }
 }

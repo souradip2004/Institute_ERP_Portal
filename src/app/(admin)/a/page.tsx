@@ -5,16 +5,14 @@ import { Button } from "@/components/ui/button";
 import { v4 as uuidv4 } from "uuid";
 import * as XLSX from "xlsx";
 import { useAddTeacher } from "@/hooks/useAddTeacher";
-import { useFetchTeacher } from "@/hooks/useFetchTeacher";
-import { useFetchStudent } from "@/hooks/useFetchStudent";
-import { useFetchClass } from "@/hooks/useFetchClass";
 import AddClassComponent from "@/components/admin/AddClass";
 import AddStudentComponent from "@/components/admin/AddStudent";
+import ViewTeachers from "@/components/admin/ViewTeachersComponent";
+import ViewClassSectionsPage from "@/components/admin/ViewClassSectionPage";
+import ViewStudentPage from "@/components/admin/ViewStudentPage";
+import Link from "next/link";
 
 export default function AdminPage() {
-  const { getAllTeachers, error: teacherError } = useFetchTeacher();
-  const { getAllStudents, error: studentError } = useFetchStudent();
-  const { getAllClasses, error: classError } = useFetchClass();
   const [teachers, setTeachers] = useState<{ name: string; email: string; id: string, [key: string]: any; }[]>([]);
 
   const [students, setStudents] = useState<{ name: string; id: string; email?: string; rollNumber?: string }[]>([]);
@@ -24,6 +22,9 @@ export default function AdminPage() {
   const { addTeacher, loading } = useAddTeacher();
   const [activeSection, setActiveSection] = useState("classManagement");
   const [fileError, setFileError] = useState("");
+
+  // const [activeSection, setActiveSection] = useState("viewStudents");
+  const [selectedStudent, setSelectedStudent] = useState(null);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, type: "Teacher" | "Student" | "Class") => {
     const file = e.target.files?.[0];
@@ -91,26 +92,7 @@ export default function AdminPage() {
     }
   };
 
-  useEffect(() => {
-    const fetchTeachers = async () => {
-      if (activeSection === "viewTeachers") {
-        const temp = await getAllTeachers();
-        setTeachers(temp);
-        console.log("teachers: ", temp);
-      }
-      else if (activeSection === "viewStudents") {
-        const temp = await getAllStudents();
-        setStudents(temp);
-        console.log("students: ", temp);
-      } else if (activeSection === "viewClasses") {
-        const temp = await getAllClasses();
-        setClasses(temp);
-        console.log("classes: ", temp);
-      }
-    };
 
-    fetchTeachers();
-  }, [activeSection]);
 
 
 
@@ -119,6 +101,7 @@ export default function AdminPage() {
       {/* Sidebar */}
       <div className="w-1/4 p-4 bg-gray-100 h-screen">
         <h2 className="text-2xl font-bold mb-4">Admin Panel</h2>
+        <div className="flex flex-col justify-between h-[80%]">
         <ul className="space-y-2">
           <li
             onClick={() => setActiveSection("classManagement")}
@@ -162,7 +145,12 @@ export default function AdminPage() {
           >
             View Classes
           </li>
-        </ul>
+          </ul>
+          <div className="flex flex-col">
+          <Link href={"/admin/department"}>Manage Department</Link>
+            <Link href={"/admin/profile"}>Profile</Link>
+            </div>
+          </div>
       </div>
 
       {/* Main Content */}
@@ -238,40 +226,21 @@ export default function AdminPage() {
         )}
         {activeSection === "viewTeachers" && (
           <Card className="p-4 shadow-xl">
-            <h2 className="text-xl font-bold mb-4">Teachers</h2>
-            <ul>
-              {teachers.map((teacher) => (
-                <li key={teacher.id} className="p-2">
-                  name: {teacher?.user?.name} &nbsp;&nbsp;
-                  email: {teacher?.user?.email}
-                </li>
-              ))}
-            </ul>
+            <ViewTeachers/>
           </Card>
         )}
         {activeSection === "viewStudents" && (
-          <Card className="p-4 shadow-xl">
-            <h2 className="text-xl font-bold mb-4">Students</h2>
-            <ul>
-              {students?.map((student) => (
-                <li key={student.id}>
-                  {student?.user?.name} - {student.user?.email || "No Email"} - {student.user?.rollNumber || "No Roll Number"}
-                </li>
-              ))}
-            </ul>
+          <Card className="shadow-xl">
+            <ViewStudentPage/>
           </Card>
         )}
+
+
         {activeSection === "viewClasses" && (
-          <Card className="p-4 shadow-xl">
-            <h2 className="text-xl font-bold mb-4">Classes</h2>
-            <ul>
-              {classes.map((classItem) => (
-                <li key={classItem.id}>
-                  {classItem.sectionName} - maxStudent: {classItem.maxStudents}
-                </li>
-              ))}
-            </ul>
-          </Card>
+          <Card className="shadow-xl">
+            {/* <ViewClassSection classes={classes} /> */}
+            <ViewClassSectionsPage/>
+            </Card>
         )}
       </div>
     </div>

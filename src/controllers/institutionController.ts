@@ -41,6 +41,7 @@ export class InstitutionController {
       const institution = await institutionService.updateInstitution(id, data);
       return NextResponse.json(institution);
     } catch (error: any) {
+      console.error(error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
   }
@@ -53,4 +54,21 @@ export class InstitutionController {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
   }
+
+
+
+   async fetchDepartmentsByInstitute(institutionId: string) {
+    
+      try {
+      const dept = await institutionService.getAllDepartmentsByInstitute(institutionId);
+      console.log('dept: ');
+      console.log(dept);
+      if (!dept) {
+        return NextResponse.json({ error: 'department not found' }, { status: 404 });
+      }
+      return NextResponse.json(dept);
+    } catch (error: any) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+};
 }
