@@ -5,20 +5,13 @@ import { Button } from "@/components/ui/button";
 import { v4 as uuidv4 } from "uuid";
 import * as XLSX from "xlsx";
 import { useAddTeacher } from "@/hooks/useAddTeacher";
-import { useFetchTeacher } from "@/hooks/useFetchTeacher";
-import { useFetchStudent } from "@/hooks/useFetchStudent";
-import { useFetchClass } from "@/hooks/useFetchClass";
 import AddClassComponent from "@/components/admin/AddClass";
 import AddStudentComponent from "@/components/admin/AddStudent";
-import ViewClassSection from "@/components/admin/ViewClassSection";
-import StudentsList from "@/components/admin/StudentsListComponent";
-import StudentDetail from "@/components/admin/StudentdetailComponent";
 import ViewTeachers from "@/components/admin/ViewTeachersComponent";
+import ViewClassSectionsPage from "@/components/admin/ViewClassSectionPage";
+import ViewStudentPage from "@/components/admin/ViewStudentPage";
 
 export default function AdminPage() {
-  const { getAllTeachers, error: teacherError } = useFetchTeacher();
-  const { getAllStudents, error: studentError } = useFetchStudent();
-  const { getAllClasses, error: classError } = useFetchClass();
   const [teachers, setTeachers] = useState<{ name: string; email: string; id: string, [key: string]: any; }[]>([]);
 
   const [students, setStudents] = useState<{ name: string; id: string; email?: string; rollNumber?: string }[]>([]);
@@ -98,26 +91,7 @@ export default function AdminPage() {
     }
   };
 
-  useEffect(() => {
-    const fetchTeachers = async () => {
-      if (activeSection === "viewTeachers") {
-        const temp = await getAllTeachers();
-        setTeachers(temp);
-        console.log("teachers: ", temp);
-      }
-      else if (activeSection === "viewStudents") {
-        const temp = await getAllStudents();
-        setStudents(temp);
-        console.log("students: ", temp);
-      } else if (activeSection === "viewClasses") {
-        const temp = await getAllClasses();
-        setClasses(temp);
-        console.log("classes: ", temp);
-      }
-    };
 
-    fetchTeachers();
-  }, [activeSection]);
 
 
 
@@ -250,14 +224,15 @@ export default function AdminPage() {
         )}
         {activeSection === "viewStudents" && (
           <Card className="shadow-xl">
-            <StudentsList students={students} />
+            <ViewStudentPage/>
           </Card>
         )}
 
 
         {activeSection === "viewClasses" && (
           <Card className="shadow-xl">
-            <ViewClassSection classes={classes} />
+            {/* <ViewClassSection classes={classes} /> */}
+            <ViewClassSectionsPage/>
             </Card>
         )}
       </div>
