@@ -4,9 +4,9 @@ import { ExamSubmissionController } from '@/controllers/examSubmissionController
 const examSubmissionController = new ExamSubmissionController();
 
 export async function GET() {
-  return examSubmissionController.getAllExamSubmissions();
+  return examSubmissionController.getAll();
 }
 
 export async function POST(req: NextRequest) {
-  return examSubmissionController.createExamSubmission(req);
+  return examSubmissionController.create(req);
 }

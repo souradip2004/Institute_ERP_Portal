@@ -3,17 +3,18 @@ import { ExamSubmissionController } from '@/controllers/examSubmissionController
 
 const examSubmissionController = new ExamSubmissionController();
 
+// Search exam submision by student id
 export async function GET(req: NextRequest, context: { params: { id: string } }) {
   const { id } = context.params;
-  return examSubmissionController.getExamSubmissionById(id);
+  return examSubmissionController.getById(id);
 }
 
 export async function PUT(req: NextRequest, context: { params: { id: string } }) {
   const { id } = context.params;
-  return examSubmissionController.updateExamSubmission(id, req);
+  return examSubmissionController.update(id, req);
 }
 
 export async function DELETE(req: NextRequest, context: { params: { id: string } }) {
   const { id } = context.params;
-  return examSubmissionController.deleteExamSubmission(id);
+  return examSubmissionController.delete(id);
 }
