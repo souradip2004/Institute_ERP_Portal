@@ -8,18 +8,35 @@ export default function ListOfBatchComponent({ departmentId, onBack }) {
     const [batches, setBatches] = useState([]);
     const [selectedBatch, setSelectedBatch] = useState(null);
     const [showAddBatch, setShowAddBatch] = useState(false);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
     useEffect(() => {
         const fetchBatches = async () => {
-            const response = await fetch(`/api/${departmentId}/batches`);
-            const data = await response.json();
-            setBatches(data);
+            try {
+                const response = await fetch(`/api/departments/${departmentId}/batches`);
+                if (!response.ok) throw new Error("Failed to fetch batches");
+                const data = await response.json();
+                setBatches(data);
+            } catch (err) {
+                setError(err.message);
+            } finally {
+                setLoading(false);
+            }
         };
-        fetchBatches();
+        if (departmentId) fetchBatches();
     }, [departmentId]);
 
-    if (selectedBatch) return <BatchDetailComponent batch={selectedBatch} onBack={() => setSelectedBatch(null)} />;
-    if (showAddBatch) return <AddBatchComponent departmentId={departmentId} onSuccess={() => setShowAddBatch(false)} />;
+    if (loading) return <p>Loading batches...</p>;
+    if (error) return <p className="text-red-500">{error}</p>;
+
+    if (selectedBatch) {
+        return <BatchDetailComponent batch={selectedBatch} onBack={() => setSelectedBatch(null)} departmentId={departmentId}/>;
+    }
+
+    if (showAddBatch) {
+        return <AddBatchComponent departmentId={departmentId} onSuccess={() => setShowAddBatch(false)} />;
+    }
 
     return (
         <div>
@@ -27,12 +44,18 @@ export default function ListOfBatchComponent({ departmentId, onBack }) {
             <button onClick={() => setShowAddBatch(true)} className="bg-blue-500 text-white px-4 py-2 rounded my-4">
                 Add Batch
             </button>
-            {batches.map((batch) => (
-                <div key={batch.id} className="border p-4 cursor-pointer" onClick={() => setSelectedBatch(batch)}>
-                    <p><strong>Batch:</strong> {batch.batchName}</p>
-                    <p><strong>Year:</strong> {batch.year}</p>
-                </div>
-            ))}
+
+            {batches.length === 0 ? (
+                <p className="text-gray-500">No batches available.</p>
+            ) : (
+                batches.map((batch) => (
+                    <div key={batch.id} className="border p-4 cursor-pointer hover:shadow-md" onClick={() => setSelectedBatch(batch)}>
+                        <p><strong>Batch:</strong> {batch.batchName}</p>
+                        <p><strong>Year:</strong> {batch.year}</p>
+                    </div>
+                ))
+            )}
+
             <button onClick={onBack} className="mt-4 bg-gray-500 text-white px-4 py-2 rounded">Back</button>
         </div>
     );

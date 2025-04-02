@@ -6,12 +6,26 @@ const studentService = new StudentService();
 export class StudentController {
   async getAllStudents(req: NextRequest) {
     try {
-      const students = await studentService.getAllStudents();
-      return NextResponse.json(students);
+        const { searchParams } = new URL(req.url);
+        const batchId = searchParams.get("batchId");
+        const departmentId = searchParams.get("departmentId");
+
+        let students;
+
+        if (batchId) {
+            students = await studentService.getStudentsByBatchId(batchId);  // ✅ Call correct method
+        } else if (departmentId) {
+            students = await studentService.getStudentsByDeptId(departmentId); // ✅ Call correct method
+        } else {
+            students = await studentService.getAllStudents(); // ✅ Only called when no filters are applied
+        }
+
+        return NextResponse.json(students);
     } catch (error: any) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+        return NextResponse.json({ error: error.message }, { status: 500 });
     }
-  }
+}
+
 
   async createStudent(req: NextRequest) {
     try {

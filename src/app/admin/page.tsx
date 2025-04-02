@@ -6,7 +6,6 @@ import { v4 as uuidv4 } from "uuid";
 import * as XLSX from "xlsx";
 import { useAddTeacher } from "@/hooks/useAddTeacher";
 import AddClassComponent from "@/components/admin/AddClass";
-import AddStudentComponent from "@/components/admin/AddStudent";
 import ViewTeachers from "@/components/admin/ViewTeachersComponent";
 import ViewClassSectionsPage from "@/components/admin/ViewClassSectionPage";
 import ViewStudentPage from "@/components/admin/ViewStudentPage";
@@ -115,12 +114,7 @@ export default function AdminPage() {
           >
             Add Teacher
           </li>
-          <li
-            onClick={() => setActiveSection("addStudent")}
-            className="cursor-pointer hover:text-blue-500"
-          >
-            Add Student
-          </li>
+        
           <li
             onClick={() => setActiveSection("addClass")}
             className="cursor-pointer hover:text-blue-500"
@@ -147,7 +141,8 @@ export default function AdminPage() {
           </li>
           </ul>
           <div className="flex flex-col">
-          <Link href={"/admin/department"}>Manage Department</Link>
+          <Link href={"/admin/departments"}>Manage Departments</Link>
+          <Link href={"/admin/semesters"}>Manage semesters</Link>
             <Link href={"/admin/profile"}>Profile</Link>
             </div>
           </div>
@@ -221,9 +216,7 @@ export default function AdminPage() {
         {activeSection === "addClass" && (
           < AddClassComponent />
         )}
-        {activeSection === "addStudent" && (
-          < AddStudentComponent />
-        )}
+       
         {activeSection === "viewTeachers" && (
           <Card className="p-4 shadow-xl">
             <ViewTeachers/>

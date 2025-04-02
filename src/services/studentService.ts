@@ -17,7 +17,9 @@ export class StudentService {
   }
 
   async getStudentById(id: string) {
-    return prisma.student.findUnique({ where: { id } });
+    return prisma.student.findUnique({ where: { id }, include: {
+        user: true,
+      }, });
   }
 
   async updateStudent(id: string, data: any) {
@@ -30,6 +32,24 @@ export class StudentService {
   async deleteStudent(id: string) {
     return studentQueue.add('delete-student', {
       identity: id,
+    });
+  }
+
+  async getStudentsByBatchId(batchId: string) {
+    return prisma.student.findMany({
+      where: { batchId },
+      include: {
+        user: true,
+      },
+    });
+  }
+
+  async getStudentsByDeptId(departmentId: string) {
+    return prisma.student.findMany({
+      where: { departmentId },
+      include: {
+        user: true,
+      },
     });
   }
 }

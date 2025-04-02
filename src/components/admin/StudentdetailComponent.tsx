@@ -43,6 +43,7 @@ interface StudentDetailProps {
 }
 
 export default function StudentDetail({ student, onBack }: StudentDetailProps) {
+  console.log('received student detail: ', student);
   // Format date function
   const formatDate = (dateString: string | null) => {
     if (!dateString) return 'Not provided';

@@ -41,5 +41,11 @@ export class InstitutionService {
   return await prisma.department.findMany({
     where: { institutionId },
   });
-};
+  };
+  
+  async getAllSemestersByinstituteId (institutionId: string) {
+  return await prisma.semester.findMany({
+    where: { institutionId },
+  });
+  };
 }

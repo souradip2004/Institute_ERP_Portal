@@ -70,5 +70,21 @@ export class InstitutionController {
     } catch (error: any) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
+  };
+  
+    async fetchSemestersByInstituteId(institutionId: string) {
+    
+      try {
+      const semesters = await institutionService.getAllSemestersByinstituteId(institutionId);
+      console.log('institute: ');
+      console.log(semesters);
+      if (!semesters) {
+        return NextResponse.json({ error: 'department not found' }, { status: 404 });
+      }
+      return NextResponse.json(semesters);
+      } catch (error: any) {
+        console.error(error)
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
 };
 }
