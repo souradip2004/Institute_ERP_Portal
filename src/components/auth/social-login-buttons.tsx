@@ -16,7 +16,7 @@ export function SocialLoginButtons({ isLoading: initialLoading = false }: Social
   const handleSocialLogin = async (provider: string) => {
     try {
       setLoading(provider);
-      await signIn(provider, { callbackUrl: "/dashboard" });
+      await signIn(provider, { callbackUrl: "/a/dashboard" });
     } catch (error) {
       console.error(`${provider} login error:`, error);
       setLoading(null);

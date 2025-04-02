@@ -49,7 +49,7 @@ export function AuthCard({
         setError(result.error);
         setLoading(false);
       } else {
-        window.location.href = "/dashboard"; // Redirect on success
+        window.location.href = "/a/dashboard"; // Redirect on success
       }
     } else {
       // Handle registration via API
@@ -75,7 +75,7 @@ export function AuthCard({
         if (signInResult?.error) {
           setError(signInResult.error);
         } else {
-          window.location.href = "/dashboard";
+          window.location.href = "/a/dashboard";
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Something went wrong");
