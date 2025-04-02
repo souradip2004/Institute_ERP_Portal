@@ -4,11 +4,24 @@ import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
 import ClassSectionForm from "@/components/ClassSectionForm";
 import AttendanceSessionList from "@/components/AttendanceSessionList";
-import { useSession } from "next-auth/react";
+import useSession from "@/hooks/useSession";
+import { useEffect } from "react";
 
-export default function TeacherDashboard() {
-  const { data: session } = useSession();
+
+export default async function TeacherDashboard()  {
+  const session = await useSession();
+  useEffect(()=>{
+  async function abc() {
+    let session1 = await useSession()
+    console.log(session1);  
+  }
+  abc();
+  },[])
+  // const { data: session } = useSession();
+  console.log("session",session)
   const teacherId = session?.user.id;
+
+  console.log(teacherId);
 
   const { data: classSections, isLoading } = useQuery({
     queryKey: ["classSections", teacherId],

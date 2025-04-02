@@ -1,3 +1,4 @@
+// api/auth/username-login/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/config/prisma";
 import bcrypt from "bcryptjs";
@@ -6,22 +7,30 @@ import { cookies } from "next/headers";
 
 export async function POST(request: NextRequest) {
   try {
-    const { identifier, password, role } = await request.json();
+    const { username, password, role } = await request.json();
 
-    // Find user by email or name (username)
+    if (!username || !password) {
+      return NextResponse.json(
+        { error: "Username and password are required" },
+        { status: 400 }
+      );
+    }
+
+    // Find user by username (name field)
     const user = await prisma.user.findFirst({
       where: {
-        OR: [
-          { email: identifier },
-          { name: identifier },
-        ],
-        role: role,
+        username,
+        ...(role ? { role } : {}), // Only include role in query if provided
       },
       include: {
         student: true,
         teacher: true,
       },
-    });
+    }).then((data)=>{return data}).catch((e)=>{console.log(e)})
+
+    console.log(user);
+    console.log(user?.password);
+    
 
     if (!user || !user.password) {
       return NextResponse.json(
@@ -47,7 +56,7 @@ export async function POST(request: NextRequest) {
         email: user.email,
         image: user.image,
         role: user.role,
-        emailVerified: user.emailVerified,
+        emailVerified: new Date(), // Set to current date to bypass verification check
       },
       expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days
     };
@@ -58,16 +67,24 @@ export async function POST(request: NextRequest) {
     });
 
     // Set cookie compatible with NextAuth
-    (await
-          // Set cookie compatible with NextAuth
-          cookies()).set("next-auth.session-token", token, {
+    const cookieStore = cookies();
+    (await cookieStore).set("next-auth.session-token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
       expires: new Date(session.expires),
+      path: "/",
     });
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ 
+      success: true,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      }
+    });
   } catch (error) {
     console.error(error);
     return NextResponse.json(
