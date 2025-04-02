@@ -5,15 +5,15 @@ const answerScriptController = new AnswerScriptController();
 
 export async function GET(req: NextRequest, context: { params: { id: string } }) {
   const { id } = context.params;
-  return answerScriptController.getAnswerScriptById(id);
+  return answerScriptController.getById(id);
 }
 
 export async function PUT(req: NextRequest, context: { params: { id: string } }) {
   const { id } = context.params;
-  return answerScriptController.updateAnswerScript(id, req);
+  return answerScriptController.update(id, req);
 }
 
 export async function DELETE(req: NextRequest, context: { params: { id: string } }) {
   const { id } = context.params;
-  return answerScriptController.deleteAnswerScript(id);
+  return answerScriptController.delete(id);
 }

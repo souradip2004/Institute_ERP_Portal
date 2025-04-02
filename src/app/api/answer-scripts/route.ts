@@ -4,9 +4,9 @@ import { AnswerScriptController } from '@/controllers/answerScriptController';
 const answerScriptController = new AnswerScriptController();
 
 export async function GET() {
-  return answerScriptController.getAllAnswerScripts();
+  return answerScriptController.getAll();
 }
 
 export async function POST(req: NextRequest) {
-  return answerScriptController.createAnswerScript(req);
+  return answerScriptController.create(req);
 }
