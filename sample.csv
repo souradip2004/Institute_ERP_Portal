@@ -1,0 +1,11 @@
+studentRoll,name,email,phoneNumber,parentGuardianName,parentGuardianPhone,parentGuardianEmail
+2023CS001,John Smith,john.smith@example.com,9876543210,Mary Smith,9876543211,mary.smith@example.com
+2023CS002,Emily Johnson,emily.j@example.com,8765432109,Robert Johnson,8765432108,robert.j@example.com
+2023CS003,Michael Brown,michael.b@example.com,7654321098,Patricia Brown,7654321097,patricia.b@example.com
+2023CS004,Sarah Williams,sarah.w@example.com,6543210987,James Williams,6543210986,james.w@example.com
+2023CS005,David Miller,david.m@example.com,5432109876,Jennifer Miller,5432109875,jennifer.m@example.com
+2023CS006,Jessica Davis,jessica.d@example.com,4321098765,Christopher Davis,4321098764,christopher.d@example.com
+2023CS007,Thomas Wilson,thomas.w@example.com,3210987654,Elizabeth Wilson,3210987653,elizabeth.w@example.com
+2023CS008,Jennifer Taylor,jennifer.t@example.com,2109876543,Daniel Taylor,2109876542,daniel.t@example.com
+2023CS009,Kevin Anderson,kevin.a@example.com,1098765432,Susan Anderson,1098765431,susan.a@example.com
+2023CS010,Lisa Martinez,lisa.m@example.com,0987654321,Paul Martinez,0987654320,paul.m@example.com

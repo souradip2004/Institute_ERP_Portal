@@ -32,28 +32,26 @@ export class BatchService {
     });
   }
 
-  async createBatch(data: CreateBatchDTO): Promise<Batch> {
+async createBatch(data: CreateBatchDTO): Promise<Batch> {
     const { batchName, year, departmentId, maxStudents = 0 } = data;
 
     // Validate required fields
     if (!batchName || !year || !departmentId) {
-      throw new Error('batchName, year, and departmentId are required');
+        throw new Error('batchName, year, and departmentId are required');
     }
 
-    // Uncomment for Redis/BullMQ integration
-    // return await batchQueue.add('create-batch', { data });
-
     return prisma.batch.create({
-      data: {
-        batchName,
-        year,
-        departmentId,
-        maxStudents,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
+        data: {
+            batchName,
+            year: parseInt(year, 10),  // Ensure year is an integer
+            departmentId,
+            maxStudents: parseInt(maxStudents, 10),  // Ensure maxStudents is an integer
+            createdAt: new Date(),
+            updatedAt: new Date(),
+        },
     });
-  }
+}
+
 
   async getBatchById(id: string): Promise<Batch | null> {
     if (!id) throw new Error('Batch ID is required');
