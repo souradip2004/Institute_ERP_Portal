@@ -10,6 +10,10 @@ import { useFetchStudent } from "@/hooks/useFetchStudent";
 import { useFetchClass } from "@/hooks/useFetchClass";
 import AddClassComponent from "@/components/admin/AddClass";
 import AddStudentComponent from "@/components/admin/AddStudent";
+import ViewClassSection from "@/components/admin/ViewClassSection";
+import StudentsList from "@/components/admin/StudentsListComponent";
+import StudentDetail from "@/components/admin/StudentdetailComponent";
+import ViewTeachers from "@/components/admin/ViewTeachersComponent";
 
 export default function AdminPage() {
   const { getAllTeachers, error: teacherError } = useFetchTeacher();
@@ -24,6 +28,9 @@ export default function AdminPage() {
   const { addTeacher, loading } = useAddTeacher();
   const [activeSection, setActiveSection] = useState("classManagement");
   const [fileError, setFileError] = useState("");
+
+  // const [activeSection, setActiveSection] = useState("viewStudents");
+  const [selectedStudent, setSelectedStudent] = useState(null);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, type: "Teacher" | "Student" | "Class") => {
     const file = e.target.files?.[0];
@@ -238,40 +245,20 @@ export default function AdminPage() {
         )}
         {activeSection === "viewTeachers" && (
           <Card className="p-4 shadow-xl">
-            <h2 className="text-xl font-bold mb-4">Teachers</h2>
-            <ul>
-              {teachers.map((teacher) => (
-                <li key={teacher.id} className="p-2">
-                  name: {teacher?.user?.name} &nbsp;&nbsp;
-                  email: {teacher?.user?.email}
-                </li>
-              ))}
-            </ul>
+            <ViewTeachers/>
           </Card>
         )}
         {activeSection === "viewStudents" && (
-          <Card className="p-4 shadow-xl">
-            <h2 className="text-xl font-bold mb-4">Students</h2>
-            <ul>
-              {students?.map((student) => (
-                <li key={student.id}>
-                  {student?.user?.name} - {student.user?.email || "No Email"} - {student.user?.rollNumber || "No Roll Number"}
-                </li>
-              ))}
-            </ul>
+          <Card className="shadow-xl">
+            <StudentsList students={students} />
           </Card>
         )}
+
+
         {activeSection === "viewClasses" && (
-          <Card className="p-4 shadow-xl">
-            <h2 className="text-xl font-bold mb-4">Classes</h2>
-            <ul>
-              {classes.map((classItem) => (
-                <li key={classItem.id}>
-                  {classItem.sectionName} - maxStudent: {classItem.maxStudents}
-                </li>
-              ))}
-            </ul>
-          </Card>
+          <Card className="shadow-xl">
+            <ViewClassSection classes={classes} />
+            </Card>
         )}
       </div>
     </div>
