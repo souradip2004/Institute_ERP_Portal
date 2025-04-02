@@ -4,28 +4,28 @@ import { DepartmentHeadService } from '@/services/departmentHeadService';
 const departmentHeadService = new DepartmentHeadService();
 
 export class DepartmentHeadController {
-  async getAllDepartmentHeads(req: NextRequest) {
+  async getAll(req: NextRequest) {
     try {
-      const departmentHeads = await departmentHeadService.getAllDepartmentHeads();
+      const departmentHeads = await departmentHeadService.getAll();
       return NextResponse.json(departmentHeads);
     } catch (error: any) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
   }
 
-  async createDepartmentHead(req: NextRequest) {
+  async create(req: NextRequest) {
     try {
       const data = await req.json();
-      const departmentHead = await departmentHeadService.createDepartmentHead(data);
+      const departmentHead = await departmentHeadService.create(data);
       return NextResponse.json(departmentHead, { status: 201 });
     } catch (error: any) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
   }
 
-  async getDepartmentHeadById(id: string) {
+  async getById(id: string) {
     try {
-      const departmentHead = await departmentHeadService.getDepartmentHeadById(id);
+      const departmentHead = await departmentHeadService.getById(id);
       if (!departmentHead) {
         return NextResponse.json({ error: 'Department Head not found' }, { status: 404 });
       }
@@ -35,19 +35,19 @@ export class DepartmentHeadController {
     }
   }
 
-  async updateDepartmentHead(id: string, req: NextRequest) {
+  async update(id: string, req: NextRequest) {
     try {
       const data = await req.json();
-      const departmentHead = await departmentHeadService.updateDepartmentHead(id, data);
+      const departmentHead = await departmentHeadService.update(id, data);
       return NextResponse.json(departmentHead);
     } catch (error: any) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
   }
 
-  async deleteDepartmentHead(id: string) {
+  async delete(id: string) {
     try {
-      await departmentHeadService.deleteDepartmentHead(id);
+      await departmentHeadService.delete(id);
       return NextResponse.json({ message: 'Department Head deleted successfully' });
     } catch (error: any) {
       return NextResponse.json({ error: error.message }, { status: 500 });

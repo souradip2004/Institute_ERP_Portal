@@ -3,14 +3,15 @@ import { DepartmentHeadController } from '@/controllers/departmentHeadController
 
 const departmentHeadController = new DepartmentHeadController();
 
+// Get by departmentHead_id
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
-  return departmentHeadController.getDepartmentHeadById(params.id);
+  return departmentHeadController.getById(params.id);
 }
 
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
-  return departmentHeadController.updateDepartmentHead(params.id, req);
+  return departmentHeadController.update(params.id, req);
 }
 
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
-  return departmentHeadController.deleteDepartmentHead(params.id);
+  return departmentHeadController.delete(params.id);
 }
