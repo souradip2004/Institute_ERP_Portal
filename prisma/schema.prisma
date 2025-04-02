@@ -151,7 +151,7 @@ model User {
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
 
-  role          Role    @default(STUDENT)
+  role          Role    @default(ADMIN)
   institutionId String? @map("institution_id")
 
   institution        Institution?        @relation(fields: [institutionId], references: [id], onDelete: Restrict, onUpdate: Cascade)
