@@ -1,0 +1,122 @@
+.dualVideoContainer {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    background-color: #f5f5f5;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  }
+  
+  .videoControls {
+    display: flex;
+    align-items: center;
+    padding: 1rem;
+    background-color: #3a3a3a;
+    position: relative;
+  }
+  
+  .controlButton {
+    background-color: #4a90e2;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 8px 16px;
+    font-size: 1rem;
+    cursor: pointer;
+    margin-right: 1rem;
+    transition: background-color 0.2s;
+  }
+  
+  .controlButton:hover {
+    background-color: #3470b5;
+  }
+  
+  .play {
+    background-color: #4caf50;
+  }
+  
+  .pause {
+    background-color: #f44336;
+  }
+  
+  .progressBarContainer {
+    flex: 1;
+    height: 8px;
+    background-color: #ddd;
+    border-radius: 4px;
+    overflow: hidden;
+    margin: 0 1rem;
+  }
+  
+  .progressBar {
+    height: 100%;
+    background-color: #4a90e2;
+    transition: width 0.1s linear;
+  }
+  
+  .toggleTeacherButton {
+    background-color: #555;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 8px 16px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: background-color 0.2s;
+  }
+  
+  .toggleTeacherButton:hover {
+    background-color: #777;
+  }
+  
+  .videoPlayersContainer {
+    display: flex;
+    min-height: 400px;
+  }
+  
+  .imagePlayerContainer, .teacherPlayerContainer {
+    flex: 1;
+    min-height: 400px;
+    position: relative;
+    background-color: #000;
+  }
+  
+  .imagePlayerContainer {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-right: 1px solid #ddd;
+  }
+  
+  .aiGeneratedImage {
+    max-width: 100%;
+    max-height: 400px;
+    object-fit: contain;
+  }
+  
+  .teacherVideo {
+    width: 100%;
+    height: 100%;
+    min-height: 400px;
+    object-fit: cover;
+  }
+  
+  /* Responsive layout */
+  @media (max-width: 768px) {
+    .videoPlayersContainer {
+      flex-direction: column;
+    }
+    
+    .imagePlayerContainer, .teacherPlayerContainer {
+      flex: none;
+      width: 100%;
+    }
+    
+    .imagePlayerContainer {
+      border-right: none;
+      border-bottom: 1px solid #ddd;
+    }
+  }
