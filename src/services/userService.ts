@@ -27,6 +27,11 @@ export class UserService {
   }
 
   async update(id: string, data: any) {
+    return prisma.user.update({
+      where: { id },
+      data: {
+        ...data}
+    });
     return userQueue.add("update-user", {
       data,
       identity: id,

@@ -31,6 +31,7 @@ export class InstitutionService {
   }
 
   async deleteInstitution(id: string) {
+    return prisma.institution.delete({ where: { id } });
     return  InstitutionQueue.add('delete-institution', {
       identity:id,
     });

@@ -8,18 +8,10 @@ import useSession from "@/hooks/useSession";
 import { useEffect } from "react";
 
 
-export default async function TeacherDashboard()  {
-  const session = await useSession();
-  useEffect(()=>{
-  async function abc() {
-    let session1 = await useSession()
-    console.log(session1);  
-  }
-  abc();
-  },[])
-  // const { data: session } = useSession();
+export default  function TeacherDashboard()  {
+  const session="txz";
   console.log("session",session)
-  const teacherId = session?.user.id;
+  const teacherId = "cm8yz7ur40001nhqcqck6i7d1";
 
   console.log(teacherId);
 

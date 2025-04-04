@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import TeachersList from '@/components/admin/TeacherListComponent.tsx';
 import TeacherDetail from '@/components/admin/TeacherDetailComponent';
 
-export default function TeachersPage() {
+export default function TeachersPage({id}) {
   // State for storing all teachers
   const [teachers, setTeachers] = useState([]);
   // State for tracking which view to show
@@ -30,6 +30,9 @@ export default function TeachersPage() {
         }
         console.log('response: ' + response);
         const data = await response.json();
+        const filteredTeachers = data.filter((teacher: any) => teacher?.user?.institutionId === id);
+        alert("filteredTeachers: " + filteredTeachers.map((teacher: any) => teacher?.user?.institutionId));
+        setTeachers(filteredTeachers);
         setTeachers(data);
         setError(null);
       } catch (err) {

@@ -4,6 +4,7 @@ const nextConfig: NextConfig = {
   /* config options here */
   experimental: {
     nodeMiddleware: true,
+    
   },
   images: {
     // domains: [avatars.githubusercontent.com, lh3.googleusercontent.com],
@@ -19,6 +20,8 @@ const nextConfig: NextConfig = {
     },
   ],
   },
+  output: 'standalone',
+
 };
 
 export default nextConfig;

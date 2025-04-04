@@ -1,4 +1,5 @@
 // src/services/emailService.ts
+"use server"
 import nodemailer from "nodemailer";
 
 const transporter = nodemailer.createTransport({
