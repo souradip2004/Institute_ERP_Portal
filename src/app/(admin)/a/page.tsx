@@ -64,7 +64,7 @@ const id = institutionData.id
           <Link href="/admin/profile">Profile</Link>
         </div>
       </div>*/}
-      <Sider id={id,userId}/>
+      <Sider id={id} userId={userId}/>
       {/* Profile Section */}
 
 

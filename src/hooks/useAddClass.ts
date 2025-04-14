@@ -4,6 +4,12 @@ import { useState } from "react";
 interface Class {
   sectionName: string;
   maxStudents: number;
+  batchId: string;
+  courseId: string;
+  semesterId: string;
+  teacherId: string;
+  createdAt?: string;
+  departmentId?: string;
 }
 
 export function useAddClass() {

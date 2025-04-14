@@ -12,7 +12,7 @@ interface SiderProps {
     id: any;
   }
   
-const Navigator = ({id,userId}) => {
+const Navigator = ({id, userId}: {id: any; userId: any}) => {
     const [activeComponent, setActiveComponent] = useState<string>("Dashboard");
     const renderComponent = () => {
         switch (activeComponent) {

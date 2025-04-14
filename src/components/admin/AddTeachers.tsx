@@ -160,6 +160,7 @@ const AddTeacherComponent = ({ id }) => {
                             type="button"
                             onClick={async () => {
                                 let randomdigits = "" + Math.floor(1000 + Math.random() * 9000);
+                                alert(id)
                                 fetch("http://localhost:3000/api/departments", {
                                     method: "POST",
                                     headers: {

@@ -17,12 +17,15 @@ export default function AddClassComponent({ id,userid }) {
   const [teacherData, setTeacherData] = useState([]);
   const [semesterOptions, setSemesterOptions] = useState([]);
   const [batchOptions, setBatchOptions] = useState([]);
+  const [batchData, setBatchData] = useState([]);
+  const [courseData, setCourseData] = useState([]);
+  const [semesterData, setSemesterData] = useState([]);
   const [courseOptions, setCourseOptions] = useState([]);
   const [departmentOptions, setDepartmentOptions] = useState([]);
   const [newOption, setNewOption] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const [department, setDepartment] = useState([]);
+  const [department, setDepartment] = useState<{ id: string; name: string }[]>([]);
   const [courseCode, setCourseCode] = useState("");
   const [courseName, setCourseName] = useState("");
   const [courseDescription, setCourseDescription] = useState("");
@@ -39,8 +42,11 @@ export default function AddClassComponent({ id,userid }) {
     })
       .then((res) => res.json())
       .then((data) => {
+        console.log(id)
         const filteredDepartments = data.filter((department) => department.institutionId === id);
         setDepartmentOptions(filteredDepartments.map((department) => department.name));
+        console.log("Filtered Departments:", filteredDepartments);
+        console.log("Department Options:", filteredDepartments.map((department) => department.name));
         setDepartment(filteredDepartments);
       })
       .catch((error) => {
@@ -58,6 +64,7 @@ export default function AddClassComponent({ id,userid }) {
       .then((res) => res.json())
       .then((data) => {
         const filteredSemesters = data.filter((semester) => semester.institutionId === id);
+        setSemesterData(filteredSemesters); 
         setSemesterOptions(filteredSemesters.map((semester) => semester.name));
       })
       .catch((error) => {
@@ -76,6 +83,7 @@ export default function AddClassComponent({ id,userid }) {
       .then((data) => {
         const filteredBatches = data.filter((batch) => batch.department.id === department[0]?.id);
         console.log("Filtered Batches:", filteredBatches);
+        setBatchData(filteredBatches);
         setBatchOptions(filteredBatches.map((batch) => batch.batchName));
       })
       .catch((error) => {
@@ -99,12 +107,47 @@ export default function AddClassComponent({ id,userid }) {
         console.error("Error fetching teachers:", error);
       });
   }, [id]);
-
+useEffect(() => {
+  fetch("http://localhost:3000/api/courses", {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+    },
+  })
+    .then((res) => res.json())
+    .then((data) => {
+      const filteredCourses = data.filter((course) => course.department.id === department[0]?.id);
+      setCourseData(filteredCourses);
+      setCourseOptions(filteredCourses.map((course) => course.name));
+    })
+    .catch((error) => {
+      console.error("Error fetching courses:", error);
+    });
+}, [department]);
   const { addClass, loading, error } = useAddClass();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await addClass(classData);
+    console.log("Submitting Class Data:", classData);
+    console.log({
+      batchId: batchOptions.find((batch) => batch === classData.batch) || "",
+      courseId: courseOptions.find((course) => course === classData.course) || "",
+      departmentId: department.find((dept) => dept.name === classData.department)?.id || "",
+      semesterId: semesterOptions.find((semester) => semester === classData.semester) || "",
+      maxStudents: classData.maxStudents,
+      teacherId:classData.teacherId,
+      sectionName: classData.sectionName,
+      
+    })
+    await addClass({
+      batchId: batchData.find((batch) => batch.batchName === classData.batch)?.id || "",
+      courseId: courseData.find((course) => course.name === classData.course)?.id || "",
+      departmentId: department.find((dept) => dept.name === classData.department)?.id || "",
+      semesterId: semesterData.find((semester) => semester.name === classData.semester)?.id || "",
+      maxStudents: classData.maxStudents,
+      teacherId: classData.teacherId,
+      sectionName: classData.sectionName,
+    });
   };
 
   const handleAddNewOption = (type: string) => {
@@ -393,7 +436,7 @@ export default function AddClassComponent({ id,userid }) {
                     creditHours: courseCredits,
                     departmentId: department.find((dept) => dept.name === classData.department)?.id,
                     courseType:"CORE",
-                    createdBy:userid
+                    createdById:classData.teacherId
                   }),
                 }).then((res) => {
                   if (res.ok) {
