@@ -28,7 +28,9 @@ export class BatchController {
       const { batchName, year, departmentId, maxStudents } = data;
 
       if (!departmentId) {
+        console.error('departmentId is required');
         return NextResponse.json({ error: 'departmentId is required' }, { status: 400 });
+        
       }
 
       const createData: CreateBatchDTO = { batchName, year, departmentId, maxStudents };

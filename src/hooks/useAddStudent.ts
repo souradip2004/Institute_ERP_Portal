@@ -13,7 +13,7 @@ export function useAddStudent() {
   const addStudent = async (student: Student): Promise<boolean> => {
     setLoading(true);
     setError(null);
-
+    
     try {
       const response = await fetch("/api/students", {
         method: "POST",

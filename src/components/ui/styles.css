@@ -1,0 +1,431 @@
+.create-accont-page {
+    background-color: #ffffff;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    width: 100%;
+}
+
+.create-accont-page .div {
+    background-color: #ffffff;
+    height: 982px;
+    overflow: hidden;
+    position: relative;
+    width: 1512px;
+}
+
+.create-accont-page .text-wrapper {
+    color: #3a1078;
+    font-family: "Helvetica-Bold", Helvetica;
+    font-size: 40px;
+    font-weight: 700;
+    left: 583px;
+    letter-spacing: 0;
+    line-height: normal;
+    position: absolute;
+    top: 111px;
+    white-space: nowrap;
+}
+
+.create-accont-page .frame {
+    align-items: center;
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+    left: 76px;
+    position: absolute;
+    top: 198px;
+    width: 1360px;
+}
+
+.create-accont-page .frame-2 {
+    align-items: center;
+    display: inline-flex;
+    flex: 0 0 auto;
+    gap: 122px;
+    position: relative;
+}
+
+.create-accont-page .div-wrapper {
+    align-items: center;
+    background-color: #eaeaea;
+    border-radius: 190px;
+    display: flex;
+    gap: 231px;
+    justify-content: space-around;
+    overflow: hidden;
+    padding: 16px 24px;
+    position: relative;
+    width: 588px;
+}
+
+.create-accont-page .text-wrapper-2 {
+    color: #00000099;
+    font-family: "Inter-Regular", Helvetica;
+    font-size: 18px;
+    font-weight: 400;
+    letter-spacing: 0;
+    line-height: normal;
+    margin-top: -1.00px;
+    position: relative;
+    width: fit-content;
+}
+
+.create-accont-page .frame-3 {
+    align-items: center;
+    background-color: #eaeaea;
+    border-radius: 190px;
+    display: flex;
+    justify-content: space-between;
+    overflow: hidden;
+    padding: 16px 24px;
+    position: relative;
+    width: 596px;
+}
+
+.create-accont-page .text-wrapper-3 {
+    color: #000000;
+    font-family: "Inter-Regular", Helvetica;
+    font-size: 18px;
+    font-weight: 400;
+    letter-spacing: 0;
+    line-height: normal;
+    margin-top: -1.00px;
+    position: relative;
+    width: fit-content;
+}
+
+.create-accont-page .vector {
+    height: 9px;
+    position: relative;
+    width: 16px;
+}
+
+.create-accont-page .line {
+    height: 24px;
+    left: 539px;
+    object-fit: cover;
+    position: absolute;
+    top: 15px;
+    width: 1px;
+}
+
+.create-accont-page .frame-4 {
+    align-items: flex-start;
+    align-self: stretch;
+    border-radius: 16px;
+    display: flex;
+    flex: 0 0 auto;
+    gap: 64px;
+    padding: 56px;
+    position: relative;
+    width: 100%;
+}
+
+.create-accont-page .frame-5 {
+    align-items: flex-start;
+    display: inline-flex;
+    flex: 0 0 auto;
+    flex-direction: column;
+    gap: 64px;
+    position: relative;
+}
+
+.create-accont-page .frame-6 {
+    align-items: flex-start;
+    display: flex;
+    flex: 0 0 auto;
+    flex-direction: column;
+    gap: 48px;
+    position: relative;
+    width: 588px;
+}
+
+.create-accont-page .text-wrapper-4 {
+    align-self: stretch;
+    color: #3a1078;
+    font-family: "Helvetica-Bold", Helvetica;
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: 0;
+    line-height: normal;
+    margin-top: -1.00px;
+    position: relative;
+}
+
+.create-accont-page .frame-7 {
+    align-items: flex-start;
+    align-self: stretch;
+    display: flex;
+    flex: 0 0 auto;
+    flex-direction: column;
+    gap: 40px;
+    position: relative;
+    width: 100%;
+}
+
+.create-accont-page .frame-8 {
+    align-items: center;
+    align-self: stretch;
+    display: flex;
+    flex: 0 0 auto;
+    gap: 24px;
+    position: relative;
+    width: 100%;
+}
+
+.create-accont-page .text-wrapper-5 {
+    color: #323232;
+    font-family: "Inter-Medium", Helvetica;
+    font-size: 20px;
+    font-weight: 500;
+    letter-spacing: 0;
+    line-height: normal;
+    position: relative;
+    white-space: nowrap;
+    width: fit-content;
+}
+
+.create-accont-page .frame-9 {
+    align-items: center;
+    background-color: #ffffff;
+    border: 0.5px solid;
+    border-color: #c4d9ff;
+    border-radius: 190px;
+    display: flex;
+    gap: 24px;
+    height: 46px;
+    overflow: hidden;
+    padding: 12px 24px;
+    position: relative;
+    width: 400px;
+}
+
+.create-accont-page .text-wrapper-6 {
+    color: #3a1078;
+    font-family: "Inter-Medium", Helvetica;
+    font-size: 18px;
+    font-weight: 500;
+    letter-spacing: 0;
+    line-height: normal;
+    margin-top: -0.50px;
+    position: relative;
+    width: fit-content;
+}
+
+.create-accont-page .text-wrapper-7 {
+    color: #4e4e4e99;
+    font-family: "Inter-Regular", Helvetica;
+    font-size: 18px;
+    font-weight: 400;
+    letter-spacing: 0;
+    line-height: normal;
+    margin-top: -0.50px;
+    position: relative;
+    width: fit-content;
+}
+
+.create-accont-page .frame-10 {
+    align-items: center;
+    align-self: stretch;
+    display: flex;
+    flex: 0 0 auto;
+    justify-content: space-between;
+    position: relative;
+    width: 100%;
+}
+
+.create-accont-page .img {
+    height: 16px;
+    left: 350px;
+    position: absolute;
+    top: 15px;
+    width: 20px;
+}
+
+.create-accont-page .mingcute-link-fill {
+    height: 19.2px;
+    position: relative;
+    width: 19.2px;
+}
+
+.create-accont-page .group {
+    height: 18px;
+    left: 2px;
+    position: absolute;
+    top: 2px;
+    width: 16px;
+}
+
+.create-accont-page .frame-11 {
+    align-items: flex-start;
+    display: flex;
+    flex: 0 0 auto;
+    flex-direction: column;
+    gap: 48px;
+    position: relative;
+    width: 596px;
+}
+
+.create-accont-page .frame-12 {
+    align-items: flex-start;
+    align-self: stretch;
+    display: flex;
+    flex: 0 0 auto;
+    flex-direction: column;
+    gap: 40px;
+    justify-content: center;
+    position: relative;
+    width: 100%;
+}
+
+.create-accont-page .frame-13 {
+    align-items: center;
+    background-color: #ffffff;
+    border: 0.5px solid;
+    border-color: #c4d9ff;
+    border-radius: 190px;
+    display: flex;
+    justify-content: space-between;
+    overflow: hidden;
+    padding: 12px 24px;
+    position: relative;
+    width: 400px;
+}
+
+.create-accont-page .text-wrapper-8 {
+    color: #323232;
+    font-family: "Inter-Regular", Helvetica;
+    font-size: 18px;
+    font-weight: 400;
+    letter-spacing: 0;
+    line-height: normal;
+    margin-top: -0.50px;
+    position: relative;
+    width: fit-content;
+}
+
+.create-accont-page .line-2 {
+    height: 24px;
+    left: 344px;
+    object-fit: cover;
+    position: absolute;
+    top: 11px;
+    width: 1px;
+}
+
+.create-accont-page .line-3 {
+    height: 24px;
+    left: 347px;
+    object-fit: cover;
+    position: absolute;
+    top: 11px;
+    width: 1px;
+}
+
+.create-accont-page .line-4 {
+    height: 24px;
+    left: 348px;
+    object-fit: cover;
+    position: absolute;
+    top: 11px;
+    width: 1px;
+}
+
+.create-accont-page .frame-14 {
+    align-items: center;
+    display: flex;
+    flex: 0 0 auto;
+    justify-content: space-between;
+    position: relative;
+    width: 512px;
+}
+
+.create-accont-page .frame-15 {
+    align-items: center;
+    background-color: #ffffff;
+    border: 0.5px solid;
+    border-color: #c4d9ff;
+    border-radius: 190px;
+    display: flex;
+    gap: 231px;
+    overflow: hidden;
+    padding: 12px 24px;
+    position: relative;
+    width: 320px;
+}
+
+.create-accont-page .frame-16 {
+    align-items: flex-start;
+    align-self: stretch;
+    display: flex;
+    flex: 0 0 auto;
+    flex-direction: column;
+    gap: 24px;
+    position: relative;
+    width: 100%;
+}
+
+.create-accont-page .text-wrapper-9 {
+    align-self: stretch;
+    color: #323232;
+    font-family: "Inter-Medium", Helvetica;
+    font-size: 20px;
+    font-weight: 500;
+    letter-spacing: 0;
+    line-height: normal;
+    margin-top: -1.00px;
+    position: relative;
+}
+
+.create-accont-page .frame-17 {
+    align-items: flex-start;
+    align-self: stretch;
+    background-color: #ffffff;
+    border: 0.5px solid;
+    border-color: #c4d9ff;
+    border-radius: 16px;
+    display: flex;
+    gap: 231px;
+    height: 121px;
+    overflow: hidden;
+    padding: 12px 24px;
+    position: relative;
+    width: 100%;
+}
+
+.create-accont-page .frame-18 {
+    align-items: flex-start;
+    display: flex;
+    flex-direction: column;
+    gap: 48px;
+    position: relative;
+    width: 588px;
+}
+
+.create-accont-page .frame-19 {
+    align-items: center;
+    background-color: #3a1078;
+    border-radius: 160px;
+    display: inline-flex;
+    gap: 8px;
+    justify-content: center;
+    left: 594px;
+    overflow: hidden;
+    padding: 16px 56px;
+    position: absolute;
+    top: 1359px;
+}
+
+.create-accont-page .text-wrapper-10 {
+    color: #ffffff;
+    font-family: "Helvetica-Bold", Helvetica;
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: 0;
+    line-height: normal;
+    margin-top: -1.00px;
+    position: relative;
+    white-space: nowrap;
+    width: fit-content;
+}

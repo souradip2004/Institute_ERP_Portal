@@ -3,7 +3,6 @@ import { LogoutButton } from "@/components/auth/logout-button";
 import Image from "next/image";
 import CreateInstitutionForm from "@/components/ui/createInstitution";
 import DeleteInstitutionButton from "@/components/ui/deleteInstitutions"; // Import the button
-
 export default async function DashboardPage() {
   const session = await auth();
   const userId = session?.user?.id;
@@ -47,7 +46,7 @@ console.log(session)
       {/* Institution Details or Creation Form */}
       {institutionData ? (
         <div style={styles.institutionContainer} >
-          <h2 style={styles.subtitle} ><a href="http://localhost:3000/admin">{institutionData.name}</a></h2>
+          <h2 style={styles.subtitle} ><a href="http://localhost:3000/a">{institutionData.name}</a></h2>
           <p><strong>Type:</strong> {institutionData.type}</p>
           <p><strong>Address:</strong> {institutionData.address}, {institutionData.city}, {institutionData.state}, {institutionData.country}</p>
           <p><strong>Phone:</strong> {institutionData.phone || "N/A"}</p>

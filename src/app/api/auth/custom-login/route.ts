@@ -30,7 +30,6 @@ export async function POST(request: NextRequest) {
 
     console.log(user);
     console.log(user?.password);
-    
 
     if (!user || !user.password) {
       return NextResponse.json(
@@ -65,7 +64,6 @@ export async function POST(request: NextRequest) {
     const token = sign(session, process.env.NEXTAUTH_SECRET || "your-secret", {
       expiresIn: "30d",
     });
-
     // Set cookie compatible with NextAuth
     const cookieStore = cookies();
     (await cookieStore).set("next-auth.session-token", token, {

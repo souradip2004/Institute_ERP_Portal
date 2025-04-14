@@ -32,24 +32,18 @@ export class BatchService {
     });
   }
 
-async createBatch(data: CreateBatchDTO): Promise<Batch> {
-    const { batchName, year, departmentId, maxStudents = 0 } = data;
+async createBatch(data): Promise<Batch> {
 
     // Validate required fields
-    if (!batchName || !year || !departmentId) {
-        throw new Error('batchName, year, and departmentId are required');
-    }
 
+try{
     return prisma.batch.create({
-        data: {
-            batchName,
-            year: parseInt(year, 10),  // Ensure year is an integer
-            departmentId,
-            maxStudents: parseInt(maxStudents, 10),  // Ensure maxStudents is an integer
-            createdAt: new Date(),
-            updatedAt: new Date(),
-        },
+        data
     });
+  } catch (error) {
+    console.error('Error creating batch:', error);
+    throw new Error('Error creating batch');
+  }
 }
 
 

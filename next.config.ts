@@ -4,6 +4,8 @@ const nextConfig: NextConfig = {
   /* config options here */
   experimental: {
     nodeMiddleware: true,
+    allowedDevOrigins: ["http://192.168.29.8:3000"], // Replace with your local IP
+
     
   },
   images: {
@@ -21,7 +23,14 @@ const nextConfig: NextConfig = {
   ],
   },
   output: 'standalone',
+  webpack: (config) => {
+    config.module.rules.push({
+      test: /\.(png|jpe?g|gif|svg)$/i,
+      type: "asset/resource",
+    });
 
+    return config;
+  },
 };
 
 export default nextConfig;

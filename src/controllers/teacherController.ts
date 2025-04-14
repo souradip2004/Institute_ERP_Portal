@@ -39,7 +39,17 @@ export class TeacherController {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
   }
-
+async getTeacherByuserId(userId: string) {
+    try {
+      const teacher = await teacherService.getTeacherByuserId(userId);
+      if (!teacher) {
+        return NextResponse.json({ error: 'Teacher not found' }, { status: 404 });
+      }
+      return NextResponse.json(teacher);
+    } catch (error: any) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+  }
   async updateTeacher(id: string, req: NextRequest) {
     try {
       const data = await req.json();

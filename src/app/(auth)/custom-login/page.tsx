@@ -89,7 +89,11 @@ export default function DualLoginForm() {
       */
 
       router.refresh();
-      router.push('/dashboard');
+      if(role === 'STUDENT') {
+        router.push('/student-dashboard');
+      } else if(role === 'TEACHER') {
+        router.push('/t/dashboard');}
+      
     } catch (err: any) {
       setError(err.message);
     } finally {

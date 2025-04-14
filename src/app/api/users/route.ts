@@ -8,6 +8,8 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  return userController.create(req);
+  let p=await userController.create(req);
+  console.log('user created', p);
+  return p;
 }
 

@@ -16,9 +16,12 @@ export class UserController {
   async create(req: NextRequest) {
     try {
       const data = await req.json();
+      console.log('Creating user with data:', data);
       const user = await userService.create(data);
-      return NextResponse.json(user, { status: 201 });
+      console.log('User created:', user);
+      return NextResponse.json(user,{ status: 201 });
     } catch (error: any) {
+      console.error('Error creating user:', error.message);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
   }

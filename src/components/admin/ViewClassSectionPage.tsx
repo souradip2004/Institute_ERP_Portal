@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import ClassSectionsList from '@/components/admin/ClassSectionsListComponent';
 import ClassSectionDetail from '@/components/admin/ClassSectionDetailComponent';
 
-export default function ClassSectionsPage() {
+export default function ClassSectionsPage({id}) {
   // State for storing all class sections
   const [classSections, setClassSections] = useState([]);
   // State for tracking which view to show
@@ -19,8 +19,18 @@ export default function ClassSectionsPage() {
 
   // Fetch class sections data when component mounts
   useEffect(() => {
+    
     const fetchClassSections = async () => {
       try {
+      const teachersResponse = await fetch("http://localhost:3000/api/teachers", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+      const teachers = await teachersResponse.json();
+      const filteredTeachers = teachers.filter((teacher: any) => teacher.institutionId === id);
+
         setIsLoading(true);
         // Replace with your actual API endpoint
         const response = await fetch('/api/class-sections');
@@ -30,7 +40,11 @@ export default function ClassSectionsPage() {
         }
         
         const data = await response.json();
-        setClassSections(data);
+        const filteredClassSections = data.filter((section: any) => {
+          return filteredTeachers.some((teacher: any) => teacher.class === section.class);
+        }
+        );
+        setClassSections(filteredClassSections);
         setError(null);
       } catch (err) {
         console.error('Error fetching class sections:', err);

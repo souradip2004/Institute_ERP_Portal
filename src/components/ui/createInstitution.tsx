@@ -19,11 +19,11 @@ export default function CreateInstitutionForm({ userId }) {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
 
-  const handleChange = (e) => {
+  const handleChange = (e: { target: { name: any; value: any; }; }) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: { preventDefault: () => void; }) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
@@ -74,19 +74,21 @@ export default function CreateInstitutionForm({ userId }) {
       <h2 style={styles.heading}>Create Institution</h2>
       {error && <p style={styles.error}>{error}</p>}
       {success && <p style={styles.success}>{success}</p>}
+      <div style={{ maxHeight: "200px", overflowY: "auto" }}>
 
       <input type="text" name="name" placeholder="Institution Name" onChange={handleChange} required style={styles.input} />
       <select name="type" onChange={handleChange} required style={styles.input}>
         <option value="college">College</option>
-        <option value="university">University</option>
+        <option value="university">School</option>
       </select>
-      <input type="text" name="address" placeholder="Address" onChange={handleChange} required style={styles.input} />
-      <input type="text" name="city" placeholder="City" onChange={handleChange} required style={styles.input} />
-      <input type="text" name="state" placeholder="State" onChange={handleChange} required style={styles.input} />
-      <input type="text" name="country" placeholder="Country" onChange={handleChange} required style={styles.input} />
-      <input type="tel" name="phone" placeholder="Phone Number" onChange={handleChange} style={styles.input} />
-      <input type="email" name="email" placeholder="Email" onChange={handleChange} required style={styles.input} />
-      <input type="url" name="website" placeholder="Website URL" onChange={handleChange} style={styles.input} />
+        <input type="text" name="address" placeholder="Address" onChange={handleChange} required style={styles.input} />
+        <input type="text" name="city" placeholder="City" onChange={handleChange} required style={styles.input} />
+        <input type="text" name="state" placeholder="State" onChange={handleChange} required style={styles.input} />
+        <input type="text" name="country" placeholder="Country" onChange={handleChange} required style={styles.input} />
+        <input type="tel" name="phone" placeholder="Phone Number" onChange={handleChange} style={styles.input} />
+        <input type="email" name="email" placeholder="Email" onChange={handleChange} required style={styles.input} />
+        <input type="url" name="website" placeholder="Website URL" onChange={handleChange} style={styles.input} />
+      </div>
 
       <button type="submit" disabled={loading} style={styles.button}>
         {loading ? "Creating..." : "Create Institution"}

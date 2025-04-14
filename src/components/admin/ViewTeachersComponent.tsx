@@ -33,7 +33,6 @@ export default function TeachersPage({id}) {
         const filteredTeachers = data.filter((teacher: any) => teacher?.user?.institutionId === id);
         alert("filteredTeachers: " + filteredTeachers.map((teacher: any) => teacher?.user?.institutionId));
         setTeachers(filteredTeachers);
-        setTeachers(data);
         setError(null);
       } catch (err) {
         console.error('Error fetching teachers:', err);

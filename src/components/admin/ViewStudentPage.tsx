@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import StudentsList from '@/components/admin/StudentsListComponent';
 import StudentDetail from '@/components/admin/StudentdetailComponent';
 
-export default function StudentsPage() {
+export default function StudentsPage({id}) {
   // State for storing all students
   const [students, setStudents] = useState([]);
   // State for tracking which view to show
@@ -30,7 +30,11 @@ export default function StudentsPage() {
         }
         
         const data = await response.json();
-        setStudents(data);
+        console.log(data)
+        console.log(id)
+        const filteredTeachers = data.filter((teacher: any) => teacher?.user?.institutionId === id);
+console.log('filteredTeachers: ' + filteredTeachers);
+        setStudents(filteredTeachers);
         setError(null);
       } catch (err) {
         console.error('Error fetching students:', err);
