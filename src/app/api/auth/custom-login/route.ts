@@ -3,33 +3,29 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/config/prisma";
 import bcrypt from "bcryptjs";
 import { sign } from "jsonwebtoken";
-import { cookies } from "next/headers";
 
 export async function POST(request: NextRequest) {
   try {
-    const { username, password, role } = await request.json();
+    const { identifier, password, role } = await request.json();
 
-    if (!username || !password) {
+    if (!identifier || !password) {
       return NextResponse.json(
-        { error: "Username and password are required" },
+        { error: "Username/email and password are required" },
         { status: 400 }
       );
     }
 
-    // Find user by username (name field)
+    // Find user by email or username
     const user = await prisma.user.findFirst({
       where: {
-        username,
+        OR: [{ email: identifier }, { username: identifier }],
         ...(role ? { role } : {}), // Only include role in query if provided
       },
       include: {
         student: true,
         teacher: true,
       },
-    }).then((data)=>{return data}).catch((e)=>{console.log(e)})
-
-    console.log(user);
-    console.log(user?.password);
+    });
 
     if (!user || !user.password) {
       return NextResponse.json(
@@ -47,42 +43,39 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create session object compatible with NextAuth
-    const session = {
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        image: user.image,
-        role: user.role,
-        emailVerified: new Date(), // Set to current date to bypass verification check
-      },
-      expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days
+    // Create user object to store in cookie and return to client
+    const userData = {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      username: user.username,
+      role: user.role,
+      studentId: user.student?.id || null,
+      teacherId: user.teacher?.id || null,
     };
 
     // Generate JWT token
-    const token = sign(session, process.env.NEXTAUTH_SECRET || "your-secret", {
-      expiresIn: "30d",
+    const token = sign(userData, process.env.JWT_SECRET || "your-secret-key", {
+      expiresIn: "7d",
     });
-    // Set cookie compatible with NextAuth
-    const cookieStore = cookies();
-    (await cookieStore).set("next-auth.session-token", token, {
+
+    // Create the response
+    const response = NextResponse.json({
+      success: true,
+      token,
+      user: userData,
+    });
+
+    // Set the cookie in the response
+    response.cookies.set("auth_token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
-      expires: new Date(session.expires),
+      maxAge: 7 * 24 * 60 * 60, // 7 days in seconds
       path: "/",
     });
 
-    return NextResponse.json({ 
-      success: true,
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-      }
-    });
+    return response;
   } catch (error) {
     console.error(error);
     return NextResponse.json(

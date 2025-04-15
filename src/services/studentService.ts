@@ -1,5 +1,6 @@
-import prisma from '@/config/prisma';
-import { studentQueue } from '@/bullmq/queues/student';
+import prisma from "@/config/prisma";
+import { studentQueue } from "@/bullmq/queues/student";
+
 export class StudentService {
   async getAllStudents() {
     return prisma.student.findMany({
@@ -10,82 +11,101 @@ export class StudentService {
   }
 
   async createStudent(data: any) {
-    console.log('hello from student service');
+    console.log("hello from student service");
     console.log(data);
-    data.studentRoll=data.rollNumber;
-    data.enrollmentStatus="ACTIVE";
-    const create=await prisma.user.create({
+    data.studentRoll = data.rollNumber || data.studentRoll;
+    data.enrollmentStatus = "ACTIVE";
+
+    // Create user first
+    const user = await prisma.user.create({
       data: {
         email: data.email,
         password: data.password,
         role: "STUDENT",
         institutionId: data.institutionid,
       },
-    }).then((data)=>{return data}).catch((e)=>{console.log(e)});
-    const user=await prisma.user.findUnique({
-      where: {
-        id: create.id,
-      },
-    }).then((data)=>{return data}).catch((e)=>{console.log(e)});
-    if(!user){
-      throw new Error('User not found');
+    });
+
+    if (!user) {
+      throw new Error("Failed to create user");
     }
-    data.user={}
-    data.user.connect={id:user.id}
-    const department=await prisma.department.findUnique({
+
+    // Get department - use departmentId if provided directly in the payload
+    const departmentId = data.departmentId;
+    const department = await prisma.department.findUnique({
       where: {
-        id: data.department,
+        id: departmentId,
       },
-    }).then((data)=>{return data}).catch((e)=>{console.log(e)});
-    if(!department){
-      throw new Error('Department not found');
+    });
+
+    if (!department) {
+      throw new Error("Department not found");
     }
 
     console.log(department);
-    data.department={}
-    data.department.connect={id:department.id}
-    const batch=await prisma.batch.findUnique({
-      where: {
-        id: data.batch,
-      },
-    }).then((data)=>{return data}).catch((e)=>{console.log(e)});
-    if(!batch){
-      throw new Error('Batch not found');
+    data.department = {};
+    data.department.connect = { id: department.id };
+
+    // Get batch - use batchId if provided directly in the payload
+    const batchId = data.batchId;
+    const batch = await prisma.batch
+      .findUnique({
+        where: {
+          id: batchId,
+        },
+      })
+      .then((data) => {
+        return data;
+      })
+      .catch((e) => {
+        console.log(e);
+      });
+    if (!batch) {
+      throw new Error("Batch not found");
     }
 
-    data.batch={}
-    data.batch.connect={id:batch.id}
-    
-    console.log(data)
+    data.batch = {};
+    data.batch.connect = { id: batch.id };
+
+    // Connect to the user we just created
+    data.user = {};
+    data.user.connect = { id: user.id };
+
+    console.log(data);
 
     delete data.rollNumber;
     delete data.userId;
     delete data.email;
-    delete data.password
-    delete data.institutionid
-    delete data.class
-    delete data.newDepartment
-    
+    delete data.password;
+    delete data.institutionid;
+    delete data.class;
+    delete data.newDepartment;
+    delete data.departmentId;
+    delete data.batchId;
+
     return prisma.student.create({
-      data
+      data,
     });
   }
 
   async getStudentById(id: string) {
-    return prisma.student.findUnique({ where: { id }, include: {
+    return prisma.student.findUnique({
+      where: { id },
+      include: {
         user: true,
-      }, });
+      },
+    });
   }
 
   async updateStudent(id: string, data: any) {
-    return studentQueue.add('update-student', {
+    return studentQueue.add("update-student", {
       data,
       identity: id,
     });
   }
 
   async deleteStudent(id: string) {
-    return studentQueue.add('delete-student', {
+    return studentQueue.add("delete-student", {
       identity: id,
     });
   }
