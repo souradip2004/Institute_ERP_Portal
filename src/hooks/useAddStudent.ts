@@ -27,11 +27,11 @@ export function useAddStudent() {
         throw new Error(data.error || "Failed to add student");
       }
 
-      alert("Student added successfully!");
+      console.log("Student added successfully!");
       return true;
     } catch (err: any) {
       setError(err.message);
-      alert(`Error: ${err.message}`);
+      console.log(`Error: ${err.message}`);
       return false;
     } finally {
       setLoading(false);

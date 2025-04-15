@@ -19,13 +19,12 @@ export class StudentService {
         email: data.email,
         password: data.password,
         role: "STUDENT",
-        institutionId: data.institutionId,
+        institutionId: data.institutionid,
       },
     }).then((data)=>{return data}).catch((e)=>{console.log(e)});
-    if(create)alert('User created successfully');
     const user=await prisma.user.findUnique({
       where: {
-        id: data.userId,
+        id: create.id,
       },
     }).then((data)=>{return data}).catch((e)=>{console.log(e)});
     if(!user){
@@ -35,7 +34,7 @@ export class StudentService {
     data.user.connect={id:user.id}
     const department=await prisma.department.findUnique({
       where: {
-        id: "cm906nlv80001xz1rn3azh8zr",
+        id: data.department,
       },
     }).then((data)=>{return data}).catch((e)=>{console.log(e)});
     if(!department){
@@ -47,7 +46,7 @@ export class StudentService {
     data.department.connect={id:department.id}
     const batch=await prisma.batch.findUnique({
       where: {
-        id: "cm90crb30000bxzrfna5zdl0u",
+        id: data.batch,
       },
     }).then((data)=>{return data}).catch((e)=>{console.log(e)});
     if(!batch){
@@ -61,6 +60,11 @@ export class StudentService {
 
     delete data.rollNumber;
     delete data.userId;
+    delete data.email;
+    delete data.password
+    delete data.institutionid
+    delete data.class
+    delete data.newDepartment
     
     return prisma.student.create({
       data

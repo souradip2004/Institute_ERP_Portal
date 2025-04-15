@@ -5,6 +5,56 @@ import { useAddStudent } from "@/hooks/useAddStudent";
 export default function AddStudentComponent({ id }) {
   const [classData, setClassData] = useState([]);
   const [departmentData, setDepartmentData] = useState([]);
+  const [batchData, setBatchData] = useState([]);
+  useEffect(() => {
+    fetch("http://localhost:3000/api/teachers",{
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        console.log("Teachers Data:", data);
+        console.log("Institution ID:", id);
+        const filteredTeachers = data.filter((teacher) => teacher.user.institutionId === id);
+        console.log("Filtered Teachers:", filteredTeachers);
+        fetch("http://localhost:3000/api/class-sections", {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        })
+          .then((res) => res.json())
+          .then((classData) => {
+            console.log("Class Data:", classData);
+            const filteredClassSections = classData.filter((section: any) => {
+              return filteredTeachers.some((teacher: any) => {
+                return section.teacherId === teacher.id;
+              });
+            });
+            console.log("Filtered Class Sections:", filteredClassSections);
+
+            setClassData(filteredClassSections);
+            console.log("Class Data filtered:", filteredClassSections.map((section) => section.sectionName));
+            // Filter class sections based on the institution ID
+          })
+        console.log("Filtered Teachers:", filteredTeachers);
+      })
+      .catch((error) => {
+        console.error("Error fetching teachers:", error);
+      }); 
+    },[id])
+    const [studentData, setStudentData] = useState({
+      rollNumber: "",
+      department: "",
+      email: "",
+      password: "",
+      institutionid: id,
+      class: "",
+      newDepartment: "",
+      batch:""
+    });
   useEffect(() => {
     fetch("http://localhost:3000/api/departments",{
       method: "GET",
@@ -22,16 +72,26 @@ export default function AddStudentComponent({ id }) {
       .catch((error) => {
         console.error("Error fetching departments:", error);
       });
-    })
-  const [studentData, setStudentData] = useState({
-    rollNumber: "",
-    department: "",
-    email: "",
-    password: "",
-    institutionid: id,
-    class: "",
-    newDepartment: "",
-  });
+    },[id])
+    useEffect(() => {
+      fetch("http://localhost:3000/api/batches", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          console.log("Batch Data:", data);
+          const filteredBatches = data.filter((batch) => batch.department.id === studentData.department);
+          setBatchData(filteredBatches);
+          console.log("Filtered Batches:", filteredBatches);
+        })
+        .catch((error) => {
+          console.error("Error fetching batches:", error);
+        });
+    }, [studentData.department]);
+ 
 
   const { addStudent, loading, error } = useAddStudent();
 
@@ -133,6 +193,22 @@ export default function AddStudentComponent({ id }) {
         </div>
         <div className="m-5">
           <select
+          value={studentData.batch}
+          onChange={(e)=>setStudentData({...studentData,batch:e.target.value})}
+          className="border border-black w-45 p-2"
+>
+<option value="" disabled>
+              Select Batch
+            </option>
+  {batchData.map((batches)=>(
+    <option key={batches.id} value={batches.id}>
+      {batches.batchName}
+    </option>
+  ))}
+</select>
+        </div>
+        <div className="m-5">
+          <select
             value={studentData.class}
             onChange={(e) => setStudentData({ ...studentData, class: e.target.value })}
             className="border border-black w-45 p-2"
@@ -140,6 +216,11 @@ export default function AddStudentComponent({ id }) {
             <option value="" disabled>
               Select Class
             </option>
+            {classData.map((section) => (
+              <option key={section.id} value={section.id}>
+                {section.sectionName}
+              </option>
+            ))}
             {/* Existing classes will be dynamically populated */}
           </select>
           

@@ -29,7 +29,9 @@ export default function ClassSectionsPage({id}) {
         },
       });
       const teachers = await teachersResponse.json();
-      const filteredTeachers = teachers.filter((teacher: any) => teacher.institutionId === id);
+      console.log("Teachers Data:", teachers);
+      console.log("Institution ID:", id);
+      const filteredTeachers = teachers.filter((teacher: any) => teacher.user.institutionId === id);
 
         setIsLoading(true);
         // Replace with your actual API endpoint
@@ -40,8 +42,13 @@ export default function ClassSectionsPage({id}) {
         }
         
         const data = await response.json();
+        console.log("Class Sections Data:", data);
+        // Filter class sections based on the institution ID
+        console.log("Filtered Teachers:", filteredTeachers);
         const filteredClassSections = data.filter((section: any) => {
-          return filteredTeachers.some((teacher: any) => teacher.class === section.class);
+          return filteredTeachers.some((teacher: any) => {
+            return section.teacherId === teacher.id;
+          });
         }
         );
         setClassSections(filteredClassSections);

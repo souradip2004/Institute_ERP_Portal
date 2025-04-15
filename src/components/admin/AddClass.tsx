@@ -44,6 +44,8 @@ export default function AddClassComponent({ id,userid }) {
       .then((data) => {
         console.log(id)
         const filteredDepartments = data.filter((department) => department.institutionId === id);
+        
+      
         setDepartmentOptions(filteredDepartments.map((department) => department.name));
         console.log("Filtered Departments:", filteredDepartments);
         console.log("Department Options:", filteredDepartments.map((department) => department.name));
@@ -102,6 +104,7 @@ export default function AddClassComponent({ id,userid }) {
       .then((data) => {
         const filteredTeachers = data.filter((teacher) => teacher.user.institutionId === id);
         setTeacherData(filteredTeachers);
+       
       })
       .catch((error) => {
         console.error("Error fetching teachers:", error);
