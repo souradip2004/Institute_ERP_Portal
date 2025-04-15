@@ -45,11 +45,11 @@ export default function CustomLoginForm() {
       // Redirect based on role
       router.refresh();
       if (role === 'STUDENT') {
-        router.push('/student-dashboard');
+        router.push('/s/dashboard');
       } else if (role === 'TEACHER') {
         router.push('/t/dashboard');
       } else {
-        router.push('/dashboard');
+        router.push('/a/dashboard');
       }
     } catch (err: any) {
       setError(err.message);
