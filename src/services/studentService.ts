@@ -11,30 +11,43 @@ export class StudentService {
   }
 
   async createStudent(data: any) {
-    console.log("hello from student service");
-    console.log(data);
-    data.studentRoll = data.rollNumber || data.studentRoll;
-    data.enrollmentStatus = "ACTIVE";
+    let user;
 
-    // Create user first
-    const user = await prisma.user.create({
-      data: {
-        email: data.email,
-        password: data.password,
-        role: "STUDENT",
-        institutionId: data.institutionid,
-      },
-    });
+    // Check if userId is provided - use existing user
+    if (data.userId) {
+      // Verify the user exists and isn't already linked to a student
+      user = await prisma.user.findUnique({
+        where: { id: data.userId },
+        include: { student: true },
+      });
 
-    if (!user) {
-      throw new Error("Failed to create user");
+      if (!user) {
+        throw new Error("User not found");
+      }
+
+      if (user.student) {
+        throw new Error("This user is already linked to a student");
+      }
+    } else {
+      // Create a new user if userId is not provided
+      user = await prisma.user.create({
+        data: {
+          email: data.email,
+          password: data.password,
+          role: "STUDENT",
+          institutionId: data.institutionId,
+        },
+      });
+
+      if (!user) {
+        throw new Error("Failed to create user");
+      }
     }
 
-    // Get department - use departmentId if provided directly in the payload
-    const departmentId = data.departmentId;
+    // Verify department exists
     const department = await prisma.department.findUnique({
       where: {
-        id: departmentId,
+        id: data.departmentId,
       },
     });
 
@@ -42,49 +55,36 @@ export class StudentService {
       throw new Error("Department not found");
     }
 
-    console.log(department);
-    data.department = {};
-    data.department.connect = { id: department.id };
+    // Verify batch exists
+    const batch = await prisma.batch.findUnique({
+      where: {
+        id: data.batchId,
+      },
+    });
 
-    // Get batch - use batchId if provided directly in the payload
-    const batchId = data.batchId;
-    const batch = await prisma.batch
-      .findUnique({
-        where: {
-          id: batchId,
-        },
-      })
-      .then((data) => {
-        return data;
-      })
-      .catch((e) => {
-        console.log(e);
-      });
     if (!batch) {
       throw new Error("Batch not found");
     }
 
-    data.batch = {};
-    data.batch.connect = { id: batch.id };
-
-    // Connect to the user we just created
-    data.user = {};
-    data.user.connect = { id: user.id };
-
-    console.log(data);
-
-    delete data.rollNumber;
-    delete data.userId;
-    delete data.email;
-    delete data.password;
-    delete data.institutionid;
-    delete data.class;
-    delete data.newDepartment;
-    delete data.departmentId;
-    delete data.batchId;
-
+    // Create student with proper relations
     return prisma.student.create({
-      data,
+      data: {
+        userId: user.id,
+        studentRoll: data.rollNumber || data.studentRoll,
+        parentGuardianName: data.parentGuardianName,
+        parentGuardianPhone: data.parentGuardianPhone,
+        parentGuardianEmail: data.parentGuardianEmail,
+        departmentId: data.departmentId,
+        batchId: data.batchId,
+        currentSemester: data.currentSemester,
+        currentYear: data.currentYear,
+        enrollmentStatus: "ACTIVE",
+      },
+      include: {
+        user: true,
+        department: true,
+        batch: true,
+      },
     });
   }
 
