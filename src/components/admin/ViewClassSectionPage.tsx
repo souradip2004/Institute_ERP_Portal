@@ -16,6 +16,8 @@ export default function ClassSectionsPage({id}) {
   const [isLoading, setIsLoading] = useState(true);
   // State for storing any error messages
   const [error, setError] = useState(null);
+  const [teachers, setTeachers] = useState([]);
+  const [students, setStudents] = useState([]);
 
   // Fetch class sections data when component mounts
   useEffect(() => {
@@ -45,6 +47,7 @@ export default function ClassSectionsPage({id}) {
         console.log("Class Sections Data:", data);
         // Filter class sections based on the institution ID
         console.log("Filtered Teachers:", filteredTeachers);
+        setTeachers(filteredTeachers);
         const filteredClassSections = data.filter((section: any) => {
           return filteredTeachers.some((teacher: any) => {
             return section.teacherId === teacher.id;
@@ -63,6 +66,35 @@ export default function ClassSectionsPage({id}) {
 
     fetchClassSections();
   }, []);
+  useEffect(() => {
+    const fetchStudents = async () => {
+      try {
+        setIsLoading(true);
+        // Replace with your actual API endpoint
+        const response = await fetch('/api/students');
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch students');
+        }
+        
+        const data = await response.json();
+        console.log(data)
+        console.log(id)
+        const filteredStudents = data.filter((student: any) => student?.user?.institutionId === id);
+        console.log('filteredStudents: ' + filteredStudents);
+        setStudents(filteredStudents);
+        setError(null);
+      } catch (err) {
+        console.error('Error fetching students:', err);
+        setError('Failed to load students. Please try again later.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchStudents();
+  }
+  , [id]);
 
   // Function to handle viewing a specific class section's details
   const handleViewClassSection = (sectionId:any) => {
@@ -110,7 +142,20 @@ export default function ClassSectionsPage({id}) {
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-6">Class Sections Management</h1>
-      
+      <div className="flex flex-wrap justify-between gap-4 mb-6">
+        <Card className="shadow-md p-4 text-center flex-1">
+          <h2 className="text-lg font-semibold">Total Classes</h2>
+          <p className="text-2xl font-bold">{classSections.length}</p>
+        </Card>
+        <Card className="shadow-md p-4 text-center flex-1">
+          <h2 className="text-lg font-semibold">Total Teachers</h2>
+          <p className="text-2xl font-bold">{teachers.length}</p>
+        </Card>
+        <Card className="shadow-md p-4 text-center flex-1">
+          <h2 className="text-lg font-semibold">Total Students</h2>
+          <p className="text-2xl font-bold">{students.length}</p>
+        </Card>
+      </div>
       {activeSection === "viewClassSections" && (
         <Card className="shadow-md">
           <ClassSectionsList 
