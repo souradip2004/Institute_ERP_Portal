@@ -822,19 +822,19 @@ model AssignmentGroupMember {
 }
 
 model AssignmentComment {
-  id           String                @id @default(cuid())
-  assignmentId String                @map("assignment_id")
-  submissionId String?               @map("submission_id")
-  userId       String                @map("user_id")
-  content      String
-  parentId     String?               @map("parent_id")
-  createdAt    DateTime              @default(now()) @map("created_at")
-  updatedAt    DateTime              @updatedAt @map("updated_at")
-  assignment   Assignment            @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
-  parent       AssignmentComment?    @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
-  replies      AssignmentComment[]   @relation("CommentReplies")
-  submission   AssignmentSubmission? @relation(fields: [submissionId], references: [id], onDelete: Cascade)
-  user         User                  @relation(fields: [userId], references: [id])
+  id                        String                @id @default(cuid())
+  assignmentId              String                @map("assignment_id")
+  submissionId              String?               @map("submission_id")
+  userId                    String                @map("user_id")
+  content                   String
+  parent_id                 String?
+  createdAt                 DateTime              @default(now()) @map("created_at")
+  updatedAt                 DateTime              @updatedAt @map("updated_at")
+  assignment                Assignment            @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  assignment_comments       AssignmentComment?    @relation("assignment_commentsToassignment_comments", fields: [parent_id], references: [id], onDelete: Cascade)
+  other_assignment_comments AssignmentComment[]   @relation("assignment_commentsToassignment_comments")
+  submission                AssignmentSubmission? @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  user                      User                  @relation(fields: [userId], references: [id])
 
   @@map("assignment_comments")
 }
