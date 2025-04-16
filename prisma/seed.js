@@ -8,7 +8,9 @@ const prisma = new PrismaClient();
 // Helper function to hash passwords
 async function hashPassword(password) {
   const salt = await bcrypt.genSalt(10);
-  return bcrypt.hash(password, salt);
+  const hashedPassword = await bcrypt.hash(password, salt);
+  console.log("Hashed password:", hashedPassword);
+  return hashedPassword;
 }
 
 async function main() {
