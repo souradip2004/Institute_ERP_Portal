@@ -9,8 +9,8 @@ interface User {
   role: string;
   studentId: string | null;
   teacherId: string | null;
-  student: StudentData | null;
-  teacher: TeacherData | null;
+  student?: StudentData | null;
+  teacher?: TeacherData | null;
   profileError?: string | null;
 }
 
@@ -81,13 +81,29 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [userData, setUserData] = useState<User | null>(null);
+  const [studentDetails, setStudentDetails] = useState<StudentData | null>(null);
   const [studentData, setStudentData] = useState<Student | null>(null);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [classes, setClasses] = useState<ClassInfo[]>([]);
   const [needsProfileSetup, setNeedsProfileSetup] = useState(false);
 
+  // Function to fetch student details
+  const fetchStudentDetails = async (studentId: string) => {
+    try {
+      const response = await fetch(`/api/students/${studentId}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch student details');
+      }
+      const data = await response.json();
+      return data;
+    } catch (err) {
+      console.error('Error fetching student details:', err);
+      throw err;
+    }
+  };
+
   useEffect(() => {
-    function loadDashboardData() {
+    async function loadDashboardData() {
       try {
         setLoading(true);
         
@@ -108,21 +124,46 @@ export default function Dashboard() {
           return;
         }
         
-        // Check if user has student data
-        if (!user.student) {
+        // Check if user has studentId
+        if (!user.studentId) {
           setNeedsProfileSetup(true);
-          throw new Error('Student profile data is missing. Please contact an administrator to complete your profile setup.');
+          throw new Error('Student ID is missing. Please contact an administrator to complete your profile setup.');
         }
-        
-        // Set student info from actual data
-        setStudentData({
-          id: user.student.id,
-          name: user.name || '',
-          rollNumber: user.student.studentRoll,
-          section: user.student.batch?.batchName || 'Not Assigned',
-          year: `Year ${user.student.currentYear || 1}`,
-          department: user.student.department?.name || 'Not Assigned'
-        });
+
+        // If we have a studentId but no student data, fetch the details
+        if (user.studentId && !user.student) {
+          console.log("Fetching student details using studentId:", user.studentId);
+          
+          try {
+            const studentDetails = await fetchStudentDetails(user.studentId);
+            setStudentDetails(studentDetails);
+            
+            // Build student display object
+            setStudentData({
+              id: studentDetails.id,
+              name: user.name || '',
+              rollNumber: studentDetails.studentRoll || 'Not Assigned',
+              section: studentDetails.batch?.batchName || 'Not Assigned',
+              year: `Year ${studentDetails.currentYear || 1}`,
+              department: studentDetails.department?.name || 'Not Assigned'
+            });
+          } catch (error) {
+            console.error('Error fetching student details:', error);
+            setNeedsProfileSetup(true);
+            throw new Error('Could not retrieve your student profile. Please contact an administrator.');
+          }
+        } else if (user.student) {
+          // If we already have student data in the user object
+          setStudentDetails(user.student);
+          setStudentData({
+            id: user.student.id,
+            name: user.name || '',
+            rollNumber: user.student.studentRoll,
+            section: user.student.batch?.batchName || 'Not Assigned',
+            year: `Year ${user.student.currentYear || 1}`,
+            department: user.student.department?.name || 'Not Assigned'
+          });
+        }
         
         // We'll still use mock announcements for now
         // In a real app, you would fetch these from an API
@@ -201,12 +242,8 @@ export default function Dashboard() {
       }
     }
     
-    // Use setTimeout to ensure client-side execution (localStorage is only available in browser)
-    const timer = setTimeout(() => {
-      loadDashboardData();
-    }, 0);
-    
-    return () => clearTimeout(timer);
+    // Load the dashboard data
+    loadDashboardData();
   }, []);
 
   return (
@@ -240,6 +277,15 @@ export default function Dashboard() {
               <pre>{JSON.stringify(userData, null, 2)}</pre>
             </div>
           </div>
+          
+          {studentDetails && (
+            <div className="bg-white p-4 rounded shadow">
+              <h2 className="text-xl font-semibold mb-2">Student Details</h2>
+              <div className="overflow-auto max-h-40 bg-gray-100 p-4 rounded">
+                <pre>{JSON.stringify(studentDetails, null, 2)}</pre>
+              </div>
+            </div>
+          )}
           
           {studentData && (
             <div className="bg-white p-4 rounded shadow">
