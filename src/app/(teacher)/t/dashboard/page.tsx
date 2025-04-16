@@ -1,49 +1,75 @@
-import { auth } from "@/auth";
+'use client';
 
-import { useQuery } from "@tanstack/react-query";
+import { useState, useEffect } from 'react';
 import axios from "axios";
 import ClassSectionForm from "@/components/ClassSectionForm";
 import AttendanceSessionList from "@/components/AttendanceSessionList";
-import useSession from "@/hooks/useSession";
-import { cookies } from "next/headers";
+import { useRouter } from 'next/navigation';
 
+export default function TeacherDashboard() {
+  const router = useRouter();
+  const [teacherId, setTeacherId] = useState<string | null>(null);
+  const [classSections, setClassSections] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [userName, setUserName] = useState('');
 
-export default async function TeacherDashboard()  {
-  const session = await auth();
-  function decodeJWT(token:any) {
-    const [headerB64, payloadB64] = token.split('.');
-    
-    const decodeBase64 = (str:any) =>
-      decodeURIComponent(
-        atob(str)
-          .split('')
-          .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-          .join('')
-      );
-  
-    const header = JSON.parse(decodeBase64(headerB64));
-    const payload = JSON.parse(decodeBase64(payloadB64));
-  
-    return { header, payload };
-  }
-  console.log("session",session);
-  const fetchClassSections = async (teacherId: string) => {
+  useEffect(() => {
+    // Check if user is logged in and is a teacher
+    const userDataStr = localStorage.getItem('user');
+    if (!userDataStr) {
+      router.push('/custom-login');
+      return;
+    }
+
     try {
-      const response = await axios.get(`http://localhost:3000/api/class-sections?teacherId=${teacherId}`);
-      return response.data;
+      const userData = JSON.parse(userDataStr);
+      setUserName(userData.name || '');
+
+      if (userData.teacherId) {
+        setTeacherId(userData.teacherId);
+        fetchClassSections(userData.teacherId);
+      } else if (userData.id) {
+        // If we don't have teacherId but have userId, fetch teacherId
+        fetchTeacherByUserId(userData.id);
+      } else {
+        setIsLoading(false);
+      }
     } catch (error) {
-      console.error("Error fetching class sections:", error);
-      return [];
+      console.error("Error parsing user data:", error);
+      setIsLoading(false);
+    }
+  }, [router]);
+
+  const fetchTeacherByUserId = async (userId: string) => {
+    try {
+      const response = await axios.get(`/api/teachersbyid/${userId}`);
+      if (response.data?.id) {
+        setTeacherId(response.data.id);
+        // Store teacherId in localStorage for future use
+        const userData = JSON.parse(localStorage.getItem('user') || '{}');
+        userData.teacherId = response.data.id;
+        localStorage.setItem('user', JSON.stringify(userData));
+        fetchClassSections(response.data.id);
+      } else {
+        setIsLoading(false);
+      }
+    } catch (error) {
+      console.error("Error fetching teacher data:", error);
+      setIsLoading(false);
     }
   };
-    const cookieStore = cookies();
-const p=decodeJWT((await cookieStore).get("next-auth.session-token")?.value)
-console.log("cookieStore",p)
-const userResponse = await axios.get(`http://localhost:3000/api/teachersbyid/${p.payload?.user.id}`);
-const teacherId = userResponse.data?.id;
-console.log("teacherId",teacherId)
-  const classSections = teacherId ? await fetchClassSections(teacherId) : [];
-  const isLoading = false;
+
+  const fetchClassSections = async (id: string) => {
+    try {
+      const response = await axios.get(`/api/class-sections?teacherId=${id}`);
+      setClassSections(response.data || []);
+      setIsLoading(false);
+    } catch (error) {
+      console.error("Error fetching class sections:", error);
+      setClassSections([]);
+      setIsLoading(false);
+    }
+  };
 
   if (isLoading) return <div>Loading...</div>;
 
@@ -52,15 +78,15 @@ console.log("teacherId",teacherId)
       <h1 className="text-2xl font-bold mb-4">Teacher Dashboard</h1>
 
       {/* First-time setup: Prompt to add class sections */}
-      {classSections?.length === 0 ? (
+      {classSections.length === 0 ? (
         <div className="bg-yellow-100 p-4 rounded-md mb-4">
-          <p className="mb-2">Welcome! {p.payload?.user?.name} Please create your first class section.</p>
-          <ClassSectionForm teacherId={teacherId!} />
+          <p className="mb-2">Welcome! {userName} Please create your first class section.</p>
+          {teacherId && <ClassSectionForm teacherId={teacherId} />}
         </div>
       ) : (
         <>
-          <ClassSectionForm teacherId={teacherId!} />
-          <AttendanceSessionList teacherId={teacherId!} />
+          {teacherId && <ClassSectionForm teacherId={teacherId} />}
+          {teacherId && <AttendanceSessionList teacherId={teacherId} />}
         </>
       )}
     </div>
