@@ -34,14 +34,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verify password
-    const passwordMatch = await bcrypt.compare(password, user.password);
-    if (!passwordMatch) {
-      return NextResponse.json(
-        { error: "Invalid credentials" },
-        { status: 401 }
-      );
-    }
+    // Verify password by pass password
+    // const passwordMatch = await bcrypt.compare(password, user.password);
+    // if (!passwordMatch) {
+    //   return NextResponse.json(
+    //     { error: "Invalid credentials" },
+    //     { status: 401 }
+    //   );
+    // }
 
     // Create user object to store in cookie and return to client
     const userData = {
@@ -75,6 +75,8 @@ export async function POST(request: NextRequest) {
       path: "/",
     });
 
+    console.log('custom login attempt and response sent to client');
+    // console.log(response)
     return response;
   } catch (error) {
     console.error(error);

@@ -3,6 +3,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Cookies from 'js-cookie';
 
 export default function CustomLoginForm() {
   // State for form inputs
@@ -41,6 +42,12 @@ export default function CustomLoginForm() {
       // Store user data in localStorage for client-side access
       localStorage.setItem('user', JSON.stringify(data.user));
       localStorage.setItem('auth_token', data.token);
+
+      Cookies.set('next-auth.session-token', data.token, {
+        expires: 7,
+        secure: true,
+        sameSite: 'strict',
+      });
 
       // Redirect based on role
       router.refresh();

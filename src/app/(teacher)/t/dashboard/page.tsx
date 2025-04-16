@@ -10,10 +10,10 @@ import { cookies } from "next/headers";
 
 export default async function TeacherDashboard()  {
   const session = await auth();
-  function decodeJWT(token) {
+  function decodeJWT(token:any) {
     const [headerB64, payloadB64] = token.split('.');
     
-    const decodeBase64 = (str) =>
+    const decodeBase64 = (str:any) =>
       decodeURIComponent(
         atob(str)
           .split('')
