@@ -237,22 +237,23 @@ export class TeacherService {
   }
 
 
-  async  getTeacherAttendanceBySection(teacherId: string) {
-  const teacherWithSections = await prisma.teacher.findUnique({
-    where: { id: teacherId },
-    include: {
-      classSections: {
-        include: {
-          batch: true,
-          course: true,
-          semester: true,
-          attendanceSessions: {
-            include: {
-              attendanceRecords: {
-                include: {
-                  student: {
-                    include: {
-                      user: true,
+  async getTeacherAttendanceBySection(teacherId: string) {
+    const teacherWithSections = await prisma.teacher.findUnique({
+      where: { id: teacherId },
+      include: {
+        classSections: {
+          include: {
+            batch: true,
+            course: true,
+            semester: true,
+            attendanceSessions: {
+              include: {
+                attendanceRecords: {
+                  include: {
+                    student: {
+                      include: {
+                        user: true,
+                      },
                     },
                   },
                 },
@@ -261,33 +262,94 @@ export class TeacherService {
           },
         },
       },
+    });
+
+    if (!teacherWithSections) return null;
+
+    const sectionWiseAttendance = teacherWithSections.classSections.map(section => ({
+      classSection: {
+        id: section.id,
+        name: `${section.course.name} - ${section.batch.batchName} - Sem ${section.semester.name}`,
+      },
+      attendanceSessions: section.attendanceSessions.map(session => ({
+        id: session.id,
+        date: session.sessionDate,
+        attendanceRecords: session.attendanceRecords.map(record => ({
+          status: record.status,
+          student: {
+            id: record.student.id,
+            name: record.student.user.name,
+            email: record.student.user.email,
+          },
+        })),
+      })),
+    }));
+
+    return sectionWiseAttendance;
+  }
+
+  async  getSectionWithCourse(teacherId: string) {
+  const relations = await prisma.sectionCourseTeacherRelation.findMany({
+    where: { teacherId },
+    include: {
+      classSection: {
+        include: {
+          batch: true,
+          semester: true,
+          studentEnrollments: {
+            include: {
+              student: {
+                include: {
+                  user: true,
+                },
+              },
+            },
+          },
+        },
+      },
+      course: {
+        include: {
+          department: true,
+          createdBy: {
+            include: {
+              user: true,
+            },
+          },
+        },
+      },
     },
   });
 
-  if (!teacherWithSections) return null;
+  if (!relations || relations.length === 0) return [];
 
-  const sectionWiseAttendance = teacherWithSections.classSections.map(section => ({
-    classSection: {
-      id: section.id,
-      name: `${section.course.name} - ${section.batch.batchName} - Sem ${section.semester.name}`,
-    },
-    attendanceSessions: section.attendanceSessions.map(session => ({
-      id: session.id,
-      date: session.sessionDate,
-      attendanceRecords: session.attendanceRecords.map(record => ({
-        status: record.status,
-        student: {
-          id: record.student.id,
-          name: record.student.user.name,
-          email: record.student.user.email,
-        },
+  const structuredData = relations.map((rel) => ({
+    section: {
+      id: rel.classSection.id,
+      name: `${rel.classSection.batch.batchName} - Sem ${rel.classSection.semester.name}`,
+      batch: rel.classSection.batch,
+      semester: rel.classSection.semester,
+      maxStudents: rel.classSection.maxStudents,
+      enrolledStudents: rel.classSection.studentEnrollments.map((enroll) => ({
+        studentId: enroll.student.id,
+        name: enroll.student.user.name,
+        email: enroll.student.user.email,
       })),
-    })),
+    },
+    course: {
+      id: rel.course.id,
+      name: rel.course.name,
+      code: rel.course.courseCode,
+      department: rel.course.department,
+      createdBy: {
+        id: rel.course.createdBy.id,
+        name: rel.course.createdBy.user.name,
+        email: rel.course.createdBy.user.email,
+      },
+    },
   }));
 
-  return sectionWiseAttendance;
+  return structuredData;
 }
-
 
 
 

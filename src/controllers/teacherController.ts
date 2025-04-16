@@ -8,7 +8,7 @@ export class TeacherController {
     try {
       const teachers = await teacherService.getAllTeachers();
       console.log('send all teachers to frontend: ');
-      console.log(teachers);
+      // console.log(teachers);
       return NextResponse.json(teachers);
     } catch (error: any) {
       console.error(error);
