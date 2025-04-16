@@ -8,29 +8,32 @@ datasource db {
 }
 
 model User {
-  id                 String              @id @default(cuid())
+  id                 String                 @id @default(cuid())
   name               String?
-  email              String?             @unique
-  emailVerified      DateTime?           @map("email_verified")
+  email              String?                @unique
+  username           String?
+  emailVerified      DateTime?              @map("email_verified")
   image              String?
   password           String?
   gender             String?
-  dateOfBirth        DateTime?           @map("date_of_birth") @db.Date
+  dateOfBirth        DateTime?              @map("date_of_birth") @db.Date
   address            String?
   phone              String?
-  createdAt          DateTime            @default(now()) @map("created_at")
-  updatedAt          DateTime            @updatedAt @map("updated_at")
-  role               Role                @default(ADMIN)
-  institutionId      String?             @map("institution_id")
-  username           String?
+  createdAt          DateTime               @default(now()) @map("created_at")
+  updatedAt          DateTime               @updatedAt @map("updated_at")
+  role               Role                   @default(ADMIN)
+  institutionId      String?                @map("institution_id")
   accounts           Account[]
+  attachments        AssignmentAttachment[] @relation("UploadedByUser")
+  comments           AssignmentComment[]
   Authenticator      Authenticator[]
-  creditTransactions CreditTransaction[] @relation("PerformedByUser")
+  calendarEvents     CalendarEvent[]        @relation("CreatedByUser")
+  creditTransactions CreditTransaction[]    @relation("PerformedByUser")
   notifications      Notification[]
   sessions           Session[]
   student            Student?
   teacher            Teacher?
-  institution        Institution?        @relation(fields: [institutionId], references: [id], onDelete: Restrict)
+  institution        Institution?           @relation(fields: [institutionId], references: [id], onDelete: Restrict)
 
   @@map("users")
 }
@@ -113,6 +116,8 @@ model Institution {
   subscriptionPlanId  String?              @map("subscription_plan_id")
   announcements       Announcement[]
   attendanceSettings  AttendanceSettings[]
+  calendarEvents      CalendarEvent[]
+  creditAllocations   CreditAllocation[]
   creditTransactions  CreditTransaction[]
   credits             Credit?
   departments         Department[]
@@ -148,25 +153,27 @@ model Department {
 }
 
 model Student {
-  id                  String                     @id @default(cuid())
-  userId              String                     @unique @map("user_id")
-  studentRoll         String                     @map("student_roll")
-  parentGuardianName  String?                    @map("parent_guardian_name")
-  parentGuardianPhone String?                    @map("parent_guardian_phone")
-  parentGuardianEmail String?                    @map("parent_guardian_email")
-  departmentId        String                     @map("department_id")
-  batchId             String                     @map("batch_id")
-  currentSemester     Int?                       @map("current_semester")
-  currentYear         Int?                       @map("current_year")
-  enrollmentStatus    EnrollmentStatus           @map("enrollment_status")
-  attendanceRecords   Attendance[]
-  examSubmissions     ExamSubmission[]
-  classEnrollments    StudentClassEnrollment[]
-  performanceMetrics  StudentPerformanceMetric[]
-  batch               Batch                      @relation(fields: [batchId], references: [id])
-  department          Department                 @relation(fields: [departmentId], references: [id])
-  user                User                       @relation(fields: [userId], references: [id])
-  videoViewLogs       VideoViewLog[]
+  id                    String                     @id @default(cuid())
+  userId                String                     @unique @map("user_id")
+  studentRoll           String                     @map("student_roll")
+  parentGuardianName    String?                    @map("parent_guardian_name")
+  parentGuardianPhone   String?                    @map("parent_guardian_phone")
+  parentGuardianEmail   String?                    @map("parent_guardian_email")
+  departmentId          String                     @map("department_id")
+  batchId               String                     @map("batch_id")
+  currentSemester       Int?                       @map("current_semester")
+  currentYear           Int?                       @map("current_year")
+  enrollmentStatus      EnrollmentStatus           @map("enrollment_status")
+  groupMemberships      AssignmentGroupMember[]
+  assignmentSubmissions AssignmentSubmission[]
+  attendanceRecords     Attendance[]
+  examSubmissions       ExamSubmission[]
+  classEnrollments      StudentClassEnrollment[]
+  performanceMetrics    StudentPerformanceMetric[]
+  batch                 Batch                      @relation(fields: [batchId], references: [id])
+  department            Department                 @relation(fields: [departmentId], references: [id])
+  user                  User                       @relation(fields: [userId], references: [id])
+  videoViewLogs         VideoViewLog[]
 
   @@unique([departmentId, studentRoll])
   @@index([studentRoll])
@@ -174,34 +181,35 @@ model Student {
 }
 
 model Teacher {
-  id                     String                         @id @default(cuid())
-  userId                 String                         @unique @map("user_id")
-  teacherCode            String                         @map("teacher_code")
-  qualification          String?
-  joiningDate            DateTime?                      @map("joining_date") @db.Date
-  employmentStatus       EmploymentStatus               @map("employment_status")
-  departmentId           String                         @map("department_id")
-  performanceScore       Float?                         @default(0) @map("performance_score")
-  lastEvaluationDate     DateTime?                      @map("last_evaluation_date") @db.Date
-  createdQuestionBanks   AIQuestionBank[]               @relation("QuestionBankCreator")
-  aiQuestionBanks        AIQuestionBank[]               @relation("AssignedTeacher")
-  createdVideos          AIVideoContent[]               @relation("VideoContentCreator")
-  aiVideoContents        AIVideoContent[]               @relation("AssignedTeacher")
-  announcements          Announcement[]                 @relation("CreatedByTeacher")
-  gradedAnswerScripts    AnswerScript[]                 @relation("GradedByTeacher")
-  attendanceRecords      Attendance[]                   @relation("RecordedByTeacher")
-  attendanceSessions     AttendanceSession[]
-  classSections          ClassSection[]
-  createdCourses         Course[]                       @relation("CourseCreator")
-  departmentHeadRole     DepartmentHead?
-  gradedExamSubmissions  ExamSubmission[]               @relation("GradedByTeacher")
-  createdExams           Exam[]                         @relation("ExamCreator")
-  createdQuestions       Question[]                     @relation("QuestionCreator")
-  sectionCourseRelations SectionCourseTeacherRelation[]
-  evaluatedMetrics       TeacherPerformanceMetric[]     @relation("EvaluatedByTeacher")
-  performanceMetrics     TeacherPerformanceMetric[]
-  department             Department                     @relation(fields: [departmentId], references: [id])
-  user                   User                           @relation(fields: [userId], references: [id])
+  id                    String                     @id @default(cuid())
+  userId                String                     @unique @map("user_id")
+  teacherCode           String                     @map("teacher_code")
+  qualification         String?
+  joiningDate           DateTime?                  @map("joining_date") @db.Date
+  employmentStatus      EmploymentStatus           @map("employment_status")
+  departmentId          String                     @map("department_id")
+  performanceScore      Float?                     @default(0) @map("performance_score")
+  lastEvaluationDate    DateTime?                  @map("last_evaluation_date") @db.Date
+  createdQuestionBanks  AIQuestionBank[]           @relation("QuestionBankCreator")
+  aiQuestionBanks       AIQuestionBank[]           @relation("AssignedTeacher")
+  createdVideos         AIVideoContent[]           @relation("VideoContentCreator")
+  aiVideoContents       AIVideoContent[]           @relation("AssignedTeacher")
+  announcements         Announcement[]             @relation("CreatedByTeacher")
+  gradedAnswerScripts   AnswerScript[]             @relation("GradedByTeacher")
+  gradedAssignments     AssignmentSubmission[]     @relation("GradedByTeacher")
+  createdAssignments    Assignment[]               @relation("AssignmentCreator")
+  attendanceRecords     Attendance[]               @relation("RecordedByTeacher")
+  attendanceSessions    AttendanceSession[]
+  classSections         ClassSection[]
+  createdCourses        Course[]                   @relation("CourseCreator")
+  departmentHeadRole    DepartmentHead?
+  gradedExamSubmissions ExamSubmission[]           @relation("GradedByTeacher")
+  createdExams          Exam[]                     @relation("ExamCreator")
+  createdQuestions      Question[]                 @relation("QuestionCreator")
+  evaluatedMetrics      TeacherPerformanceMetric[] @relation("EvaluatedByTeacher")
+  performanceMetrics    TeacherPerformanceMetric[]
+  department            Department                 @relation(fields: [departmentId], references: [id])
+  user                  User                       @relation(fields: [userId], references: [id])
 
   @@unique([departmentId, teacherCode])
   @@index([teacherCode])
@@ -223,22 +231,21 @@ model DepartmentHead {
 }
 
 model Course {
-  id                            String                         @id @default(cuid())
-  courseCode                    String                         @unique @map("course_code")
-  name                          String
-  description                   String?
-  creditHours                   Int                            @default(0) @map("credit_hours")
-  courseType                    CourseType                     @map("course_type")
-  departmentId                  String                         @map("department_id")
-  createdAt                     DateTime                       @default(now()) @map("created_at")
-  updatedAt                     DateTime                       @updatedAt @map("updated_at")
-  createdById                   String                         @map("created_by")
-  aiQuestionBanks               AIQuestionBank[]
-  aiVideoContents               AIVideoContent[]
-  classSections                 ClassSection[]
-  createdBy                     Teacher                        @relation("CourseCreator", fields: [createdById], references: [id])
-  department                    Department                     @relation(fields: [departmentId], references: [id])
-  sectionCourseTeacherRelations SectionCourseTeacherRelation[]
+  id              String           @id @default(cuid())
+  courseCode      String           @unique @map("course_code")
+  name            String
+  description     String?
+  creditHours     Int              @default(0) @map("credit_hours")
+  courseType      CourseType       @map("course_type")
+  departmentId    String           @map("department_id")
+  createdAt       DateTime         @default(now()) @map("created_at")
+  updatedAt       DateTime         @updatedAt @map("updated_at")
+  createdById     String           @map("created_by")
+  aiQuestionBanks AIQuestionBank[]
+  aiVideoContents AIVideoContent[]
+  classSections   ClassSection[]
+  createdBy       Teacher          @relation("CourseCreator", fields: [createdById], references: [id])
+  department      Department       @relation(fields: [departmentId], references: [id])
 
   @@map("courses")
 }
@@ -276,42 +283,31 @@ model Semester {
 }
 
 model ClassSection {
-  id                 String                         @id @default(cuid())
-  sectionName        String                         @map("section_name")
-  batchId            String                         @map("batch_id")
-  courseId           String                         @map("course_id")
-  semesterId         String                         @map("semester_id")
-  teacherId          String                         @map("teacher_id")
-  maxStudents        Int                            @default(0) @map("max_students")
-  createdAt          DateTime                       @default(now()) @map("created_at")
-  updatedAt          DateTime                       @updatedAt @map("updated_at")
+  id                 String                     @id @default(cuid())
+  sectionName        String                     @map("section_name")
+  batchId            String                     @map("batch_id")
+  courseId           String                     @map("course_id")
+  semesterId         String                     @map("semester_id")
+  teacherId          String                     @map("teacher_id")
+  maxStudents        Int                        @default(0) @map("max_students")
+  createdAt          DateTime                   @default(now()) @map("created_at")
+  updatedAt          DateTime                   @updatedAt @map("updated_at")
   aiVideoContents    AIVideoContent[]
   announcements      Announcement[]
+  assignmentGroups   AssignmentGroup[]
+  assignments        Assignment[]
   attendanceSessions AttendanceSession[]
-  batch              Batch                          @relation(fields: [batchId], references: [id])
-  course             Course                         @relation(fields: [courseId], references: [id])
-  semester           Semester                       @relation(fields: [semesterId], references: [id])
-  teacher            Teacher                        @relation(fields: [teacherId], references: [id])
+  calendarEvents     CalendarEvent[]
+  batch              Batch                      @relation(fields: [batchId], references: [id])
+  course             Course                     @relation(fields: [courseId], references: [id])
+  semester           Semester                   @relation(fields: [semesterId], references: [id])
+  teacher            Teacher                    @relation(fields: [teacherId], references: [id])
+  classStream        ClassStream[]
   exams              Exam[]
-  courseTeachers     SectionCourseTeacherRelation[]
   studentEnrollments StudentClassEnrollment[]
   studentMetrics     StudentPerformanceMetric[]
 
   @@map("class_sections")
-}
-
-model SectionCourseTeacherRelation {
-  id             String       @id @default(cuid())
-  classSectionId String       @map("class_section_id")
-  courseId       String       @map("course_id")
-  teacherId      String       @map("teacher_id")
-  createdAt      DateTime     @default(now()) @map("created_at")
-  updatedAt      DateTime     @updatedAt @map("updated_at")
-  classSection   ClassSection @relation(fields: [classSectionId], references: [id], onDelete: Cascade)
-  course         Course       @relation(fields: [courseId], references: [id])
-  teacher        Teacher      @relation(fields: [teacherId], references: [id])
-
-  @@map("section_course_teacher_relations")
 }
 
 model StudentClassEnrollment {
@@ -498,6 +494,7 @@ model AIVideoContent {
   createdAt       DateTime        @default(now()) @map("created_at")
   updatedAt       DateTime        @updatedAt @map("updated_at")
   createdById     String          @map("created_by")
+  version         Int             @default(1) @map("version")
   classSection    ClassSection?   @relation(fields: [classSectionId], references: [id])
   course          Course          @relation(fields: [courseId], references: [id])
   createdBy       Teacher         @relation("VideoContentCreator", fields: [createdById], references: [id])
@@ -537,6 +534,7 @@ model AIQuestionBank {
   createdAt       DateTime        @default(now()) @map("created_at")
   updatedAt       DateTime        @updatedAt @map("updated_at")
   createdById     String          @map("created_by")
+  version         Int             @default(1) @map("version")
   course          Course          @relation(fields: [courseId], references: [id])
   createdBy       Teacher         @relation("QuestionBankCreator", fields: [createdById], references: [id])
   teacher         Teacher         @relation("AssignedTeacher", fields: [teacherId], references: [id])
@@ -617,6 +615,19 @@ model CreditTransaction {
   @@map("credit_transactions")
 }
 
+model CreditAllocation {
+  id            String      @id @default(cuid())
+  institutionId String      @map("institution_id")
+  creditType    CreditType  @map("credit_type")
+  quantity      Int
+  allocatedAt   DateTime    @map("allocated_at")
+  source        String      @map("source")
+  createdAt     DateTime    @default(now()) @map("created_at")
+  institution   Institution @relation(fields: [institutionId], references: [id])
+
+  @@map("credit_allocations")
+}
+
 model Invoice {
   id               String        @id @default(cuid())
   institutionId    String        @map("institution_id")
@@ -687,6 +698,8 @@ model Notification {
   isRead           Boolean   @default(false) @map("is_read")
   readAt           DateTime? @map("read_at")
   actionUrl        String?   @map("action_url")
+  channel          String?   @map("channel")
+  templateId       String?   @map("template_id")
   createdAt        DateTime  @default(now()) @map("created_at")
   user             User      @relation(fields: [userId], references: [id])
 
@@ -702,6 +715,8 @@ model Announcement {
   departmentId     String?       @map("department_id")
   classSectionId   String?       @map("class_section_id")
   isImportant      Boolean       @default(false) @map("is_important")
+  isPinned         Boolean       @default(false) @map("is_pinned")
+  visibility       String?       @map("visibility")
   expiryDate       DateTime?     @map("expiry_date") @db.Date
   createdAt        DateTime      @default(now()) @map("created_at")
   updatedAt        DateTime      @updatedAt @map("updated_at")
@@ -711,6 +726,149 @@ model Announcement {
   institution      Institution   @relation(fields: [institutionId], references: [id])
 
   @@map("announcements")
+}
+
+model Assignment {
+  id             String                 @id @default(cuid())
+  title          String
+  description    String?
+  classSectionId String                 @map("class_section_id")
+  createdById    String                 @map("created_by")
+  dueDate        DateTime?              @map("due_date") @db.Date
+  maxPoints      Float                  @default(0) @map("max_points")
+  isPublished    Boolean                @default(false) @map("is_published")
+  status         Status                 @default(SCHEDULED)
+  submissionType SubmissionType         @default(INDIVIDUAL) @map("submission_type")
+  groupId        String?                @map("group_id")
+  allowLate      Boolean                @default(true) @map("allow_late")
+  extensionDate  DateTime?              @map("extension_date") @db.Date
+  isAiGenerated  Boolean                @default(false) @map("is_ai_generated")
+  version        Int                    @default(1) @map("version")
+  createdAt      DateTime               @default(now()) @map("created_at")
+  updatedAt      DateTime               @updatedAt @map("updated_at")
+  attachments    AssignmentAttachment[]
+  comments       AssignmentComment[]
+  submissions    AssignmentSubmission[]
+  classSection   ClassSection           @relation(fields: [classSectionId], references: [id])
+  createdBy      Teacher                @relation("AssignmentCreator", fields: [createdById], references: [id])
+  group          AssignmentGroup?       @relation(fields: [groupId], references: [id])
+
+  @@index([classSectionId, createdAt])
+  @@map("assignments")
+}
+
+model AssignmentSubmission {
+  id             String                 @id @default(cuid())
+  assignmentId   String                 @map("assignment_id")
+  studentId      String                 @map("student_id")
+  submissionTime DateTime               @map("submission_time")
+  obtainedPoints Float                  @default(0) @map("obtained_points")
+  status         AnswerScriptStatus     @map("status")
+  feedback       String?
+  gradedById     String?                @map("graded_by")
+  gradedAt       DateTime?              @map("graded_at")
+  isLate         Boolean                @default(false) @map("is_late")
+  createdAt      DateTime               @default(now()) @map("created_at")
+  updatedAt      DateTime               @updatedAt @map("updated_at")
+  attachments    AssignmentAttachment[]
+  comments       AssignmentComment[]
+  assignment     Assignment             @relation(fields: [assignmentId], references: [id])
+  gradedBy       Teacher?               @relation("GradedByTeacher", fields: [gradedById], references: [id])
+  student        Student                @relation(fields: [studentId], references: [id])
+
+  @@index([assignmentId, studentId])
+  @@map("assignment_submissions")
+}
+
+model AssignmentAttachment {
+  id           String                @id @default(cuid())
+  assignmentId String?               @map("assignment_id")
+  submissionId String?               @map("submission_id")
+  fileUrl      String                @map("file_url")
+  fileName     String                @map("file_name")
+  fileType     String                @map("file_type")
+  fileSize     Int                   @map("file_size")
+  uploadedById String                @map("uploaded_by")
+  createdAt    DateTime              @default(now()) @map("created_at")
+  assignment   Assignment?           @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  submission   AssignmentSubmission? @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  uploadedBy   User                  @relation("UploadedByUser", fields: [uploadedById], references: [id])
+
+  @@map("assignment_attachments")
+}
+
+model AssignmentGroup {
+  id             String                  @id @default(cuid())
+  classSectionId String                  @map("class_section_id")
+  name           String                  @map("group_name")
+  createdAt      DateTime                @default(now()) @map("created_at")
+  updatedAt      DateTime                @updatedAt @map("updated_at")
+  members        AssignmentGroupMember[]
+  classSection   ClassSection            @relation(fields: [classSectionId], references: [id])
+  assignments    Assignment[]
+
+  @@map("assignment_groups")
+}
+
+model AssignmentGroupMember {
+  id        String          @id @default(cuid())
+  groupId   String          @map("group_id")
+  studentId String          @map("student_id")
+  createdAt DateTime        @default(now()) @map("created_at")
+  group     AssignmentGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  student   Student         @relation(fields: [studentId], references: [id])
+
+  @@map("assignment_group_members")
+}
+
+model AssignmentComment {
+  id           String                @id @default(cuid())
+  assignmentId String                @map("assignment_id")
+  submissionId String?               @map("submission_id")
+  userId       String                @map("user_id")
+  content      String
+  parentId     String?               @map("parent_id")
+  createdAt    DateTime              @default(now()) @map("created_at")
+  updatedAt    DateTime              @updatedAt @map("updated_at")
+  assignment   Assignment            @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  parent       AssignmentComment?    @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies      AssignmentComment[]   @relation("CommentReplies")
+  submission   AssignmentSubmission? @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  user         User                  @relation(fields: [userId], references: [id])
+
+  @@map("assignment_comments")
+}
+
+model ClassStream {
+  id             String       @id @default(cuid())
+  classSectionId String       @map("class_section_id")
+  contentType    ContentType  @map("content_type")
+  contentId      String       @map("content_id")
+  createdAt      DateTime     @default(now()) @map("created_at")
+  classSection   ClassSection @relation(fields: [classSectionId], references: [id], onDelete: Cascade)
+
+  @@index([classSectionId, createdAt])
+  @@map("class_streams")
+}
+
+model CalendarEvent {
+  id              String        @id @default(cuid())
+  title           String
+  description     String?
+  classSectionId  String?       @map("class_section_id")
+  institutionId   String        @map("institution_id")
+  startTime       DateTime      @map("start_time")
+  endTime         DateTime?     @map("end_time")
+  eventType       EventType     @map("event_type")
+  relatedEntityId String?       @map("related_entity_id")
+  createdById     String        @map("created_by")
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+  classSection    ClassSection? @relation(fields: [classSectionId], references: [id])
+  createdBy       User          @relation("CreatedByUser", fields: [createdById], references: [id])
+  institution     Institution   @relation(fields: [institutionId], references: [id])
+
+  @@map("calendar_events")
 }
 
 enum Role {
@@ -833,4 +991,22 @@ enum SessionType {
   LECTURE
   LAB
   TUTORIAL
+}
+
+enum SubmissionType {
+  INDIVIDUAL
+  GROUP
+}
+
+enum ContentType {
+  ANNOUNCEMENT
+  ASSIGNMENT
+  COMMENT
+}
+
+enum EventType {
+  ASSIGNMENT_DEADLINE
+  EXAM
+  CLASS
+  OTHER
 }
