@@ -107,13 +107,13 @@ export async function GET(req: NextRequest) {
         noOfStudent,
         attendanceByStudent,
         attendanceByDate: attendanceByDateResult,
-        presentage: sectionPresentage
+        presentage: sectionPresentage,
       }
     });
 
 
 
-    return NextResponse.json({ data: formattedData, status: 'success' });
+    return NextResponse.json({ sectionWiseData: formattedData, status: 'success',  teacherAttendance:'100%' });
 
   } catch (error) {
     console.error(error);

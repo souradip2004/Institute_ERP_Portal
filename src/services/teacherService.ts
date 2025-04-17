@@ -198,18 +198,17 @@ export class TeacherService {
           include: {
             examSubmission: {
               include: {
-                exam: true,  // Include the exam linked to this submission
+                exam: true,
               },
             },
-            question: true,  // Include the question for the answer script
+            question: true,
             gradedBy: {
               include: {
-                user: true,  // Include the teacher who graded the answer script
+                user: true,
               },
             },
           },
         },
-
 
         evaluatedMetrics: {
           include: {
@@ -232,9 +231,55 @@ export class TeacherService {
             course: true,
           },
         },
+
+        createdAssignments: {
+          include: {
+            classSection: true,
+            attachments: true,
+            comments: {
+              include: {
+                user: true,
+              },
+            },
+            submissions: {
+              include: {
+                student: {
+                  include: {
+                    user: true,
+                  },
+                },
+                gradedBy: {
+                  include: {
+                    user: true,
+                  },
+                },
+                attachments: true,
+                comments: {
+                  include: {
+                    user: true,
+                  },
+                },
+              },
+            },
+            group: {
+              include: {
+                members: {
+                  include: {
+                    student: {
+                      include: {
+                        user: true,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
       },
     });
   }
+
 
 
   async getTeacherAttendanceBySection(teacherId: string) {
@@ -288,69 +333,121 @@ export class TeacherService {
     return sectionWiseAttendance;
   }
 
-  async  getSectionWithCourse(teacherId: string) {
-  const relations = await prisma.sectionCourseTeacherRelation.findMany({
-    where: { teacherId },
-    include: {
-      classSection: {
-        include: {
-          batch: true,
-          semester: true,
-          studentEnrollments: {
-            include: {
-              student: {
-                include: {
-                  user: true,
+  async getSectionWithCourse(teacherId: string) {
+    const relations = await prisma.sectionCourseTeacherRelation.findMany({
+      where: { teacherId },
+      include: {
+        classSection: {
+          include: {
+            batch: true,
+            semester: true,
+            studentEnrollments: {
+              include: {
+                student: {
+                  include: {
+                    user: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+        course: {
+          include: {
+            department: true,
+            createdBy: {
+              include: {
+                user: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!relations || relations.length === 0) return [];
+
+    const structuredData = relations.map((rel) => ({
+      section: {
+        id: rel.classSection.id,
+        name: `${rel.classSection.batch.batchName} - Sem ${rel.classSection.semester.name}`,
+        batch: rel.classSection.batch,
+        semester: rel.classSection.semester,
+        maxStudents: rel.classSection.maxStudents,
+        enrolledStudents: rel.classSection.studentEnrollments.map((enroll) => ({
+          studentId: enroll.student.id,
+          name: enroll.student.user.name,
+          email: enroll.student.user.email,
+        })),
+      },
+      course: {
+        id: rel.course.id,
+        name: rel.course.name,
+        code: rel.course.courseCode,
+        department: rel.course.department,
+        createdBy: {
+          id: rel.course.createdBy.id,
+          name: rel.course.createdBy.user.name,
+          email: rel.course.createdBy.user.email,
+        },
+      },
+    }));
+
+    return structuredData;
+  }
+   async getTeacherAssignment(teacherId: string) {
+    return prisma.teacher.findUnique({
+      where: { id: teacherId },
+      include: {
+        user: true,
+        department: true,
+        createdAssignments: {
+          include: {
+            classSection: true,
+            attachments: true,
+            comments: {
+              include: {
+                user: true,
+              },
+            },
+            submissions: {
+              include: {
+                student: {
+                  include: {
+                    user: true,
+                  },
+                },
+                gradedBy: {
+                  include: {
+                    user: true,
+                  },
+                },
+                attachments: true,
+                comments: {
+                  include: {
+                    user: true,
+                  },
+                },
+              },
+            },
+            group: {
+              include: {
+                members: {
+                  include: {
+                    student: {
+                      include: {
+                        user: true,
+                      },
+                    },
+                  },
                 },
               },
             },
           },
         },
       },
-      course: {
-        include: {
-          department: true,
-          createdBy: {
-            include: {
-              user: true,
-            },
-          },
-        },
-      },
-    },
-  });
-
-  if (!relations || relations.length === 0) return [];
-
-  const structuredData = relations.map((rel) => ({
-    section: {
-      id: rel.classSection.id,
-      name: `${rel.classSection.batch.batchName} - Sem ${rel.classSection.semester.name}`,
-      batch: rel.classSection.batch,
-      semester: rel.classSection.semester,
-      maxStudents: rel.classSection.maxStudents,
-      enrolledStudents: rel.classSection.studentEnrollments.map((enroll) => ({
-        studentId: enroll.student.id,
-        name: enroll.student.user.name,
-        email: enroll.student.user.email,
-      })),
-    },
-    course: {
-      id: rel.course.id,
-      name: rel.course.name,
-      code: rel.course.courseCode,
-      department: rel.course.department,
-      createdBy: {
-        id: rel.course.createdBy.id,
-        name: rel.course.createdBy.user.name,
-        email: rel.course.createdBy.user.email,
-      },
-    },
-  }));
-
-  return structuredData;
-}
-
+    });
+  }
 
 
 }
