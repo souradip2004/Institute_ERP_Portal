@@ -231,21 +231,21 @@ model DepartmentHead {
 }
 
 model Course {
-  id              String           @id @default(cuid())
-  courseCode      String           @unique @map("course_code")
-  name            String
-  description     String?
-  creditHours     Int              @default(0) @map("credit_hours")
-  courseType      CourseType       @map("course_type")
-  departmentId    String           @map("department_id")
-  createdAt       DateTime         @default(now()) @map("created_at")
-  updatedAt       DateTime         @updatedAt @map("updated_at")
-  createdById     String           @map("created_by")
-  aiQuestionBanks AIQuestionBank[]
-  aiVideoContents AIVideoContent[]
-  classSections   ClassSection[]
-  createdBy       Teacher          @relation("CourseCreator", fields: [createdById], references: [id])
-  department      Department       @relation(fields: [departmentId], references: [id])
+  id                String              @id @default(cuid())
+  courseCode        String              @unique @map("course_code")
+  name              String
+  description       String?
+  creditHours       Int                 @default(0) @map("credit_hours")
+  courseType        CourseType          @map("course_type")
+  departmentId      String              @map("department_id")
+  createdAt         DateTime            @default(now()) @map("created_at")
+  updatedAt         DateTime            @updatedAt @map("updated_at")
+  createdById       String              @map("created_by")
+  aiQuestionBanks   AIQuestionBank[]
+  aiVideoContents   AIVideoContent[]
+  createdBy         Teacher             @relation("CourseCreator", fields: [createdById], references: [id])
+  department        Department          @relation(fields: [departmentId], references: [id])
+  AttendanceSession AttendanceSession[]
 
   @@map("courses")
 }
@@ -286,7 +286,6 @@ model ClassSection {
   id                 String                     @id @default(cuid())
   sectionName        String                     @map("section_name")
   batchId            String                     @map("batch_id")
-  courseId           String                     @map("course_id")
   semesterId         String                     @map("semester_id")
   teacherId          String                     @map("teacher_id")
   maxStudents        Int                        @default(0) @map("max_students")
@@ -299,7 +298,6 @@ model ClassSection {
   attendanceSessions AttendanceSession[]
   calendarEvents     CalendarEvent[]
   batch              Batch                      @relation(fields: [batchId], references: [id])
-  course             Course                     @relation(fields: [courseId], references: [id])
   semester           Semester                   @relation(fields: [semesterId], references: [id])
   teacher            Teacher                    @relation(fields: [teacherId], references: [id])
   classStream        ClassStream[]
@@ -326,6 +324,7 @@ model StudentClassEnrollment {
 model AttendanceSession {
   id                String       @id @default(cuid())
   classSectionId    String       @map("class_section_id")
+  courseId          String       @map("course_id") // New field 
   teacherId         String       @map("teacher_id")
   sessionDate       DateTime     @map("session_date") @db.Date
   startTime         DateTime     @map("start_time") @db.Time(6)
@@ -336,6 +335,7 @@ model AttendanceSession {
   updatedAt         DateTime     @updatedAt @map("updated_at")
   attendanceRecords Attendance[]
   classSection      ClassSection @relation(fields: [classSectionId], references: [id])
+  course            Course       @relation(fields: [courseId], references: [id]) // New relation 
   teacher           Teacher      @relation(fields: [teacherId], references: [id])
 
   @@map("attendance_sessions")
