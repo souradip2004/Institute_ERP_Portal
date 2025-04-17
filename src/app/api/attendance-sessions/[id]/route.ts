@@ -4,7 +4,7 @@ import { AttendanceSessionController } from '@/controllers/attendanceSessionsCon
 const controller = new AttendanceSessionController();
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
-  return controller.getAttendanceSessionById(params.id);
+  return controller.getAttendanceSessionById(params.id, req);
 }
 
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {

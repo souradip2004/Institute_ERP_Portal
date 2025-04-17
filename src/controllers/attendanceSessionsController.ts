@@ -8,7 +8,7 @@ const attendanceSessionService = new AttendanceSessionService();
 export class AttendanceSessionController {
   async createAttendanceSession(req: NextRequest) {
     try {
-      const user = await AuthUtils.getCurrentUser();
+      const user = await AuthUtils.getCurrentUser(req);
       if (!user) return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
       if (user.role !== 'TEACHER' && user.role !== 'ADMIN') {
         return NextResponse.json({ error: 'Unauthorized. Only teachers or admins can create sessions' }, { status: 403 });
@@ -49,7 +49,7 @@ export class AttendanceSessionController {
 
   async getAttendanceSessions(req: NextRequest) {
     try {
-      const user = await AuthUtils.getCurrentUser();
+      const user = await AuthUtils.getCurrentUser(req);
       if (!user) return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
 
       const url = new URL(req.url);
@@ -74,8 +74,13 @@ export class AttendanceSessionController {
     }
   }
 
-  async getAttendanceSessionById(id: string) {
+  async getAttendanceSessionById(id: string, req?: NextRequest) {
     try {
+      if (req) {
+        const user = await AuthUtils.getCurrentUser(req);
+        if (!user) return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+      }
+      
       const session = await attendanceSessionService.getAttendanceSessionById(id);
       if (!session) return NextResponse.json({ error: 'Attendance session not found' }, { status: 404 });
       return NextResponse.json(session);
@@ -87,7 +92,7 @@ export class AttendanceSessionController {
 
   async updateAttendanceSession(id: string, req: NextRequest) {
     try {
-      const user = await AuthUtils.getCurrentUser();
+      const user = await AuthUtils.getCurrentUser(req);
       if (!user) return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
       if (user.role !== 'TEACHER' && user.role !== 'ADMIN') {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });

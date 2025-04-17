@@ -10,7 +10,7 @@ const attendanceSessionService = new AttendanceSessionService();
 export class AttendanceController {
   async createAttendance(req: NextRequest) {
     try {
-      const user = await AuthUtils.getCurrentUser();
+      const user = await AuthUtils.getCurrentUser(req);
       if (!user) return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
       if (user.role !== 'TEACHER' && user.role !== 'ADMIN') {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
@@ -68,7 +68,7 @@ export class AttendanceController {
 
   async getAttendanceRecords(req: NextRequest) {
     try {
-      const user = await AuthUtils.getCurrentUser();
+      const user = await AuthUtils.getCurrentUser(req);
       if (!user) return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
 
       const url = new URL(req.url);
@@ -95,7 +95,7 @@ export class AttendanceController {
 
   async updateAttendance(id: string, req: NextRequest) {
     try {
-      const user = await AuthUtils.getCurrentUser();
+      const user = await AuthUtils.getCurrentUser(req);
       if (!user) return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
       if (user.role !== 'TEACHER' && user.role !== 'ADMIN') {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
