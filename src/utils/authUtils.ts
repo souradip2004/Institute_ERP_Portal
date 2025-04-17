@@ -3,6 +3,8 @@ import { NextRequest } from 'next/server';
 import prisma from '@/config/prisma';
 import { auth } from '@/auth';
 import { Role } from '@prisma/client';
+import { verify } from 'jsonwebtoken';
+import { cookies } from 'next/headers';
 
 export interface User {
   id: string;
@@ -18,19 +20,80 @@ export interface User {
 
 export class AuthUtils {
   /**
-   * Gets the current user from the auth session
+   * Gets the current user from the auth session or JWT token
    */
-  static async getCurrentUser(): Promise<User | null> {
+  static async getCurrentUser(request?: NextRequest): Promise<User | null> {
     try {
+      // First, try to get the user from the JWT token in the request header
+      if (request) {
+        // Check for Authorization header (Bearer token)
+        const authHeader = request.headers.get('Authorization');
+        if (authHeader && authHeader.startsWith('Bearer ')) {
+          const token = authHeader.substring(7); // Remove 'Bearer ' prefix
+          try {
+            // Verify the JWT token
+            const decodedToken = verify(token, process.env.JWT_SECRET || 'your-secret-key') as any;
+            
+            if (decodedToken && decodedToken.id) {
+              // Get fresh user data from the database using the ID from the token
+              const user = await prisma.user.findUnique({
+                where: { id: decodedToken.id },
+                include: {
+                  student: {
+                    select: { id: true }
+                  },
+                  teacher: {
+                    select: { id: true }
+                  }
+                }
+              });
+              
+              if (user) {
+                return user as User;
+              }
+            }
+          } catch (tokenError) {
+            console.error('Error verifying JWT token:', tokenError);
+          }
+        }
+        
+        // Check for auth_token cookie
+        const cookieValue = request.cookies.get('auth_token')?.value;
+        if (cookieValue) {
+          try {
+            const decodedToken = verify(cookieValue, process.env.JWT_SECRET || 'your-secret-key') as any;
+            
+            if (decodedToken && decodedToken.id) {
+              const user = await prisma.user.findUnique({
+                where: { id: decodedToken.id },
+                include: {
+                  student: {
+                    select: { id: true }
+                  },
+                  teacher: {
+                    select: { id: true }
+                  }
+                }
+              });
+              
+              if (user) {
+                return user as User;
+              }
+            }
+          } catch (cookieError) {
+            console.error('Error verifying cookie token:', cookieError);
+          }
+        }
+      }
+      
+      // If no valid token found, try getting the user from the Next.js auth session
       const session = await auth();
-      //console.log("Session in auth utils", session);
       
       if (!session) {
-        //console.log("No session found or user ID is missing");
         return null;
       }
       
-      // Fetch user data with related entities
+      // Fetch user data from the database
       const user = await prisma.user.findUnique({
         where: { email: session.user.email as string },
         include: {
@@ -42,7 +105,6 @@ export class AuthUtils {
           }
         }
       });
-      //console.log("User in auth utils", user);
       
       if (!user) {
         return null;
