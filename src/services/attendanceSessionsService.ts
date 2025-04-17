@@ -1,9 +1,10 @@
-import prisma from '@/config/prisma';
-import { AttendanceSession, SessionType, Status } from '@prisma/client';
+import prisma from "@/config/prisma";
+import { AttendanceSession, SessionType, Status } from "@prisma/client";
 
 export interface CreateAttendanceSessionDTO {
   classSectionId: string;
   teacherId: string;
+  courseId: string;
   sessionDate: Date;
   startTime: Date;
   endTime: Date;
@@ -21,6 +22,7 @@ export interface UpdateAttendanceSessionDTO {
 
 export interface AttendanceSessionFilter {
   teacherId?: string;
+  courseId?: string;
   classSectionId?: string;
   status?: Status;
   fromDate?: Date;
@@ -28,11 +30,14 @@ export interface AttendanceSessionFilter {
 }
 
 export class AttendanceSessionService {
-  async createAttendanceSession(data: CreateAttendanceSessionDTO): Promise<AttendanceSession> {
+  async createAttendanceSession(
+    data: CreateAttendanceSessionDTO
+  ): Promise<AttendanceSession> {
     return prisma.attendanceSession.create({
       data: {
         classSectionId: data.classSectionId,
         teacherId: data.teacherId,
+        courseId: data.courseId,
         sessionDate: data.sessionDate,
         startTime: data.startTime,
         endTime: data.endTime,
@@ -42,12 +47,16 @@ export class AttendanceSessionService {
     });
   }
 
-  async getAttendanceSessions(filters: AttendanceSessionFilter): Promise<AttendanceSession[]> {
-    const { teacherId, classSectionId, status, fromDate, toDate } = filters;
-  
+  async getAttendanceSessions(
+    filters: AttendanceSessionFilter
+  ): Promise<AttendanceSession[]> {
+    const { teacherId, classSectionId, courseId, status, fromDate, toDate } =
+      filters;
+
     return prisma.attendanceSession.findMany({
       where: {
         teacherId: teacherId || undefined,
+        courseId: courseId || undefined,
         classSectionId: classSectionId || undefined,
         status: status ? status : undefined, // Ensure status is only included if provided
         sessionDate: {
@@ -57,28 +66,41 @@ export class AttendanceSessionService {
       },
       include: {
         teacher: { select: { user: { select: { name: true } } } },
-        classSection: { 
-          select: { 
-            sectionName: true, 
-            course: { select: { name: true, courseCode: true } } 
-          } 
+        course: {
+          select: {
+            id: true,
+            name: true,
+            courseCode: true,
+          },
+        },
+        classSection: {
+          select: {
+            sectionName: true,
+          },
         },
       },
-      orderBy: { sessionDate: 'desc' },
+      orderBy: { sessionDate: "desc" },
     });
   }
-  
 
-  async getAttendanceSessionById(id: string): Promise<AttendanceSession | null> {
+  async getAttendanceSessionById(
+    id: string
+  ): Promise<AttendanceSession | null> {
     return prisma.attendanceSession.findUnique({
       where: { id },
       include: {
         teacher: { select: { user: { select: { name: true } } } },
+        course: { select: { name: true, courseCode: true } },
         classSection: {
           select: {
             sectionName: true,
-            course: { select: { name: true, courseCode: true } },
-            studentEnrollments: { include: { student: { select: { id: true, user: { select: { name: true } } } } } },
+            studentEnrollments: {
+              include: {
+                student: {
+                  select: { id: true, user: { select: { name: true } } },
+                },
+              },
+            },
           },
         },
         attendanceRecords: true,
@@ -86,7 +108,10 @@ export class AttendanceSessionService {
     });
   }
 
-  async updateAttendanceSession(id: string, data: UpdateAttendanceSessionDTO): Promise<AttendanceSession> {
+  async updateAttendanceSession(
+    id: string,
+    data: UpdateAttendanceSessionDTO
+  ): Promise<AttendanceSession> {
     return prisma.attendanceSession.update({
       where: { id },
       data: {
@@ -101,7 +126,10 @@ export class AttendanceSessionService {
   }
 
   async checkSessionExists(id: string): Promise<boolean> {
-    const session = await prisma.attendanceSession.findUnique({ where: { id }, select: { id: true } });
+    const session = await prisma.attendanceSession.findUnique({
+      where: { id },
+      select: { id: true },
+    });
     return !!session;
   }
 }
