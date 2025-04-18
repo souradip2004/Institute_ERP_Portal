@@ -105,7 +105,8 @@ export class AttendanceService {
             startTime: true,
             endTime: true,
             sessionType: true,
-            classSection: { select: { sectionName: true, course: { select: { name: true, courseCode: true } } } },
+            classSection: { select: { sectionName: true } },
+            course: { select: { name: true, courseCode: true } }
           },
         },
         recordedBy: { select: { teacherCode: true } },
@@ -124,7 +125,8 @@ export class AttendanceService {
             sessionDate: true,
             startTime: true,
             endTime: true,
-            classSection: { select: { sectionName: true, course: { select: { name: true, courseCode: true } } } },
+            classSection: { select: { sectionName: true } },
+            course: { select: { name: true, courseCode: true } }
           },
         },
       },

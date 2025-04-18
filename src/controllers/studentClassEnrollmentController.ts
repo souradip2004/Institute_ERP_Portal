@@ -42,7 +42,7 @@ export class StudentClassEnrollmentController {
 
   async getEnrollmentById(id: string) {
     try {
-      if (!id) return NextResponse.json({ error: 'Enrollment ID is required' }, { status: 400 });
+      if (!id) return NextResponse.json({ error: 'Student ID is required' }, { status: 400 });
 
       const enrollment = await studentClassEnrollmentService.getEnrollmentById(id);
       if (!enrollment) return NextResponse.json({ error: 'Enrollment not found' }, { status: 404 });
