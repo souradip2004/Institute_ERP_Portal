@@ -46,18 +46,33 @@ export class StudentClassEnrollmentService {
     });
   }
 
-  async getEnrollmentById(id: string): Promise<StudentClassEnrollment | null> {
-    if (!id) throw new Error('Enrollment ID is required');
+  async getEnrollmentsByStudentId(studentId: string): Promise<StudentClassEnrollment[]> {
+    if (!studentId) throw new Error('Student ID is required');
 
-    return prisma.studentClassEnrollment.findUnique({
-      where: { id },
+    return prisma.studentClassEnrollment.findMany({
+      where: { studentId },
       include: {
         student: { select: { id: true, studentRoll: true, user: { select: { name: true } } } },
         classSection: {
           select: { id: true, sectionName: true, batch: { select: { batchName: true } } },
         },
       },
+      orderBy: { createdAt: 'desc' },
     });
+  }
+
+  async getEnrollmentById(id: string): Promise<StudentClassEnrollment | null> {
+    if (!id) throw new Error('Enrollment ID is required');
+
+    return prisma.studentClassEnrollment.findMany({
+      where: { studentId: id },
+      include: {
+        student: { select: { id: true, studentRoll: true, user: { select: { name: true } } } },
+        classSection: {
+          select: { id: true, sectionName: true, batch: { select: { batchName: true } } },
+        },
+      },
+    }).then(enrollments => enrollments[0] || null);
   }
 
   async updateEnrollment(id: string, data: UpdateEnrollmentDTO): Promise<StudentClassEnrollment> {
