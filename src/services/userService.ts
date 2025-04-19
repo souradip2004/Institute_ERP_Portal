@@ -1,4 +1,4 @@
-import prisma from "@/config/prisma";
+import prisma from "@/lib/prisma";
 import { userQueue } from "@/bullmq/queues/userqueue";
 import bcrypt from "bcryptjs";
 
@@ -12,20 +12,20 @@ export class UserService {
 
     // Hash the password
     const hashedPassword = await bcrypt.hash(password, 10);
-console.log(hashedPassword);
+    console.log(hashedPassword);
     // Create user with hashed password
 
-    try{
-    return await prisma.user.create({
-      data: {
-        ...otherData,
-        password: hashedPassword,
-      },
-    });
-  }catch(error){
-    console.log('Error creating user:', error);
-    throw new Error('Error creating user');
-  }
+    try {
+      return await prisma.user.create({
+        data: {
+          ...otherData,
+          password: hashedPassword,
+        },
+      });
+    } catch (error) {
+      console.log("Error creating user:", error);
+      throw new Error("Error creating user");
+    }
   }
 
   async getById(id: string) {
@@ -36,7 +36,8 @@ console.log(hashedPassword);
     return prisma.user.update({
       where: { id },
       data: {
-        ...data}
+        ...data,
+      },
     });
     return userQueue.add("update-user", {
       data,

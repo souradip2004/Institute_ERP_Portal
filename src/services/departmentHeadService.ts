@@ -1,4 +1,4 @@
-import prisma from "@/config/prisma";
+import prisma from "@/lib/prisma";
 import { DheadQueue } from "@/bullmq/queues/departmentHead";
 export class DepartmentHeadService {
   async getAll() {
@@ -32,26 +32,25 @@ export class DepartmentHeadService {
   }
 
   async delete(id: string) {
-    return prisma.departmentHead.delete({where:{id}});
+    return prisma.departmentHead.delete({ where: { id } });
     // return DheadQueue.add("delete-dhead", {
     //   identity: id,
     // });
   }
 
+  async fetchDeptHeadByDepartment(departmentId: string) {
+    console.log("Trying to fetch HOD details where deptId is " + departmentId);
 
- async fetchDeptHeadByDepartment(departmentId: string) {
-    console.log('Trying to fetch HOD details where deptId is ' + departmentId);
-    
     return prisma.departmentHead.findUnique({
-        where: { departmentId },
-        include: {
-            teacher: {  // This assumes your DepartmentHead model has a relation field named 'teacher'
-                include: {
-                    user: true  // This assumes your Teacher model has a relation field named 'user'
-                }
-            }
-        }
+      where: { departmentId },
+      include: {
+        teacher: {
+          // This assumes your DepartmentHead model has a relation field named 'teacher'
+          include: {
+            user: true, // This assumes your Teacher model has a relation field named 'user'
+          },
+        },
+      },
     });
-
-}
+  }
 }

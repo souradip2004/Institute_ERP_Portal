@@ -1,6 +1,6 @@
 // api/auth/username-login/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import prisma from "@/config/prisma";
+import prisma from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { sign } from "jsonwebtoken";
 

@@ -1,4 +1,4 @@
-import prisma from '@/config/prisma';
+import prisma from "@/lib/prisma";
 
 export class AnswerScriptService {
   async getAll() {
@@ -6,8 +6,8 @@ export class AnswerScriptService {
       include: {
         examSubmission: true,
         question: true,
-        gradedBy: true
-      }
+        gradedBy: true,
+      },
     });
   }
 
@@ -23,19 +23,19 @@ export class AnswerScriptService {
         gradedById: data.gradedById,
         gradedAt: data.gradedAt ? new Date(data.gradedAt) : null,
         isAiGraded: data.isAiGraded || false,
-        aiFeedback: data.aiFeedback
-      }
+        aiFeedback: data.aiFeedback,
+      },
     });
   }
 
   async getById(id: string) {
-    return prisma.answerScript.findUnique({ 
+    return prisma.answerScript.findUnique({
       where: { id },
       include: {
         examSubmission: true,
         question: true,
-        gradedBy: true
-      }
+        gradedBy: true,
+      },
     });
   }
 
@@ -50,14 +50,14 @@ export class AnswerScriptService {
         gradedById: data.gradedById,
         gradedAt: data.gradedAt ? new Date(data.gradedAt) : undefined,
         isAiGraded: data.isAiGraded,
-        aiFeedback: data.aiFeedback
-      }
+        aiFeedback: data.aiFeedback,
+      },
     });
   }
 
   async delete(id: string) {
     return prisma.answerScript.delete({
-      where: { id }
+      where: { id },
     });
   }
 }

@@ -1,5 +1,5 @@
-import prisma from '@/config/prisma';
-import { Role } from '@prisma/client';
+import prisma from "@/lib/prisma";
+import { Role } from "@prisma/client";
 
 export class AnnouncementService {
   static async createAnnouncement(data: {
@@ -57,7 +57,10 @@ export class AnnouncementService {
     // Apply class section filter or student enrollment
     if (params.classSectionId) {
       where.classSectionId = params.classSectionId;
-    } else if (params.userRole === Role.STUDENT && params.studentClassSectionIds?.length) {
+    } else if (
+      params.userRole === Role.STUDENT &&
+      params.studentClassSectionIds?.length
+    ) {
       where.classSectionId = { in: params.studentClassSectionIds };
     }
 
@@ -67,10 +70,7 @@ export class AnnouncementService {
     }
 
     // Only show non-expired announcements
-    where.OR = [
-      { expiryDate: null },
-      { expiryDate: { gte: new Date() } },
-    ];
+    where.OR = [{ expiryDate: null }, { expiryDate: { gte: new Date() } }];
 
     return prisma.announcement.findMany({
       where,
@@ -80,7 +80,7 @@ export class AnnouncementService {
         classSection: { select: { sectionName: true } },
         createdByTeacher: { include: { user: { select: { name: true } } } },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
     });
   }
 
@@ -90,13 +90,16 @@ export class AnnouncementService {
     });
   }
 
-  static async updateAnnouncement(id: string, data: {
-    title?: string;
-    content?: string;
-    isImportant?: boolean;
-    isPinned?: boolean;
-    expiryDate?: Date | null;
-  }) {
+  static async updateAnnouncement(
+    id: string,
+    data: {
+      title?: string;
+      content?: string;
+      isImportant?: boolean;
+      isPinned?: boolean;
+      expiryDate?: Date | null;
+    }
+  ) {
     return prisma.announcement.update({
       where: { id },
       data,
@@ -120,10 +123,7 @@ export class AnnouncementService {
       where: {
         teacherId,
         departmentId,
-        OR: [
-          { endDate: null },
-          { endDate: { gte: new Date() } },
-        ],
+        OR: [{ endDate: null }, { endDate: { gte: new Date() } }],
       },
     });
     return !!departmentHead;

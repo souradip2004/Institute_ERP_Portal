@@ -1,4 +1,4 @@
-import prisma from "@/config/prisma";
+import prisma from "@/lib/prisma";
 import { Assignment, AssignmentSubmission, Role } from "@prisma/client";
 import { S3Utils } from "@/utils/s3Utils";
 

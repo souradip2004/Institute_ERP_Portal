@@ -1,4 +1,4 @@
-import prisma from '@/config/prisma';
+import prisma from "@/lib/prisma";
 
 export class ExamSubmissionService {
   async getAll() {
@@ -6,8 +6,8 @@ export class ExamSubmissionService {
       include: {
         exam: true,
         student: true,
-        gradedBy: true
-      }
+        gradedBy: true,
+      },
     });
   }
 
@@ -22,18 +22,18 @@ export class ExamSubmissionService {
         feedback: data.feedback,
         gradedById: data.gradedById,
         gradedAt: data.gradedAt ? new Date(data.gradedAt) : null,
-      }
+      },
     });
   }
 
   async getById(id: string) {
-    return prisma.examSubmission.findUnique({ 
+    return prisma.examSubmission.findUnique({
       where: { id },
       include: {
         exam: true,
         student: true,
-        gradedBy: true
-      }
+        gradedBy: true,
+      },
     });
   }
 
@@ -46,13 +46,13 @@ export class ExamSubmissionService {
         feedback: data.feedback,
         gradedById: data.gradedById,
         gradedAt: data.gradedAt ? new Date(data.gradedAt) : undefined,
-      }
+      },
     });
   }
 
   async delete(id: string) {
     return prisma.examSubmission.delete({
-      where: { id }
+      where: { id },
     });
   }
 }

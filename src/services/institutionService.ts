@@ -1,13 +1,13 @@
-import prisma from '@/config/prisma';
-import { InstitutionQueue } from '@/bullmq/queues/institutionqueue';
+import prisma from "@/lib/prisma";
+import { InstitutionQueue } from "@/bullmq/queues/institutionqueue";
 export class InstitutionService {
   async getAllInstitutions() {
-    console.log('Fetching all institutions');
+    console.log("Fetching all institutions");
     return prisma.institution.findMany();
   }
 
   async createInstitution(data: any) {
-    console.log('Creating institution:', data);
+    console.log("Creating institution:", data);
     // return InstitutionQueue.add('create-institution', {
     //   data,
     // });;
@@ -32,21 +32,20 @@ export class InstitutionService {
 
   async deleteInstitution(id: string) {
     return prisma.institution.delete({ where: { id } });
-    return  InstitutionQueue.add('delete-institution', {
-      identity:id,
+    return InstitutionQueue.add("delete-institution", {
+      identity: id,
     });
   }
 
+  async getAllDepartmentsByInstitute(institutionId: string) {
+    return await prisma.department.findMany({
+      where: { institutionId },
+    });
+  }
 
-  async getAllDepartmentsByInstitute (institutionId: string) {
-  return await prisma.department.findMany({
-    where: { institutionId },
-  });
-  };
-  
-  async getAllSemestersByinstituteId (institutionId: string) {
-  return await prisma.semester.findMany({
-    where: { institutionId },
-  });
-  };
+  async getAllSemestersByinstituteId(institutionId: string) {
+    return await prisma.semester.findMany({
+      where: { institutionId },
+    });
+  }
 }

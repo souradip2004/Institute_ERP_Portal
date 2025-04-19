@@ -1,5 +1,5 @@
-import prisma from '@/config/prisma';
-import { Department } from '@prisma/client';
+import prisma from "@/lib/prisma";
+import { Department } from "@prisma/client";
 
 export interface CreateDepartmentDTO {
   name: string;
@@ -19,14 +19,16 @@ export interface DepartmentFilter {
 }
 
 export class DepartmentService {
-  async getAllDepartments(filters: DepartmentFilter = {}): Promise<Department[]> {
+  async getAllDepartments(
+    filters: DepartmentFilter = {}
+  ): Promise<Department[]> {
     const { institutionId } = filters;
     return prisma.department.findMany({
       where: { institutionId },
       include: {
         institution: { select: { id: true, name: true } },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
     });
   }
 
@@ -35,7 +37,7 @@ export class DepartmentService {
 
     // Validate required fields
     if (!name || !code || !institutionId) {
-      throw new Error('Name, code, and institutionId are required');
+      throw new Error("Name, code, and institutionId are required");
     }
 
     // Check for unique code within institution
@@ -43,7 +45,7 @@ export class DepartmentService {
       where: { institutionId_code: { institutionId, code } },
     });
     if (existingDepartment) {
-      throw new Error('Department code already exists within this institution');
+      throw new Error("Department code already exists within this institution");
     }
 
     // Uncomment for Redis/BullMQ integration
@@ -62,34 +64,59 @@ export class DepartmentService {
   }
 
   async getDepartmentById(id: string): Promise<Department | null> {
-    if (!id) throw new Error('Department ID is required');
+    if (!id) throw new Error("Department ID is required");
 
     return prisma.department.findUnique({
       where: { id },
       include: {
         institution: { select: { id: true, name: true } },
-        teachers: { select: { id: true, teacherCode: true, user: { select: { name: true } } } },
-        students: { select: { id: true, studentRoll: true, user: { select: { name: true } } } },
+        teachers: {
+          select: {
+            id: true,
+            teacherCode: true,
+            user: { select: { name: true } },
+          },
+        },
+        students: {
+          select: {
+            id: true,
+            studentRoll: true,
+            user: { select: { name: true } },
+          },
+        },
         courses: { select: { id: true, courseCode: true, name: true } },
       },
     });
   }
 
-  async updateDepartment(id: string, data: UpdateDepartmentDTO): Promise<Department> {
-    if (!id) throw new Error('Department ID is required');
+  async updateDepartment(
+    id: string,
+    data: UpdateDepartmentDTO
+  ): Promise<Department> {
+    if (!id) throw new Error("Department ID is required");
 
     const { name, code, description } = data;
 
     // Check if department exists
-    const existingDepartment = await prisma.department.findUnique({ where: { id } });
-    if (!existingDepartment) throw new Error('Department not found');
+    const existingDepartment = await prisma.department.findUnique({
+      where: { id },
+    });
+    if (!existingDepartment) throw new Error("Department not found");
 
     // If code is being updated, check uniqueness within institution
     if (code && code !== existingDepartment.code) {
       const duplicateCode = await prisma.department.findUnique({
-        where: { institutionId_code: { institutionId: existingDepartment.institutionId, code } },
+        where: {
+          institutionId_code: {
+            institutionId: existingDepartment.institutionId,
+            code,
+          },
+        },
       });
-      if (duplicateCode) throw new Error('Department code already exists within this institution');
+      if (duplicateCode)
+        throw new Error(
+          "Department code already exists within this institution"
+        );
     }
 
     // Uncomment for Redis/BullMQ integration
@@ -107,10 +134,12 @@ export class DepartmentService {
   }
 
   async deleteDepartment(id: string): Promise<void> {
-    if (!id) throw new Error('Department ID is required');
+    if (!id) throw new Error("Department ID is required");
 
-    const existingDepartment = await prisma.department.findUnique({ where: { id } });
-    if (!existingDepartment) throw new Error('Department not found');
+    const existingDepartment = await prisma.department.findUnique({
+      where: { id },
+    });
+    if (!existingDepartment) throw new Error("Department not found");
 
     // Uncomment for Redis/BullMQ integration
     // await DepartmentQueue.add('delete-department', { identity: id });

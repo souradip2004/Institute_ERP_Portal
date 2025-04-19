@@ -1,6 +1,6 @@
 // src/app/api/auth/reset-password/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import prisma from "@/config/prisma";
+import prisma from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 
 export async function POST(req: NextRequest) {
@@ -37,10 +37,7 @@ export async function POST(req: NextRequest) {
     });
 
     if (!user) {
-      return NextResponse.json(
-        { error: "User not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
     // Hash the new password
@@ -62,10 +59,7 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    return NextResponse.json(
-      { success: true },
-      { status: 200 }
-    );
+    return NextResponse.json({ success: true }, { status: 200 });
   } catch (error) {
     console.error("Password reset error:", error);
     return NextResponse.json(
@@ -74,4 +68,3 @@ export async function POST(req: NextRequest) {
     );
   }
 }
-

@@ -1,13 +1,13 @@
-// File: services/TodayAttendanceService.ts
-import { PrismaClient } from '@prisma/client';
-import { TodayClass } from '@/types/dashboard';
+import prisma from "@/lib/prisma";
+import { TodayClass } from "@/types/dashboard";
 
 export class TodayAttendanceService {
-  private prisma = new PrismaClient();
-
-  async getStudentTodaySessions(studentId: string, date: string): Promise<TodayClass[]> {
+  async getStudentTodaySessions(
+    studentId: string,
+    date: string
+  ): Promise<TodayClass[]> {
     // Fetch student's class enrollments
-    const enrollments = await this.prisma.studentClassEnrollment.findMany({
+    const enrollments = await prisma.studentClassEnrollment.findMany({
       where: { studentId },
       select: { classSectionId: true },
     });
@@ -15,7 +15,7 @@ export class TodayAttendanceService {
     const classSectionIds = enrollments.map((e) => e.classSectionId);
 
     // Fetch attendance sessions for today for these class sections
-    const sessions = await this.prisma.attendanceSession.findMany({
+    const sessions = await prisma.attendanceSession.findMany({
       where: {
         classSectionId: { in: classSectionIds },
         sessionDate: {
@@ -31,7 +31,7 @@ export class TodayAttendanceService {
     });
 
     // Fetch attendance records for these sessions for the student
-    const attendanceRecords = await this.prisma.attendance.findMany({
+    const attendanceRecords = await prisma.attendance.findMany({
       where: {
         studentId,
         attendanceSessionId: { in: sessions.map((s) => s.id) },
@@ -41,25 +41,34 @@ export class TodayAttendanceService {
 
     // Process sessions into TodayClass format
     return sessions.map((session) => {
-      const record = attendanceRecords.find((r) => r.attendanceSessionId === session.id);
+      const record = attendanceRecords.find(
+        (r) => r.attendanceSessionId === session.id
+      );
 
       return {
         id: session.id,
         courseId: session.courseId,
-        courseName: session.course?.name || 'Unknown Course',
-        courseCode: session.course?.courseCode || 'N/A',
-        teacherName: session.teacher?.user?.name || 'Unknown Teacher',
-        classSectionName: session.classSection?.sectionName || 'Unknown Section',
+        courseName: session.course?.name || "Unknown Course",
+        courseCode: session.course?.courseCode || "N/A",
+        teacherName: session.teacher?.user?.name || "Unknown Teacher",
+        classSectionName:
+          session.classSection?.sectionName || "Unknown Section",
         sessionDate: session.sessionDate.toISOString(),
         startTime: session.startTime
-          ? new Date(session.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-          : 'N/A',
+          ? new Date(session.startTime).toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+            })
+          : "N/A",
         endTime: session.endTime
-          ? new Date(session.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-          : 'N/A',
-        sessionType: session.sessionType || 'LECTURE',
+          ? new Date(session.endTime).toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+            })
+          : "N/A",
+        sessionType: session.sessionType || "LECTURE",
         sessionStatus: session.status,
-        attendanceStatus: record ? record.status : 'NOT_RECORDED',
+        attendanceStatus: record ? record.status : "NOT_RECORDED",
       };
     });
   }

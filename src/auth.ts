@@ -5,7 +5,7 @@ import Google from "next-auth/providers/google";
 import Credentials from "next-auth/providers/credentials";
 import EmailProvider from "next-auth/providers/nodemailer";
 import { PrismaAdapter } from "@auth/prisma-adapter";
-import prisma from "@/config/prisma";
+import prisma from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { sendVerificationEmail } from "@/services/emailService";
 import crypto from "crypto";
@@ -139,17 +139,17 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
               expires: new Date(Date.now() + 60 * 60 * 1000), // 1 hour
             },
           });
-    
+
           await sendVerificationEmail(user.email!, token.token);
         }
-        
+
         return "/verify-request"; // Redirect to verification request page
       }
-      
+
       // For username-based login or OAuth providers, allow without email verification
       return true;
     },
-    
+
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;

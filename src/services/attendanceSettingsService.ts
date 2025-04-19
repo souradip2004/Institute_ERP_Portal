@@ -1,5 +1,5 @@
-import prisma from '@/config/prisma';
-import { AttendanceSettings } from '@prisma/client';
+import prisma from "@/lib/prisma";
+import { AttendanceSettings } from "@prisma/client";
 
 export interface CreateAttendanceSettingsDTO {
   minimumAttendancePercentage?: number;
@@ -16,13 +16,19 @@ export interface UpdateAttendanceSettingsDTO {
 }
 
 export class AttendanceSettingsService {
-  async getAttendanceSettings(institutionId: string): Promise<AttendanceSettings | null> {
+  async getAttendanceSettings(
+    institutionId: string
+  ): Promise<AttendanceSettings | null> {
     return prisma.attendanceSettings.findFirst({ where: { institutionId } });
   }
 
-  async createAttendanceSettings(institutionId: string, data: CreateAttendanceSettingsDTO): Promise<AttendanceSettings> {
+  async createAttendanceSettings(
+    institutionId: string,
+    data: CreateAttendanceSettingsDTO
+  ): Promise<AttendanceSettings> {
     const existing = await this.checkSettingsExist(institutionId);
-    if (existing) throw new Error('Attendance settings already exist for this institution');
+    if (existing)
+      throw new Error("Attendance settings already exist for this institution");
 
     return prisma.attendanceSettings.create({
       data: {
@@ -35,7 +41,10 @@ export class AttendanceSettingsService {
     });
   }
 
-  async updateAttendanceSettings(institutionId: string, data: UpdateAttendanceSettingsDTO): Promise<AttendanceSettings> {
+  async updateAttendanceSettings(
+    institutionId: string,
+    data: UpdateAttendanceSettingsDTO
+  ): Promise<AttendanceSettings> {
     const existing = await this.getAttendanceSettings(institutionId);
     if (!existing) return this.createAttendanceSettings(institutionId, data);
 
@@ -52,7 +61,10 @@ export class AttendanceSettingsService {
   }
 
   async checkSettingsExist(institutionId: string): Promise<boolean> {
-    const settings = await prisma.attendanceSettings.findFirst({ where: { institutionId }, select: { id: true } });
+    const settings = await prisma.attendanceSettings.findFirst({
+      where: { institutionId },
+      select: { id: true },
+    });
     return !!settings;
   }
 }

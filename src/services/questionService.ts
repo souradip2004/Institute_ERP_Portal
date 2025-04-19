@@ -1,10 +1,10 @@
-import prisma from '@/config/prisma';
-import { Question } from '@prisma/client';
+import prisma from "@/lib/prisma";
+import { Question } from "@prisma/client";
 
 export interface CreateQuestionDTO {
   examId: string;
   questionText: string;
-  questionType: 'MCQ' | 'SHORT_ANSWER' | 'LONG_ANSWER' | 'CODING';
+  questionType: "MCQ" | "SHORT_ANSWER" | "LONG_ANSWER" | "CODING";
   marks: number;
   difficultyLevel: string;
   correctAnswer: Record<string, string | number | boolean>;
@@ -15,7 +15,7 @@ export interface CreateQuestionDTO {
 
 export interface UpdateQuestionDTO {
   questionText?: string;
-  questionType?: 'MCQ' | 'SHORT_ANSWER' | 'LONG_ANSWER' | 'CODING';
+  questionType?: "MCQ" | "SHORT_ANSWER" | "LONG_ANSWER" | "CODING";
   marks?: number;
   difficultyLevel?: string;
   correctAnswer?: Record<string, string | number | boolean>;
@@ -28,9 +28,15 @@ export class QuestionService {
     return prisma.question.findMany({
       include: {
         exam: { select: { id: true, title: true, classSectionId: true } },
-        createdBy: { select: { id: true, teacherCode: true, user: { select: { name: true } } } },
+        createdBy: {
+          select: {
+            id: true,
+            teacherCode: true,
+            user: { select: { name: true } },
+          },
+        },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
     });
   }
 
@@ -47,8 +53,18 @@ export class QuestionService {
       isAiGenerated = false,
     } = data;
 
-    if (!examId || !questionText || !questionType || !marks || !difficultyLevel || !correctAnswer || !createdById) {
-      throw new Error('examId, questionText, questionType, marks, difficultyLevel, correctAnswer, and createdById are required');
+    if (
+      !examId ||
+      !questionText ||
+      !questionType ||
+      !marks ||
+      !difficultyLevel ||
+      !correctAnswer ||
+      !createdById
+    ) {
+      throw new Error(
+        "examId, questionText, questionType, marks, difficultyLevel, correctAnswer, and createdById are required"
+      );
     }
 
     // Uncomment for Redis/BullMQ integration
@@ -72,22 +88,30 @@ export class QuestionService {
   }
 
   async getQuestionById(id: string): Promise<Question | null> {
-    if (!id) throw new Error('Question ID is required');
+    if (!id) throw new Error("Question ID is required");
 
     return prisma.question.findUnique({
       where: { id },
       include: {
         exam: { select: { id: true, title: true, classSectionId: true } },
-        createdBy: { select: { id: true, teacherCode: true, user: { select: { name: true } } } },
+        createdBy: {
+          select: {
+            id: true,
+            teacherCode: true,
+            user: { select: { name: true } },
+          },
+        },
       },
     });
   }
 
   async updateQuestion(id: string, data: UpdateQuestionDTO): Promise<Question> {
-    if (!id) throw new Error('Question ID is required');
+    if (!id) throw new Error("Question ID is required");
 
-    const existingQuestion = await prisma.question.findUnique({ where: { id } });
-    if (!existingQuestion) throw new Error('Question not found');
+    const existingQuestion = await prisma.question.findUnique({
+      where: { id },
+    });
+    if (!existingQuestion) throw new Error("Question not found");
 
     // Uncomment for Redis/BullMQ integration
     // return await questionQueue.add('update-question', { identity: id, data });
@@ -102,10 +126,12 @@ export class QuestionService {
   }
 
   async deleteQuestion(id: string): Promise<void> {
-    if (!id) throw new Error('Question ID is required');
+    if (!id) throw new Error("Question ID is required");
 
-    const existingQuestion = await prisma.question.findUnique({ where: { id } });
-    if (!existingQuestion) throw new Error('Question not found');
+    const existingQuestion = await prisma.question.findUnique({
+      where: { id },
+    });
+    if (!existingQuestion) throw new Error("Question not found");
 
     // Uncomment for Redis/BullMQ integration
     // await questionQueue.add('delete-question', { identity: id });

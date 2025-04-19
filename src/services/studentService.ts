@@ -1,4 +1,4 @@
-import prisma from "@/config/prisma";
+import prisma from "@/lib/prisma";
 import { studentQueue } from "@/bullmq/queues/student";
 
 export class StudentService {
@@ -95,16 +95,18 @@ export class StudentService {
         user: true,
         department: true,
         batch: true,
-        classEnrollments: includeClassSection ? {
-          include: {
-            classSection: {
-              select: {
-                id: true,
-                sectionName: true
-              }
+        classEnrollments: includeClassSection
+          ? {
+              include: {
+                classSection: {
+                  select: {
+                    id: true,
+                    sectionName: true,
+                  },
+                },
+              },
             }
-          }
-        } : false,
+          : false,
       },
     });
   }

@@ -1,6 +1,6 @@
 // src/app/api/auth/forgot-password/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import prisma from "@/config/prisma";
+import prisma from "@/lib/prisma";
 import crypto from "crypto";
 import { sendPasswordResetEmail } from "@/services/emailService";
 
@@ -9,10 +9,7 @@ export async function POST(req: NextRequest) {
     const { email } = await req.json();
 
     if (!email) {
-      return NextResponse.json(
-        { error: "Email is required" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Email is required" }, { status: 400 });
     }
 
     // Find user in database
@@ -23,10 +20,7 @@ export async function POST(req: NextRequest) {
     // For security reasons, don't reveal if a user exists or not
     // Always return success even if the email doesn't exist
     if (!user) {
-      return NextResponse.json(
-        { success: true },
-        { status: 200 }
-      );
+      return NextResponse.json({ success: true }, { status: 200 });
     }
 
     // If the user is using a social login provider without a password,
@@ -43,9 +37,9 @@ export async function POST(req: NextRequest) {
       where: {
         identifier: email,
         token: {
-          startsWith: "password-reset-" // Use a prefix to identify password reset tokens
-        }
-      }
+          startsWith: "password-reset-", // Use a prefix to identify password reset tokens
+        },
+      },
     });
 
     // Create a password reset token
@@ -66,10 +60,7 @@ export async function POST(req: NextRequest) {
     // Send password reset email
     await sendPasswordResetEmail(email, resetUrl);
 
-    return NextResponse.json(
-      { success: true },
-      { status: 200 }
-    );
+    return NextResponse.json({ success: true }, { status: 200 });
   } catch (error) {
     console.error("Password reset request error:", error);
     return NextResponse.json(

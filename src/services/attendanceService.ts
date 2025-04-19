@@ -1,5 +1,5 @@
-import prisma from '@/config/prisma';
-import { Attendance, AttendanceStatus } from '@prisma/client';
+import prisma from "@/lib/prisma";
+import { Attendance, AttendanceStatus } from "@prisma/client";
 
 export interface CreateAttendanceDTO {
   attendanceSessionId: string;
@@ -26,20 +26,22 @@ export interface AttendanceFilter {
 export class AttendanceService {
   async createAttendance(data: CreateAttendanceDTO[]): Promise<Attendance[]> {
     const now = new Date();
-  
+
     return prisma.$transaction(async (tx) => {
       const results: Attendance[] = [];
-  
+
       for (const record of data) {
         // Ensure that recordedById exists in the Teacher table
         const teacherExists = await tx.teacher.findUnique({
           where: { id: record.recordedById },
         });
-  
+
         if (!teacherExists) {
-          throw new Error(`Teacher with ID ${record.recordedById} does not exist.`);
+          throw new Error(
+            `Teacher with ID ${record.recordedById} does not exist.`
+          );
         }
-  
+
         // Check if the attendance record already exists
         const existing = await tx.attendance.findFirst({
           where: {
@@ -47,7 +49,7 @@ export class AttendanceService {
             studentId: record.studentId,
           },
         });
-  
+
         let result;
         if (existing) {
           // Update existing record
@@ -75,18 +77,17 @@ export class AttendanceService {
             },
           });
         }
-  
+
         results.push(result);
       }
-  
+
       return results;
     });
   }
-  
-  
 
   async getAttendanceRecords(filters: AttendanceFilter): Promise<Attendance[]> {
-    const { attendanceSessionId, studentId, classSectionId, fromDate, toDate } = filters;
+    const { attendanceSessionId, studentId, classSectionId, fromDate, toDate } =
+      filters;
 
     return prisma.attendance.findMany({
       where: {
@@ -106,12 +107,12 @@ export class AttendanceService {
             endTime: true,
             sessionType: true,
             classSection: { select: { sectionName: true } },
-            course: { select: { name: true, courseCode: true } }
+            course: { select: { name: true, courseCode: true } },
           },
         },
         recordedBy: { select: { teacherCode: true } },
       },
-      orderBy: { attendanceSession: { sessionDate: 'desc' } },
+      orderBy: { attendanceSession: { sessionDate: "desc" } },
     });
   }
 
@@ -126,14 +127,17 @@ export class AttendanceService {
             startTime: true,
             endTime: true,
             classSection: { select: { sectionName: true } },
-            course: { select: { name: true, courseCode: true } }
+            course: { select: { name: true, courseCode: true } },
           },
         },
       },
     });
   }
 
-  async updateAttendance(id: string, data: UpdateAttendanceDTO): Promise<Attendance> {
+  async updateAttendance(
+    id: string,
+    data: UpdateAttendanceDTO
+  ): Promise<Attendance> {
     return prisma.attendance.update({
       where: { id },
       data: {
@@ -146,7 +150,10 @@ export class AttendanceService {
   }
 
   async checkAttendanceExists(id: string): Promise<boolean> {
-    const attendance = await prisma.attendance.findUnique({ where: { id }, select: { id: true } });
+    const attendance = await prisma.attendance.findUnique({
+      where: { id },
+      select: { id: true },
+    });
     return !!attendance;
   }
 }
