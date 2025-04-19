@@ -1,0 +1,247 @@
+'use client';
+
+import { useState, FormEvent, ChangeEvent, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+
+interface AssignmentUploadProps {
+  classSectionId: string;
+}
+
+const AssignmentUpload = ({ classSectionId }: AssignmentUploadProps) => {
+  const router = useRouter();
+  const [title, setTitle] = useState('');
+  const [totalMarks, setTotalMarks] = useState('');
+  const [dueDate, setDueDate] = useState('');
+  const [file, setFile] = useState<File | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showScheduleDialog, setShowScheduleDialog] = useState(false);
+  const [scheduledDate, setScheduledDate] = useState('');
+  const [scheduledTime, setScheduledTime] = useState('');
+  // Add client-side only render flag to avoid hydration issues
+  const [isMounted, setIsMounted] = useState(false);
+
+  // Set mounted flag after component mounts to enable client-side only features
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setFile(e.target.files[0]);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      setFile(e.dataTransfer.files[0]);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+  };
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!title || !totalMarks || !dueDate) {
+      alert('Please fill in all required fields');
+      return;
+    }
+
+    setIsSubmitting(true);
+    const formData = new FormData();
+    formData.append('title', title);
+    formData.append('maxPoints', totalMarks);
+    formData.append('dueDate', dueDate);
+    formData.append('classSectionId', classSectionId);
+    formData.append('submissionType', 'INDIVIDUAL');
+    if (file) {
+      formData.append('file', file);
+    }
+
+    try {
+      const response = await fetch('/api/assignments/create', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create assignment');
+      }
+
+      // Reset form
+      setTitle('');
+      setTotalMarks('');
+      setDueDate('');
+      setFile(null);
+      
+      // Refresh data
+      router.refresh();
+    } catch (error) {
+      console.error('Error creating assignment:', error);
+      alert('Failed to create assignment. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const scheduleUpload = () => {
+    setShowScheduleDialog(true);
+  };
+
+  const confirmSchedule = () => {
+    alert(`Assignment scheduled for ${scheduledDate} at ${scheduledTime}`);
+    setShowScheduleDialog(false);
+    setScheduledDate('');
+    setScheduledTime('');
+  };
+
+  return (
+    <div className="bg-white p-6 rounded-md shadow-sm">
+      <h2 className="text-xl font-semibold mb-6">Upload New Assignment</h2>
+      <form onSubmit={handleSubmit}>
+        <div className="grid grid-cols-1 gap-6">
+          <div>
+            <label htmlFor="totalMarks" className="block text-sm font-medium text-gray-700 mb-1">
+              Total Marks:
+            </label>
+            <input
+              type="number"
+              id="totalMarks"
+              value={totalMarks}
+              onChange={(e) => setTotalMarks(e.target.value)}
+              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              placeholder="40"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
+              Add Title:
+            </label>
+            <input
+              type="text"
+              id="title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              placeholder="Enter the title for assignment"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="dueDate" className="block text-sm font-medium text-gray-700 mb-1">
+              Due Date:
+            </label>
+            <div className="flex">
+              <input
+                type="date"
+                id="dueDate"
+                value={dueDate}
+                onChange={(e) => setDueDate(e.target.value)}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              />
+              {isMounted && (
+                <input 
+                  type="time" 
+                  className="ml-2 border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500" 
+                  defaultValue="12:00"
+                />
+              )}
+            </div>
+          </div>
+
+          <div 
+            className="border-2 border-dashed border-gray-300 rounded-md p-6 text-center cursor-pointer hover:border-purple-500 transition-colors"
+            onDrop={handleDrop}
+            onDragOver={handleDragOver}
+            onClick={() => document.getElementById('fileInput')?.click()}
+          >
+            <input
+              type="file"
+              id="fileInput"
+              onChange={handleFileChange}
+              className="hidden"
+            />
+            <div className="flex flex-col items-center justify-center">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-gray-400 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+              </svg>
+              <p className="text-sm text-gray-600 mb-1">
+                { file ? file.name : 'Drag and Drop Your File Here' }
+              </p>
+              <p className="text-xs text-gray-500 mb-2">or</p>
+              <p className="text-sm font-medium text-purple-600">Choose From Computer</p>
+            </div>
+          </div>
+
+          <div className="flex space-x-4">
+            <button
+              type="submit"
+              className="bg-purple-600 text-white px-6 py-2 rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 flex-1"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? 'Submitting...' : 'Submit'}
+            </button>
+            <button
+              type="button"
+              onClick={scheduleUpload}
+              className="border border-purple-600 text-purple-600 px-6 py-2 rounded-md hover:bg-purple-50 focus:outline-none focus:ring-2 focus:ring-purple-500 flex-grow-0 flex items-center justify-center"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              <span>Schedule Upload</span>
+            </button>
+          </div>
+        </div>
+      </form>
+
+      {/* Schedule Dialog */}
+      {isMounted && showScheduleDialog && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full">
+            <h3 className="text-lg font-semibold mb-4">Schedule Assignment Upload</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                <input
+                  type="date"
+                  value={scheduledDate}
+                  onChange={(e) => setScheduledDate(e.target.value)}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Time</label>
+                <input
+                  type="time"
+                  value={scheduledTime}
+                  onChange={(e) => setScheduledTime(e.target.value)}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2"
+                />
+              </div>
+            </div>
+            <div className="mt-6 flex space-x-3">
+              <button
+                onClick={() => setShowScheduleDialog(false)}
+                className="flex-1 border border-gray-300 rounded-md px-3 py-2 text-gray-700 hover:bg-gray-50"
+              >
+                <span>Cancel</span>
+              </button>
+              <button
+                onClick={confirmSchedule}
+                className="flex-1 bg-purple-600 text-white rounded-md px-3 py-2 hover:bg-purple-700"
+              >
+                <span>Schedule</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default AssignmentUpload; 

@@ -3,9 +3,11 @@ import { AttendanceService, CreateAttendanceDTO, UpdateAttendanceDTO, Attendance
 import { AttendanceSessionService } from '@/services/attendanceSessionsService';
 import { AuthUtils } from '@/utils/authUtils';
 import {AttendanceStatus } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 
 const attendanceService = new AttendanceService();
 const attendanceSessionService = new AttendanceSessionService();
+const prisma = new PrismaClient();
 
 export class AttendanceController {
   async createAttendance(req: NextRequest) {
@@ -135,6 +137,83 @@ export class AttendanceController {
     } catch (error) {
       console.error(`Error updating attendance ${id}:`, error);
       return NextResponse.json({ error: 'An error occurred while updating attendance' }, { status: 500 });
+    }
+  }
+
+  async getStudentCourseAttendance(req: NextRequest, studentId: string, courseId: string) {
+    try {
+      const user = await AuthUtils.getCurrentUser(req);
+      if (!user) return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+
+      // Security check: If student, can only access their own attendance
+      if (user.role === 'STUDENT' && user.student?.id !== studentId) {
+        return NextResponse.json({ error: 'Unauthorized to access this student\'s attendance' }, { status: 403 });
+      }
+
+      // Get all attendance sessions for this course
+      const sessions = await prisma.attendanceSession.findMany({
+        where: {
+          courseId: courseId,
+          // Only include past sessions
+          sessionDate: {
+            lte: new Date(),
+          },
+          // Exclude cancelled sessions
+          status: {
+            not: 'CANCELLED',
+          }
+        },
+        select: {
+          id: true,
+        },
+      });
+
+      const sessionIds = sessions.map(s => s.id);
+      
+      if (sessionIds.length === 0) {
+        return NextResponse.json({
+          totalSessions: 0,
+          presentSessions: 0,
+          absentSessions: 0,
+          lateSessions: 0,
+          attendancePercentage: 0,
+        });
+      }
+
+      // Get attendance records for this student for these sessions
+      const attendanceRecords = await prisma.attendance.findMany({
+        where: {
+          studentId: studentId,
+          attendanceSessionId: {
+            in: sessionIds,
+          },
+        },
+        select: {
+          status: true,
+        },
+      });
+
+      // Calculate statistics
+      const totalSessions = sessionIds.length;
+      const presentSessions = attendanceRecords.filter(r => r.status === 'PRESENT').length;
+      const absentSessions = attendanceRecords.filter(r => r.status === 'ABSENT').length;
+      const lateSessions = attendanceRecords.filter(r => r.status === 'LATE').length;
+      
+      // For attendance percentage calculation, count LATE as present
+      const attendancePercentage = totalSessions > 0 
+        ? Math.round(((presentSessions + lateSessions) / totalSessions) * 100) 
+        : 0;
+
+      return NextResponse.json({
+        totalSessions,
+        presentSessions,
+        absentSessions,
+        lateSessions,
+        attendancePercentage,
+      });
+    } catch (error) {
+      console.error('Error calculating student course attendance:', error);
+      return NextResponse.json({ error: 'An error occurred while calculating attendance' }, { status: 500 });
     }
   }
 }
