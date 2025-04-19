@@ -37,9 +37,16 @@ export class StudentController {
     }
   }
 
-  async getStudentById(id: string) {
+  async getStudentById(id: string, req?: NextRequest) {
     try {
-      const student = await studentService.getStudentById(id);
+      // Check if we should include class enrollment data
+      let includeClassSection = false;
+      if (req) {
+        const { searchParams } = new URL(req.url);
+        includeClassSection = searchParams.get("includeClassSection") === "true";
+      }
+
+      const student = await studentService.getStudentById(id, includeClassSection);
       if (!student) {
         return NextResponse.json({ error: 'Student not found' }, { status: 404 });
       }

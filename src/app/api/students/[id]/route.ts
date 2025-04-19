@@ -5,7 +5,7 @@ const studentController = new StudentController();
 
 export async function GET(req: NextRequest, context: { params: { id: string } }) {
   const { id } = await context.params; // Ensure params are awaited
-  return studentController.getStudentById(id);
+  return studentController.getStudentById(id, req);
 }
 
 export async function PUT(req: NextRequest, context: { params: { id: string } }) {
