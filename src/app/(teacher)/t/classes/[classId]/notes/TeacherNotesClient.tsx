@@ -78,6 +78,8 @@ export default function TeacherNotesClient({ classId }: { classId: string }) {
                 teacherName={teacherData.user.name || ''}
                 classSectionId={classId}
                 className={`Class ${classData.batch.batchName} - ${classData.sectionName}`}
+                batchName={classData.batch.batchName}
+                sectionName={classData.sectionName}
             />
         </div>
     );

@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import NotesLibrary from '@/components/notes/NotesLibrary';
 import { redirect } from 'next/navigation';
-
+import { toast } from 'react-hot-toast';
 
 export default function StudentNotesPage() {
     const [isLoading, setIsLoading] = useState(true);
@@ -54,15 +54,18 @@ export default function StudentNotesPage() {
     if (!studentData) {
         return <div className="p-4">Student data not found</div>;
     }
-    console.log("student data", studentData);
+
+    // Check for active enrollment
+    if (!studentData.classEnrollments || studentData.classEnrollments.length === 0 ||
+        studentData.enrollmentStatus !== 'ACTIVE') {
+        return <div className="p-4">No active class enrollment found</div>;
+    }
 
     // Get the current class section from enrollments
-    const activeEnrollment = studentData.enrollmentStatus === 'ACTIVE';
+    const currentEnrollment = studentData.classEnrollments[0];
 
-
-
-    if (!activeEnrollment) {
-        return <div className="p-4">No active class enrollment found</div>;
+    if (!currentEnrollment.classSection) {
+        return <div className="p-4">Class section data not found</div>;
     }
 
     return (
@@ -70,9 +73,9 @@ export default function StudentNotesPage() {
             <NotesLibrary
                 studentId={studentData.id}
                 studentName={studentData.user.name || ''}
-                classSectionId={studentData.classEnrollments[0].classSectionId}
-                batchName={studentData.batch.batchName}
-                sectionName={studentData.classEnrollments[0].classSection.sectionName}
+                classSectionId={currentEnrollment.classSectionId}
+                batchName={studentData.batch?.batchName || ''}
+                sectionName={currentEnrollment.classSection.sectionName || ''}
             />
         </div>
     );

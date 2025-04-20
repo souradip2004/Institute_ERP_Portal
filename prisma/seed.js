@@ -1537,6 +1537,7 @@ async function main() {
             isPublished: true,
             classSection: { connect: { id: classSections[0].id } },
             teacher: { connect: { id: teacherRecords[0].id } },
+            Teacher: { connect: { id: teacherRecords[0].id } },
             attachments: {
               create: [
                 {
@@ -1559,6 +1560,7 @@ async function main() {
             isPublished: true,
             classSection: { connect: { id: classSections[0].id } },
             teacher: { connect: { id: teacherRecords[0].id } },
+            Teacher: { connect: { id: teacherRecords[0].id } },
             attachments: {
               create: [
                 {
@@ -1583,6 +1585,7 @@ async function main() {
             isPublished: true,
             classSection: { connect: { id: classSections[1].id } },
             teacher: { connect: { id: teacherRecords[1].id } },
+            Teacher: { connect: { id: teacherRecords[1].id } },
             attachments: {
               create: [
                 {
@@ -1607,6 +1610,7 @@ async function main() {
             isPublished: true,
             classSection: { connect: { id: classSections[2].id } },
             teacher: { connect: { id: teacherRecords[2].id } },
+            Teacher: { connect: { id: teacherRecords[2].id } },
             attachments: {
               create: [
                 {
@@ -1629,6 +1633,7 @@ async function main() {
             isPublished: true,
             classSection: { connect: { id: classSections[2].id } },
             teacher: { connect: { id: teacherRecords[2].id } },
+            Teacher: { connect: { id: teacherRecords[2].id } },
             attachments: {
               create: [
                 {
@@ -1653,6 +1658,7 @@ async function main() {
             isPublished: true,
             classSection: { connect: { id: classSections[3].id } },
             teacher: { connect: { id: teacherRecords[3].id } },
+            Teacher: { connect: { id: teacherRecords[3].id } },
             attachments: {
               create: [
                 {
@@ -1677,6 +1683,7 @@ async function main() {
             isPublished: false,
             classSection: { connect: { id: classSections[0].id } },
             teacher: { connect: { id: teacherRecords[0].id } },
+            Teacher: { connect: { id: teacherRecords[0].id } },
           },
         }),
       ]);

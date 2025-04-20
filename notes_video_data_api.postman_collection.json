@@ -1,0 +1,153 @@
+{
+  "info": {
+    "_postman_id": "b7e8d1c7-5f3c-4e7d-8f2a-c77e92d4e8b5",
+    "name": "Notes Video Data API",
+    "description": "API collection for testing the Notes Video Data functionality",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Upload PDF",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "pdf",
+              "type": "file",
+              "src": ""
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/upload/pdf",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "upload", "pdf"]
+        },
+        "description": "Upload a PDF file to S3 and get back the URL"
+      },
+      "response": []
+    },
+    {
+      "name": "Create Note with Attachment",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"title\": \"Test Note\",\n    \"content\": \"This is a test note with attachment\",\n    \"subjectName\": \"Test Subject\",\n    \"classSectionId\": \"{{classSectionId}}\",\n    \"teacherId\": \"{{teacherId}}\",\n    \"isPublished\": true,\n    \"fileType\": \"pdf\",\n    \"attachments\": [\n        {\n            \"fileUrl\": \"{{pdfUrl}}\",\n            \"fileName\": \"test.pdf\",\n            \"fileType\": \"application/pdf\",\n            \"fileSize\": 1000000,\n            \"uploadedById\": \"{{userId}}\"\n        }\n    ]\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/notes",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "notes"]
+        },
+        "description": "Create a new note with an attachment"
+      },
+      "response": []
+    },
+    {
+      "name": "Process Video Data",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"pdfUrl\": \"{{pdfUrl}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/notes/{{noteId}}/process-video-data",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "notes", "{{noteId}}", "process-video-data"]
+        },
+        "description": "Process a PDF to generate video data in the background"
+      },
+      "response": []
+    },
+    {
+      "name": "Update Video Data",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"videoData\": {\n        \"segments\": [\n            {\n                \"startingvalue\": 0,\n                \"endingvalue\": 10,\n                \"image\": \"https://example.com/image.jpg\",\n                \"audio\": \"https://example.com/audio.mp3\",\n                \"heading\": \"Test Heading\",\n                \"content\": \"Test Content\",\n                \"summary\": \"Test Summary\",\n                \"mainImage\": \"https://example.com/main-image.jpg\",\n                \"duration\": 10,\n                \"type\": true,\n                \"ocr\": \"Test OCR\",\n                \"mappings\": [\"keyword1\", \"keyword2\"]\n            }\n        ]\n    }\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/notes/{{noteId}}/video-data",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "notes", "{{noteId}}", "video-data"]
+        },
+        "description": "Update video data for a note"
+      },
+      "response": []
+    },
+    {
+      "name": "Get Video Data",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/notes/{{noteId}}/video-data",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "notes", "{{noteId}}", "video-data"]
+        },
+        "description": "Get video data for a note"
+      },
+      "response": []
+    },
+    {
+      "name": "Check Video Data Exists",
+      "request": {
+        "method": "HEAD",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/notes/{{noteId}}/video-data",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "notes", "{{noteId}}", "video-data"]
+        },
+        "description": "Check if video data exists for a note"
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000"
+    },
+    {
+      "key": "noteId",
+      "value": ""
+    },
+    {
+      "key": "teacherId",
+      "value": ""
+    },
+    {
+      "key": "classSectionId",
+      "value": ""
+    },
+    {
+      "key": "pdfUrl",
+      "value": ""
+    }
+  ]
+}
