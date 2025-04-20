@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 
 interface Teacher {
@@ -23,6 +24,7 @@ interface Message {
 }
 
 export default function AskTeacherPage() {
+  const router = useRouter();
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -34,18 +36,6 @@ export default function AskTeacherPage() {
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        // Get user data from localStorage
-        const userDataStr = localStorage.getItem('user');
-        if (!userDataStr) {
-          setError("User data not found. Please log in again.");
-          setLoading(false);
-          return;
-        }
-
-        const userData = JSON.parse(userDataStr);
-        console.log("Student data from localStorage:", userData);
-        setStudentData(userData);
-
         // Fetch teachers
         await fetchTeachers();
       } catch (error) {
@@ -61,14 +51,21 @@ export default function AskTeacherPage() {
   const fetchTeachers = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/teachers');
+      const response = await fetch('/api/teachers', {
+        credentials: 'include' // This will send the auth_token cookie
+      });
       
       if (!response.ok) {
-        throw new Error('Failed to fetch teachers');
+        const errorData = await response.json();
+        if (response.status === 401) {
+          // Redirect to login if not authenticated
+          router.push('/login');
+          return;
+        }
+        throw new Error(errorData.error || 'Failed to fetch teachers');
       }
       
       const data = await response.json();
-      console.log("Fetched teachers:", data);
       setTeachers(data);
       setLoading(false);
     } catch (err) {
@@ -79,7 +76,6 @@ export default function AskTeacherPage() {
   };
 
   const handleTeacherClick = (teacher: Teacher) => {
-    console.log("Selected teacher:", teacher);
     setSelectedTeacher(teacher);
   };
 
@@ -90,29 +86,23 @@ export default function AskTeacherPage() {
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!messageInput.trim() || !selectedTeacher || !studentData) return;
+    if (!messageInput.trim() || !selectedTeacher) return;
+
+    // Store the message input in case we need to restore it on error
+    const currentMessage = messageInput.trim();
 
     try {
       // Add message to local state immediately for instant feedback
       const newMessage: Message = {
         id: Date.now().toString(),
-        content: messageInput,
+        content: currentMessage,
         sender: 'student',
         timestamp: new Date(),
       };
       setMessages(prev => [...prev, newMessage]);
       
-      // Store the message input before clearing
-      const currentMessage = messageInput;
-      
       // Clear input
       setMessageInput('');
-
-      console.log("Sending message with data:", {
-        message: currentMessage,
-        teacherId: selectedTeacher.user.id,
-        studentId: studentData.id
-      });
 
       // Send message to API
       const response = await fetch('/api/chat/send-message', {
@@ -120,16 +110,15 @@ export default function AskTeacherPage() {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include', // Include cookies in the request
         body: JSON.stringify({
           message: currentMessage,
-          teacherId: selectedTeacher.user.id,
-          studentId: studentData.id,
+          teacherId: selectedTeacher.user.id
         }),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        console.error("Server error response:", errorData);
         throw new Error(errorData.error || 'Failed to send message');
       }
 
@@ -138,8 +127,9 @@ export default function AskTeacherPage() {
 
     } catch (error) {
       console.error('Error sending message:', error);
-      // Show error message to the user
       setError(error instanceof Error ? error.message : 'Failed to send message. Please try again.');
+      // Add the failed message back to the input
+      setMessageInput(currentMessage);
     }
   };
 
@@ -157,7 +147,7 @@ export default function AskTeacherPage() {
         <p>{error}</p>
         {error.includes("User data not found") && (
           <button
-            onClick={() => window.location.href = '/login'}
+            onClick={() => router.push('/login')}
             className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
           >
             Go to Login
@@ -184,7 +174,7 @@ export default function AskTeacherPage() {
               </div>
               <div className="ml-3">
                 <h3 className="font-semibold">{selectedTeacher.user.name}</h3>
-                <p className="text-sm">{selectedTeacher.department?.name || 'Physics Instructor'}</p>
+                <p className="text-sm">{selectedTeacher.department?.name}</p>
               </div>
             </div>
           </div>
@@ -235,7 +225,7 @@ export default function AskTeacherPage() {
   return (
     <div className="min-h-screen bg-gray-100 p-4">
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-2xl font-bold mb-6">Select Subject and Teacher</h1>
+        <h1 className="text-2xl font-bold mb-6">Your Department Teachers</h1>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {teachers.length > 0 ? (
@@ -248,7 +238,7 @@ export default function AskTeacherPage() {
                   className="flex items-center p-2 hover:bg-gray-100 rounded-md cursor-pointer"
                   onClick={() => handleTeacherClick(teacher)}
                 >
-                  <div className={`h-10 w-10 rounded-full bg-${teacher.department?.name === 'Physics' ? 'red' : teacher.department?.name === 'Chemistry' ? 'green' : 'blue'}-100 flex items-center justify-center text-${teacher.department?.name === 'Physics' ? 'red' : teacher.department?.name === 'Chemistry' ? 'green' : 'blue'}-600 font-bold mr-3`}>
+                  <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold mr-3">
                     {teacher.user.name.charAt(0)}
                   </div>
                   <span>{teacher.user.name}</span>
@@ -257,7 +247,7 @@ export default function AskTeacherPage() {
             ))
           ) : (
             <div className="col-span-3 text-center text-gray-500">
-              No teachers found. Please try again later.
+              No teachers found in your department. Please try again later.
             </div>
           )}
         </div>
