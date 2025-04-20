@@ -23,7 +23,10 @@ export class TeacherService {
   }
 
   async getTeacherById(id: string) {
-    return prisma.teacher.findUnique({ where: { id } });
+    return prisma.teacher.findUnique({
+      where: { id },
+      include: { user: true },
+    });
   }
 
   async updateTeacher(id: string, data: any) {

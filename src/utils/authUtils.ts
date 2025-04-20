@@ -1,10 +1,9 @@
 // src/utils/authUtils.ts
 import { NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
-import { auth } from "@/auth";
+// import { auth } from "@/auth";
 import { Role } from "@prisma/client";
 import { verify } from "jsonwebtoken";
-import { cookies } from "next/headers";
 
 export interface User {
   id: string;
@@ -92,31 +91,32 @@ export class AuthUtils {
         }
       }
 
-      // If no valid token found, try getting the user from the Next.js auth session
-      const session = await auth();
+      // // If no valid token found, try getting the user from the Next.js auth session
+      // const session = await auth();
 
-      if (!session) {
-        return null;
-      }
+      // if (!session) {
+      //   return null;
+      // }
 
       // Fetch user data from the database
-      const user = await prisma.user.findUnique({
-        where: { email: session.user.email as string },
-        include: {
-          student: {
-            select: { id: true },
-          },
-          teacher: {
-            select: { id: true },
-          },
-        },
-      });
+      // const user = await prisma.user.findUnique({
+      //   where: { email: session.user.email as string },
+      //   include: {
+      //     student: {
+      //       select: { id: true },
+      //     },
+      //     teacher: {
+      //       select: { id: true },
+      //     },
+      //   },
+      // });
 
-      if (!user) {
-        return null;
-      }
+      // if (!user) {
+      //   return null;
+      // }
 
-      return user as User;
+      // return user as User;
+      return null;
     } catch (error) {
       console.error("Error authenticating user:", error);
       return null;

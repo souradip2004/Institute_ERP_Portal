@@ -25,6 +25,7 @@ model User {
   institutionId      String?                @map("institution_id")
   accounts           Account[]
   attachments        AssignmentAttachment[] @relation("UploadedByUser")
+  noteAttachments    NoteAttachment[]       @relation("UploadedNoteAttachment")
   comments           AssignmentComment[]
   Authenticator      Authenticator[]
   calendarEvents     CalendarEvent[]        @relation("CreatedByUser")
@@ -198,6 +199,7 @@ model Teacher {
   gradedAnswerScripts   AnswerScript[]             @relation("GradedByTeacher")
   gradedAssignments     AssignmentSubmission[]     @relation("GradedByTeacher")
   createdAssignments    Assignment[]               @relation("AssignmentCreator")
+  notes                 Note[]                     @relation("NoteCreator")
   attendanceRecords     Attendance[]               @relation("RecordedByTeacher")
   attendanceSessions    AttendanceSession[]
   classSections         ClassSection[]
@@ -295,6 +297,7 @@ model ClassSection {
   announcements      Announcement[]
   assignmentGroups   AssignmentGroup[]
   assignments        Assignment[]
+  notes              Note[]
   attendanceSessions AttendanceSession[]
   calendarEvents     CalendarEvent[]
   batch              Batch                      @relation(fields: [batchId], references: [id])
@@ -869,6 +872,39 @@ model CalendarEvent {
   institution     Institution   @relation(fields: [institutionId], references: [id])
 
   @@map("calendar_events")
+}
+
+model Note {
+  id             String           @id @default(cuid())
+  title          String
+  content        String?
+  classSectionId String           @map("class_section_id")
+  teacherId      String           @map("teacher_id")
+  subjectName    String?          @map("subject_name")
+  isPublished    Boolean          @default(false) @map("is_published")
+  fileType       String?          @map("file_type")
+  createdAt      DateTime         @default(now()) @map("created_at")
+  updatedAt      DateTime         @updatedAt @map("updated_at")
+  attachments    NoteAttachment[]
+  classSection   ClassSection     @relation(fields: [classSectionId], references: [id])
+  teacher        Teacher          @relation("NoteCreator", fields: [teacherId], references: [id])
+
+  @@map("notes")
+}
+
+model NoteAttachment {
+  id           String   @id @default(cuid())
+  noteId       String   @map("note_id")
+  fileUrl      String   @map("file_url")
+  fileName     String   @map("file_name")
+  fileType     String   @map("file_type")
+  fileSize     Int      @map("file_size")
+  uploadedById String   @map("uploaded_by")
+  createdAt    DateTime @default(now()) @map("created_at")
+  note         Note     @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  uploadedBy   User     @relation("UploadedNoteAttachment", fields: [uploadedById], references: [id])
+
+  @@map("note_attachments")
 }
 
 enum Role {
