@@ -43,19 +43,24 @@ export async function POST(req: NextRequest) {
     const fileName = `note_${Date.now()}_${file.name}`;
     const key = await S3Utils.uploadFile(buffer, fileName, file.type);
 
-    // Get the file URL
-    const fileUrl = await S3Utils.getFileUrl(key);
+    // Get both URLs
+    const signedUrl = await S3Utils.getFileUrl(key);
+    const publicUrl = S3Utils.getPublicUrl(key);
 
     return NextResponse.json({
       success: true,
       message: "File uploaded successfully",
-      fileUrl,
+      url: publicUrl,
+      signedUrl: signedUrl,
+      fileName: file.name,
+      fileType: file.type,
+      fileSize: file.size,
       key,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error uploading file:", error);
     return NextResponse.json(
-      { success: false, message: error.message || "Failed to upload file" },
+      { success: false, message: error instanceof Error ? error.message : "Failed to upload file" },
       { status: 500 }
     );
   }

@@ -31,12 +31,19 @@ import {
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { ChevronLeft, Search, Upload, Trash2, Download, Edit, Eye, FilePlus } from 'lucide-react';
+import { ChevronLeft, Search, Upload, Trash2, Download, Edit } from 'lucide-react';
 import Link from 'next/link';
 import NoteCard from './NoteCard';
 import NotesViewer from './NotesViewer/index';
-import { getLocalVideoData, storeVideoDataLocally, hasLocalVideoData } from './NotesViewer/utils';
+import { getLocalVideoData, storeVideoDataLocally } from './NotesViewer/utils';
 import { toast } from 'react-hot-toast';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 
 interface NotesManagementProps {
     teacherId: string;
@@ -72,6 +79,7 @@ const noteFormSchema = z.object({
     content: z.string().optional(),
     subjectName: z.string().min(1, 'Subject name is required'),
     isPublished: z.boolean().default(false),
+    gender: z.enum(['Male', 'Female']).default('Male'),
 });
 
 // Use the schema to infer the form values type
@@ -102,6 +110,7 @@ const NotesManagement: React.FC<NotesManagementProps> = ({
     const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
     const [showVideoModal, setShowVideoModal] = useState<boolean>(false);
     const [processingVideoData, setProcessingVideoData] = useState<boolean>(false);
+    const [teacherUserId, setTeacherUserId] = useState<string | null>(null);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -113,13 +122,34 @@ const NotesManagement: React.FC<NotesManagementProps> = ({
             content: '',
             subjectName: '',
             isPublished: false,
+            gender: 'Male',
         },
     });
 
     // Fetch notes on component mount
     useEffect(() => {
         fetchNotes();
-    }, []);
+        // Fetch teacher data to get the user ID
+        const fetchTeacherData = async () => {
+            try {
+                const response = await fetch(`/api/teachers/${teacherId}`);
+                if (!response.ok) {
+                    throw new Error('Failed to fetch teacher data');
+                }
+                const data = await response.json();
+                if (data && data.user && data.user.id) {
+                    setTeacherUserId(data.user.id);
+                } else {
+                    setError('Could not retrieve teacher user ID');
+                }
+            } catch (err) {
+                console.error('Error fetching teacher data:', err);
+                setError('Error fetching teacher data');
+            }
+        };
+        
+        fetchTeacherData();
+    }, [teacherId]);
 
     // Function to fetch notes
     const fetchNotes = async () => {
@@ -170,6 +200,7 @@ const NotesManagement: React.FC<NotesManagementProps> = ({
             content: note.content || '',
             subjectName: note.subjectName || '',
             isPublished: note.isPublished,
+            gender: note.gender || 'Male',
         });
         setEditDialogOpen(true);
     };
@@ -178,11 +209,17 @@ const NotesManagement: React.FC<NotesManagementProps> = ({
     const uploadFileToS3 = async (file: File) => {
         try {
             setUploadProgress(0);
+            setUploadingFile(true);
             const formData = new FormData();
             formData.append('pdf', file);
 
             // Create a custom XMLHttpRequest to track upload progress
-            return new Promise<string>((resolve, reject) => {
+            return new Promise<{
+                url: string;
+                fileName: string;
+                fileType: string;
+                fileSize: number;
+            }>((resolve, reject) => {
                 const xhr = new XMLHttpRequest();
 
                 xhr.upload.addEventListener('progress', (event) => {
@@ -196,7 +233,16 @@ const NotesManagement: React.FC<NotesManagementProps> = ({
                     if (xhr.readyState === 4) {
                         if (xhr.status === 200) {
                             const response = JSON.parse(xhr.responseText);
-                            resolve(response.url);
+                            if (response.success) {
+                                resolve({
+                                    url: response.url,
+                                    fileName: response.fileName,
+                                    fileType: response.fileType,
+                                    fileSize: response.fileSize
+                                });
+                            } else {
+                                reject(new Error(response.message || 'Upload failed'));
+                            }
                         } else {
                             reject(new Error(`Upload failed with status: ${xhr.status}`));
                         }
@@ -209,11 +255,13 @@ const NotesManagement: React.FC<NotesManagementProps> = ({
         } catch (error) {
             console.error("Error uploading file to S3:", error);
             throw error;
+        } finally {
+            setUploadingFile(false);
         }
     };
 
     // Function to process video data for a note
-    const processVideoData = async (noteId: string, pdfUrl: string) => {
+    const processVideoData = async (noteId: string, pdfUrl: string, gender: string = 'Male') => {
         try {
             setProcessingVideoData(true);
 
@@ -223,7 +271,7 @@ const NotesManagement: React.FC<NotesManagementProps> = ({
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ pdfUrl }),
+                body: JSON.stringify({ pdfUrl, gender }),
             });
 
             if (!response.ok) {
@@ -250,11 +298,25 @@ const NotesManagement: React.FC<NotesManagementProps> = ({
                         method: 'HEAD',
                     });
 
-                    if (checkResponse.ok) {
+                    // Check response headers for video data existence
+                    const hasVideoData = checkResponse.headers.get('x-has-video-data') === 'true';
+
+                    if (checkResponse.ok && hasVideoData) {
                         // Video data exists, fetch it
                         const dataResponse = await fetch(`/api/notes/${noteId}/video-data`);
                         if (dataResponse.ok) {
                             const videoData = await dataResponse.json();
+
+                            // Validate video data before storing
+                            if (!videoData || (Array.isArray(videoData) && videoData.length === 0)) {
+                                console.error(`Received empty video data for note ${noteId}`);
+                                attempts++;
+                                setTimeout(checkForVideoData, 10000);
+                                return;
+                            }
+                            
+                            console.log(`Received video data for note ${noteId}:`, 
+                                JSON.stringify(videoData).substring(0, 200) + '...');
 
                             // Store in localStorage
                             storeVideoDataLocally(noteId, videoData);
@@ -266,14 +328,30 @@ const NotesManagement: React.FC<NotesManagementProps> = ({
                             fetchNotes();
                             return;
                         }
+                    } else if (checkResponse.status === 404) {
+                        // Data is still being processed, this is expected
+                        console.log(`Video data not yet available for note ${noteId}, attempt ${attempts + 1}/${maxAttempts}`);
+                        attempts++;
+                        setTimeout(checkForVideoData, 10000); // Check again in 10 seconds
+                        return;
+                    } else {
+                        // Unexpected status code
+                        console.error(`Unexpected status code ${checkResponse.status} checking for video data`);
+                        attempts++;
+                        setTimeout(checkForVideoData, 10000);
+                        return;
                     }
-
-                    // If we get here, data isn't ready yet
-                    attempts++;
-                    setTimeout(checkForVideoData, 10000); // Check again in 10 seconds
                 } catch (error) {
                     console.error('Error checking for video data:', error);
                     attempts++;
+                    
+                    // Don't continue retrying on network errors if server is unreachable
+                    if (attempts >= 3 && error instanceof TypeError && error.message.includes('Failed to fetch')) {
+                        toast.error('Unable to connect to server. Please check your connection and try again later.');
+                        setProcessingVideoData(false);
+                        return;
+                    }
+                    
                     setTimeout(checkForVideoData, 10000); // Try again despite error
                 }
             };
@@ -317,33 +395,47 @@ const NotesManagement: React.FC<NotesManagementProps> = ({
                 };
 
                 let response;
+                let fileUploadResult;
                 let pdfUrl = '';
 
                 if (fileToUpload) {
-                    // Upload the file to S3 first
-                    pdfUrl = await uploadFileToS3(fileToUpload);
-
-                    // Create note with attachment
-                    noteData.fileType = 'pdf';
-
-                    const attachmentData = {
-                        fileUrl: pdfUrl,
-                        fileName: fileToUpload.name,
-                        fileType: fileToUpload.type,
-                        fileSize: fileToUpload.size,
-                        uploadedById: teacherId,
-                    };
-
-                    response = await fetch('/api/notes', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            ...noteData,
-                            attachments: [attachmentData],
-                        }),
-                    });
+                    try {
+                        // Check if teacherUserId is available when uploading an attachment
+                        if (!teacherUserId) {
+                            toast.error('Teacher user information not available. Please try again in a moment.');
+                            return;
+                        }
+                        
+                        // Upload the file to S3 first
+                        fileUploadResult = await uploadFileToS3(fileToUpload);
+                        pdfUrl = fileUploadResult.url;
+                        
+                        // Create note with attachment
+                        noteData.fileType = 'pdf';
+                        
+                        const attachmentData = {
+                            fileUrl: fileUploadResult.url,
+                            fileName: fileUploadResult.fileName,
+                            fileType: fileUploadResult.fileType,
+                            fileSize: fileUploadResult.fileSize,
+                            uploadedById: teacherUserId || '', // Use the user ID associated with the teacher
+                        };
+                        
+                        response = await fetch('/api/notes', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                ...noteData,
+                                attachments: [attachmentData],
+                            }),
+                        });
+                    } catch (error) {
+                        console.error('Error uploading file:', error);
+                        toast.error('Error uploading file. Please try again.');
+                        return;
+                    }
                 } else {
                     // Create note without attachment
                     response = await fetch('/api/notes', {
@@ -370,7 +462,7 @@ const NotesManagement: React.FC<NotesManagementProps> = ({
 
                 // If we have a PDF file, process it for video data
                 if (pdfUrl && newNote.id) {
-                    processVideoData(newNote.id, pdfUrl);
+                    processVideoData(newNote.id, pdfUrl, values.gender);
                 }
 
                 fetchNotes();
@@ -645,6 +737,26 @@ const NotesManagement: React.FC<NotesManagementProps> = ({
                                 )}
                             />
 
+                            <FormField
+                                control={form.control}
+                                name="gender"
+                                render={({ field }: { field: any }) => (
+                                    <FormItem>
+                                        <FormLabel>Voice Gender</FormLabel>
+                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Select gender" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="Male">Male</SelectItem>
+                                                <SelectItem value="Female">Female</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+
                             <div className="space-y-2">
                                 <Label htmlFor="file">Attachment (Optional)</Label>
                                 <div className="border-2 border-dashed rounded-md p-4">
@@ -683,8 +795,11 @@ const NotesManagement: React.FC<NotesManagementProps> = ({
                                 >
                                     Cancel
                                 </Button>
-                                <Button type="submit" disabled={uploadingFile}>
-                                    {uploadingFile ? 'Uploading...' : 'Upload Note'}
+                                <Button 
+                                    type="submit" 
+                                    disabled={uploadingFile || (fileToUpload && !teacherUserId)}
+                                >
+                                    {uploadingFile ? 'Uploading...' : fileToUpload && !teacherUserId ? 'Loading user data...' : 'Upload Note'}
                                 </Button>
                             </DialogFooter>
                         </form>
@@ -767,6 +882,26 @@ const NotesManagement: React.FC<NotesManagementProps> = ({
                                 )}
                             />
 
+                            <FormField
+                                control={form.control}
+                                name="gender"
+                                render={({ field }: { field: any }) => (
+                                    <FormItem>
+                                        <FormLabel>Voice Gender</FormLabel>
+                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Select gender" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="Male">Male</SelectItem>
+                                                <SelectItem value="Female">Female</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+
                             <DialogFooter>
                                 <Button
                                     type="button"
@@ -810,6 +945,12 @@ const NotesManagement: React.FC<NotesManagementProps> = ({
             {/* Video Player Modal */}
             <Dialog open={showVideoModal} onOpenChange={setShowVideoModal}>
                 <DialogContent className="max-w-6xl w-[90vw] h-[90vh] p-0">
+                    <DialogHeader className="absolute top-0 right-0 z-10 p-2">
+                        <DialogTitle className="sr-only">Notes Viewer</DialogTitle>
+                        <DialogDescription className="sr-only">
+                            Interactive PDF notes viewer
+                        </DialogDescription>
+                    </DialogHeader>
                     {selectedNoteId && (
                         <div className="h-full w-full">
                             <NotesViewer
@@ -821,6 +962,35 @@ const NotesManagement: React.FC<NotesManagementProps> = ({
                     )}
                 </DialogContent>
             </Dialog>
+
+            {processingVideoData && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                    <div className="bg-white p-6 rounded-lg shadow-lg max-w-md">
+                        <h3 className="text-lg font-semibold mb-2">Processing PDF</h3>
+                        <p className="mb-4">Converting your PDF into video data. This may take a few minutes.</p>
+                        <div className="w-full bg-gray-200 rounded-full h-2.5">
+                            <div className="bg-blue-600 h-2.5 rounded-full" style={{ width: `${uploadProgress}%` }}></div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Show selected file name if it exists */}
+            {selectedFile && (
+                <div className="mt-2 text-sm text-gray-500">
+                    Selected file: {selectedFile.name}
+                </div>
+            )}
+
+            {/* Display different UI for teachers */}
+            <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold">
+                    {className} - {teacherName}'s Notes
+                </h2>
+                <div className="text-sm text-gray-500">
+                    Batch: {batchName}, Section: {sectionName}
+                </div>
+            </div>
         </div>
     );
 };

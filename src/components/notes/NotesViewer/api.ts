@@ -1,7 +1,7 @@
 import { PageItem } from "./types";
 
-// API key for image recognition service
-const API_KEY = "AIzaSyA4JS-LxAnKP3BY2DDcYCuEKd96troXeyc";
+// API key for image recognition service - Only used in getImgCategoryFromGemini
+const GEMINI_API_KEY = "AIzaSyA4JS-LxAnKP3BY2DDcYCuEKd96troXeyc";
 
 // Convert image URL to base64
 export async function imageUrlToBase64(imageUrl: string): Promise<string> {
@@ -22,7 +22,7 @@ export async function imageUrlToBase64(imageUrl: string): Promise<string> {
 // Get image category from Gemini API
 export async function getImgCategoryFromGemini(
   imageUrl: string,
-  apiKey: string
+  apiKey: string = GEMINI_API_KEY
 ): Promise<string> {
   try {
     const base64Image = await imageUrlToBase64(imageUrl);
@@ -76,8 +76,9 @@ export async function getImgCategoryFromGemini(
     return (
       result?.candidates?.[0]?.content?.parts?.[0]?.text || "No OCR found."
     );
-  } catch (error: any) {
-    return `Error: ${error.message}`;
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    return `Error: ${errorMessage}`;
   }
 }
 
@@ -85,14 +86,14 @@ export async function getImgCategoryFromGemini(
 export async function splitPdfToImages(pdfUrl: string): Promise<string[]> {
   try {
     const response = await fetch(
-      "https://split-pdf-to-images-4a0e826-v1.app.beam.cloud",
+      "https://split-pdf-to-images-13caa30-v1.app.beam.cloud",
       {
         method: "POST",
         headers: {
           Connection: "keep-alive",
           "Content-Type": "application/json",
           Authorization:
-            "Bearer qhZEcl0H-WNIMhaYUY3u_LTJxm34Z91YpX9ZB6P9KF48fjqYpE10MvnYzqLaXg_9f5mb4YjQr1YjAZZFOw_17Q==",
+            "Bearer ALXP7mhHyKz1MQATKH7CIQXK9VQBpvoNNuxPvLONWyPCfgemj18cz2T74r4drBpvOkf-3orOQT_6r-63mHPZAA==",
         },
         body: JSON.stringify({
           file_url: pdfUrl,
@@ -115,23 +116,27 @@ export async function splitPdfToImages(pdfUrl: string): Promise<string[]> {
 
 // Process PDF data
 export async function processNotesData(
-  imageUrls: string[]
+  imageUrls: string[],
+  gender: string = "Male"
 ): Promise<PageItem[]> {
   try {
+    console.log(`Processing ${imageUrls.length} images with gender: ${gender}`);
+    
     const response = await fetch(
-      "https://notes-2-video-parallel-array-4a71759-v3.app.beam.cloud",
+      "https://notes-2-video-parallel-array-2-0d3d4cb-v1.app.beam.cloud",
       {
         method: "POST",
         headers: {
           Connection: "keep-alive",
           "Content-Type": "application/json",
           Authorization:
-            "Bearer qhZEcl0H-WNIMhaYUY3u_LTJxm34Z91YpX9ZB6P9KF48fjqYpE10MvnYzqLaXg_9f5mb4YjQr1YjAZZFOw_17Q==",
+            "Bearer ALXP7mhHyKz1MQATKH7CIQXK9VQBpvoNNuxPvLONWyPCfgemj18cz2T74r4drBpvOkf-3orOQT_6r-63mHPZAA==",
         },
         body: JSON.stringify({
           file_url_list: imageUrls,
           language: "hinglish",
           pdf_uid: "3456-22ded-2",
+          gender: gender,
         }),
       }
     );
@@ -141,13 +146,34 @@ export async function processNotesData(
     }
 
     const data = await response.json();
+    console.log("API Response:", JSON.stringify(data).substring(0, 500) + "...");
 
-    let newdata: PageItem[] = [];
-    if (data.json_data_final) {
-      data.json_data_final.forEach((jsonItem: string) => {
+    // Check if we have a valid response
+    if (!data || !data.json_data_final || !Array.isArray(data.json_data_final) || data.json_data_final.length === 0) {
+      console.error("Invalid or empty response from notes-2-video API");
+      console.log("Full API Response:", JSON.stringify(data));
+      throw new Error("Invalid response format from notes-2-video API");
+    }
+
+    const newdata: PageItem[] = [];
+    let parsingErrors = 0;
+
+    data.json_data_final.forEach((jsonItem: string, index: number) => {
+      try {
+        console.log(`Processing item ${index + 1}/${data.json_data_final.length}`);
         const parsedItem = JSON.parse(jsonItem);
-        newdata.push(JSON.parse(parsedItem));
-      });
+        const finalItem = JSON.parse(parsedItem);
+        newdata.push(finalItem);
+      } catch (parseError) {
+        console.error(`Error parsing item ${index}:`, parseError);
+        parsingErrors++;
+      }
+    });
+
+    console.log(`Processed ${newdata.length} items with ${parsingErrors} parsing errors`);
+    
+    if (newdata.length === 0) {
+      throw new Error("No valid data items found in API response");
     }
 
     return newdata;
@@ -161,13 +187,13 @@ export async function processNotesData(
 export async function generateImageForText(prompt: string): Promise<string> {
   try {
     const response = await fetch(
-      "https://image-generator-b89784e-v1.app.beam.cloud",
+      "https://image-generator-63c60fc-v1.app.beam.cloud",
       {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization:
-            "Bearer qhZEcl0H-WNIMhaYUY3u_LTJxm34Z91YpX9ZB6P9KF48fjqYpE10MvnYzqLaXg_9f5mb4YjQr1YjAZZFOw_17Q==",
+            "Bearer ALXP7mhHyKz1MQATKH7CIQXK9VQBpvoNNuxPvLONWyPCfgemj18cz2T74r4drBpvOkf-3orOQT_6r-63mHPZAA==",
         },
         body: JSON.stringify({ prompt }),
       }
@@ -188,7 +214,7 @@ export async function generateImageForText(prompt: string): Promise<string> {
 // Save video data to database
 export async function saveVideoData(
   noteId: string,
-  videoData: any
+  videoData: PageItem[]
 ): Promise<void> {
   try {
     const response = await fetch(`/api/notes/${noteId}/video-data`, {
@@ -219,8 +245,8 @@ export async function checkVideoDataExists(noteId: string): Promise<boolean> {
       return false;
     }
 
-    const data = await response.json();
-    return data.hasVideoData || false;
+    // Check for the custom header instead of trying to parse JSON from a HEAD request
+    return response.headers.get('x-has-video-data') === 'true';
   } catch (error) {
     console.error("Error checking video data:", error);
     return false;
@@ -228,18 +254,15 @@ export async function checkVideoDataExists(noteId: string): Promise<boolean> {
 }
 
 // Get video data
-export async function getVideoData(noteId: string): Promise<any> {
+export async function getVideoData(noteId: string): Promise<PageItem[] | null> {
   try {
     const response = await fetch(`/api/notes/${noteId}/video-data`);
-
     if (!response.ok) {
-      throw new Error(`Failed to fetch video data: ${response.statusText}`);
+      return null;
     }
-
-    const data = await response.json();
-    return data.videoData;
+    return await response.json();
   } catch (error) {
     console.error("Error fetching video data:", error);
-    throw error;
+    return null;
   }
 }

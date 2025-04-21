@@ -35,7 +35,7 @@ import { Download, Search, Upload, SlidersHorizontal } from 'lucide-react';
 import NoteCard from './NoteCard';
 import NotesViewer from './NotesViewer/index';
 import { getLocalVideoData, hasLocalVideoData, storeVideoDataLocally } from './NotesViewer/utils';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
 interface NotesLibraryProps {
     studentId: string;
@@ -484,6 +484,12 @@ const NotesLibrary: React.FC<NotesLibraryProps> = ({
             {/* Video Player Modal */}
             <Dialog open={showVideoModal} onOpenChange={setShowVideoModal}>
                 <DialogContent className="max-w-6xl w-[90vw] h-[90vh] p-0">
+                    <DialogHeader className="absolute top-0 right-0 z-10 p-2">
+                        <DialogTitle className="sr-only">Notes Viewer</DialogTitle>
+                        <DialogDescription className="sr-only">
+                            Interactive PDF notes viewer
+                        </DialogDescription>
+                    </DialogHeader>
                     {selectedNoteId && (
                         <div className="h-full w-full">
                             <NotesViewer

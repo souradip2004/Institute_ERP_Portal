@@ -67,7 +67,8 @@ export async function PUT(
     }
 
     return NextResponse.json(updatedVideoData);
-  } catch (error) {
+  } catch (error: Error | unknown) {
+    console.error("Error updating video data:", error);
     return NextResponse.json(
       { error: "Failed to update video data" },
       { status: 500 }
@@ -93,21 +94,36 @@ export async function HEAD(
       console.log("HEAD video-data response:", body);
 
       if (body.error) {
-        return new NextResponse(null, { status: 500 });
+        return new NextResponse(null, { 
+          status: 500,
+          headers: { 'x-has-video-data': 'false' } 
+        });
       }
 
       // Return appropriate status based on whether video data exists
       if (!body.hasVideoData) {
-        return new NextResponse(null, { status: 404 });
+        return new NextResponse(null, { 
+          status: 404,
+          headers: { 'x-has-video-data': 'false' } 
+        });
       }
 
-      return new NextResponse(null, { status: 200 });
+      return new NextResponse(null, { 
+        status: 200,
+        headers: { 'x-has-video-data': 'true' } 
+      });
     }
 
     // If it's not a NextResponse, return a server error
-    return new NextResponse(null, { status: 500 });
+    return new NextResponse(null, { 
+      status: 500,
+      headers: { 'x-has-video-data': 'false' } 
+    });
   } catch (error) {
     console.error("Error in video-data HEAD route:", error);
-    return new NextResponse(null, { status: 500 });
+    return new NextResponse(null, { 
+      status: 500,
+      headers: { 'x-has-video-data': 'false' } 
+    });
   }
 }
