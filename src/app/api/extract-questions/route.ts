@@ -3,8 +3,8 @@ import jwt from 'jsonwebtoken';
 import axios from 'axios';
 
 const SECRET_KEY = process.env.JWT_SECRET || 'your-secret-key';
-const API_URL = "https://question-generation-dfb21c3-v1.app.beam.cloud";
-const BEARER_TOKEN = "qhZEcl0H-WNIMhaYUY3u_LTJxm34Z91YpX9ZB6P9KF48fjqYpE10MvnYzqLaXg_9f5mb4YjQr1YjAZZFOw_17Q==";
+const API_URL = "https://question-generation-f79eeb2-v1.app.beam.cloud";
+const BEARER_TOKEN = "ALXP7mhHyKz1MQATKH7CIQXK9VQBpvoNNuxPvLONWyPCfgemj18cz2T74r4drBpvOkf-3orOQT_6r-63mHPZAA==";
 
 interface Question {
   question: string;
@@ -58,7 +58,8 @@ export async function POST(req: NextRequest) {
       parsedData = JSON.parse(response.data.final_questions_data);
     } catch (parseError) {
       console.error("Failed to parse API response:", parseError);
-      return NextResponse.json({ error: "Failed to parse question data" }, { status: 500 });
+      console.error("Raw response data:", response.data);
+      return NextResponse.json({ error: "Failed to parse question data", rawData: response.data }, { status: 500 });
     }
 
     // Extract questions and answers
@@ -83,8 +84,13 @@ export async function POST(req: NextRequest) {
 
   } catch (error: any) {
     console.error("Error extracting questions:", error);
+    console.error("Error details:", {
+      message: error.message,
+      response: error.response?.data,
+      status: error.response?.status
+    });
     return NextResponse.json(
-      { error: "Failed to extract questions", details: error.message },
+      { error: "Failed to extract questions", details: error.message, responseData: error.response?.data },
       { status: 500 }
     );
   }

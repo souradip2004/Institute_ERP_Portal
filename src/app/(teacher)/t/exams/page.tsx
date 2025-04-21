@@ -67,6 +67,8 @@ export default function ExamsPage() {
   // States for exam listing
   const [exams, setExams] = useState<Exam[]>([]);
   const [loadingExams, setLoadingExams] = useState(true);
+  const [selectedExam, setSelectedExam] = useState<Exam | null>(null);
+  const [showExamDetails, setShowExamDetails] = useState(false);
 
   // Fetch exams and class sections on component mount
   useEffect(() => {
@@ -227,6 +229,11 @@ export default function ExamsPage() {
         i === index ? { ...q, isSelected: !q.isSelected } : q
       )
     );
+  };
+
+  const handleExamClick = (exam: Exam) => {
+    setSelectedExam(exam);
+    setShowExamDetails(true);
   };
 
   return (
@@ -447,54 +454,64 @@ export default function ExamsPage() {
         </div>
       ) : (
         // Exam List
-        <div>
-          {loadingExams ? (
-            <div className="text-center py-4">Loading exams...</div>
-          ) : exams.length === 0 ? (
-            <div className="text-center py-4 text-gray-500">No exams created yet</div>
-          ) : (
-            <div className="grid gap-4">
-              {exams.map((exam) => (
-                <div
-                  key={exam.id}
-                  className="bg-white shadow-md rounded-lg p-6 hover:shadow-lg transition-shadow"
-                >
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h2 className="text-xl font-bold mb-2">{exam.title}</h2>
-                      <p className="text-gray-600">
-                        Batch: {exam.classSection.batch.name} | Semester:{" "}
-                        {exam.classSection.semester.name}
-                      </p>
-                      <p className="text-gray-600">
-                        Duration: {exam.durationMinutes} minutes | Total Marks:{" "}
-                        {exam.totalMarks} | Passing Marks: {exam.passingMarks}
-                      </p>
-                      <p className="text-gray-600">
-                        Questions: {exam.questions.length}
-                      </p>
-                      <p className="text-gray-600">
-                        Date: {format(new Date(exam.examDate), "PPP")}
-                      </p>
-                      <p className="text-gray-600">
-                        Time: {format(new Date(exam.startTime), "p")} -{" "}
-                        {format(new Date(exam.endTime), "p")}
-                      </p>
-                    </div>
-                    <span
-                      className={`px-3 py-1 rounded-full text-sm font-semibold ${
-                        exam.status === "DRAFT"
-                          ? "bg-yellow-100 text-yellow-800"
-                          : exam.status === "PUBLISHED"
-                          ? "bg-green-100 text-green-800"
-                          : "bg-gray-100 text-gray-800"
-                      }`}
-                    >
-                      {exam.status}
-                    </span>
-                  </div>
+        <div className="p-6">
+          <h1 className="text-2xl font-bold mb-6">Exams</h1>
+          
+          {/* Create Exam Button */}
+          <button
+            onClick={() => setShowCreateForm(true)}
+            className="bg-blue-500 text-white px-4 py-2 rounded mb-6"
+          >
+            Create New Exam
+          </button>
+
+          {/* Exams List */}
+          <div className="grid gap-4">
+            {exams.map((exam) => (
+              <div
+                key={exam.id}
+                onClick={() => handleExamClick(exam)}
+                className="border p-4 rounded cursor-pointer hover:bg-gray-50"
+              >
+                <h3 className="font-bold">{exam.title}</h3>
+                <p>Class: {exam.classSection.batch.name} - {exam.classSection.semester.name}</p>
+                <p>Date: {format(new Date(exam.examDate), 'PPP')}</p>
+                <p>Time: {exam.startTime} - {exam.endTime}</p>
+                <p>Status: {exam.status}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Exam Details Modal */}
+          {showExamDetails && selectedExam && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+              <div className="bg-white p-6 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                <h2 className="text-xl font-bold mb-4">{selectedExam.title}</h2>
+                <div className="mb-4">
+                  <p><strong>Duration:</strong> {selectedExam.durationMinutes} minutes</p>
+                  <p><strong>Total Marks:</strong> {selectedExam.totalMarks}</p>
+                  <p><strong>Passing Marks:</strong> {selectedExam.passingMarks}</p>
+                  <p><strong>Date:</strong> {format(new Date(selectedExam.examDate), 'PPP')}</p>
+                  <p><strong>Time:</strong> {selectedExam.startTime} - {selectedExam.endTime}</p>
                 </div>
-              ))}
+                
+                <h3 className="font-bold mb-2">Questions:</h3>
+                <div className="space-y-4">
+                  {selectedExam.questions.map((q, index) => (
+                    <div key={q.id} className="border p-3 rounded">
+                      <p><strong>Q{index + 1}:</strong> {q.questionText}</p>
+                      <p className="text-sm text-gray-600">Marks: {q.marks}</p>
+                    </div>
+                  ))}
+                </div>
+                
+                <button
+                  onClick={() => setShowExamDetails(false)}
+                  className="mt-4 bg-gray-500 text-white px-4 py-2 rounded"
+                >
+                  Close
+                </button>
+              </div>
             </div>
           )}
         </div>

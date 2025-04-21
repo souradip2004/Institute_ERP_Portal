@@ -1,5 +1,6 @@
 import prisma from "@/lib/prisma";
 import { examQueue } from "@/bullmq/queues/exam";
+
 export class ExamService {
   async getAllExams() {
     return prisma.exam.findMany();
@@ -22,7 +23,24 @@ export class ExamService {
   }
 
   async getExamById(id: string) {
-    return prisma.exam.findUnique({ where: { id } });
+    return prisma.exam.findUnique({
+      where: { id },
+      include: {
+        questions: {
+          select: {
+            id: true,
+            questionText: true,
+            marks: true,
+            options: true
+          }
+        },
+        examType: {
+          select: {
+            name: true
+          }
+        }
+      }
+    });
   }
 
   async updateExam(id: string, data: any) {
