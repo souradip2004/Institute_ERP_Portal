@@ -5,6 +5,7 @@ import CreateInstitutionForm from "@/components/ui/createInstitution";
 import DeleteInstitutionButton from "@/components/ui/deleteInstitutions"; // Import the button
 export default async function DashboardPage() {
   const session = await auth();
+  console.log('session: ', session);
   const userId = session?.user?.id;
 console.log(session)
   if (!userId) {
