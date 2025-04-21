@@ -53,7 +53,23 @@ export function markParagraphsHTML(text: string, markers: string[]): string {
 // Store video data in localStorage
 export function storeVideoDataLocally(noteId: string, videoData: any): void {
   try {
+    // Validate the data before storing
+    if (!videoData) {
+      console.error("Cannot store null or undefined video data");
+      return;
+    }
+    
+    if (Array.isArray(videoData) && videoData.length === 0) {
+      console.error("Cannot store empty array as video data");
+      return;
+    }
+    
+    // Log data being stored for debugging
+    const dataSize = JSON.stringify(videoData).length;
+    console.log(`Storing video data for note ${noteId} (size: ${dataSize} bytes)`);
+    
     localStorage.setItem(`noteVideoData_${noteId}`, JSON.stringify(videoData));
+    console.log(`Successfully stored video data for note ${noteId} in localStorage`);
   } catch (error) {
     console.error("Error storing video data in localStorage:", error);
   }

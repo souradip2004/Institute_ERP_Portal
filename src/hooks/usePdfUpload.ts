@@ -38,9 +38,9 @@ export const useUploadPdf = () => {
             const result = await response.json();
 
             if (result.success) {
-                console.log("PDF uploaded successfully:", result.fileUrl);
-                setFileUrl(result.fileUrl);
-                return result.fileUrl;
+                console.log("PDF uploaded successfully:", result.url);
+                setFileUrl(result.url);
+                return result.url;
             } else {
                 throw new Error(result.message || "File upload failed");
             }

@@ -41,6 +41,10 @@ export class S3Utils {
     return await getSignedUrl(s3Client, command, { expiresIn: 3600 });
   }
 
+  static getPublicUrl(key: string): string {
+    return `https://${process.env.AWS_S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}`;
+  }
+
   static async deleteFile(key: string): Promise<void> {
     const command = new DeleteObjectCommand({
       Bucket: process.env.AWS_S3_BUCKET_NAME,

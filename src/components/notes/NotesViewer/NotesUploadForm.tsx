@@ -46,8 +46,8 @@ export default function NotesUploadForm({ onSubmit, initialPdfUrl }: NotesUpload
             const result = await response.json();
 
             if (result.success) {
-                setLink(result.fileUrl);
-                return result.fileUrl;
+                setLink(result.url);
+                return result.url;
             } else {
                 throw new Error(result.message || "File upload failed");
             }

@@ -47,14 +47,18 @@ export default function NoteCard({
                     method: 'HEAD',
                 });
 
+                // Check the response status and headers
                 if (response.ok) {
-                    const data = await response.json();
-                    if (data.hasVideoData) {
-                        setHasVideoData(true);
-                    }
+                    // Check the custom header for video data existence
+                    const hasVideoData = response.headers.get('x-has-video-data') === 'true';
+                    setHasVideoData(hasVideoData);
+                } else if (response.status === 404) {
+                    // This is expected if there's no video data
+                    setHasVideoData(false);
                 }
             } catch (error) {
                 console.error("Error checking for video data:", error);
+                // Don't change the state on error
             }
         };
 
@@ -71,6 +75,9 @@ export default function NoteCard({
         <Card className="h-full flex flex-col transition-all duration-200 hover:shadow-md">
             <CardHeader className="pb-2">
                 <CardTitle className="text-lg">{title}</CardTitle>
+                {viewMode === 'teacher' && (
+                    <div className="text-xs text-muted-foreground">Teacher View</div>
+                )}
             </CardHeader>
 
             <CardContent className="flex-1">
