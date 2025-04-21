@@ -11,6 +11,18 @@ const createNoteSchema = z.object({
   subjectName: z.string().optional(),
   fileType: z.string().optional(),
   isPublished: z.boolean().optional(),
+  videoData: z.any().optional(),
+  attachments: z
+    .array(
+      z.object({
+        fileUrl: z.string().min(1, "File URL is required"),
+        fileName: z.string().min(1, "File name is required"),
+        fileType: z.string().min(1, "File type is required"),
+        fileSize: z.number().int().positive("File size must be positive"),
+        uploadedById: z.string().min(1, "Uploader ID is required"),
+      })
+    )
+    .optional(),
 });
 
 const updateNoteSchema = createNoteSchema.partial();
@@ -21,6 +33,10 @@ const noteAttachmentSchema = z.object({
   fileType: z.string().min(1, "File type is required"),
   fileSize: z.number().int().positive("File size must be positive"),
   uploadedById: z.string().min(1, "Uploader ID is required"),
+});
+
+const videoDataSchema = z.object({
+  videoData: z.any(),
 });
 
 export class NoteController {
@@ -42,32 +58,61 @@ export class NoteController {
 
       // Create note with or without attachments
       let note;
-      if (attachments && Array.isArray(attachments) && attachments.length > 0) {
-        // Validate attachments
-        const validAttachments = [];
-        for (const attachment of attachments) {
-          const validationResult = noteAttachmentSchema.safeParse(attachment);
-          if (!validationResult.success) {
-            return NextResponse.json(
-              {
-                error: "Validation error in attachment",
-                details: validationResult.error.errors,
-              },
-              { status: 400 }
+      let attachmentErrors = [];
+
+      try {
+        if (
+          attachments &&
+          Array.isArray(attachments) &&
+          attachments.length > 0
+        ) {
+          // Validate attachments
+          const validAttachments = [];
+          for (const attachment of attachments) {
+            const validationResult = noteAttachmentSchema.safeParse(attachment);
+            if (!validationResult.success) {
+              attachmentErrors.push({
+                fileName: attachment.fileName || "Unknown file",
+                errors: validationResult.error.errors,
+              });
+              continue;
+            }
+            validAttachments.push(attachment);
+          }
+
+          if (validAttachments.length === 0) {
+            // No valid attachments were found, but create the note anyway
+            note = await NoteService.createNote(noteData);
+          } else {
+            note = await NoteService.createNoteWithAttachments(
+              noteData,
+              validAttachments
             );
           }
-          validAttachments.push(attachment);
+        } else {
+          note = await NoteService.createNote(noteData);
         }
-
-        note = await NoteService.createNoteWithAttachments(
-          noteData,
-          validAttachments
-        );
-      } else {
-        note = await NoteService.createNote(noteData);
+      } catch (noteError: any) {
+        if (noteError.message && noteError.message.includes("User with ID")) {
+          // This is a user validation error
+          return NextResponse.json(
+            {
+              error: "Invalid user reference",
+              details: noteError.message,
+            },
+            { status: 400 }
+          );
+        }
+        throw noteError; // Re-throw other errors to be caught by the outer catch
       }
 
-      return NextResponse.json(note, { status: 201 });
+      // Return the created note with any attachment errors
+      const response: any = { ...note };
+      if (attachmentErrors.length > 0) {
+        response.attachmentErrors = attachmentErrors;
+      }
+
+      return NextResponse.json(response, { status: 201 });
     } catch (error: any) {
       console.error("Error creating note:", error);
       return NextResponse.json(
@@ -83,7 +128,7 @@ export class NoteController {
     { params }: { params: { id: string } }
   ) {
     try {
-      const { id } = params;
+      const { id } = await params;
       const note = await NoteService.getNoteById(id);
 
       if (!note) {
@@ -106,7 +151,7 @@ export class NoteController {
     { params }: { params: { classSectionId: string } }
   ) {
     try {
-      const { classSectionId } = params;
+      const { classSectionId } = await params;
       const notes = await NoteService.getNotesByClassSection(classSectionId);
       return NextResponse.json(notes);
     } catch (error: any) {
@@ -124,7 +169,7 @@ export class NoteController {
     { params }: { params: { classSectionId: string; subjectName: string } }
   ) {
     try {
-      const { classSectionId, subjectName } = params;
+      const { classSectionId, subjectName } = await params;
       const notes = await NoteService.getNotesBySubject(
         classSectionId,
         subjectName
@@ -145,7 +190,7 @@ export class NoteController {
     { params }: { params: { teacherId: string } }
   ) {
     try {
-      const { teacherId } = params;
+      const { teacherId } = await params;
       const notes = await NoteService.getNotesByTeacher(teacherId);
       return NextResponse.json(notes);
     } catch (error: any) {
@@ -163,7 +208,7 @@ export class NoteController {
     { params }: { params: { id: string } }
   ) {
     try {
-      const { id } = params;
+      const { id } = await params;
       const body = await req.json();
 
       // Validate input
@@ -192,7 +237,7 @@ export class NoteController {
     { params }: { params: { id: string } }
   ) {
     try {
-      const { id } = params;
+      const { id } = await params;
       const deletedNote = await NoteService.deleteNote(id);
       return NextResponse.json(deletedNote);
     } catch (error: any) {
@@ -210,7 +255,7 @@ export class NoteController {
     { params }: { params: { id: string } }
   ) {
     try {
-      const { id } = params;
+      const { id } = await params;
       const body = await req.json();
 
       // Validate input
@@ -222,8 +267,32 @@ export class NoteController {
         );
       }
 
-      const attachment = await NoteService.addAttachmentToNote(id, body);
-      return NextResponse.json(attachment, { status: 201 });
+      try {
+        const attachment = await NoteService.addAttachmentToNote(id, body);
+        return NextResponse.json(attachment, { status: 201 });
+      } catch (attachmentError: any) {
+        // Check for specific errors
+        if (attachmentError.message) {
+          if (attachmentError.message.includes("Note with ID")) {
+            return NextResponse.json(
+              { error: "Note not found", details: attachmentError.message },
+              { status: 404 }
+            );
+          }
+          if (attachmentError.message.includes("User with ID")) {
+            return NextResponse.json(
+              {
+                error: "Invalid user reference",
+                details: attachmentError.message,
+              },
+              { status: 400 }
+            );
+          }
+        }
+
+        // For other errors, re-throw to be caught by the outer catch
+        throw attachmentError;
+      }
     } catch (error: any) {
       console.error("Error adding attachment:", error);
       return NextResponse.json(
@@ -239,7 +308,7 @@ export class NoteController {
     { params }: { params: { id: string } }
   ) {
     try {
-      const { id } = params;
+      const { id } = await params;
       const deletedAttachment = await NoteService.deleteAttachment(id);
       return NextResponse.json(deletedAttachment);
     } catch (error: any) {
@@ -271,6 +340,113 @@ export class NoteController {
       console.error("Error searching notes:", error);
       return NextResponse.json(
         { error: "Failed to search notes", details: error.message },
+        { status: 500 }
+      );
+    }
+  }
+
+  // Update note video data
+  static async updateVideoData(
+    req: NextRequest,
+    { params }: { params: { id: string } }
+  ) {
+    try {
+      const { id } = await params;
+      console.log(`Updating video data for note ID: ${id}`);
+
+      const body = await req.json();
+
+      // Validate input
+      const validationResult = videoDataSchema.safeParse(body);
+      if (!validationResult.success) {
+        console.log(`Video data validation failed for note ID: ${id}`);
+        return NextResponse.json(
+          { error: "Validation error", details: validationResult.error.errors },
+          { status: 400 }
+        );
+      }
+
+      // Log the video data structure for debugging
+      console.log(
+        `Video data structure:`,
+        JSON.stringify(body.videoData).substring(0, 200) + "..."
+      );
+
+      const updatedNote = await NoteService.updateNoteVideoData(
+        id,
+        body.videoData
+      );
+
+      console.log(`Successfully updated video data for note ID: ${id}`);
+      return NextResponse.json({
+        id: updatedNote.id,
+        videoData: updatedNote.videoData,
+      });
+    } catch (error: any) {
+      console.error("Error updating note video data:", error);
+      return NextResponse.json(
+        { error: "Failed to update video data", details: error.message },
+        { status: 500 }
+      );
+    }
+  }
+
+  // Get note with video data
+  static async getNoteWithVideoData(
+    req: NextRequest,
+    { params }: { params: { id: string } }
+  ) {
+    try {
+      const { id } = await params;
+      console.log(`Fetching video data for note ID: ${id}`);
+
+      const note = await NoteService.getNoteWithVideoData(id);
+
+      if (!note) {
+        console.log(`Note with ID ${id} not found`);
+        return NextResponse.json({ error: "Note not found" }, { status: 404 });
+      }
+
+      // Check if videoData exists in the note
+      if (!note.videoData) {
+        console.log(`Note with ID ${id} has no video data`);
+        return NextResponse.json(
+          { error: "Video data not found" },
+          { status: 404 }
+        );
+      }
+
+      console.log(`Successfully retrieved video data for note ID: ${id}`);
+      return NextResponse.json({
+        id: note.id,
+        videoData: note.videoData,
+      });
+    } catch (error: any) {
+      console.error("Error fetching note with video data:", error);
+      return NextResponse.json(
+        { error: "Failed to fetch note", details: error.message },
+        { status: 500 }
+      );
+    }
+  }
+
+  // Check if note has video data
+  static async checkVideoDataExists(
+    req: NextRequest,
+    { params }: { params: { id: string } }
+  ) {
+    try {
+      const { id } = await params;
+      console.log(`Checking video data existence for note ID: ${id}`);
+
+      const hasVideoData = await NoteService.checkNoteHasVideoData(id);
+
+      console.log(`Video data exists for note ID ${id}: ${hasVideoData}`);
+      return NextResponse.json({ hasVideoData });
+    } catch (error: any) {
+      console.error("Error checking video data:", error);
+      return NextResponse.json(
+        { error: "Failed to check video data", details: error.message },
         { status: 500 }
       );
     }

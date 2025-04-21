@@ -212,6 +212,7 @@ model Teacher {
   performanceMetrics    TeacherPerformanceMetric[]
   department            Department                 @relation(fields: [departmentId], references: [id])
   user                  User                       @relation(fields: [userId], references: [id])
+  Note                  Note[]
 
   @@unique([departmentId, teacherCode])
   @@index([teacherCode])
@@ -886,8 +887,10 @@ model Note {
   createdAt      DateTime         @default(now()) @map("created_at")
   updatedAt      DateTime         @updatedAt @map("updated_at")
   attachments    NoteAttachment[]
+  videoData      Json?            @map("video_data")
   classSection   ClassSection     @relation(fields: [classSectionId], references: [id])
-  teacher        Teacher          @relation("NoteCreator", fields: [teacherId], references: [id])
+  teacher        Teacher          @relation("NoteCreator", fields: [teacherId], references: [id], map: "notes_creator_teacher_id_fkey")
+  Teacher        Teacher          @relation(fields: [teacherId], references: [id])
 
   @@map("notes")
 }

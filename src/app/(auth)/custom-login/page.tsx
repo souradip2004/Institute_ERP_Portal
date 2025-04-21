@@ -7,9 +7,9 @@ import Cookies from 'js-cookie';
 
 export default function CustomLoginForm() {
   // State for form inputs
-  const [identifier, setIdentifier] = useState('');
-  const [password, setPassword] = useState('');
-  const [role, setRole] = useState('USER');
+  const [identifier, setIdentifier] = useState('bob-teacher-1745175849057@springfield.edu');
+  const [password, setPassword] = useState('password123');
+  const [role, setRole] = useState('TEACHER');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 

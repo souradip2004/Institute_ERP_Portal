@@ -32,6 +32,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Download, Search, Upload, SlidersHorizontal } from 'lucide-react';
+import NoteCard from './NoteCard';
+import NotesViewer from './NotesViewer/index';
+import { getLocalVideoData, hasLocalVideoData, storeVideoDataLocally } from './NotesViewer/utils';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 
 interface NotesLibraryProps {
     studentId: string;
@@ -72,10 +76,13 @@ const NotesLibrary: React.FC<NotesLibraryProps> = ({
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [subjects, setSubjects] = useState<string[]>([]);
-    const [selectedSubject, setSelectedSubject] = useState<string>('');
+    const [selectedSubject, setSelectedSubject] = useState<string>('all');
     const [searchQuery, setSearchQuery] = useState('');
     const [uploadingFile, setUploadingFile] = useState(false);
     const [fileToUpload, setFileToUpload] = useState<File | null>(null);
+    const [activeTab, setActiveTab] = useState<string>('all');
+    const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
+    const [showVideoModal, setShowVideoModal] = useState<boolean>(false);
 
     // Fetch notes on component mount
     useEffect(() => {
@@ -107,6 +114,17 @@ const NotesLibrary: React.FC<NotesLibraryProps> = ({
             const data = await response.json();
             setNotes(data);
 
+            // Check if any notes have video data already in localStorage
+            data.forEach((note: Note) => {
+                if (hasLocalVideoData(note.id)) {
+                    // Update the UI state to show these notes have video data available
+                    console.log(`Note ${note.id} has video data in localStorage`);
+                } else {
+                    // Check with the server if video data exists
+                    checkNoteVideoData(note.id);
+                }
+            });
+
             // Extract unique subjects from notes
             if (data.length > 0 && !selectedSubject) {
                 const uniqueSubjects = Array.from(
@@ -123,6 +141,33 @@ const NotesLibrary: React.FC<NotesLibraryProps> = ({
             console.error('Error fetching notes:', err);
         } finally {
             setLoading(false);
+        }
+    };
+
+    // Add a function to check if a note has video data on the server
+    const checkNoteVideoData = async (noteId: string) => {
+        try {
+            const response = await fetch(`/api/notes/${noteId}/video-data`, {
+                method: 'HEAD',
+            });
+
+            if (response.ok) {
+                // Fetch the video data and store it locally
+                const dataResponse = await fetch(`/api/notes/${noteId}/video-data`);
+                if (dataResponse.ok) {
+                    const videoData = await dataResponse.json();
+
+                    if (videoData) {
+                        // Store the video data in localStorage
+                        storeVideoDataLocally(noteId, videoData);
+
+                        // Refresh notes to update UI
+                        console.log(`Note ${noteId} video data stored in localStorage`);
+                    }
+                }
+            }
+        } catch (error) {
+            console.error(`Error checking video data for note ${noteId}:`, error);
         }
     };
 
@@ -190,6 +235,28 @@ const NotesLibrary: React.FC<NotesLibraryProps> = ({
             default: return 'th';
         }
     };
+
+    const handleViewVideo = (noteId: string) => {
+        setSelectedNoteId(noteId);
+        setShowVideoModal(true);
+    };
+
+    const filteredNotes = notes.filter(note => {
+        // First filter by subject tab
+        if (activeTab !== 'all' && note.subjectName !== activeTab) {
+            return false;
+        }
+
+        // Then filter by search query
+        if (!searchQuery) return true;
+
+        const query = searchQuery.toLowerCase();
+        return (
+            note.title.toLowerCase().includes(query) ||
+            (note.subjectName?.toLowerCase().includes(query) || false) ||
+            note.teacher.user.name.toLowerCase().includes(query)
+        );
+    });
 
     return (
         <div className="space-y-6">
@@ -374,6 +441,59 @@ const NotesLibrary: React.FC<NotesLibraryProps> = ({
                     {error}
                 </div>
             )}
+
+            <Tabs defaultValue="all" onValueChange={setActiveTab}>
+                <TabsList className="mb-6">
+                    <TabsTrigger value="all">All Notes</TabsTrigger>
+                    {subjects.map(subject => (
+                        <TabsTrigger key={subject} value={subject}>
+                            {subject}
+                        </TabsTrigger>
+                    ))}
+                </TabsList>
+
+                <TabsContent value={activeTab} className="mt-0">
+                    {loading ? (
+                        <div className="text-center py-12">
+                            <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-gray-900 mb-2"></div>
+                            <p>Loading notes...</p>
+                        </div>
+                    ) : filteredNotes.length === 0 ? (
+                        <div className="text-center py-12 bg-gray-50 rounded-md">
+                            <p className="text-gray-500">No notes available for this subject.</p>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {filteredNotes.map(note => (
+                                <NoteCard
+                                    key={note.id}
+                                    id={note.id}
+                                    title={note.title}
+                                    subjectName={note.subjectName}
+                                    createdAt={note.createdAt}
+                                    teacherName={note.teacher.user.name}
+                                    attachments={note.attachments}
+                                    onViewVideo={handleViewVideo}
+                                />
+                            ))}
+                        </div>
+                    )}
+                </TabsContent>
+            </Tabs>
+
+            {/* Video Player Modal */}
+            <Dialog open={showVideoModal} onOpenChange={setShowVideoModal}>
+                <DialogContent className="max-w-6xl w-[90vw] h-[90vh] p-0">
+                    {selectedNoteId && (
+                        <div className="h-full w-full">
+                            <NotesViewer
+                                noteId={selectedNoteId}
+                                initialVideoData={selectedNoteId ? getLocalVideoData(selectedNoteId) : undefined}
+                            />
+                        </div>
+                    )}
+                </DialogContent>
+            </Dialog>
         </div>
     );
 };

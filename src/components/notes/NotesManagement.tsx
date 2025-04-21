@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
     Table,
     TableBody,
@@ -31,14 +31,20 @@ import {
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { ChevronLeft, Search, Upload, Trash2, Download, Edit, Eye } from 'lucide-react';
+import { ChevronLeft, Search, Upload, Trash2, Download, Edit, Eye, FilePlus } from 'lucide-react';
 import Link from 'next/link';
+import NoteCard from './NoteCard';
+import NotesViewer from './NotesViewer/index';
+import { getLocalVideoData, storeVideoDataLocally, hasLocalVideoData } from './NotesViewer/utils';
+import { toast } from 'react-hot-toast';
 
 interface NotesManagementProps {
     teacherId: string;
     teacherName: string;
     classSectionId: string;
     className: string;
+    batchName: string;
+    sectionName: string;
 }
 
 type Note = {
@@ -76,6 +82,8 @@ const NotesManagement: React.FC<NotesManagementProps> = ({
     teacherName,
     classSectionId,
     className,
+    batchName,
+    sectionName
 }) => {
     // State variables
     const [notes, setNotes] = useState<Note[]>([]);
@@ -87,6 +95,15 @@ const NotesManagement: React.FC<NotesManagementProps> = ({
     const [currentNote, setCurrentNote] = useState<Note | null>(null);
     const [uploadingFile, setUploadingFile] = useState(false);
     const [fileToUpload, setFileToUpload] = useState<File | null>(null);
+    const [showAddNoteForm, setShowAddNoteForm] = useState<boolean>(false);
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const [uploadProgress, setUploadProgress] = useState<number>(0);
+    const [activeTab, setActiveTab] = useState<string>('published');
+    const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
+    const [showVideoModal, setShowVideoModal] = useState<boolean>(false);
+    const [processingVideoData, setProcessingVideoData] = useState<boolean>(false);
+
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Setup form
     const form = useForm<NoteFormValues>({
@@ -135,6 +152,7 @@ const NotesManagement: React.FC<NotesManagementProps> = ({
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files.length > 0) {
             setFileToUpload(e.target.files[0]);
+            setSelectedFile(e.target.files[0]);
         }
     };
 
@@ -156,6 +174,120 @@ const NotesManagement: React.FC<NotesManagementProps> = ({
         setEditDialogOpen(true);
     };
 
+    // Function to upload files to S3
+    const uploadFileToS3 = async (file: File) => {
+        try {
+            setUploadProgress(0);
+            const formData = new FormData();
+            formData.append('pdf', file);
+
+            // Create a custom XMLHttpRequest to track upload progress
+            return new Promise<string>((resolve, reject) => {
+                const xhr = new XMLHttpRequest();
+
+                xhr.upload.addEventListener('progress', (event) => {
+                    if (event.lengthComputable) {
+                        const percentComplete = Math.round((event.loaded / event.total) * 100);
+                        setUploadProgress(percentComplete);
+                    }
+                });
+
+                xhr.onreadystatechange = function () {
+                    if (xhr.readyState === 4) {
+                        if (xhr.status === 200) {
+                            const response = JSON.parse(xhr.responseText);
+                            resolve(response.url);
+                        } else {
+                            reject(new Error(`Upload failed with status: ${xhr.status}`));
+                        }
+                    }
+                };
+
+                xhr.open('POST', '/api/upload/pdf', true);
+                xhr.send(formData);
+            });
+        } catch (error) {
+            console.error("Error uploading file to S3:", error);
+            throw error;
+        }
+    };
+
+    // Function to process video data for a note
+    const processVideoData = async (noteId: string, pdfUrl: string) => {
+        try {
+            setProcessingVideoData(true);
+
+            // Call the API to start processing the PDF in the background
+            const response = await fetch(`/api/notes/${noteId}/process-video-data`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ pdfUrl }),
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to start video data processing');
+            }
+
+            // Show toast that processing has started
+            toast.success('PDF processing started in the background. This may take a few minutes.');
+
+            // Poll for video data every 10 seconds
+            let attempts = 0;
+            const maxAttempts = 30; // Try for up to 5 minutes
+
+            const checkForVideoData = async () => {
+                if (attempts >= maxAttempts) {
+                    toast.error('Video data processing is taking longer than expected. Please check back later.');
+                    setProcessingVideoData(false);
+                    return;
+                }
+
+                try {
+                    // Check if video data exists
+                    const checkResponse = await fetch(`/api/notes/${noteId}/video-data`, {
+                        method: 'HEAD',
+                    });
+
+                    if (checkResponse.ok) {
+                        // Video data exists, fetch it
+                        const dataResponse = await fetch(`/api/notes/${noteId}/video-data`);
+                        if (dataResponse.ok) {
+                            const videoData = await dataResponse.json();
+
+                            // Store in localStorage
+                            storeVideoDataLocally(noteId, videoData);
+
+                            toast.success('Video data processing completed successfully!');
+                            setProcessingVideoData(false);
+
+                            // Refresh notes to update UI
+                            fetchNotes();
+                            return;
+                        }
+                    }
+
+                    // If we get here, data isn't ready yet
+                    attempts++;
+                    setTimeout(checkForVideoData, 10000); // Check again in 10 seconds
+                } catch (error) {
+                    console.error('Error checking for video data:', error);
+                    attempts++;
+                    setTimeout(checkForVideoData, 10000); // Try again despite error
+                }
+            };
+
+            // Start polling
+            setTimeout(checkForVideoData, 10000);
+
+        } catch (error) {
+            console.error('Error processing video data:', error);
+            toast.error('Failed to process video data');
+            setProcessingVideoData(false);
+        }
+    };
+
     // Function to handle form submission
     const onSubmit = async (values: NoteFormValues) => {
         try {
@@ -172,34 +304,45 @@ const NotesManagement: React.FC<NotesManagementProps> = ({
                 if (!response.ok) {
                     throw new Error('Failed to update note');
                 }
+
+                toast.success('Note updated successfully');
+                setEditDialogOpen(false);
+                fetchNotes();
             } else {
                 // Create new note
-                const noteData = {
+                const noteData: any = {
                     ...values,
                     teacherId,
                     classSectionId,
                 };
 
                 let response;
+                let pdfUrl = '';
 
                 if (fileToUpload) {
-                    // In a real implementation, you would:
-                    // 1. Upload the file to your storage (S3, etc.)
-                    // 2. Get the file URL
-                    // 3. Create a note with the file URL and attachment
+                    // Upload the file to S3 first
+                    pdfUrl = await uploadFileToS3(fileToUpload);
 
-                    // Simulate file upload
-                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    // Create note with attachment
+                    noteData.fileType = 'pdf';
 
-                    alert('File upload would be implemented here');
+                    const attachmentData = {
+                        fileUrl: pdfUrl,
+                        fileName: fileToUpload.name,
+                        fileType: fileToUpload.type,
+                        fileSize: fileToUpload.size,
+                        uploadedById: teacherId,
+                    };
 
-                    // For now, just create the note without attachment
                     response = await fetch('/api/notes', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
                         },
-                        body: JSON.stringify(noteData),
+                        body: JSON.stringify({
+                            ...noteData,
+                            attachments: [attachmentData],
+                        }),
                     });
                 } else {
                     // Create note without attachment
@@ -215,18 +358,26 @@ const NotesManagement: React.FC<NotesManagementProps> = ({
                 if (!response.ok) {
                     throw new Error('Failed to create note');
                 }
-            }
 
-            // Close dialog and refresh notes
-            setUploadDialogOpen(false);
-            setEditDialogOpen(false);
-            setFileToUpload(null);
-            setCurrentNote(null);
-            form.reset();
-            fetchNotes();
-        } catch (err) {
-            console.error('Error saving note:', err);
-            setError('Error saving note. Please try again later.');
+                // Get the created note ID
+                const newNote = await response.json();
+
+                toast.success('Note created successfully');
+                setShowAddNoteForm(false);
+                setFileToUpload(null);
+                setSelectedFile(null);
+                form.reset();
+
+                // If we have a PDF file, process it for video data
+                if (pdfUrl && newNote.id) {
+                    processVideoData(newNote.id, pdfUrl);
+                }
+
+                fetchNotes();
+            }
+        } catch (error) {
+            console.error('Error submitting form:', error);
+            toast.error('Failed to save note');
         }
     };
 
@@ -270,10 +421,23 @@ const NotesManagement: React.FC<NotesManagementProps> = ({
         });
     };
 
+    const filteredNotes = notes.filter(note => {
+        if (activeTab === 'published') return note.isPublished;
+        if (activeTab === 'drafts') return !note.isPublished;
+
+        // If tab is 'all', return all notes that belong to this class section
+        return note.classSectionId === classSectionId;
+    });
+
+    const handleViewVideo = (noteId: string) => {
+        setSelectedNoteId(noteId);
+        setShowVideoModal(true);
+    };
+
     return (
         <div className="space-y-6">
             <div className="flex items-center gap-2 mb-6">
-                <Link href={`/dashboard/teacher/class/${classSectionId}`}>
+                <Link href={{ pathname: `/dashboard/teacher/class/${classSectionId}` }}>
                     <Button variant="ghost" size="icon">
                         <ChevronLeft size={18} />
                     </Button>
@@ -620,6 +784,41 @@ const NotesManagement: React.FC<NotesManagementProps> = ({
                             </DialogFooter>
                         </form>
                     </Form>
+                </DialogContent>
+            </Dialog>
+
+            {/* Notes Grid View */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
+                {
+                    notes
+                        .filter(note => activeTab === 'all' || (activeTab === 'published' ? note.isPublished : !note.isPublished))
+                        .map(note => (
+                            <NoteCard
+                                key={note.id}
+                                id={note.id}
+                                title={note.title}
+                                subjectName={note.subjectName}
+                                createdAt={note.createdAt}
+                                attachments={note.attachments}
+                                viewMode="teacher"
+                                onViewVideo={handleViewVideo}
+                            />
+                        ))
+                }
+            </div>
+
+            {/* Video Player Modal */}
+            <Dialog open={showVideoModal} onOpenChange={setShowVideoModal}>
+                <DialogContent className="max-w-6xl w-[90vw] h-[90vh] p-0">
+                    {selectedNoteId && (
+                        <div className="h-full w-full">
+                            <NotesViewer
+                                noteId={selectedNoteId}
+                                initialVideoData={selectedNoteId ? getLocalVideoData(selectedNoteId) : undefined}
+                                pdfUrl={notes.find(n => n.id === selectedNoteId)?.attachments[0]?.fileUrl}
+                            />
+                        </div>
+                    )}
                 </DialogContent>
             </Dialog>
         </div>
