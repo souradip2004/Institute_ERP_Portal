@@ -76,4 +76,5 @@ export interface NotesViewerState {
   max: number;
   toDisplay: boolean;
   showControls: boolean;
+  showExtractedText: boolean;
 }

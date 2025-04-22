@@ -51,7 +51,7 @@ export function markParagraphsHTML(text: string, markers: string[]): string {
 }
 
 // Store video data in localStorage
-export function storeVideoDataLocally(noteId: string, videoData: any): void {
+export function storeVideoDataLocally(noteId: string, videoData: unknown): void {
   try {
     // Validate the data before storing
     if (!videoData) {
@@ -68,6 +68,12 @@ export function storeVideoDataLocally(noteId: string, videoData: any): void {
     const dataSize = JSON.stringify(videoData).length;
     console.log(`Storing video data for note ${noteId} (size: ${dataSize} bytes)`);
     
+    // Make sure the data is properly structured before storing
+    if (!Array.isArray(videoData)) {
+      console.error("Video data must be an array");
+      return;
+    }
+    
     localStorage.setItem(`noteVideoData_${noteId}`, JSON.stringify(videoData));
     console.log(`Successfully stored video data for note ${noteId} in localStorage`);
   } catch (error) {
@@ -76,10 +82,46 @@ export function storeVideoDataLocally(noteId: string, videoData: any): void {
 }
 
 // Get video data from localStorage
-export function getLocalVideoData(noteId: string): any {
+export function getLocalVideoData(noteId: string): unknown[] | null {
   try {
-    const data = localStorage.getItem(`noteVideoData_${noteId}`);
-    return data ? JSON.parse(data) : null;
+    const key = `noteVideoData_${noteId}`;
+    const data = localStorage.getItem(key);
+    
+    if (!data) {
+      console.log(`No video data found in localStorage for note ${noteId}`);
+      return null;
+    }
+    
+    try {
+      const parsedData = JSON.parse(data);
+      
+      // Verify that the data is in the expected format
+      if (!Array.isArray(parsedData)) {
+        console.error(`Invalid video data format for note ${noteId} - not an array`);
+        return null;
+      }
+      
+      if (parsedData.length === 0) {
+        console.warn(`Empty video data array for note ${noteId}`);
+        return null;
+      }
+      
+      // Basic structure validation
+      for (const item of parsedData) {
+        if (typeof item !== 'object' || item === null) {
+          console.error(`Invalid item in video data for note ${noteId}:`, item);
+          return null;
+        }
+      }
+      
+      console.log(`Successfully retrieved video data for note ${noteId} (${parsedData.length} items)`);
+      return parsedData;
+    } catch (parseError) {
+      console.error(`Failed to parse video data for note ${noteId}:`, parseError);
+      // If data is corrupted, remove it to prevent future errors
+      localStorage.removeItem(key);
+      return null;
+    }
   } catch (error) {
     console.error("Error retrieving video data from localStorage:", error);
     return null;
@@ -88,5 +130,19 @@ export function getLocalVideoData(noteId: string): any {
 
 // Check if video data exists in localStorage
 export function hasLocalVideoData(noteId: string): boolean {
-  return localStorage.getItem(`noteVideoData_${noteId}`) !== null;
+  const key = `noteVideoData_${noteId}`;
+  const data = localStorage.getItem(key);
+  
+  if (!data) {
+    return false;
+  }
+  
+  try {
+    const parsed = JSON.parse(data);
+    return Array.isArray(parsed) && parsed.length > 0;
+  } catch {
+    // If we can't parse the data, it's not valid
+    localStorage.removeItem(key);
+    return false;
+  }
 }

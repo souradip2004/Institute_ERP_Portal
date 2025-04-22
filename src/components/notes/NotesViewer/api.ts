@@ -253,16 +253,33 @@ export async function checkVideoDataExists(noteId: string): Promise<boolean> {
   }
 }
 
-// Get video data
-export async function getVideoData(noteId: string): Promise<PageItem[] | null> {
+// Get video data from server
+export async function getVideoData(noteId: string): Promise<unknown[] | null> {
   try {
-    const response = await fetch(`/api/notes/${noteId}/video-data`);
+    console.log(`Fetching video data from server for note ${noteId}`);
+    const response = await fetch(`/api/notes/${noteId}/video-data`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+
     if (!response.ok) {
+      console.error(`Failed to retrieve video data: ${response.statusText}`);
       return null;
     }
-    return await response.json();
+
+    const data = await response.json();
+    
+    if (!data || !data.videoData || !Array.isArray(data.videoData) || data.videoData.length === 0) {
+      console.error("Invalid video data format received from server");
+      return null;
+    }
+    
+    console.log(`Successfully retrieved video data from server for note ${noteId}`);
+    return data.videoData;
   } catch (error) {
-    console.error("Error fetching video data:", error);
+    console.error("Error retrieving video data from server:", error);
     return null;
   }
 }
