@@ -213,6 +213,7 @@ model Teacher {
   department            Department                 @relation(fields: [departmentId], references: [id])
   user                  User                       @relation(fields: [userId], references: [id])
   Note                  Note[]
+  teacherCourseSectionRelations TeacherCourseSectionRelation[]
 
   @@unique([departmentId, teacherCode])
   @@index([teacherCode])
@@ -249,6 +250,7 @@ model Course {
   createdBy         Teacher             @relation("CourseCreator", fields: [createdById], references: [id])
   department        Department          @relation(fields: [departmentId], references: [id])
   AttendanceSession AttendanceSession[]
+ teacherCourseSectionRelations TeacherCourseSectionRelation[]
 
   @@map("courses")
 }
@@ -281,6 +283,7 @@ model Semester {
   institution    Institution                @relation(fields: [institutionId], references: [id])
   studentMetrics StudentPerformanceMetric[]
   teacherMetrics TeacherPerformanceMetric[]
+teacherCourseSectionRelations TeacherCourseSectionRelation[]
 
   @@map("semesters")
 }
@@ -308,6 +311,7 @@ model ClassSection {
   exams              Exam[]
   studentEnrollments StudentClassEnrollment[]
   studentMetrics     StudentPerformanceMetric[]
+ teacherCourseSectionRelations TeacherCourseSectionRelation[]
 
   @@map("class_sections")
 }
@@ -908,6 +912,24 @@ model NoteAttachment {
   uploadedBy   User     @relation("UploadedNoteAttachment", fields: [uploadedById], references: [id])
 
   @@map("note_attachments")
+}
+
+
+model TeacherCourseSectionRelation {
+  id             String       @id @default(cuid())
+  teacherId      String       @map("teacher_id")
+  courseId       String       @map("course_id")
+  classSectionId String       @map("class_section_id")
+  semesterId     String?      @map("semester_id")
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+  teacher        Teacher      @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  course         Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  classSection   ClassSection @relation(fields: [classSectionId], references: [id], onDelete: Cascade)
+  semester       Semester?    @relation(fields: [semesterId], references: [id], onDelete: Restrict)
+
+  @@unique([teacherId, courseId, classSectionId, semesterId])
+  @@map("teacher_course_section_relations")
 }
 
 enum Role {

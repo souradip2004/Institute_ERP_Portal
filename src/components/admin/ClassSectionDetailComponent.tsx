@@ -93,15 +93,15 @@ export default function ClassSectionDetail({ classSection, onBack }: ClassSectio
               <div className="bg-gray-50 p-4 rounded-md space-y-3">
                 <div className="grid grid-cols-2">
                   <p className="text-sm font-medium text-gray-500">Course Code</p>
-                  <p className="text-sm text-gray-900">{classSection.course.courseCode}</p>
+                  <p className="text-sm text-gray-900">{classSection?.course?.courseCode}</p>
                 </div>
                 <div className="grid grid-cols-2">
                   <p className="text-sm font-medium text-gray-500">Course Name</p>
-                  <p className="text-sm text-gray-900">{classSection.course.name}</p>
+                  <p className="text-sm text-gray-900">{classSection?.course?.name}</p>
                 </div>
                 <div className="grid grid-cols-2">
                   <p className="text-sm font-medium text-gray-500">Course ID</p>
-                  <p className="text-sm text-gray-900">{classSection.courseId}</p>
+                  <p className="text-sm text-gray-900">{classSection?.courseId}</p>
                 </div>
               </div>
             </div>

@@ -78,26 +78,26 @@ export default function ClassSectionsList({ classSections, onViewClassSection }:
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {classSections.map((section) => (
-                <tr key={section.id}>
+              {classSections?.map((section) => (
+                <tr key={section?.id}>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {section.sectionName}
+                    {section?.sectionName}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {section.course.courseCode}: {section.course.name}
+                    {section?.course?.courseCode}: {section?.course?.name}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {section.batch.batchName} ({section.batch.year})
+                    {section?.batch?.batchName} ({section?.batch?.year})
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {section.semester.name}
+                    {section?.semester?.name}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {section.teacher.user.name} ({section.teacher.teacherCode})
+                    {section?.teacher?.user?.name} ({section?.teacher?.teacherCode})
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <button 
-                      onClick={() => onViewClassSection(section.id)} 
+                      onClick={() => onViewClassSection(section?.id)} 
                       className="text-blue-600 hover:text-blue-900 mr-4"
                     >
                       View

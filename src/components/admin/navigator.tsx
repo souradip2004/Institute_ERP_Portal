@@ -7,6 +7,7 @@ import AddStudent from "./AddStudent";
 import StudentDetail from "./ViewStudentPage";
 import ViewClassSectionPage from "./ViewClassSectionPage"
 import AddTeacher from "@/components/admin/AddTeachers";
+import Link from "next/link";
 
 interface SiderProps {
     id: any;
@@ -97,6 +98,16 @@ const Navigator = ({id, userId}: {id: any; userId: any}) => {
                         onClick={() => setActiveComponent("Settings")}
                     >
                         Notifcations
+                    </li>
+                       <li
+                        style={{
+                            padding: "10px",
+                            cursor: "pointer",
+                            backgroundColor: activeComponent === "Settings" ? "#ddd" : "",
+                        }}
+                        // onClick={() => setActiveComponent("Settings")}
+                    >
+                      <Link href={"/a/create-attendance-session"}> create Attendance session</Link>
                     </li>
                 </ul>
             </aside>

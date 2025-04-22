@@ -1,7 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { toast } from 'react-toastify';
 
 interface Course {
   id: string;
@@ -58,7 +57,6 @@ export default function CreateAttendanceSession({ teacherId }: CreateAttendanceS
           : 'Failed to load data';
         setError(errorMessage);
         setLoading(false);
-        toast.error(errorMessage);
       }
     };
     fetchData();
@@ -84,7 +82,7 @@ export default function CreateAttendanceSession({ teacherId }: CreateAttendanceS
       };
       console.log('Creating session with payload:', payload);
       const response = await axios.post(`/api/teachers/${teacherId}/attendance/create`, payload);
-      toast.success('Attendance session created successfully');
+
       setFormData({
         courseId: '',
         classSectionId: '',
@@ -98,7 +96,6 @@ export default function CreateAttendanceSession({ teacherId }: CreateAttendanceS
       const errorMessage = axios.isAxiosError(err)
         ? err.response?.data?.error || 'Failed to create session'
         : 'Failed to create session';
-      toast.error(errorMessage);
     } finally {
       setSubmitting(false);
     }

@@ -6,7 +6,9 @@ import DeleteInstitutionButton from "@/components/ui/deleteInstitutions"; // Imp
 export default async function DashboardPage() {
   const session = await auth();
   console.log('session: ', session);
-  const userId = session?.user?.id;
+  // const userId = session?.user?.id;
+  // Todo custom login not work properly ie after successful login, session is null
+  const userId ="cm9q0nf8z0004bowkhzw2d3s0";
 console.log(session)
   if (!userId) {
     return <p style={{ textAlign: "center", color: "red" }}>User not found.</p>;
