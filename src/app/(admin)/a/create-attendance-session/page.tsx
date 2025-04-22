@@ -44,7 +44,7 @@ export default function TeacherCourseSectionForm() {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-console.log('adminId: ',adminId);
+  console.log('adminId: ', adminId);
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
     if (storedUser) {
@@ -59,10 +59,10 @@ console.log('adminId: ',adminId);
     const fetchData = async () => {
       try {
         const [teachersRes, coursesRes, classSectionsRes, semestersRes] = await Promise.all([
-          axios.get(`/api/admin/${adminId}teacher-course-section?type=teachers`),
-          axios.get(`/api/admin/${adminId}teacher-course-section?type=courses`),
-          axios.get(`/api/admin/${adminId}teacher-course-section?type=class-sections`),
-          axios.get(`/api/admin/${adminId}semesters`),
+          axios.get(`/api/admin/${adminId}/teacher-course-section?type=teachers`),
+          axios.get(`/api/admin/${adminId}/teacher-course-section?type=courses`),
+          axios.get(`/api/admin/${adminId}/teacher-course-section?type=class-sections`),
+          axios.get(`/api/admin/${adminId}/semesters`),
         ]);
 
         setTeachers(teachersRes.data);
@@ -97,7 +97,7 @@ console.log('adminId: ',adminId);
     setSuccess(null);
 
     try {
-      const response = await axios.post(`/api/admin/${adminId}teacher-course-section`, {
+      const response = await axios.post(`/api/admin/${adminId}/teacher-course-section`, {
         ...formData,
         adminId,
       });

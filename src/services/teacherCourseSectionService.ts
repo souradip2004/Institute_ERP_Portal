@@ -2,6 +2,7 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
+
 interface CreateTeacherCourseSectionInput {
   teacherId: string;
   courseId: string;
@@ -10,13 +11,14 @@ interface CreateTeacherCourseSectionInput {
   days: number[]; // Array of day numbers (0 = Sunday, 1 = Monday, ..., 6 = Saturday)
   startTime: string; // e.g., "09:00:00"
   endTime: string; // e.g., "10:30:00"
-  adminId: string; // Added to validate institute
+  adminId: string; // Added to validate institution
 }
 
-async function getInstituteId(adminId: string): Promise<string> {
+async function getInstitutionId(adminId: string): Promise<string> {
+  console.log('get institutionId for adminId: ', adminId);
   const admin = await prisma.user.findUnique({
     where: { id: adminId },
-    select: { role: true, instituteId: true },
+    select: { role: true, institutionId: true },
   });
 
   if (!admin) {
@@ -25,11 +27,13 @@ async function getInstituteId(adminId: string): Promise<string> {
   if (admin.role !== 'ADMIN') {
     throw new Error('User is not an admin');
   }
-  if (!admin.instituteId) {
-    throw new Error('Institute ID not found for admin');
+  if (!admin.institutionId) {
+    throw new Error('Institution ID not found for admin');
   }
 
-  return admin.instituteId;
+  console.log('admin ', admin);
+
+  return admin.institutionId;
 }
 
 export async function createTeacherCourseSectionAndSessions({
@@ -47,11 +51,10 @@ export async function createTeacherCourseSectionAndSessions({
     if (!teacherId || !courseId || !classSectionId || !semesterId || !days.length || !startTime || !endTime || !adminId) {
       throw new Error('All fields are required');
     }
-
-    // Get institute ID
-    const instituteId = await getInstituteId(adminId);
-
-    // Verify teacher, course, class section, and semester exist and belong to the institute
+    // Get institution ID
+    const institutionId = await getInstitutionId(adminId);
+  
+    // Verify teacher, course, class section, and semester exist and belong to the institution
     const [teacher, course, classSection, semester] = await Promise.all([
       prisma.teacher.findUnique({
         where: { id: teacherId },
@@ -68,25 +71,27 @@ export async function createTeacherCourseSectionAndSessions({
       prisma.semester.findUnique({ where: { id: semesterId } }),
     ]);
 
-    if (!teacher || teacher.department.instituteId !== instituteId) {
-      throw new Error('Teacher not found or does not belong to the institute');
+   
+    if (!teacher || teacher.department.institutionId !== institutionId) {
+      throw new Error('Teacher not found or does not belong to the institution');
     }
-    if (!course || course.department.instituteId !== instituteId) {
-      throw new Error('Course not found or does not belong to the institute');
+    if (!course || course.department.institutionId !== institutionId) {
+      throw new Error('Course not found or does not belong to the institution');
     }
-    if (!classSection || classSection.teacher?.department.instituteId !== instituteId) {
-      throw new Error('Class section not found or assigned teacher does not belong to the institute');
+    if (!classSection || classSection.teacher?.department.institutionId !== institutionId) {
+      throw new Error('Class section not found or assigned teacher does not belong to the institution');
     }
-    if (!semester) {
-      throw new Error('Semester not found');
+    if (!semester || semester.institutionId !== institutionId) {
+      throw new Error('Semester not found or does not belong to the institution');
     }
 
+    
     // Check if semester is still active
     const today = new Date();
     if (new Date(semester.endDate) < today) {
       throw new Error('Semester has ended');
     }
-
+    
     // Create TeacherCourseSectionRelation
     const relation = await prisma.teacherCourseSectionRelation.create({
       data: {
@@ -96,7 +101,7 @@ export async function createTeacherCourseSectionAndSessions({
         semesterId,
       },
     });
-
+  
     // Generate AttendanceSession records
     const sessions = [];
     let currentDate = new Date(today);
@@ -122,11 +127,12 @@ export async function createTeacherCourseSectionAndSessions({
       currentDate.setDate(currentDate.getDate() + 1);
     }
 
+   
     // Bulk create sessions
     await prisma.attendanceSession.createMany({
       data: sessions,
     });
-
+   
     return { relation, sessionCount: sessions.length };
   } catch (error: any) {
     console.error('Error creating teacher course section relation and sessions:', error);
@@ -135,16 +141,17 @@ export async function createTeacherCourseSectionAndSessions({
 }
 
 export async function getTeachers(adminId: string) {
-  const instituteId = await getInstituteId(adminId);
-
+  console.log('\n\n\ngetTeacher ........... where adminId =', adminId);
+  const institutionId = await getInstitutionId(adminId);
+ 
   const departments = await prisma.department.findMany({
-    where: { instituteId },
+    where: { institutionId },
     select: { id: true },
   });
-
+ 
   const departmentIds = departments.map((dept) => dept.id);
 
-  return prisma.teacher.findMany({
+  const teachers = await prisma.teacher.findMany({
     where: {
       departmentId: { in: departmentIds },
     },
@@ -154,19 +161,21 @@ export async function getTeachers(adminId: string) {
       teacherCode: true,
     },
   });
+  
+  return teachers;
 }
 
 export async function getCourses(adminId: string) {
-  const instituteId = await getInstituteId(adminId);
-
+  const institutionId = await getInstitutionId(adminId);
+  
   const departments = await prisma.department.findMany({
-    where: { instituteId },
+    where: { institutionId },
     select: { id: true },
   });
-
+  
   const departmentIds = departments.map((dept) => dept.id);
 
-  return prisma.course.findMany({
+  const courses = await prisma.course.findMany({
     where: {
       departmentId: { in: departmentIds },
     },
@@ -176,26 +185,27 @@ export async function getCourses(adminId: string) {
       courseCode: true,
     },
   });
+  return courses;
 }
 
 export async function getClassSections(adminId: string) {
-  const instituteId = await getInstituteId(adminId);
-
+  const institutionId = await getInstitutionId(adminId);
+ 
   const departments = await prisma.department.findMany({
-    where: { instituteId },
+    where: { institutionId },
     select: { id: true },
   });
-
+ 
   const departmentIds = departments.map((dept) => dept.id);
 
   const teachers = await prisma.teacher.findMany({
     where: { departmentId: { in: departmentIds } },
     select: { id: true },
   });
-
+ 
   const teacherIds = teachers.map((teacher) => teacher.id);
 
-  return prisma.classSection.findMany({
+  const classSections = await prisma.classSection.findMany({
     where: {
       teacherId: { in: teacherIds },
     },
@@ -206,4 +216,26 @@ export async function getClassSections(adminId: string) {
       semester: { select: { name: true } },
     },
   });
+ 
+  return classSections;
+}
+
+export async function getSemesters(adminId: string) {
+  console.log('\n\n\ngetSemesters ........... where adminId =', adminId);
+  const institutionId = await getInstitutionId(adminId);
+ 
+  const semesters = await prisma.semester.findMany({
+    where: {
+      institutionId,
+    },
+    select: {
+      id: true,
+      name: true,
+      startDate: true,
+      endDate: true,
+      isCurrent: true,
+    },
+  });
+ 
+  return semesters;
 }
