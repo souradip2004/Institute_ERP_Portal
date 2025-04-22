@@ -31,11 +31,19 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Download, Search, Upload, SlidersHorizontal } from 'lucide-react';
-import NoteCard from './NoteCard';
+import { 
+    Download, 
+    Search, 
+    Upload, 
+    SlidersHorizontal, 
+    Video, 
+    Eye, 
+    Book, 
+    GraduationCap 
+} from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import NotesViewer from './NotesViewer/index';
 import { getLocalVideoData, hasLocalVideoData, storeVideoDataLocally } from './NotesViewer/utils';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
 interface NotesLibraryProps {
     studentId: string;
@@ -260,15 +268,18 @@ const NotesLibrary: React.FC<NotesLibraryProps> = ({
 
     return (
         <div className="space-y-6">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-gradient-to-r from-indigo-50 to-purple-50 p-6 rounded-lg">
                 <div>
-                    <h1 className="text-2xl font-bold">Hello, {studentName}</h1>
-                    <p className="text-gray-500">{batchName} - Section {sectionName}</p>
+                    <h1 className="text-2xl font-bold text-gray-800">{studentName}</h1>
+                    <p className="text-gray-500 flex items-center gap-2">
+                        <GraduationCap size={16} />
+                        {batchName} - Section {sectionName}
+                    </p>
                 </div>
 
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-3">
                     <div className="relative">
-                        <Button variant="outline" className="flex items-center gap-2">
+                        <Button variant="outline" className="flex items-center gap-2 bg-white">
                             <Upload size={16} />
                             Upload Notes
                         </Button>
@@ -281,7 +292,7 @@ const NotesLibrary: React.FC<NotesLibraryProps> = ({
                     </div>
 
                     <Select>
-                        <SelectTrigger className="w-[180px]">
+                        <SelectTrigger className="w-[180px] bg-white">
                             <SelectValue placeholder="Choose Language" />
                         </SelectTrigger>
                         <SelectContent>
@@ -297,12 +308,15 @@ const NotesLibrary: React.FC<NotesLibraryProps> = ({
                 </div>
             </div>
 
-            <div>
-                <h2 className="text-xl font-semibold mb-2">Admin's Notes</h2>
+            <div className="bg-white p-6 rounded-lg shadow-sm border">
+                <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                    <Book size={20} className="text-indigo-600" />
+                    Admin&apos;s Notes
+                </h2>
                 <div className="mb-4">
-                    <Label htmlFor="subject-select">Select Subject</Label>
+                    <Label htmlFor="subject-select" className="text-sm font-medium">Select Subject</Label>
                     <Select value={selectedSubject} onValueChange={setSelectedSubject}>
-                        <SelectTrigger id="subject-select">
+                        <SelectTrigger id="subject-select" className="mt-1">
                             <SelectValue placeholder="Select Subject" />
                         </SelectTrigger>
                         <SelectContent>
@@ -318,12 +332,15 @@ const NotesLibrary: React.FC<NotesLibraryProps> = ({
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     {subjects.slice(0, 3).map((subject) => (
-                        <Card key={subject} className="hover:shadow-md transition-shadow cursor-pointer">
+                        <Card key={subject} className="hover:shadow-md transition-shadow cursor-pointer bg-gradient-to-br from-indigo-50 to-indigo-100 border-indigo-100">
                             <CardHeader className="pb-2">
-                                <CardTitle>{subject}</CardTitle>
+                                <CardTitle className="text-indigo-700">{subject}</CardTitle>
                             </CardHeader>
                             <CardContent>
-                                <p className="text-sm text-gray-500">
+                                <p className="text-sm text-gray-600 flex items-center gap-2">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                        <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z" />
+                                    </svg>
                                     {notes.filter(note => note.subjectName === subject)[0]?.teacher?.user?.name || 'Teacher'}
                                 </p>
                             </CardContent>
@@ -333,20 +350,30 @@ const NotesLibrary: React.FC<NotesLibraryProps> = ({
             </div>
 
             {selectedSubject && (
-                <div>
-                    <div className="flex justify-between items-center mb-4">
-                        <h2 className="text-xl font-semibold">{selectedSubject}</h2>
+                <div className="bg-white p-6 rounded-lg shadow-sm border">
+                    <div className="flex justify-between items-center mb-5">
+                        <h2 className="text-xl font-semibold flex items-center gap-2">
+                            {selectedSubject !== 'all' && (
+                                <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold border border-input bg-background mr-2">
+                                    {selectedSubject}
+                                </span>
+                            )}
+                            {selectedSubject === 'all' ? 'All Notes' : 'Subject Materials'}
+                        </h2>
 
                         <div className="flex items-center gap-2">
                             <form onSubmit={handleSearch} className="flex items-center gap-2">
-                                <Input
-                                    placeholder="Search"
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="max-w-xs"
-                                />
-                                <Button type="submit" variant="ghost" size="icon">
-                                    <Search size={20} />
+                                <div className="relative">
+                                    <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                                    <Input
+                                        placeholder="Search notes"
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        className="pl-9 w-[220px]"
+                                    />
+                                </div>
+                                <Button type="submit" variant="ghost" size="icon" className="hover:bg-gray-100">
+                                    <Search size={18} />
                                 </Button>
                             </form>
 
@@ -361,61 +388,99 @@ const NotesLibrary: React.FC<NotesLibraryProps> = ({
                                 </SelectContent>
                             </Select>
 
-                            <Button variant="ghost" size="icon">
-                                <SlidersHorizontal size={20} />
+                            <Button variant="ghost" size="icon" className="hover:bg-gray-100">
+                                <SlidersHorizontal size={18} />
                             </Button>
                         </div>
                     </div>
 
-                    <Tabs defaultValue="notes">
+                    <Tabs defaultValue="notes" className="mt-4">
                         <TabsList>
-                            <TabsTrigger value="notes">Notes</TabsTrigger>
-                            <TabsTrigger value="video">Video</TabsTrigger>
+                            <TabsTrigger value="notes" className="flex items-center gap-1">
+                                <Book size={14} />
+                                Notes
+                            </TabsTrigger>
+                            <TabsTrigger value="video" className="flex items-center gap-1">
+                                <Video size={14} />
+                                Video
+                            </TabsTrigger>
                         </TabsList>
 
-                        <TabsContent value="notes">
-                            <div className="rounded-md border">
+                        <TabsContent value="notes" className="mt-4">
+                            <div className="rounded-lg border overflow-hidden bg-white">
                                 <Table>
-                                    <TableHeader>
+                                    <TableHeader className="bg-gray-50">
                                         <TableRow>
-                                            <TableHead className="w-[40%]">Topic</TableHead>
-                                            <TableHead className="w-[30%]">Date Uploaded</TableHead>
-                                            <TableHead className="w-[30%] text-right">Action</TableHead>
+                                            <TableHead className="w-[40%] py-3">Topic</TableHead>
+                                            <TableHead className="w-[20%] py-3">Subject</TableHead>
+                                            <TableHead className="w-[20%] py-3">Date Uploaded</TableHead>
+                                            <TableHead className="w-[20%] text-right py-3">Actions</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
                                         {loading ? (
                                             <TableRow>
-                                                <TableCell colSpan={3} className="text-center py-8">
-                                                    Loading notes...
+                                                <TableCell colSpan={4} className="text-center py-8">
+                                                    <div className="flex justify-center">
+                                                        <div className="inline-block animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-gray-900 mb-2"></div>
+                                                    </div>
+                                                    <p className="text-sm text-gray-500">Loading notes...</p>
                                                 </TableCell>
                                             </TableRow>
                                         ) : notes.length === 0 ? (
                                             <TableRow>
-                                                <TableCell colSpan={3} className="text-center py-8">
-                                                    No notes found for this subject.
+                                                <TableCell colSpan={4} className="text-center py-8">
+                                                    <p className="text-gray-500">No notes found for this subject.</p>
                                                 </TableCell>
                                             </TableRow>
                                         ) : (
                                             notes
                                                 .filter(note => selectedSubject === 'all' || !selectedSubject || note.subjectName === selectedSubject)
                                                 .map((note) => (
-                                                    <TableRow key={note.id}>
-                                                        <TableCell>{note.title}</TableCell>
+                                                    <TableRow key={note.id} className="hover:bg-gray-50">
+                                                        <TableCell className="font-medium">{note.title}</TableCell>
+                                                        <TableCell>{note.subjectName || '-'}</TableCell>
                                                         <TableCell>{formatDate(note.createdAt)}</TableCell>
-                                                        <TableCell className="text-right">
+                                                        <TableCell className="text-right space-x-1">
+                                                            {hasLocalVideoData(note.id) && (
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="icon"
+                                                                    onClick={() => {
+                                                                        setSelectedNoteId(note.id);
+                                                                        setShowVideoModal(true);
+                                                                    }}
+                                                                    className="text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50"
+                                                                    title="Watch as video"
+                                                                >
+                                                                    <Video size={18} />
+                                                                </Button>
+                                                            )}
+                                                            
                                                             {note.attachments.length > 0 && (
                                                                 <Button
                                                                     variant="ghost"
-                                                                    size="sm"
+                                                                    size="icon"
                                                                     onClick={() => handleDownload(
                                                                         note.attachments[0].fileUrl,
                                                                         note.attachments[0].fileName
                                                                     )}
-                                                                    className="text-blue-600 hover:text-blue-800"
+                                                                    className="text-blue-600 hover:text-blue-800 hover:bg-blue-50"
+                                                                    title="Download"
                                                                 >
-                                                                    <Download size={18} className="mr-1" />
-                                                                    Download
+                                                                    <Download size={18} />
+                                                                </Button>
+                                                            )}
+                                                            
+                                                            {note.attachments.length > 0 && note.attachments[0].fileType.includes('pdf') && (
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="icon"
+                                                                    className="text-green-600 hover:text-green-800 hover:bg-green-50"
+                                                                    onClick={() => window.open(note.attachments[0].fileUrl, '_blank')}
+                                                                    title="View PDF"
+                                                                >
+                                                                    <Eye size={18} />
                                                                 </Button>
                                                             )}
                                                         </TableCell>
@@ -428,7 +493,8 @@ const NotesLibrary: React.FC<NotesLibraryProps> = ({
                         </TabsContent>
 
                         <TabsContent value="video">
-                            <div className="rounded-md border p-6 text-center">
+                            <div className="rounded-md border p-6 text-center bg-gray-50">
+                                <Video size={40} className="mx-auto text-gray-400 mb-2" />
                                 <p className="text-gray-500">Video content will be displayed here</p>
                             </div>
                         </TabsContent>
@@ -437,49 +503,13 @@ const NotesLibrary: React.FC<NotesLibraryProps> = ({
             )}
 
             {error && (
-                <div className="bg-red-100 text-red-800 p-3 rounded-md mt-4">
+                <div className="bg-red-100 text-red-800 p-4 rounded-md mt-4 border border-red-200 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
                     {error}
                 </div>
             )}
-
-            <Tabs defaultValue="all" onValueChange={setActiveTab}>
-                <TabsList className="mb-6">
-                    <TabsTrigger value="all">All Notes</TabsTrigger>
-                    {subjects.map(subject => (
-                        <TabsTrigger key={subject} value={subject}>
-                            {subject}
-                        </TabsTrigger>
-                    ))}
-                </TabsList>
-
-                <TabsContent value={activeTab} className="mt-0">
-                    {loading ? (
-                        <div className="text-center py-12">
-                            <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-gray-900 mb-2"></div>
-                            <p>Loading notes...</p>
-                        </div>
-                    ) : filteredNotes.length === 0 ? (
-                        <div className="text-center py-12 bg-gray-50 rounded-md">
-                            <p className="text-gray-500">No notes available for this subject.</p>
-                        </div>
-                    ) : (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {filteredNotes.map(note => (
-                                <NoteCard
-                                    key={note.id}
-                                    id={note.id}
-                                    title={note.title}
-                                    subjectName={note.subjectName}
-                                    createdAt={note.createdAt}
-                                    teacherName={note.teacher.user.name}
-                                    attachments={note.attachments}
-                                    onViewVideo={handleViewVideo}
-                                />
-                            ))}
-                        </div>
-                    )}
-                </TabsContent>
-            </Tabs>
 
             {/* Video Player Modal */}
             <Dialog open={showVideoModal} onOpenChange={setShowVideoModal}>

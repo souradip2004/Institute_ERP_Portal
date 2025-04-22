@@ -33,7 +33,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { ChevronLeft, Search, Upload, Trash2, Download, Edit } from 'lucide-react';
 import Link from 'next/link';
-import NoteCard from './NoteCard';
 import NotesViewer from './NotesViewer/index';
 import { getLocalVideoData, storeVideoDataLocally } from './NotesViewer/utils';
 import { toast } from 'react-hot-toast';
@@ -44,6 +43,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import VideoPlayerModal from './NotesViewer/modal';
 
 interface NotesManagementProps {
     teacherId: string;
@@ -64,6 +64,7 @@ type Note = {
     createdAt: string;
     updatedAt: string;
     classSectionId: string;
+    gender?: string;
     attachments: {
         id: string;
         fileUrl: string;
@@ -530,134 +531,209 @@ const NotesManagement: React.FC<NotesManagementProps> = ({
         <div className="space-y-6">
             <div className="flex items-center gap-2 mb-6">
                 <Link href={{ pathname: `/dashboard/teacher/class/${classSectionId}` }}>
-                    <Button variant="ghost" size="icon">
+                    <Button variant="ghost" size="icon" className="hover:bg-gray-100">
                         <ChevronLeft size={18} />
                     </Button>
                 </Link>
-                <h1 className="text-2xl font-bold">{className}</h1>
+                <div>
+                    <h1 className="text-2xl font-bold">{className}</h1>
+                    <p className="text-sm text-gray-500">Teacher: {teacherName} • Batch: {batchName} • Section: {sectionName}</p>
+                </div>
             </div>
 
-            <div className="flex justify-between items-center">
-                <h2 className="text-xl font-semibold">Notes & Materials</h2>
+            <div className="bg-white rounded-xl shadow-md p-6 mb-6">
+                <div className="flex justify-between items-center mb-6">
+                    <h2 className="text-xl font-semibold">Notes & Materials</h2>
 
-                <div className="flex items-center gap-2">
-                    <form onSubmit={handleSearch} className="flex items-center">
-                        <div className="relative w-64">
-                            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                            <Input
-                                placeholder="Search for any topic..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                className="pl-8"
-                            />
+                    <div className="flex items-center gap-3">
+                        <form onSubmit={handleSearch} className="flex items-center">
+                            <div className="relative w-64">
+                                <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+                                <Input
+                                    placeholder="Search notes..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    className="pl-10 pr-4 py-2 rounded-full border-gray-300 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                                />
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                    <div 
+                        className="bg-gradient-to-br from-indigo-500 to-purple-600 p-6 rounded-xl text-white shadow-md hover:shadow-lg transition-shadow cursor-pointer flex flex-col items-center justify-center h-48"
+                        onClick={() => setUploadDialogOpen(true)}
+                    >
+                        <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center mb-4">
+                            <Upload size={24} className="text-white" />
                         </div>
-                    </form>
-                </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="border p-4 rounded-md flex flex-col items-center justify-center hover:bg-gray-50 cursor-pointer transition-colors"
-                    onClick={() => setUploadDialogOpen(true)}>
-                    <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center text-purple-600 mb-2">
-                        <Upload size={20} />
+                        <h3 className="text-xl font-semibold mb-1">Upload Notes</h3>
+                        <p className="text-white/80 text-sm text-center">Add new PDF notes for students</p>
                     </div>
-                    <p className="font-medium">Upload Notes</p>
-                </div>
 
-                <div className="border p-4 rounded-md flex flex-col items-center justify-center hover:bg-gray-50 cursor-pointer transition-colors">
-                    <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-600 mb-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M7 12h14"></path><path d="M7 5h14"></path><path d="M7 19h14"></path><path d="M3 5a1 1 0 1 0 0 1 1 1 0 0 0 0-1"></path><path d="M3 19a1 1 0 1 0 0 1 1 1 0 0 0 0-1"></path><rect x="1" y="10" width="4" height="4" rx="1"></rect></svg>
+                    <div className="bg-gradient-to-br from-emerald-500 to-teal-600 p-6 rounded-xl text-white shadow-md hover:shadow-lg transition-shadow cursor-pointer flex flex-col items-center justify-center h-48">
+                        <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center mb-4">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M7 12h14"></path><path d="M7 5h14"></path><path d="M7 19h14"></path><path d="M3 5a1 1 0 1 0 0 1 1 1 0 0 0 0-1"></path><path d="M3 19a1 1 0 1 0 0 1 1 1 0 0 0 0-1"></path><rect x="1" y="10" width="4" height="4" rx="1"></rect></svg>
+                        </div>
+                        <h3 className="text-xl font-semibold mb-1">Submit Numericals</h3>
+                        <p className="text-white/80 text-sm text-center">Create practice problems for students</p>
                     </div>
-                    <p className="font-medium">Submit Numericals</p>
+
+                    <div className="bg-gradient-to-br from-amber-500 to-orange-600 p-6 rounded-xl text-white shadow-md hover:shadow-lg transition-shadow cursor-pointer flex flex-col items-center justify-center h-48">
+                        <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center mb-4">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 22h14a2 2 0 0 0 2-2V7.5L14.5 2H6a2 2 0 0 0-2 2v4"></path><path d="M14 2v6h6"></path><path d="M2 15h10"></path><path d="m9 18 3-3-3-3"></path></svg>
+                        </div>
+                        <h3 className="text-xl font-semibold mb-1">Create Assignment</h3>
+                        <p className="text-white/80 text-sm text-center">Assign homework and track progress</p>
+                    </div>
                 </div>
-            </div>
 
-            <div className="flex items-center gap-4 my-4">
-                <Button variant="outline" className="bg-purple-700 text-white hover:bg-purple-800">
-                    Convert
-                </Button>
+                <div className="mb-8">
+                    <div className="flex border-b border-gray-200 mb-4">
+                        <button 
+                            className={`px-4 py-2 font-medium text-sm ${activeTab === 'all' ? 'text-indigo-600 border-b-2 border-indigo-600' : 'text-gray-500 hover:text-gray-700'}`}
+                            onClick={() => setActiveTab('all')}
+                        >
+                            All Notes
+                        </button>
+                        <button 
+                            className={`px-4 py-2 font-medium text-sm ${activeTab === 'published' ? 'text-indigo-600 border-b-2 border-indigo-600' : 'text-gray-500 hover:text-gray-700'}`}
+                            onClick={() => setActiveTab('published')}
+                        >
+                            Published
+                        </button>
+                        <button 
+                            className={`px-4 py-2 font-medium text-sm ${activeTab === 'drafts' ? 'text-indigo-600 border-b-2 border-indigo-600' : 'text-gray-500 hover:text-gray-700'}`}
+                            onClick={() => setActiveTab('drafts')}
+                        >
+                            Drafts
+                        </button>
+                    </div>
+                </div>
 
-                <Button variant="outline" className="border border-black flex items-center gap-2">
-                    <span>Submit Notes</span>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-                </Button>
-            </div>
-
-            <h3 className="text-lg font-medium mb-2">Recent Notes and Video Explanations</h3>
-
-            <div className="rounded-md border">
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead className="w-[30%]">Title</TableHead>
-                            <TableHead className="w-[20%]">Subject</TableHead>
-                            <TableHead className="w-[15%]">Type</TableHead>
-                            <TableHead className="w-[15%]">Date Uploaded</TableHead>
-                            <TableHead className="w-[20%] text-right">Actions</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {loading ? (
+                <div className="rounded-md border border-gray-200 overflow-hidden">
+                    <Table>
+                        <TableHeader className="bg-gray-50">
                             <TableRow>
-                                <TableCell colSpan={5} className="text-center py-8">
-                                    Loading notes...
-                                </TableCell>
+                                <TableHead className="w-[30%] py-3 font-semibold">Title</TableHead>
+                                <TableHead className="w-[20%] py-3 font-semibold">Subject</TableHead>
+                                <TableHead className="w-[15%] py-3 font-semibold">Type</TableHead>
+                                <TableHead className="w-[15%] py-3 font-semibold">Date Uploaded</TableHead>
+                                <TableHead className="w-[20%] text-right py-3 font-semibold">Actions</TableHead>
                             </TableRow>
-                        ) : notes.length === 0 ? (
-                            <TableRow>
-                                <TableCell colSpan={5} className="text-center py-8">
-                                    No notes found. Upload your first note.
-                                </TableCell>
-                            </TableRow>
-                        ) : (
-                            notes.map((note) => (
-                                <TableRow key={note.id}>
-                                    <TableCell>{note.title}</TableCell>
-                                    <TableCell>{note.subjectName || 'N/A'}</TableCell>
-                                    <TableCell>{note.fileType === 'video' ? 'Video' : 'Notes'}</TableCell>
-                                    <TableCell>{formatDate(note.createdAt)}</TableCell>
-                                    <TableCell className="text-right">
-                                        <div className="flex justify-end gap-2">
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                onClick={() => handleEditNote(note)}
-                                                className="h-8 w-8"
-                                            >
-                                                <Edit size={16} />
-                                            </Button>
-                                            {note.attachments.length > 0 && (
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    onClick={() => handleDownload(
-                                                        note.attachments[0].fileUrl,
-                                                        note.attachments[0].fileName
-                                                    )}
-                                                    className="h-8 w-8"
-                                                >
-                                                    <Download size={16} />
-                                                </Button>
-                                            )}
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                onClick={() => handleDeleteNote(note.id)}
-                                                className="h-8 w-8 text-red-500 hover:text-red-700"
-                                            >
-                                                <Trash2 size={16} />
-                                            </Button>
+                        </TableHeader>
+                        <TableBody>
+                            {loading ? (
+                                <TableRow>
+                                    <TableCell colSpan={5} className="text-center py-12">
+                                        <div className="flex flex-col items-center">
+                                            <div className="w-8 h-8 border-t-2 border-b-2 border-indigo-600 rounded-full animate-spin mb-2"></div>
+                                            <p className="text-gray-500">Loading notes...</p>
                                         </div>
                                     </TableCell>
                                 </TableRow>
-                            ))
-                        )}
-                    </TableBody>
-                </Table>
+                            ) : notes.length === 0 ? (
+                                <TableRow>
+                                    <TableCell colSpan={5} className="text-center py-12">
+                                        <div className="flex flex-col items-center">
+                                            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center text-gray-400 mb-3">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
+                                            </div>
+                                            <p className="text-gray-500 mb-1">No notes found</p>
+                                            <p className="text-gray-400 text-sm">Upload your first note to get started</p>
+                                        </div>
+                                    </TableCell>
+                                </TableRow>
+                            ) : (
+                                notes
+                                    .filter(note => activeTab === 'all' || (activeTab === 'published' ? note.isPublished : !note.isPublished))
+                                    .map((note) => (
+                                        <TableRow key={note.id} className="hover:bg-gray-50">
+                                            <TableCell className="font-medium">
+                                                {note.title}
+                                                {note.isPublished && (
+                                                    <span className="ml-2 px-2 py-0.5 text-xs rounded-full bg-green-100 text-green-800">Published</span>
+                                                )}
+                                                {!note.isPublished && (
+                                                    <span className="ml-2 px-2 py-0.5 text-xs rounded-full bg-gray-100 text-gray-800">Draft</span>
+                                                )}
+                                            </TableCell>
+                                            <TableCell>{note.subjectName || 'N/A'}</TableCell>
+                                            <TableCell>
+                                                <span className="flex items-center gap-1">
+                                                    {note.fileType === 'video' ? (
+                                                        <>
+                                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m22 8-6 4 6 4V8Z"/><rect width="14" height="12" x="2" y="6" rx="2" ry="2"/></svg>
+                                                            <span>Video</span>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
+                                                            <span>PDF</span>
+                                                        </>
+                                                    )}
+                                                </span>
+                                            </TableCell>
+                                            <TableCell>{formatDate(note.createdAt)}</TableCell>
+                                            <TableCell className="text-right">
+                                                <div className="flex justify-end gap-2">
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        onClick={() => handleViewVideo(note.id)}
+                                                        className="h-8 w-8 rounded-full hover:bg-indigo-50 hover:text-indigo-700"
+                                                        title="View interactive notes"
+                                                    >
+                                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="2"/><path d="M12 19c-4 0-7.5-3-9-6 1.5-3 5-6 9-6s7.5 3 9 6c-1.5 3-5 6-9 6Z"/></svg>
+                                                    </Button>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        onClick={() => handleEditNote(note)}
+                                                        className="h-8 w-8 rounded-full hover:bg-blue-50 hover:text-blue-700"
+                                                        title="Edit note"
+                                                    >
+                                                        <Edit size={16} />
+                                                    </Button>
+                                                    {note.attachments.length > 0 && (
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            onClick={() => handleDownload(
+                                                                note.attachments[0].fileUrl,
+                                                                note.attachments[0].fileName
+                                                            )}
+                                                            className="h-8 w-8 rounded-full hover:bg-green-50 hover:text-green-700"
+                                                            title="Download"
+                                                        >
+                                                            <Download size={16} />
+                                                        </Button>
+                                                    )}
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        onClick={() => handleDeleteNote(note.id)}
+                                                        className="h-8 w-8 rounded-full hover:bg-red-50 hover:text-red-700"
+                                                        title="Delete"
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </Button>
+                                                </div>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))
+                            )}
+                        </TableBody>
+                    </Table>
+                </div>
             </div>
 
             {error && (
-                <div className="bg-red-100 text-red-800 p-3 rounded-md mt-4">
+                <div className="bg-red-100 text-red-800 p-4 rounded-md mt-4 flex items-center shadow-sm">
+                    <svg className="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                    </svg>
                     {error}
                 </div>
             )}
@@ -922,55 +998,33 @@ const NotesManagement: React.FC<NotesManagementProps> = ({
                 </DialogContent>
             </Dialog>
 
-            {/* Notes Grid View */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
-                {
-                    notes
-                        .filter(note => activeTab === 'all' || (activeTab === 'published' ? note.isPublished : !note.isPublished))
-                        .map(note => (
-                            <NoteCard
-                                key={note.id}
-                                id={note.id}
-                                title={note.title}
-                                subjectName={note.subjectName}
-                                createdAt={note.createdAt}
-                                attachments={note.attachments}
-                                viewMode="teacher"
-                                onViewVideo={handleViewVideo}
-                            />
-                        ))
-                }
-            </div>
-
             {/* Video Player Modal */}
-            <Dialog open={showVideoModal} onOpenChange={setShowVideoModal}>
-                <DialogContent className="max-w-6xl w-[90vw] h-[90vh] p-0">
-                    <DialogHeader className="absolute top-0 right-0 z-10 p-2">
-                        <DialogTitle className="sr-only">Notes Viewer</DialogTitle>
-                        <DialogDescription className="sr-only">
-                            Interactive PDF notes viewer
-                        </DialogDescription>
-                    </DialogHeader>
-                    {selectedNoteId && (
-                        <div className="h-full w-full">
-                            <NotesViewer
-                                noteId={selectedNoteId}
-                                initialVideoData={selectedNoteId ? getLocalVideoData(selectedNoteId) : undefined}
-                                pdfUrl={notes.find(n => n.id === selectedNoteId)?.attachments[0]?.fileUrl}
-                            />
-                        </div>
-                    )}
-                </DialogContent>
-            </Dialog>
+            <VideoPlayerModal 
+                isOpen={showVideoModal} 
+                onClose={() => setShowVideoModal(false)}
+            >
+                {selectedNoteId && (
+                    <NotesViewer
+                        noteId={selectedNoteId}
+                        initialVideoData={selectedNoteId ? getLocalVideoData(selectedNoteId) : undefined}
+                        pdfUrl={notes.find(n => n.id === selectedNoteId)?.attachments[0]?.fileUrl}
+                    />
+                )}
+            </VideoPlayerModal>
 
+            {/* Processing Modal */}
             {processingVideoData && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    <div className="bg-white p-6 rounded-lg shadow-lg max-w-md">
-                        <h3 className="text-lg font-semibold mb-2">Processing PDF</h3>
-                        <p className="mb-4">Converting your PDF into video data. This may take a few minutes.</p>
-                        <div className="w-full bg-gray-200 rounded-full h-2.5">
-                            <div className="bg-blue-600 h-2.5 rounded-full" style={{ width: `${uploadProgress}%` }}></div>
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
+                    <div className="bg-white p-8 rounded-xl shadow-2xl max-w-md">
+                        <div className="flex justify-center mb-6">
+                            <div className="w-16 h-16 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
                         </div>
+                        <h3 className="text-xl font-bold text-gray-900 mb-3">Processing PDF</h3>
+                        <p className="mb-6 text-gray-600">Converting your PDF into an interactive learning experience. This may take a few minutes.</p>
+                        <div className="w-full bg-gray-200 rounded-full h-2.5 mb-2">
+                            <div className="bg-indigo-600 h-2.5 rounded-full" style={{ width: `${uploadProgress}%` }}></div>
+                        </div>
+                        <div className="text-right text-sm text-gray-500">{Math.round(uploadProgress)}% complete</div>
                     </div>
                 </div>
             )}
@@ -981,16 +1035,6 @@ const NotesManagement: React.FC<NotesManagementProps> = ({
                     Selected file: {selectedFile.name}
                 </div>
             )}
-
-            {/* Display different UI for teachers */}
-            <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold">
-                    {className} - {teacherName}'s Notes
-                </h2>
-                <div className="text-sm text-gray-500">
-                    Batch: {batchName}, Section: {sectionName}
-                </div>
-            </div>
         </div>
     );
 };
