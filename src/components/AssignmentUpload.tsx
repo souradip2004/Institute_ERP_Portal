@@ -2,6 +2,7 @@
 
 import { useState, FormEvent, ChangeEvent, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import notify from '@/utils/toast';
 
 interface AssignmentUploadProps {
   classSectionId: string;
@@ -45,7 +46,7 @@ const AssignmentUpload = ({ classSectionId }: AssignmentUploadProps) => {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!title || !totalMarks || !dueDate) {
-      alert('Please fill in all required fields');
+      notify.error('Please fill in all required fields');
       return;
     }
 
@@ -61,11 +62,15 @@ const AssignmentUpload = ({ classSectionId }: AssignmentUploadProps) => {
     }
 
     try {
+      const loadingId = notify.loading('Creating assignment...');
+      
       const response = await fetch('/api/assignments/create', {
         method: 'POST',
         body: formData,
       });
 
+      notify.dismiss(loadingId);
+      
       if (!response.ok) {
         throw new Error('Failed to create assignment');
       }
@@ -76,11 +81,13 @@ const AssignmentUpload = ({ classSectionId }: AssignmentUploadProps) => {
       setDueDate('');
       setFile(null);
       
+      notify.success('Assignment created successfully!');
+      
       // Refresh data
       router.refresh();
     } catch (error) {
       console.error('Error creating assignment:', error);
-      alert('Failed to create assignment. Please try again.');
+      notify.error('Failed to create assignment. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -91,7 +98,7 @@ const AssignmentUpload = ({ classSectionId }: AssignmentUploadProps) => {
   };
 
   const confirmSchedule = () => {
-    alert(`Assignment scheduled for ${scheduledDate} at ${scheduledTime}`);
+    notify.success(`Assignment scheduled for ${scheduledDate} at ${scheduledTime}`);
     setShowScheduleDialog(false);
     setScheduledDate('');
     setScheduledTime('');

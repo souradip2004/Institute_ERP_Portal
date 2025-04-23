@@ -2,6 +2,8 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { format } from "date-fns";
+import { useParams } from 'next/navigation';
+import Loader from '@/components/ui/Loader';
 
 interface Question {
   question: string;
@@ -44,7 +46,15 @@ interface Exam {
   };
 }
 
-export default function ExamsPage() {
+interface ExamsPageProps {
+  params: {
+    classId: string;
+  };
+}
+
+export default function ExamsPage({ params }: ExamsPageProps) {
+  const { classId } = params;
+  
   // States for exam creation
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [examTitle, setExamTitle] = useState("");
@@ -92,7 +102,7 @@ export default function ExamsPage() {
   const fetchExams = async () => {
     try {
       setLoadingExams(true);
-      const response = await axios.get("/api/exam/list", {
+      const response = await axios.get(`/api/exam/list?classSectionId=${classId}`, {
         withCredentials: true,
       });
       setExams(response.data.exams);
@@ -386,7 +396,7 @@ export default function ExamsPage() {
               disabled={loading}
               className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline disabled:opacity-50 mr-2"
             >
-              {loading ? "Extracting..." : "Extract Questions"}
+              {loading ? <Loader size="small" /> : "Extract Questions"}
             </button>
           </div>
 
@@ -442,14 +452,14 @@ export default function ExamsPage() {
             disabled={loading}
             className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline disabled:opacity-50"
           >
-            {loading ? "Creating..." : "Create Exam"}
+            {loading ? <Loader size="small" /> : "Create Exam"}
           </button>
         </div>
       ) : (
         // Exam List
         <div>
           {loadingExams ? (
-            <div className="text-center py-4">Loading exams...</div>
+            <Loader size="large" message="Loading exams..." />
           ) : exams.length === 0 ? (
             <div className="text-center py-4 text-gray-500">No exams created yet</div>
           ) : (
