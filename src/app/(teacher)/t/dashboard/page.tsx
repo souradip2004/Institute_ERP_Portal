@@ -38,14 +38,25 @@ export default function TeacherDashboardPage() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [exams, setExams] = useState<Exam[]>([]);
-  const [teacherAttendance, setTeacherAttendance] = useState(97);
-  const [sectionAttendances, setSectionAttendances] = useState([
-    { section: 'Q', percentage: 75 },
-    { section: 'P', percentage: 60 },
-    { section: 'T', percentage: 40 }
-  ]);
+  const [classSectionId, setClassSectionId] = useState<string | null>(null);
 
   useEffect(() => {
+    const getUserData = () => {
+      if (typeof window !== 'undefined') {
+        const userData = localStorage.getItem('user');
+        if (userData) {
+          try {
+            const parsedUserData = JSON.parse(userData);
+            setClassSectionId(parsedUserData.classSectionId);
+          } catch (error) {
+            console.error('Error parsing user data from localStorage:', error);
+          }
+        }
+      }
+    };
+
+    getUserData();
+    
     const fetchData = async () => {
       try {
         await Promise.all([
@@ -207,15 +218,24 @@ export default function TeacherDashboardPage() {
 
         {/* Quick Actions */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Link href="/t/classes" className="bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow">
-            <h3 className="font-semibold">Classes</h3>
-            <p className="text-gray-600">View and manage your classes</p>
+          <Link 
+            href={classSectionId ? `/t/classes/${classSectionId}/notes` : "/t/classes"} 
+            className="bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow"
+          >
+            <h3 className="font-semibold">Notes</h3>
+            <p className="text-gray-600">View and manage your notes</p>
           </Link>
-          <Link href="/t/assignments" className="bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow">
+          <Link 
+            href={classSectionId ? `/t/classes/${classSectionId}/assignments` : "/t/assignments"} 
+            className="bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow"
+          >
             <h3 className="font-semibold">Assignments</h3>
             <p className="text-gray-600">Create and grade assignments</p>
           </Link>
-          <Link href="/t/exams" className="bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow">
+          <Link 
+            href={classSectionId ? `/t/classes/${classSectionId}/exams` : "/t/exams"} 
+            className="bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow"
+          >
             <h3 className="font-semibold">Exams</h3>
             <p className="text-gray-600">Manage and monitor exams</p>
           </Link>
