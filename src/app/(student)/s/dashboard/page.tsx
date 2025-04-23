@@ -1,6 +1,5 @@
 'use client';
 import { useEffect, useState } from 'react';
-import StudentLayout from '@/components/student/StudentLayout';
 import AnnouncementCard from '@/components/student/AnnouncementCard';
 import ClassCard from '@/components/student/ClassCard';
 import Loader from '@/components/ui/Loader';
@@ -37,7 +36,7 @@ interface User {
   email?: string;
   username?: string;
   role: string;
-  studentId?: string; 
+  studentId?: string;
   teacherId?: string;
   institutionId?: string;
   student?: {
@@ -62,6 +61,7 @@ interface StudentDetails {
   department?: {
     name: string;
     code: string;
+    id: string;
   };
   classEnrollments?: Array<{
     id: string;
@@ -112,11 +112,11 @@ export default function Dashboard() {
       const params = new URLSearchParams();
       if (institutionId) params.append('institutionId', institutionId);
       if (departmentId) params.append('departmentId', departmentId);
-      
+
       // Construct URL with params
       const url = `/api/announcements?${params.toString()}`;
       console.log('Fetching announcements from:', url);
-      
+
       const response = await authenticatedFetch(url);
       if (!response.ok) {
         throw new Error('Failed to fetch announcements');
@@ -135,22 +135,22 @@ export default function Dashboard() {
       const today = new Date().toISOString().split('T')[0];
       const response = await authenticatedFetch(`/api/attendance-sessions/today?studentId=${studentId}&date=${today}`);
       if (!response.ok) throw new Error('Failed to fetch today\'s classes');
-      
+
       const data = await response.json();
-      
+
       // For each class session, fetch the attendance percentage
       const sessionsWithAttendance = await Promise.all(
         data.map(async (session: Record<string, string | null>) => {
           const courseId = session.courseId;
           let attendancePercentage = 'N/A';
-          
+
           if (courseId && studentId) {
             try {
               // Fetch historical attendance for this course
               const attendanceResponse = await authenticatedFetch(
                 `/api/attendance?studentId=${studentId}&courseId=${courseId}`
               );
-              
+
               if (attendanceResponse.ok) {
                 const attendanceData = await attendanceResponse.json();
                 if (attendanceData.totalSessions > 0) {
@@ -162,14 +162,14 @@ export default function Dashboard() {
               console.error('Error fetching attendance percentage:', attendanceError);
             }
           }
-          
+
           return {
             ...session,
             attendancePercentage
           };
         })
       );
-      
+
       return sessionsWithAttendance;
     } catch (err) {
       console.error('Error fetching today\'s classes:', err);
@@ -216,7 +216,7 @@ export default function Dashboard() {
 
         // Fetch announcements - institutionId may be missing in the localStorage data
         const announcementsData = await fetchAnnouncements(
-          user.institutionId, 
+          user.institutionId,
           user.student?.departmentId || studentDetails?.department?.id
         );
         setAnnouncements(announcementsData);
@@ -244,36 +244,32 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <StudentLayout>
-          <div className="flex items-center justify-center min-h-[calc(100vh-64px)]">
-              <Loader size="large" />
-          </div>
-      </StudentLayout>
-  );
+      <div className="flex items-center justify-center min-h-[calc(100vh-64px)]">
+        <Loader size="large" />
+      </div>
+    );
   }
 
   if (error) {
     return (
-      <StudentLayout>
-        <div className="p-6">
-          <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6" role="alert">
-            <p className="font-bold">Error</p>
-            <p>{error}</p>
-          </div>
+      <div className="p-6">
+        <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6" role="alert">
+          <p className="font-bold">Error</p>
+          <p>{error}</p>
         </div>
-      </StudentLayout>
+      </div>
     );
   }
 
   // Extract student information
   const studentName = userData?.name || 'Student';
-  
+
   // Use detailed student information for better year-section display
   let yearSection = 'Student';
   if (studentDetails) {
     const year = studentDetails.currentYear || 1;
     const yearSuffix = year === 1 ? 'st' : year === 2 ? 'nd' : year === 3 ? 'rd' : 'th';
-    
+
     // Try to get section name from class enrollments first
     let sectionName = 'A';
     if (studentDetails.classEnrollments && studentDetails.classEnrollments.length > 0) {
@@ -288,9 +284,9 @@ export default function Dashboard() {
       // Fallback to batch name if no class section is available
       sectionName = studentDetails.batch.batchName;
     }
-    
+
     yearSection = `${year}${yearSuffix} Year - Section ${sectionName}`;
-    
+
     // Add department if available
     if (studentDetails.department?.name) {
       yearSection += ` (${studentDetails.department.name})`;
@@ -298,72 +294,70 @@ export default function Dashboard() {
   }
 
   return (
-    <StudentLayout>
-      <div className="p-8">
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            {/* <h1 className="text-gray-400 text-sm mb-1">Student Dashboard / My Classes</h1> */}
-            <div className="flex flex-col">
-              <h2 className="text-2xl font-semibold">Hello, {studentName}</h2>
-              <p className="text-gray-500">{yearSection}</p>
-            </div>
-          </div>
-          <div className="w-10 h-10 bg-indigo-700 rounded-full flex items-center justify-center">
-            <span className="text-white text-xl">{studentName.charAt(0)}</span>
-          </div>
-        </div>
-
-        <div className="mb-8">
-          <h3 className="text-xl font-semibold mb-4">Announcements</h3>
-          <div className="bg-white p-6 rounded-lg shadow">
-            {announcements.length > 0 ? (
-              announcements.map((announcement) => (
-                <AnnouncementCard
-                  key={announcement.id}
-                  title={announcement.title}
-                  content={announcement.content}
-                  createdAt={announcement.createdAt}
-                  author={announcement.createdByTeacher?.user?.name || 'Admin'}
-                  icon={
-                    announcement.title.toLowerCase().includes('physics')
-                      ? '📚'
-                      : announcement.title.toLowerCase().includes('doubt')
-                      ? '⭕'
-                      : announcement.title.toLowerCase().includes('attendance')
-                      ? '✅'
-                      : '📢'
-                  }
-                />
-              ))
-            ) : (
-              <div className="text-gray-500">No announcements to display.</div>
-            )}
-          </div>
-        </div>
-
+    <div className="p-8">
+      <div className="flex justify-between items-center mb-8">
         <div>
-          <h3 className="text-xl font-semibold mb-4">Today&apos;s Classes</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {todayClasses.length > 0 ? (
-              todayClasses.map((classSession) => (
-                <ClassCard
-                  key={classSession.id}
-                  subjectName={classSession.courseName}
-                  teacherName={classSession.teacherName}
-                  schedule={`${classSession.startTime} - ${classSession.endTime}`}
-                  attendance={classSession.attendancePercentage}
-                  isAbsentToday={classSession.attendanceStatus === 'ABSENT'}
-                  noClassToday={classSession.status === 'CANCELLED'}
-                />
-              ))
-            ) : (
-              <div className="bg-white p-6 rounded-lg shadow text-gray-500">
-                No classes scheduled for today.
-              </div>
-            )}
+          {/* <h1 className="text-gray-400 text-sm mb-1">Student Dashboard / My Classes</h1> */}
+          <div className="flex flex-col">
+            <h2 className="text-2xl font-semibold">Hello, {studentName}</h2>
+            <p className="text-gray-500">{yearSection}</p>
           </div>
+        </div>
+        <div className="w-10 h-10 bg-indigo-700 rounded-full flex items-center justify-center">
+          <span className="text-white text-xl">{studentName.charAt(0)}</span>
         </div>
       </div>
-    </StudentLayout>
+
+      <div className="mb-8">
+        <h3 className="text-xl font-semibold mb-4">Announcements</h3>
+        <div className="bg-white p-6 rounded-lg shadow">
+          {announcements.length > 0 ? (
+            announcements.map((announcement) => (
+              <AnnouncementCard
+                key={announcement.id}
+                title={announcement.title}
+                content={announcement.content}
+                createdAt={announcement.createdAt}
+                author={announcement.createdByTeacher?.user?.name || 'Admin'}
+                icon={
+                  announcement.title.toLowerCase().includes('physics')
+                    ? '📚'
+                    : announcement.title.toLowerCase().includes('doubt')
+                      ? '⭕'
+                      : announcement.title.toLowerCase().includes('attendance')
+                        ? '✅'
+                        : '📢'
+                }
+              />
+            ))
+          ) : (
+            <div className="text-gray-500">No announcements to display.</div>
+          )}
+        </div>
+      </div>
+
+      <div>
+        <h3 className="text-xl font-semibold mb-4">Today&apos;s Classes</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {todayClasses.length > 0 ? (
+            todayClasses.map((classSession) => (
+              <ClassCard
+                key={classSession.id}
+                subjectName={classSession.courseName}
+                teacherName={classSession.teacherName}
+                schedule={`${classSession.startTime} - ${classSession.endTime}`}
+                attendance={classSession.attendancePercentage}
+                isAbsentToday={classSession.attendanceStatus === 'ABSENT'}
+                noClassToday={classSession.status === 'CANCELLED'}
+              />
+            ))
+          ) : (
+            <div className="bg-white p-6 rounded-lg shadow text-gray-500">
+              No classes scheduled for today.
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }

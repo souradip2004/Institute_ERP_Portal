@@ -5,7 +5,7 @@ import NotesLibrary from '@/components/notes/NotesLibrary';
 import { redirect } from 'next/navigation';
 import VideoPlayerModal from '@/components/notes/NotesViewer/modal';
 import Loader from '@/components/ui/Loader';
-import StudentLayout from '@/components/student/StudentLayout';
+
 
 export default function StudentNotesPage() {
     const [isLoading, setIsLoading] = useState(true);
@@ -30,7 +30,7 @@ export default function StudentNotesPage() {
                 }
 
                 const response = await fetch(`/api/students/${user.studentId}?includeClassSection=true`);
-                if (!response.ok) throw new Error('Failed to fetch student data');
+                if (!response.ok) throw Error('Failed to fetch student data');
 
                 const studentData = await response.json();
                 setStudentData(studentData);
@@ -53,7 +53,7 @@ export default function StudentNotesPage() {
         const { pdfUrl, noteId, initialVideoData } = noteProps;
         const NotesViewer = React.lazy(() => import('@/components/notes/NotesViewer'));
         setModalContent(
-            <div className="w-full h-full flex">
+            <div className="container mx-auto p-4 bg-gray-50">
                 <NotesViewer
                     pdfUrl={pdfUrl}
                     noteId={noteId}
@@ -71,45 +71,45 @@ export default function StudentNotesPage() {
 
     if (isLoading) {
         return (
-            <StudentLayout>
-                <div className="flex items-center justify-center min-h-[calc(100vh-64px)]">
-                    <Loader size="large" />
-                </div>
-            </StudentLayout>
+
+            <div className="flex items-center justify-center min-h-[calc(100vh-64px)]">
+                <Loader size="large" />
+            </div>
+
         );
     }
 
     if (error) {
         return (
-            <StudentLayout>
-                <div className="p-8">
-                    <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6" role="alert">
-                        <p className="font-bold">Error</p>
-                        <p>{error}</p>
-                    </div>
+
+            <div className="p-8">
+                <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6" role="alert">
+                    <p className="font-bold">Error</p>
+                    <p>{error}</p>
                 </div>
-            </StudentLayout>
+            </div>
+
         );
     }
 
     if (!studentData) {
         return (
-            <StudentLayout>
-                <div className="p-8">
-                    <div className="text-gray-500">Student data not found</div>
-                </div>
-            </StudentLayout>
+
+            <div className="p-8">
+                <div className="text-gray-500">Student data not found</div>
+            </div>
+
         );
     }
 
     if (!studentData.classEnrollments || studentData.classEnrollments.length === 0 ||
         studentData.enrollmentStatus !== 'ACTIVE') {
         return (
-            <StudentLayout>
-                <div className="p-8">
-                    <div className="text-gray-500">No active class enrollment found</div>
-                </div>
-            </StudentLayout>
+
+            <div className="p-8">
+                <div className="text-gray-500">No active class enrollment found</div>
+            </div>
+
         );
     }
 
@@ -117,37 +117,37 @@ export default function StudentNotesPage() {
 
     if (!currentEnrollment.classSection) {
         return (
-            <StudentLayout>
-                <div className="p-8">
-                    <div className="text-gray-500">Class section data not found</div>
-                </div>
-            </StudentLayout>
+
+            <div className="p-8">
+                <div className="text-gray-500">Class section data not found</div>
+            </div>
+
         );
     }
 
     return (
-        <StudentLayout>
-            <div className="p-8">
-                <div className="mb-8">
-                    {/* <h1 className="text-gray-400 text-sm mb-1">Student Dashboard / Notes Library</h1> */}
-                    {/* <h2 className="text-2xl font-semibold">Notes Library</h2> */}
-                </div>
-                <NotesLibrary
-                    studentId={studentData.id}
-                    studentName={studentData.user.name || ''}
-                    classSectionId={currentEnrollment.classSectionId}
-                    batchName={studentData.batch?.batchName || ''}
-                    sectionName={currentEnrollment.classSection.sectionName || ''}
-                    openNoteInModal={openNoteInModal}
-                />
-                <VideoPlayerModal
-                    isOpen={isModalOpen}
-                    onClose={closeModal}
-                >
-                    {modalContent}
-                </VideoPlayerModal>
+
+        <div className="p-8">
+            <div className="mb-8">
+                {/* <h1 className="text-gray-400 text-sm mb-1">Student Dashboard / Notes Library</h1> */}
+                {/* <h2 className="text-2xl font-semibold">Notes Library</h2> */}
             </div>
-        </StudentLayout>
+            <NotesLibrary
+                studentId={studentData.id}
+                studentName={studentData.user.name || ''}
+                classSectionId={currentEnrollment.classSectionId}
+                batchName={studentData.batch?.batchName || ''}
+                sectionName={currentEnrollment.classSection.sectionName || ''}
+                openNoteInModal={openNoteInModal}
+            />
+            <VideoPlayerModal
+                isOpen={isModalOpen}
+                onClose={closeModal}
+            >
+                {modalContent}
+            </VideoPlayerModal>
+        </div>
+
     );
 }
 
