@@ -41,7 +41,7 @@ import {
     Book, 
     GraduationCap 
 } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import VideoPlayerModal from '@/components/notes/NotesViewer/modal';
 import NotesViewer from './NotesViewer/index';
 import { getLocalVideoData, hasLocalVideoData, storeVideoDataLocally } from './NotesViewer/utils';
 
@@ -51,6 +51,7 @@ interface NotesLibraryProps {
     classSectionId: string;
     batchName: string;
     sectionName: string;
+    openNoteInModal?: (noteProps: { pdfUrl?: string; noteId?: string; initialVideoData?: any }) => void;
 }
 
 type Note = {
@@ -78,8 +79,8 @@ const NotesLibrary: React.FC<NotesLibraryProps> = ({
     classSectionId,
     batchName,
     sectionName,
+    openNoteInModal,
 }) => {
-    // State variables
     const [notes, setNotes] = useState<Note[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -92,21 +93,17 @@ const NotesLibrary: React.FC<NotesLibraryProps> = ({
     const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
     const [showVideoModal, setShowVideoModal] = useState<boolean>(false);
 
-    // Fetch notes on component mount
     useEffect(() => {
         fetchNotes();
     }, [classSectionId, selectedSubject]);
 
-    // Function to fetch notes
     const fetchNotes = async () => {
         setLoading(true);
         try {
             let endpoint = `/api/class-sections/${classSectionId}/notes`;
-
             if (selectedSubject && selectedSubject !== 'all') {
                 endpoint = `/api/class-sections/${classSectionId}/subjects/${encodeURIComponent(selectedSubject)}/notes`;
             }
-
             if (searchQuery) {
                 endpoint = `/api/notes?query=${encodeURIComponent(searchQuery)}&classSectionId=${classSectionId}`;
                 if (selectedSubject && selectedSubject !== 'all') {
@@ -115,25 +112,19 @@ const NotesLibrary: React.FC<NotesLibraryProps> = ({
             }
 
             const response = await fetch(endpoint);
-            if (!response.ok) {
-                throw new Error('Failed to fetch notes');
-            }
+            if (!response.ok) throw new Error('Failed to fetch notes');
 
             const data = await response.json();
             setNotes(data);
 
-            // Check if any notes have video data already in localStorage
             data.forEach((note: Note) => {
                 if (hasLocalVideoData(note.id)) {
-                    // Update the UI state to show these notes have video data available
                     console.log(`Note ${note.id} has video data in localStorage`);
                 } else {
-                    // Check with the server if video data exists
                     checkNoteVideoData(note.id);
                 }
             });
 
-            // Extract unique subjects from notes
             if (data.length > 0 && !selectedSubject) {
                 const uniqueSubjects = Array.from(
                     new Set(
@@ -152,24 +143,15 @@ const NotesLibrary: React.FC<NotesLibraryProps> = ({
         }
     };
 
-    // Add a function to check if a note has video data on the server
     const checkNoteVideoData = async (noteId: string) => {
         try {
-            const response = await fetch(`/api/notes/${noteId}/video-data`, {
-                method: 'HEAD',
-            });
-
+            const response = await fetch(`/api/notes/${noteId}/video-data`, { method: 'HEAD' });
             if (response.ok) {
-                // Fetch the video data and store it locally
                 const dataResponse = await fetch(`/api/notes/${noteId}/video-data`);
                 if (dataResponse.ok) {
                     const videoData = await dataResponse.json();
-
                     if (videoData) {
-                        // Store the video data in localStorage
                         storeVideoDataLocally(noteId, videoData);
-
-                        // Refresh notes to update UI
                         console.log(`Note ${noteId} video data stored in localStorage`);
                     }
                 }
@@ -179,7 +161,6 @@ const NotesLibrary: React.FC<NotesLibraryProps> = ({
         }
     };
 
-    // Function to handle file upload
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files.length > 0) {
             setFileToUpload(e.target.files[0]);
@@ -188,18 +169,9 @@ const NotesLibrary: React.FC<NotesLibraryProps> = ({
 
     const handleUpload = async () => {
         if (!fileToUpload) return;
-
         setUploadingFile(true);
-
         try {
-            // In a real implementation, you would:
-            // 1. Upload the file to your storage (S3, etc.)
-            // 2. Get the file URL
-            // 3. Create a note with the file URL
-
-            // Simulate file upload
             await new Promise(resolve => setTimeout(resolve, 1000));
-
             alert('File upload functionality would be implemented here');
             setFileToUpload(null);
         } catch (err) {
@@ -210,15 +182,12 @@ const NotesLibrary: React.FC<NotesLibraryProps> = ({
         }
     };
 
-    // Function to handle search
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
         fetchNotes();
     };
 
-    // Function to handle download
     const handleDownload = (fileUrl: string, fileName: string) => {
-        // Create a link element
         const link = document.createElement('a');
         link.href = fileUrl;
         link.download = fileName;
@@ -227,13 +196,11 @@ const NotesLibrary: React.FC<NotesLibraryProps> = ({
         document.body.removeChild(link);
     };
 
-    // Format date for display
     const formatDate = (dateString: string) => {
         const date = new Date(dateString);
         return `${date.getDate()}${getOrdinalSuffix(date.getDate())} ${date.toLocaleString('default', { month: 'long' })}, ${date.getFullYear()}`;
     };
 
-    // Helper function to get ordinal suffix
     const getOrdinalSuffix = (day: number) => {
         if (day > 3 && day < 21) return 'th';
         switch (day % 10) {
@@ -245,19 +212,20 @@ const NotesLibrary: React.FC<NotesLibraryProps> = ({
     };
 
     const handleViewVideo = (noteId: string) => {
-        setSelectedNoteId(noteId);
-        setShowVideoModal(true);
+        if (openNoteInModal) {
+            openNoteInModal({
+                noteId,
+                initialVideoData: getLocalVideoData(noteId),
+            });
+        } else {
+            setSelectedNoteId(noteId);
+            setShowVideoModal(true);
+        }
     };
 
     const filteredNotes = notes.filter(note => {
-        // First filter by subject tab
-        if (activeTab !== 'all' && note.subjectName !== activeTab) {
-            return false;
-        }
-
-        // Then filter by search query
+        if (activeTab !== 'all' && note.subjectName !== activeTab) return false;
         if (!searchQuery) return true;
-
         const query = searchQuery.toLowerCase();
         return (
             note.title.toLowerCase().includes(query) ||
@@ -276,7 +244,6 @@ const NotesLibrary: React.FC<NotesLibraryProps> = ({
                         {batchName} - Section {sectionName}
                     </p>
                 </div>
-
                 <div className="flex items-center gap-3">
                     <div className="relative">
                         <Button variant="outline" className="flex items-center gap-2 bg-white">
@@ -290,7 +257,6 @@ const NotesLibrary: React.FC<NotesLibraryProps> = ({
                             accept=".pdf,.doc,.docx,.ppt,.pptx"
                         />
                     </div>
-
                     <Select>
                         <SelectTrigger className="w-[180px] bg-white">
                             <SelectValue placeholder="Choose Language" />
@@ -301,7 +267,6 @@ const NotesLibrary: React.FC<NotesLibraryProps> = ({
                             <SelectItem value="spanish">Spanish</SelectItem>
                         </SelectContent>
                     </Select>
-
                     <Button variant="default" className="bg-purple-700 hover:bg-purple-800">
                         Convert
                     </Button>
@@ -311,7 +276,7 @@ const NotesLibrary: React.FC<NotesLibraryProps> = ({
             <div className="bg-white p-6 rounded-lg shadow-sm border">
                 <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
                     <Book size={20} className="text-indigo-600" />
-                    Admin&apos;s Notes
+                    Admin's Notes
                 </h2>
                 <div className="mb-4">
                     <Label htmlFor="subject-select" className="text-sm font-medium">Select Subject</Label>
@@ -329,7 +294,6 @@ const NotesLibrary: React.FC<NotesLibraryProps> = ({
                         </SelectContent>
                     </Select>
                 </div>
-
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     {subjects.slice(0, 3).map((subject) => (
                         <Card key={subject} className="hover:shadow-md transition-shadow cursor-pointer bg-gradient-to-br from-indigo-50 to-indigo-100 border-indigo-100">
@@ -360,7 +324,6 @@ const NotesLibrary: React.FC<NotesLibraryProps> = ({
                             )}
                             {selectedSubject === 'all' ? 'All Notes' : 'Subject Materials'}
                         </h2>
-
                         <div className="flex items-center gap-2">
                             <form onSubmit={handleSearch} className="flex items-center gap-2">
                                 <div className="relative">
@@ -376,7 +339,6 @@ const NotesLibrary: React.FC<NotesLibraryProps> = ({
                                     <Search size={18} />
                                 </Button>
                             </form>
-
                             <Select>
                                 <SelectTrigger className="w-[120px]">
                                     <SelectValue placeholder="Sort By" />
@@ -387,7 +349,6 @@ const NotesLibrary: React.FC<NotesLibraryProps> = ({
                                     <SelectItem value="a-z">A-Z</SelectItem>
                                 </SelectContent>
                             </Select>
-
                             <Button variant="ghost" size="icon" className="hover:bg-gray-100">
                                 <SlidersHorizontal size={18} />
                             </Button>
@@ -405,7 +366,6 @@ const NotesLibrary: React.FC<NotesLibraryProps> = ({
                                 Video
                             </TabsTrigger>
                         </TabsList>
-
                         <TabsContent value="notes" className="mt-4">
                             <div className="rounded-lg border overflow-hidden bg-white">
                                 <Table>
@@ -446,17 +406,13 @@ const NotesLibrary: React.FC<NotesLibraryProps> = ({
                                                                 <Button
                                                                     variant="ghost"
                                                                     size="icon"
-                                                                    onClick={() => {
-                                                                        setSelectedNoteId(note.id);
-                                                                        setShowVideoModal(true);
-                                                                    }}
+                                                                    onClick={() => handleViewVideo(note.id)}
                                                                     className="text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50"
                                                                     title="Watch as video"
                                                                 >
                                                                     <Video size={18} />
                                                                 </Button>
                                                             )}
-                                                            
                                                             {note.attachments.length > 0 && (
                                                                 <Button
                                                                     variant="ghost"
@@ -471,7 +427,6 @@ const NotesLibrary: React.FC<NotesLibraryProps> = ({
                                                                     <Download size={18} />
                                                                 </Button>
                                                             )}
-                                                            
                                                             {note.attachments.length > 0 && note.attachments[0].fileType.includes('pdf') && (
                                                                 <Button
                                                                     variant="ghost"
@@ -491,7 +446,6 @@ const NotesLibrary: React.FC<NotesLibraryProps> = ({
                                 </Table>
                             </div>
                         </TabsContent>
-
                         <TabsContent value="video">
                             <div className="rounded-md border p-6 text-center bg-gray-50">
                                 <Video size={40} className="mx-auto text-gray-400 mb-2" />
@@ -511,27 +465,28 @@ const NotesLibrary: React.FC<NotesLibraryProps> = ({
                 </div>
             )}
 
-            {/* Video Player Modal */}
-            <Dialog open={showVideoModal} onOpenChange={setShowVideoModal}>
-                <DialogContent className="max-w-6xl w-[90vw] h-[90vh] p-0">
-                    <DialogHeader className="absolute top-0 right-0 z-10 p-2">
-                        <DialogTitle className="sr-only">Notes Viewer</DialogTitle>
-                        <DialogDescription className="sr-only">
-                            Interactive PDF notes viewer
-                        </DialogDescription>
-                    </DialogHeader>
+            {!openNoteInModal && (
+                <VideoPlayerModal
+                    isOpen={showVideoModal}
+                    onClose={() => {
+                        setShowVideoModal(false);
+                        setSelectedNoteId(null);
+                    }}
+                >
                     {selectedNoteId && (
-                        <div className="h-full w-full">
+                        <div className="w-full h-full flex">
                             <NotesViewer
                                 noteId={selectedNoteId}
-                                initialVideoData={selectedNoteId ? getLocalVideoData(selectedNoteId) : undefined}
+                                initialVideoData={getLocalVideoData(selectedNoteId)}
                             />
                         </div>
                     )}
-                </DialogContent>
-            </Dialog>
+                </VideoPlayerModal>
+            )}
         </div>
     );
 };
 
-export default NotesLibrary; 
+export default NotesLibrary;
+
+

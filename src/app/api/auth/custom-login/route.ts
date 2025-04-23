@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { sign } from "jsonwebtoken";
+import { ClassEnrollmentStatus } from "@prisma/client";
 
 export async function POST(request: NextRequest) {
   try {
@@ -22,8 +23,26 @@ export async function POST(request: NextRequest) {
         ...(role ? { role } : {}), // Only include role in query if provided
       },
       include: {
-        student: true,
-        teacher: true,
+        student: {
+          include: {
+            classEnrollments: {
+              include: {
+                classSection: true
+              },
+              where: {
+                enrollmentStatus: ClassEnrollmentStatus.ENROLLED
+              },
+              take: 1
+            }
+          }
+        },
+        teacher: {
+          include: {
+            classSections: {
+              take: 1
+            }
+          }
+        },
       },
     });
 
@@ -43,6 +62,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Get the class section ID based on user role
+    let classSectionId = null;
+    
+    if (user.role === 'STUDENT') {
+      classSectionId = user.student?.classEnrollments?.[0]?.classSection?.id || null;
+    } else if (user.role === 'TEACHER') {
+      classSectionId = user.teacher?.classSections?.[0]?.id || null;
+    }
+
     // Create user object to store in cookie and return to client
     const userData = {
       id: user.id,
@@ -52,6 +80,7 @@ export async function POST(request: NextRequest) {
       role: user.role,
       studentId: user.student?.id || null,
       teacherId: user.teacher?.id || null,
+      classSectionId,
     };
 
     console.log('userData: ',userData);
