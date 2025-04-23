@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import StudentLayout from '@/components/student/StudentLayout';
 import AnnouncementCard from '@/components/student/AnnouncementCard';
 import ClassCard from '@/components/student/ClassCard';
+import Loader from '@/components/ui/Loader';
 
 interface Announcement {
   id: string;
@@ -244,11 +245,11 @@ export default function Dashboard() {
   if (loading) {
     return (
       <StudentLayout>
-        <div className="p-6">
-          <p>Loading dashboard...</p>
-        </div>
+          <div className="flex items-center justify-center min-h-[calc(100vh-64px)]">
+              <Loader size="large" />
+          </div>
       </StudentLayout>
-    );
+  );
   }
 
   if (error) {
@@ -301,7 +302,7 @@ export default function Dashboard() {
       <div className="p-8">
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-gray-400 text-sm mb-1">Student Dashboard / My Classes</h1>
+            {/* <h1 className="text-gray-400 text-sm mb-1">Student Dashboard / My Classes</h1> */}
             <div className="flex flex-col">
               <h2 className="text-2xl font-semibold">Hello, {studentName}</h2>
               <p className="text-gray-500">{yearSection}</p>

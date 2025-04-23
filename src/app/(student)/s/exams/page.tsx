@@ -1,5 +1,8 @@
 "use client";
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
+import Loader from '@/components/ui/Loader';
+import StudentLayout from '@/components/student/StudentLayout';
 
 interface Question {
   id: string;
@@ -34,6 +37,8 @@ interface Exam {
   questions?: Question[];
   examType?: ExamType;
   classSection?: ClassSection;
+  duration?: string;
+  subject?: string;
 }
 
 export default function ExamsPage() {
@@ -338,158 +343,204 @@ export default function ExamsPage() {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-      </div>
+      <StudentLayout>
+        <div className="flex items-center justify-center min-h-[calc(100vh-64px)]">
+          <Loader size="large" />
+        </div>
+      </StudentLayout>
     );
   }
 
   if (error) {
     return (
-      <div className="p-6 bg-red-50 text-red-500 rounded-md">
-        <p>{error}</p>
-      </div>
+      <StudentLayout>
+        <div className="p-8">
+          <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6" role="alert">
+            <p className="font-bold">Error</p>
+            <p>{error}</p>
+          </div>
+        </div>
+      </StudentLayout>
     );
   }
 
   return (
-    <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">My Exams</h1>
-      
-      {error && (
-        <div className="bg-red-100 text-red-700 p-3 rounded mb-4">{error}</div>
-      )}
-
-      {/* Active Exams */}
-      <section className="mb-8">
-        <h2 className="text-xl font-semibold mb-4">Active Exams</h2>
-        <div className="grid gap-4">
-          {activeExams.map(exam => (
-            <div key={exam.id} className="border p-4 rounded shadow-sm">
-              <h3 className="font-bold">{exam.title}</h3>
-              <p>Subject: {exam.examType?.name || 'N/A'}</p>
-              <p>Duration: {exam.durationMinutes} minutes</p>
-              <p>Start Time: {new Date(exam.startTime).toLocaleString()}</p>
-              <button
-                onClick={() => startExam(exam)}
-                className="mt-2 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-              >
-                Start Exam
-              </button>
-            </div>
-          ))}
+    <StudentLayout>
+      <div className="p-8">
+        <div className="mb-8">
+          {/* <h1 className="text-gray-400 text-sm mb-1">
+            <Link href="/s/dashboard" className="inline-flex items-center hover:text-gray-600">
+              Student Dashboard
+            </Link>
+            <span className="mx-1">/</span>
+            My Exams
+          </h1> */}
+          <div className="flex items-center">
+            <h2 className="text-2xl font-semibold text-gray-800">My Exams</h2>
+            <button 
+              onClick={toggleDebugMode}
+              className="ml-auto text-sm text-gray-500 hover:text-gray-700"
+            >
+              {/* {debugMode ? 'Hide Debug Info' : 'Show Debug Info'} */}
+            </button>
+          </div>
         </div>
-      </section>
+        
+        {error && (
+          <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6" role="alert">
+            <p className="font-bold">Error</p>
+            <p>{error}</p>
+          </div>
+        )}
 
-      {/* Past Exams */}
-      <section>
-        <h2 className="text-xl font-semibold mb-4">Past Exams</h2>
-        <div className="overflow-x-auto">
-          <table className="min-w-full bg-white border">
-            <thead>
-              <tr className="bg-gray-100">
-                <th className="px-6 py-3 border-b text-left">Exam Title</th>
-                <th className="px-6 py-3 border-b text-left">Subject</th>
-                <th className="px-6 py-3 border-b text-left">Date Taken</th>
-                <th className="px-6 py-3 border-b text-left">Score</th>
-                <th className="px-6 py-3 border-b text-left">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {pastExams.map(exam => (
-                <tr key={exam.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 border-b">{exam.title}</td>
-                  <td className="px-6 py-4 border-b">{exam.examType?.name || 'N/A'}</td>
-                  <td className="px-6 py-4 border-b">
-                    {new Date(exam.examDate).toLocaleDateString()}
-                  </td>
-                  <td className="px-6 py-4 border-b font-semibold">
-                    {exam.score}/100
-                  </td>
-                  <td className="px-6 py-4 border-b">
-                    <span className={`px-2 py-1 rounded-full text-sm ${
-                      exam.status === 'COMPLETED' 
-                        ? 'bg-green-100 text-green-800' 
-                        : 'bg-gray-100 text-gray-800'
-                    }`}>
-                      {exam.status}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
+        {debugMode && (
+          <div className="bg-white p-4 rounded-lg shadow-sm mb-4 overflow-auto max-h-60">
+            <h3 className="font-semibold mb-2">Raw Exam Data:</h3>
+            <pre className="text-xs">{JSON.stringify(rawExamData, null, 2)}</pre>
+          </div>
+        )}
 
-      {/* Exam Modal */}
-      {showExamModal && selectedExam && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-          <div className="bg-white p-6 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            {!examCompleted ? (
-              <>
-                <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-xl font-bold">{selectedExam.title}</h2>
-                  <div className="text-lg font-semibold">
-                    Time Left: {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
-                  </div>
-                </div>
-
-                {selectedExam.questions && selectedExam.questions.length > 0 && (
-                  <div className="mb-6">
-                    <div className="text-sm text-gray-600 mb-2">
-                      Question {currentQuestionIndex + 1} of {selectedExam.questions.length}
-                    </div>
-                    <div className="border p-4 rounded">
-                      <p className="font-semibold mb-4">
-                        {selectedExam.questions[currentQuestionIndex].questionText}
-                      </p>
-                      <textarea
-                        className="w-full p-3 border rounded focus:ring-2 focus:ring-blue-500"
-                        rows={5}
-                        value={currentAnswer}
-                        onChange={(e) => setCurrentAnswer(e.target.value)}
-                        placeholder="Write your answer here..."
-                      />
-                      <div className="mt-4 flex justify-between">
-                        <button
-                          onClick={() => setCurrentQuestionIndex(prev => Math.max(0, prev - 1))}
-                          disabled={currentQuestionIndex === 0}
-                          className="px-4 py-2 border rounded disabled:opacity-50"
-                        >
-                          Previous
-                        </button>
-                        <button
-                          onClick={submitAnswer}
-                          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-                        >
-                          {currentQuestionIndex === selectedExam.questions.length - 1 ? 'Submit Exam' : 'Next Question'}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </>
-            ) : (
-              <div className="text-center">
-                <h2 className="text-2xl font-bold mb-4">Exam Completed!</h2>
-                <div className="text-6xl font-bold text-blue-500 mb-4">
-                  {finalScore}/100
-                </div>
-                <p className="text-gray-600 mb-6">
-                  Thank you for completing the exam. Your responses have been recorded.
-                </p>
+        {/* Active Exams */}
+        <section className="mb-8">
+          <h3 className="text-xl font-semibold mb-4">Active Exams</h3>
+          <div className="grid gap-4 md:grid-cols-2">
+            {activeExams.map(exam => (
+              <div key={exam.id} className="bg-white border p-4 rounded-lg shadow-sm">
+                <h4 className="font-bold text-gray-800">{exam.title}</h4>
+                {/* <p className="text-gray-600">Subject: {exam.subject || 'N/A'}</p> */}
+                <p className="text-gray-600">Duration: {exam.duration || 'N/A'}</p>
+                <p className="text-gray-600">Start Time: {new Date(exam.startTime).toLocaleString()}</p>
                 <button
-                  onClick={closeExam}
-                  className="px-6 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                  onClick={() => startExam(exam)}
+                  className="mt-2 bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700"
                 >
-                  Close
+                  Start Exam
                 </button>
+              </div>
+            ))}
+            {activeExams.length === 0 && (
+              <div className="col-span-2 p-4 bg-white rounded-lg shadow-sm text-center text-gray-500">
+                No active exams found
               </div>
             )}
           </div>
-        </div>
-      )}
-    </div>
+        </section>
+
+        {/* Past Exams */}
+        <section>
+          <h3 className="text-xl font-semibold mb-4">Past Exams</h3>
+          <div className="overflow-x-auto">
+            <table className="min-w-full bg-white border rounded-lg shadow-sm divide-y divide-gray-200">
+              <thead>
+                <tr className="bg-gray-50">
+                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-600">Exam Title</th>
+                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-600">Subject</th>
+                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-600">Date Taken</th>
+                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-600">Score</th>
+                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-600">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pastExams.map(exam => (
+                  <tr key={exam.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 text-gray-700">{exam.title}</td>
+                    <td className="px-6 py-4 text-gray-700">{exam.subject || 'N/A'}</td>
+                    <td className="px-6 py-4 text-gray-700">
+                      {new Date(exam.examDate).toLocaleDateString()}
+                    </td>
+                    <td className="px-6 py-4 font-semibold text-purple-700">
+                      {exam.score || 'N/A'}/100
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`px-2 py-1 rounded-full text-xs ${
+                        exam.status === 'COMPLETED' 
+                          ? 'bg-green-100 text-green-800' 
+                          : 'bg-gray-100 text-gray-800'
+                      }`}>
+                        {exam.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+                {pastExams.length === 0 && (
+                  <tr>
+                    <td colSpan={5} className="px-6 py-4 text-center text-gray-500">No past exams found</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        {/* Exam Modal */}
+        {showExamModal && selectedExam && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white p-6 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              {!examCompleted ? (
+                <>
+                  <div className="flex justify-between items-center mb-6">
+                    <h2 className="text-xl font-bold text-gray-800">{selectedExam.title}</h2>
+                    <div className="text-lg font-semibold text-purple-700">
+                      Time Left: {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
+                    </div>
+                  </div>
+
+                  {selectedExam.questions && selectedExam.questions.length > 0 && (
+                    <div className="mb-6">
+                      <div className="text-sm text-gray-600 mb-2">
+                        Question {currentQuestionIndex + 1} of {selectedExam.questions.length}
+                      </div>
+                      <div className="border p-4 rounded-lg">
+                        <p className="font-semibold mb-4">
+                          {selectedExam.questions[currentQuestionIndex].questionText}
+                        </p>
+                        <textarea
+                          className="w-full p-3 border rounded focus:ring-2 focus:ring-purple-500"
+                          rows={5}
+                          value={currentAnswer}
+                          onChange={(e) => setCurrentAnswer(e.target.value)}
+                          placeholder="Write your answer here..."
+                        />
+                        <div className="mt-4 flex justify-between">
+                          <button
+                            onClick={() => setCurrentQuestionIndex(prev => Math.max(0, prev - 1))}
+                            disabled={currentQuestionIndex === 0}
+                            className="px-4 py-2 border rounded disabled:opacity-50 hover:bg-gray-100"
+                          >
+                            Previous
+                          </button>
+                          <button
+                            onClick={submitAnswer}
+                            className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
+                          >
+                            {currentQuestionIndex === selectedExam.questions.length - 1 ? 'Submit Exam' : 'Next Question'}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="text-center">
+                  <h2 className="text-2xl font-bold mb-4">Exam Completed!</h2>
+                  <div className="text-6xl font-bold text-purple-700 mb-4">
+                    {finalScore}/100
+                  </div>
+                  <p className="text-gray-600 mb-6">
+                    Thank you for completing the exam. Your responses have been recorded.
+                  </p>
+                  <button
+                    onClick={closeExam}
+                    className="px-6 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
+                  >
+                    Close
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    </StudentLayout>
   );
 }
