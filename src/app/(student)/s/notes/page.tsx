@@ -3,8 +3,9 @@
 import React, { useEffect, useState } from 'react';
 import NotesLibrary from '@/components/notes/NotesLibrary';
 import { redirect } from 'next/navigation';
-import { toast } from 'react-hot-toast';
-import VideoPlayerModal from '@/components/notes/NotesViewer/modal'; 
+import VideoPlayerModal from '@/components/notes/NotesViewer/modal';
+import Loader from '@/components/ui/Loader';
+import StudentLayout from '@/components/student/StudentLayout';
 
 export default function StudentNotesPage() {
     const [isLoading, setIsLoading] = useState(true);
@@ -69,45 +70,84 @@ export default function StudentNotesPage() {
     };
 
     if (isLoading) {
-        return <div className="p-4">Loading...</div>;
+        return (
+            <StudentLayout>
+                <div className="flex items-center justify-center min-h-[calc(100vh-64px)]">
+                    <Loader size="large" />
+                </div>
+            </StudentLayout>
+        );
     }
 
     if (error) {
-        return <div className="p-4 text-red-500">{error}</div>;
+        return (
+            <StudentLayout>
+                <div className="p-8">
+                    <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6" role="alert">
+                        <p className="font-bold">Error</p>
+                        <p>{error}</p>
+                    </div>
+                </div>
+            </StudentLayout>
+        );
     }
 
     if (!studentData) {
-        return <div className="p-4">Student data not found</div>;
+        return (
+            <StudentLayout>
+                <div className="p-8">
+                    <div className="text-gray-500">Student data not found</div>
+                </div>
+            </StudentLayout>
+        );
     }
 
     if (!studentData.classEnrollments || studentData.classEnrollments.length === 0 ||
         studentData.enrollmentStatus !== 'ACTIVE') {
-        return <div className="p-4">No active class enrollment found</div>;
+        return (
+            <StudentLayout>
+                <div className="p-8">
+                    <div className="text-gray-500">No active class enrollment found</div>
+                </div>
+            </StudentLayout>
+        );
     }
 
     const currentEnrollment = studentData.classEnrollments[0];
 
     if (!currentEnrollment.classSection) {
-        return <div className="p-4">Class section data not found</div>;
+        return (
+            <StudentLayout>
+                <div className="p-8">
+                    <div className="text-gray-500">Class section data not found</div>
+                </div>
+            </StudentLayout>
+        );
     }
 
     return (
-        <div className="container mx-auto p-4">
-            <NotesLibrary
-                studentId={studentData.id}
-                studentName={studentData.user.name || ''}
-                classSectionId={currentEnrollment.classSectionId}
-                batchName={studentData.batch?.batchName || ''}
-                sectionName={currentEnrollment.classSection.sectionName || ''}
-                openNoteInModal={openNoteInModal}
-            />
-            <VideoPlayerModal
-                isOpen={isModalOpen}
-                onClose={closeModal}
-            >
-                {modalContent}
-            </VideoPlayerModal>
-        </div>
+        <StudentLayout>
+            <div className="p-8">
+                <div className="mb-8">
+                    {/* <h1 className="text-gray-400 text-sm mb-1">Student Dashboard / Notes Library</h1> */}
+                    {/* <h2 className="text-2xl font-semibold">Notes Library</h2> */}
+                </div>
+                <NotesLibrary
+                    studentId={studentData.id}
+                    studentName={studentData.user.name || ''}
+                    classSectionId={currentEnrollment.classSectionId}
+                    batchName={studentData.batch?.batchName || ''}
+                    sectionName={currentEnrollment.classSection.sectionName || ''}
+                    openNoteInModal={openNoteInModal}
+                />
+                <VideoPlayerModal
+                    isOpen={isModalOpen}
+                    onClose={closeModal}
+                >
+                    {modalContent}
+                </VideoPlayerModal>
+            </div>
+        </StudentLayout>
     );
 }
 

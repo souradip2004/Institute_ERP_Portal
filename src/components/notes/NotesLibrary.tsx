@@ -273,7 +273,7 @@ const NotesLibrary: React.FC<NotesLibraryProps> = ({
                 </div>
             </div>
 
-            <div className="bg-white p-6 rounded-lg shadow-sm border">
+            {/* <div className="bg-white p-6 rounded-lg shadow-sm border">
                 <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
                     <Book size={20} className="text-indigo-600" />
                     Admin's Notes
@@ -311,7 +311,7 @@ const NotesLibrary: React.FC<NotesLibraryProps> = ({
                         </Card>
                     ))}
                 </div>
-            </div>
+            </div> */}
 
             {selectedSubject && (
                 <div className="bg-white p-6 rounded-lg shadow-sm border">
@@ -361,10 +361,10 @@ const NotesLibrary: React.FC<NotesLibraryProps> = ({
                                 <Book size={14} />
                                 Notes
                             </TabsTrigger>
-                            <TabsTrigger value="video" className="flex items-center gap-1">
+                            {/* <TabsTrigger value="video" className="flex items-center gap-1">
                                 <Video size={14} />
                                 Video
-                            </TabsTrigger>
+                            </TabsTrigger> */}
                         </TabsList>
                         <TabsContent value="notes" className="mt-4">
                             <div className="rounded-lg border overflow-hidden bg-white">
