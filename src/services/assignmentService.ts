@@ -13,13 +13,22 @@ export class AssignmentService {
     submissionType: "INDIVIDUAL" | "GROUP";
     groupId?: string;
     file?: { buffer: Buffer; originalName: string; mimetype: string };
+    attachments?: { 
+      create: Array<{
+        fileUrl: string;
+        fileName: string;
+        fileType: string;
+        fileSize: number;
+        uploadedById: string;
+      }>
+    }
   }): Promise<Assignment> {
     let fileUrl: string | undefined;
     let fileName: string | undefined;
     let fileType: string | undefined;
     let fileSize: number | undefined;
 
-    if (data.file) {
+    if (data.file && !data.attachments) {
       if (!data.file.originalName || !data.file.mimetype || !data.file.buffer) {
         throw new Error("Invalid file data: missing required file properties");
       }
@@ -47,8 +56,8 @@ export class AssignmentService {
         groupId: data.groupId,
         isPublished: false,
         status: "SCHEDULED",
-        attachments:
-          fileUrl && fileName && fileType && fileSize
+        attachments: data.attachments ? data.attachments :
+          (fileUrl && fileName && fileType && fileSize)
             ? {
                 create: {
                   fileUrl,

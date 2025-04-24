@@ -42,15 +42,24 @@ interface StudentsListProps {
   onViewStudent: (studentId: string) => void;
 }
 
+const STATUS_STYLES = {
+  'ACTIVE': 'bg-green-100 text-green-800',
+  'INACTIVE': 'bg-yellow-100 text-yellow-800',
+  'SUSPENDED': 'bg-red-100 text-red-800',
+  'GRADUATED': 'bg-blue-100 text-blue-800'
+};
+
 export default function StudentsList({ students, onViewStudent }: StudentsListProps) {
   return (
     <div className="p-4">
-      <h2 className="text-xl font-bold mb-4">Students</h2>
+      <h2 className="text-xl font-bold mb-4 text-gray-800">Students</h2>
       
       {students.length === 0 ? (
-        <p className="text-gray-500">No students found</p>
+        <div className="bg-gray-50 p-8 text-center rounded-md">
+          <p className="text-gray-500">No students found</p>
+        </div>
       ) : (
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto rounded-md border border-gray-200">
           <table className="min-w-full bg-white divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
@@ -76,36 +85,32 @@ export default function StudentsList({ students, onViewStudent }: StudentsListPr
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {students.map((student) => (
-                <tr key={student.id}>
+                <tr key={student.id} className="hover:bg-gray-50 transition-colors">
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     {student.studentRoll}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                     {student.user.name}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                     {student.user.email}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                     {student.currentSemester} ({student.currentYear})
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                      ${student.enrollmentStatus === 'ACTIVE' ? 'bg-green-100 text-green-800' : 
-                        student.enrollmentStatus === 'INACTIVE' ? 'bg-yellow-100 text-yellow-800' : 
-                        student.enrollmentStatus === 'SUSPENDED' ? 'bg-red-100 text-red-800' : 
-                        'bg-blue-100 text-blue-800'}`}>
+                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${STATUS_STYLES[student.enrollmentStatus]}`}>
                       {student.enrollmentStatus}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <button 
                       onClick={() => onViewStudent(student.id)} 
-                      className="text-blue-600 hover:text-blue-900 mr-4"
+                      className="text-purple-600 hover:text-purple-900 transition-colors focus:outline-none focus:underline"
+                      aria-label={`View details for ${student.user.name}`}
                     >
                       View
                     </button>
-              
                   </td>
                 </tr>
               ))}

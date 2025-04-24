@@ -20,6 +20,7 @@ const AssignmentUpload = ({ classSectionId }: AssignmentUploadProps) => {
   const [scheduledTime, setScheduledTime] = useState('');
   // Add client-side only render flag to avoid hydration issues
   const [isMounted, setIsMounted] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<number>(0);
 
   // Set mounted flag after component mounts to enable client-side only features
   useEffect(() => {
@@ -43,6 +44,59 @@ const AssignmentUpload = ({ classSectionId }: AssignmentUploadProps) => {
     e.preventDefault();
   };
 
+  const uploadFileToS3 = async (file: File) => {
+    try {
+      setUploadProgress(0);
+      const formData = new FormData();
+      formData.append('pdf', file);
+
+      // Create a custom XMLHttpRequest to track upload progress
+      return new Promise<{
+        url: string;
+        fileName: string;
+        fileType: string;
+        fileSize: number;
+        key: string;
+      }>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+
+        xhr.upload.addEventListener('progress', (event) => {
+          if (event.lengthComputable) {
+            const percentComplete = Math.round((event.loaded / event.total) * 100);
+            setUploadProgress(percentComplete);
+          }
+        });
+
+        xhr.onreadystatechange = function () {
+          if (xhr.readyState === 4) {
+            if (xhr.status === 200) {
+              const response = JSON.parse(xhr.responseText);
+              if (response.success) {
+                resolve({
+                  url: response.url,
+                  fileName: response.fileName,
+                  fileType: response.fileType,
+                  fileSize: response.fileSize,
+                  key: response.key
+                });
+              } else {
+                reject(new Error(response.message || 'Upload failed'));
+              }
+            } else {
+              reject(new Error(`Upload failed with status: ${xhr.status}`));
+            }
+          }
+        };
+
+        xhr.open('POST', '/api/upload/pdf', true);
+        xhr.send(formData);
+      });
+    } catch (error) {
+      console.error("Error uploading file to S3:", error);
+      throw error;
+    }
+  };
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!title || !totalMarks || !dueDate) {
@@ -55,53 +109,53 @@ const AssignmentUpload = ({ classSectionId }: AssignmentUploadProps) => {
 
     try {
       let fileUrl = null;
-      let fileKey = null;
+      let fileUploadResult = null;
 
       // If a file is provided, upload it to S3 via the PDF upload API
       if (file) {
-        const fileFormData = new FormData();
-        fileFormData.append('pdf', file);
-
-        const uploadResponse = await fetch('/api/upload/pdf', {
-          method: 'POST',
-          body: fileFormData,
-        });
-
-        if (!uploadResponse.ok) {
-          throw new Error('Failed to upload file');
+        try {
+          fileUploadResult = await uploadFileToS3(file);
+          fileUrl = fileUploadResult.url;
+        } catch (error) {
+          console.error('Error uploading file:', error);
+          notify.dismiss(loadingId);
+          notify.error('Error uploading file. Please try again.');
+          setIsSubmitting(false);
+          return;
         }
-
-        const uploadResult = await uploadResponse.json();
-        fileUrl = uploadResult.url;
-        fileKey = uploadResult.key;
       }
 
-      // Create assignment with file URL if available
-      const formData = new FormData();
-      formData.append('title', title);
-      formData.append('maxPoints', totalMarks);
-      formData.append('dueDate', dueDate);
-      formData.append('classSectionId', classSectionId);
-      formData.append('submissionType', 'INDIVIDUAL');
+      // Using JSON format for better control over nested data structures
+      const assignmentData = {
+        title,
+        maxPoints: totalMarks,
+        dueDate,
+        classSectionId,
+        submissionType: 'INDIVIDUAL',
+        attachments: fileUrl ? [{
+          fileUrl,
+          fileName: fileUploadResult?.fileName,
+          fileType: fileUploadResult?.fileType,
+          fileSize: fileUploadResult?.fileSize
+        }] : []
+      };
 
-      // Add the file URL and key from S3 if available
-      if (fileUrl) {
-        formData.append('fileUrl', fileUrl);
-      }
-
-      if (fileKey) {
-        formData.append('fileKey', fileKey);
-      }
+      console.log('Submitting assignment data:', JSON.stringify(assignmentData));
 
       const response = await fetch('/api/assignments/create', {
         method: 'POST',
-        body: formData,
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(assignmentData)
       });
 
       notify.dismiss(loadingId);
 
       if (!response.ok) {
-        throw new Error('Failed to create assignment');
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Server response:', errorData);
+        throw new Error(errorData.error || 'Failed to create assignment');
       }
 
       // Reset form
@@ -109,6 +163,7 @@ const AssignmentUpload = ({ classSectionId }: AssignmentUploadProps) => {
       setTotalMarks('');
       setDueDate('');
       setFile(null);
+      setUploadProgress(0);
 
       notify.success('Assignment created successfully!');
 
@@ -211,7 +266,17 @@ const AssignmentUpload = ({ classSectionId }: AssignmentUploadProps) => {
               <p className="text-xs text-gray-500 mb-2">or</p>
               <p className="text-sm font-medium text-purple-600">Choose From Computer</p>
             </div>
-
+            {uploadProgress > 0 && uploadProgress < 100 && (
+              <div className="mt-4">
+                <div className="w-full bg-gray-200 rounded-full h-2.5">
+                  <div 
+                    className="bg-purple-600 h-2.5 rounded-full" 
+                    style={{ width: `${uploadProgress}%` }}
+                  ></div>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">{uploadProgress}% uploaded</p>
+              </div>
+            )}
           </div>
 
           <div className="flex space-x-4">

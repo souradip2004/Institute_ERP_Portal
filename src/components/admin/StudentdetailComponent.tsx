@@ -42,24 +42,41 @@ interface StudentDetailProps {
   onBack: () => void;
 }
 
+const STATUS_STYLES = {
+  'ACTIVE': 'bg-green-100 text-green-800',
+  'INACTIVE': 'bg-yellow-100 text-yellow-800',
+  'SUSPENDED': 'bg-red-100 text-red-800',
+  'GRADUATED': 'bg-blue-100 text-blue-800'
+};
+
 export default function StudentDetail({ student, onBack }: StudentDetailProps) {
-  console.log('received student detail: ', student);
-  // Format date function
   const formatDate = (dateString: string | null) => {
     if (!dateString) return 'Not provided';
     return new Date(dateString).toLocaleDateString();
   };
+
+  const InfoItem = ({ label, value, className = '' }: { label: string; value: string | number; className?: string }) => (
+    <div className="grid grid-cols-2">
+      <p className="text-sm font-medium text-gray-500">{label}</p>
+      <p className={`text-sm text-gray-900 ${className}`}>{value}</p>
+    </div>
+  );
+
+  const InfoSection = ({ title, children }: { title: string; children: React.ReactNode }) => (
+    <div>
+      <h3 className="text-lg font-medium leading-6 text-gray-900 mb-4">{title}</h3>
+      <div className="bg-gray-50 p-4 rounded-md space-y-3">
+        {children}
+      </div>
+    </div>
+  );
 
   return (
     <div className="bg-white shadow rounded-lg">
       <div className="border-b border-gray-200 px-6 py-4 flex justify-between items-center">
         <h2 className="text-xl font-bold text-gray-800">Student Detail</h2>
         <div className="flex space-x-2">
-          <span className={`px-3 py-1 inline-flex text-sm leading-5 font-semibold rounded-full 
-            ${student.enrollmentStatus === 'ACTIVE' ? 'bg-green-100 text-green-800' : 
-              student.enrollmentStatus === 'INACTIVE' ? 'bg-yellow-100 text-yellow-800' : 
-              student.enrollmentStatus === 'SUSPENDED' ? 'bg-red-100 text-red-800' : 
-              'bg-blue-100 text-blue-800'}`}>
+          <span className={`px-3 py-1 inline-flex text-sm leading-5 font-semibold rounded-full ${STATUS_STYLES[student.enrollmentStatus]}`}>
             {student.enrollmentStatus}
           </span>
         </div>
@@ -67,128 +84,52 @@ export default function StudentDetail({ student, onBack }: StudentDetailProps) {
       
       <div className="p-6">
         <div className="grid md:grid-cols-2 gap-6">
-          {/* Student Information */}
           <div className="space-y-6">
-            <div>
-              <h3 className="text-lg font-medium leading-6 text-gray-900 mb-4">Student Information</h3>
-              <div className="bg-gray-50 p-4 rounded-md space-y-3">
-                <div className="grid grid-cols-2">
-                  <p className="text-sm font-medium text-gray-500">Roll Number</p>
-                  <p className="text-sm text-gray-900">{student.studentRoll}</p>
-                </div>
-                <div className="grid grid-cols-2">
-                  <p className="text-sm font-medium text-gray-500">Full Name</p>
-                  <p className="text-sm text-gray-900">{student.user.name}</p>
-                </div>
-                <div className="grid grid-cols-2">
-                  <p className="text-sm font-medium text-gray-500">Email</p>
-                  <p className="text-sm text-gray-900">{student.user.email}</p>
-                </div>
-                <div className="grid grid-cols-2">
-                  <p className="text-sm font-medium text-gray-500">Phone</p>
-                  <p className="text-sm text-gray-900">{student.user.phone || 'Not provided'}</p>
-                </div>
-                <div className="grid grid-cols-2">
-                  <p className="text-sm font-medium text-gray-500">Gender</p>
-                  <p className="text-sm text-gray-900">{student.user.gender || 'Not provided'}</p>
-                </div>
-                <div className="grid grid-cols-2">
-                  <p className="text-sm font-medium text-gray-500">Date of Birth</p>
-                  <p className="text-sm text-gray-900">{formatDate(student.user.dateOfBirth)}</p>
-                </div>
-                <div className="grid grid-cols-2">
-                  <p className="text-sm font-medium text-gray-500">Address</p>
-                  <p className="text-sm text-gray-900">{student.user.address || 'Not provided'}</p>
-                </div>
-              </div>
-            </div>
+            <InfoSection title="Student Information">
+              <InfoItem label="Roll Number" value={student.studentRoll} />
+              <InfoItem label="Full Name" value={student.user.name} />
+              <InfoItem label="Email" value={student.user.email} />
+              <InfoItem label="Phone" value={student.user.phone || 'Not provided'} />
+              <InfoItem label="Gender" value={student.user.gender || 'Not provided'} />
+              <InfoItem label="Date of Birth" value={formatDate(student.user.dateOfBirth)} />
+              <InfoItem label="Address" value={student.user.address || 'Not provided'} />
+            </InfoSection>
             
-            {/* Parent/Guardian Information */}
-            <div>
-              <h3 className="text-lg font-medium leading-6 text-gray-900 mb-4">Parent/Guardian Information</h3>
-              <div className="bg-gray-50 p-4 rounded-md space-y-3">
-                <div className="grid grid-cols-2">
-                  <p className="text-sm font-medium text-gray-500">Name</p>
-                  <p className="text-sm text-gray-900">{student.parentGuardianName || 'Not provided'}</p>
-                </div>
-                <div className="grid grid-cols-2">
-                  <p className="text-sm font-medium text-gray-500">Phone</p>
-                  <p className="text-sm text-gray-900">{student.parentGuardianPhone || 'Not provided'}</p>
-                </div>
-                <div className="grid grid-cols-2">
-                  <p className="text-sm font-medium text-gray-500">Email</p>
-                  <p className="text-sm text-gray-900">{student.parentGuardianEmail || 'Not provided'}</p>
-                </div>
-              </div>
-            </div>
+            <InfoSection title="Parent/Guardian Information">
+              <InfoItem label="Name" value={student.parentGuardianName || 'Not provided'} />
+              <InfoItem label="Phone" value={student.parentGuardianPhone || 'Not provided'} />
+              <InfoItem label="Email" value={student.parentGuardianEmail || 'Not provided'} />
+            </InfoSection>
           </div>
           
-          {/* Academic Information */}
           <div className="space-y-6">
-            <div>
-              <h3 className="text-lg font-medium leading-6 text-gray-900 mb-4">Academic Information</h3>
-              <div className="bg-gray-50 p-4 rounded-md space-y-3">
-                <div className="grid grid-cols-2">
-                  <p className="text-sm font-medium text-gray-500">Department</p>
-                  <p className="text-sm text-gray-900">{student.department?.name || 'Not available'}</p>
-                </div>
-                <div className="grid grid-cols-2">
-                  <p className="text-sm font-medium text-gray-500">Batch</p>
-                  <p className="text-sm text-gray-900">
-                    {student.batch ? `${student.batch.batchName} (${student.batch.year})` : 'Not available'}
-                  </p>
-                </div>
-                <div className="grid grid-cols-2">
-                  <p className="text-sm font-medium text-gray-500">Current Semester</p>
-                  <p className="text-sm text-gray-900">{student.currentSemester}</p>
-                </div>
-                <div className="grid grid-cols-2">
-                  <p className="text-sm font-medium text-gray-500">Current Year</p>
-                  <p className="text-sm text-gray-900">{student.currentYear}</p>
-                </div>
-                <div className="grid grid-cols-2">
-                  <p className="text-sm font-medium text-gray-500">Enrollment Status</p>
-                  <p className="text-sm text-gray-900">{student.enrollmentStatus}</p>
-                </div>
-              </div>
-            </div>
+            <InfoSection title="Academic Information">
+              <InfoItem label="Department" value={student.department?.name || 'Not available'} />
+              <InfoItem 
+                label="Batch" 
+                value={student.batch ? `${student.batch.batchName} (${student.batch.year})` : 'Not available'} 
+              />
+              <InfoItem label="Current Semester" value={student.currentSemester} />
+              <InfoItem label="Current Year" value={student.currentYear} />
+              <InfoItem label="Enrollment Status" value={student.enrollmentStatus} />
+            </InfoSection>
             
-            {/* Account Information */}
-            <div>
-              <h3 className="text-lg font-medium leading-6 text-gray-900 mb-4">Account Information</h3>
-              <div className="bg-gray-50 p-4 rounded-md space-y-3">
-                <div className="grid grid-cols-2">
-                  <p className="text-sm font-medium text-gray-500">User ID</p>
-                  <p className="text-sm text-gray-900">{student.userId}</p>
-                </div>
-                <div className="grid grid-cols-2">
-                  <p className="text-sm font-medium text-gray-500">Email Verified</p>
-                  <p className="text-sm text-gray-900">{student.user.emailVerified ? 'Yes' : 'No'}</p>
-                </div>
-                <div className="grid grid-cols-2">
-                  <p className="text-sm font-medium text-gray-500">Role</p>
-                  <p className="text-sm text-gray-900">{student.user.role}</p>
-                </div>
-                <div className="grid grid-cols-2">
-                  <p className="text-sm font-medium text-gray-500">Created At</p>
-                  <p className="text-sm text-gray-900">{formatDate(student.user.createdAt)}</p>
-                </div>
-                <div className="grid grid-cols-2">
-                  <p className="text-sm font-medium text-gray-500">Last Updated</p>
-                  <p className="text-sm text-gray-900">{formatDate(student.user.updatedAt)}</p>
-                </div>
-              </div>
-            </div>
+            <InfoSection title="Account Information">
+              <InfoItem label="User ID" value={student.userId} />
+              <InfoItem label="Email Verified" value={student.user.emailVerified ? 'Yes' : 'No'} />
+              <InfoItem label="Role" value={student.user.role} />
+              <InfoItem label="Created At" value={formatDate(student.user.createdAt)} />
+              <InfoItem label="Last Updated" value={formatDate(student.user.updatedAt)} />
+            </InfoSection>
           </div>
         </div>
       </div>
       
       <div className="border-t border-gray-200 px-6 py-4 flex justify-end space-x-3">
-       
         <button 
           type="button"
           onClick={onBack}
-          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-purple-700 hover:bg-purple-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors"
         >
           Back to List
         </button>
