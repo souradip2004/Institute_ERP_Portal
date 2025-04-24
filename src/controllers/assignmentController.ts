@@ -73,6 +73,86 @@ export class AssignmentController {
     }
   }
 
+  static async createAssignmentJson(request: NextRequest): Promise<NextResponse> {
+    try {
+      const user = await AuthUtils.getCurrentUser(request);
+      if (!user || user.role !== Role.TEACHER || !user.teacher) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+
+      // Parse JSON data
+      const data = await request.json();
+      const { 
+        title, 
+        description, 
+        classSectionId, 
+        dueDate, 
+        maxPoints, 
+        submissionType = "INDIVIDUAL", 
+        groupId,
+        attachments = []
+      } = data;
+
+      if (!title || !classSectionId || !maxPoints || !submissionType) {
+        return NextResponse.json(
+          { error: "Missing required fields" },
+          { status: 400 }
+        );
+      }
+
+      const isTeacherAssigned = await AuthUtils.isTeacherAssignedToClassSection(
+        user.teacher.id,
+        classSectionId
+      );
+      if (!isTeacherAssigned) {
+        return NextResponse.json(
+          { error: "Teacher not assigned to this class" },
+          { status: 403 }
+        );
+      }
+
+      // Process attachments if provided
+      let attachmentsData;
+      if (attachments && attachments.length > 0) {
+        attachmentsData = {
+          create: attachments.map((attachment: {
+            fileUrl: string;
+            fileName: string;
+            fileType: string;
+            fileSize: number | string;
+          }) => ({
+            fileUrl: attachment.fileUrl,
+            fileName: attachment.fileName,
+            fileType: attachment.fileType,
+            fileSize: Number(attachment.fileSize),
+            uploadedById: user.id, // User ID for the User relation
+          }))
+        };
+      }
+
+      // Create assignment with attachments
+      const assignment = await AssignmentService.createAssignment({
+        title,
+        description,
+        classSectionId,
+        createdById: user.teacher.id,
+        dueDate: dueDate ? new Date(dueDate) : undefined,
+        maxPoints: parseFloat(maxPoints),
+        submissionType,
+        groupId,
+        attachments: attachmentsData
+      });
+
+      return NextResponse.json(assignment, { status: 201 });
+    } catch (error) {
+      console.error("Error creating assignment:", error);
+      return NextResponse.json(
+        { error: "Internal server error", details: error instanceof Error ? error.message : String(error) },
+        { status: 500 }
+      );
+    }
+  }
+
   static async submitAssignment(request: NextRequest): Promise<NextResponse> {
     try {
       const user = await AuthUtils.getCurrentUser(request);
