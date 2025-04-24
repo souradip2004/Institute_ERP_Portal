@@ -27,8 +27,9 @@ export class S3Utils {
       Body: file,
       ContentType: contentType,
     });
-
-    await s3Client.send(command);
+console.log('try to upload file on s3');
+    const res = await s3Client.send(command);
+    console.log('res: ', res);
     return key;
   }
 
