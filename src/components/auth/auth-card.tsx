@@ -32,6 +32,8 @@ export function AuthCard({
   const [loading, setLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false); // For login
 
+  const user = window.localStorage.getItem("user");
+  console.log(user);
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -44,7 +46,8 @@ export function AuthCard({
         password,
         redirect: false, // Handle redirect manually
       });
-
+      console.log(result);
+      window.localStorage.setItem("user", JSON.stringify(result));
       if (result?.error) {
         setError(result.error);
         setLoading(false);
@@ -166,7 +169,7 @@ export function AuthCard({
           )}
 
 
-{/* 
+
           {type === "login" && (
             <p className="text-sm text-muted-foreground">
               {new URLSearchParams(window.location.search).get("verified") === "true"
@@ -177,7 +180,7 @@ export function AuthCard({
                     ? "Verification token expired. Please try again."
                     : ""}
             </p>
-          )} */}
+          )}
 
         </CardContent>
         {footer && <CardFooter>{footer}</CardFooter>}

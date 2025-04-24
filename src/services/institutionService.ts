@@ -1,5 +1,6 @@
 import prisma from "@/lib/prisma";
 import { InstitutionQueue } from "@/bullmq/queues/institutionqueue";
+import fs from "fs";
 export class InstitutionService {
   async getAllInstitutions() {
     console.log("Fetching all institutions");
@@ -8,12 +9,13 @@ export class InstitutionService {
 
   async createInstitution(data: any) {
     console.log("Creating institution:", data);
+    fs.writeFileSync("institution.json", JSON.stringify(data, null, 2));
     // return InstitutionQueue.add('create-institution', {
     //   data,
     // });;
-
+    const {userId,...rest} = data;
     return await prisma.institution.create({
-      data: data,
+      data: rest,
     });
   }
 

@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-
-export default function CreateInstitutionForm({ userId }) {
+  // import { auth } from "@/auth";
+export default function CreateInstitutionForm({ userId, email }) {
+  // const session = await auth();
   const [formData, setFormData] = useState({
     name: "",
     type: "college",
@@ -11,8 +12,9 @@ export default function CreateInstitutionForm({ userId }) {
     state: "",
     country: "",
     phone: "",
-    email: "",
+    email: email,
     website: "",
+    userId: userId,
   });
 
   const [loading, setLoading] = useState(false);
@@ -43,7 +45,7 @@ export default function CreateInstitutionForm({ userId }) {
       const institution = await res.json();
       console.log("Institution Created:", institution);
 
-      // Step 2: Update User with Institution ID
+      
       if (!institution.id) throw new Error("Institution ID is missing from the response.");
 
       const updateUserRes = await fetch(`http://localhost:3000/api/users/${userId}`, {
@@ -86,7 +88,7 @@ export default function CreateInstitutionForm({ userId }) {
         <input type="text" name="state" placeholder="State" onChange={handleChange} required style={styles.input} />
         <input type="text" name="country" placeholder="Country" onChange={handleChange} required style={styles.input} />
         <input type="tel" name="phone" placeholder="Phone Number" onChange={handleChange} style={styles.input} />
-        <input type="email" name="email" placeholder="Email" onChange={handleChange} required style={styles.input} />
+        {/* <input type="email" name="email" placeholder="Email" onChange={handleChange} required style={styles.input} /> */}
         <input type="url" name="website" placeholder="Website URL" onChange={handleChange} style={styles.input} />
       </div>
 

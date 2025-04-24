@@ -74,14 +74,15 @@ const Navigator = ({ id, userId }: NavigatorProps) => {
             </Link>
           </div>
           
-          <nav className="space-y-1">
-            {navItems.map((item) => {
+          <nav onClick={() => console.log("button clicked")} className="space-y-1">
+            {navItems.map((item)  => {
               const isActive = item.href 
                 ? pathname === item.href 
                 : activeComponent === item.component;
               
               return item.href ? (
                 <Link
+                  onClick={() => console.log("link clicked")}
                   key={item.name}
                   href={item.href}
                   className={`flex items-center px-4 py-3 text-base rounded-md transition-colors ${

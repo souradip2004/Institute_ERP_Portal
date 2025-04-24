@@ -40,8 +40,8 @@ export default function CustomLoginForm() {
       }
 
       // Store user data in localStorage for client-side access
-      localStorage.setItem('user', JSON.stringify(data.user));
-      localStorage.setItem('auth_token', data.token);
+      // localStorage.setItem('user', JSON.stringify(data.user));
+      // localStorage.setItem('auth_token', data.token);
 
       Cookies.set('next-auth.session-token', data.token, {
         expires: 7,

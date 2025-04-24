@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import Loader from '@/components/ui/Loader';
+import { auth } from "@/auth";
 
 interface Teacher {
   id: string;
@@ -27,12 +28,13 @@ interface Semester {
   name: string;
 }
 
-export default function TeacherCourseSectionForm() {
+export default  function TeacherCourseSectionForm() {
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
   const [classSections, setClassSections] = useState<ClassSection[]>([]);
   const [semesters, setSemesters] = useState<Semester[]>([]);
   const [adminId, setAdminId] = useState<string | null>(null);
+  
   const [formData, setFormData] = useState({
     teacherId: '',
     courseId: '',
@@ -49,6 +51,7 @@ export default function TeacherCourseSectionForm() {
 
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
+    console.log(storedUser);
     if (storedUser) {
       const parsedUser = JSON.parse(storedUser);
       setAdminId(parsedUser.id);

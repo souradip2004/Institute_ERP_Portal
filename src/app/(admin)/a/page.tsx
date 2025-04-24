@@ -11,8 +11,8 @@ import Sider from "@/components/admin/navigator";
 export default async function AdminPage() {
   const session = await auth();
 
-  // const userId = session?.user?.id;
-  const userId ="cm9q0nf8z0004bowkhzw2d3s0";
+   const userId = session?.user?.id;
+  //const userId ="cm9q0nf8z0004bowkhzw2d3s0";
 
 console.log(session)
   if (!userId) {

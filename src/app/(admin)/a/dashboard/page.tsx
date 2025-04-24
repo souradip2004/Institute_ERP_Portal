@@ -8,9 +8,11 @@ import { Suspense } from "react";
 
 export default async function DashboardPage() {
   await auth();
-  // const userId = session?.user?.id;
+  const session = await auth();
+   const userId = session?.user?.id;
+   const email = session?.user?.email;
   // Todo custom login not work properly ie after successful login, session is null
-  const userId ="cm9q0nf8z0004bowkhzw2d3s0";
+  //const userId ="cm9q0nf8z0004bowkhzw2d3s0";
 
   if (!userId) {
     return <p className="text-center text-red-500">User not found.</p>;
@@ -126,7 +128,7 @@ export default async function DashboardPage() {
             ) : (
               <div className="bg-white rounded-2xl border border-gray-100 p-6 sm:p-8 shadow-sm">
                 <h3 className="text-xl font-semibold text-gray-800 mb-6">Create New Institution</h3>
-                <CreateInstitutionForm userId={userId} />
+                <CreateInstitutionForm userId={userId} email={email} />
               </div>
             )}
           </section>
