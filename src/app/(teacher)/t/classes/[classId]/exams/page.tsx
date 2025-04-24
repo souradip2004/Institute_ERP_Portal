@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { format } from "date-fns";
 import Loader from '@/components/ui/Loader';
-import { Calendar, Clock, CheckCheck, X, FileText, BookOpen, GraduationCap } from 'lucide-react';
+import { Calendar, Clock, CheckCheck, X, FileText, BookOpen, GraduationCap, XCircle } from 'lucide-react';
 
 interface Question {
   question: string;
@@ -34,7 +34,11 @@ interface Exam {
   questions: Array<{
     id: string;
     questionText: string;
+    questionType?: string;
     marks: number;
+    options?: string[];
+    correctAnswer?: string[];
+    difficultyLevel?: string;
   }>;
   classSection: {
     batch: {
@@ -43,6 +47,9 @@ interface Exam {
     semester: {
       name: string;
     };
+  };
+  examType?: {
+    name: string;
   };
 }
 
@@ -80,6 +87,9 @@ export default function ExamsPage({ params }: ExamsPageProps) {
   // States for exam listing
   const [exams, setExams] = useState<Exam[]>([]);
   const [loadingExams, setLoadingExams] = useState(true);
+
+  const [selectedExam, setSelectedExam] = useState<Exam | null>(null);
+  const [loadingExamDetails, setLoadingExamDetails] = useState(false);
 
   // Fetch exams and class sections on component mount
   useEffect(() => {
@@ -242,8 +252,27 @@ export default function ExamsPage({ params }: ExamsPageProps) {
     );
   };
 
+  const fetchExamDetails = async (examId: string) => {
+    try {
+      setLoadingExamDetails(true);
+      const response = await axios.get(`/api/exam/${examId}`, {
+        withCredentials: true,
+      });
+      setSelectedExam(response.data.exam);
+    } catch (err: any) {
+      console.error("Error fetching exam details:", err);
+      setError(err.response?.data?.error || "Failed to fetch exam details");
+    } finally {
+      setLoadingExamDetails(false);
+    }
+  };
+
+  const closeExamDetails = () => {
+    setSelectedExam(null);
+  };
+
   return (
-    <div className="container mx-auto px-4 py-8 max-w-7xl">
+    <div className="container mx-auto pt-12 pb-16 px-4 sm:px-6 lg:px-8 flex flex-col h-full">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
         <div>
           <h1 className="text-3xl font-bold text-gray-800">Exam Management</h1>
@@ -623,20 +652,141 @@ export default function ExamsPage({ params }: ExamsPageProps) {
                     </div>
                   </div>
 
-                  {/* <div className="px-6 py-3 bg-gray-50 border-t border-gray-200">
+                  <div className="px-6 py-3 bg-gray-50 border-t border-gray-200">
                     <div className="flex space-x-2 justify-end">
-                      <button className="px-3 py-1 bg-white border border-gray-300 rounded text-gray-600 text-sm hover:bg-gray-50 transition-colors">
+                      <button 
+                        onClick={() => fetchExamDetails(exam.id)}
+                        className="px-3 py-1 bg-white border border-gray-300 rounded text-gray-600 text-sm hover:bg-gray-50 transition-colors"
+                      >
                         View Details
                       </button>
-                      <button className="px-3 py-1 bg-purple-100 border border-purple-200 rounded text-purple-700 text-sm hover:bg-purple-200 transition-colors">
+                      {/* <button className="px-3 py-1 bg-purple-100 border border-purple-200 rounded text-purple-700 text-sm hover:bg-purple-200 transition-colors">
                         Manage
-                      </button>
+                      </button> */}
                     </div>
-                  </div> */}
+                  </div>
                 </div>
               ))}
             </div>
           )}
+        </div>
+      )}
+
+      {selectedExam && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="p-6 border-b border-gray-200 flex justify-between items-center">
+              <h2 className="text-2xl font-bold text-gray-800">{selectedExam.title}</h2>
+              <button 
+                onClick={closeExamDetails}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <XCircle className="h-6 w-6" />
+              </button>
+            </div>
+
+            <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <div className="flex items-center text-gray-600 mb-2">
+                    <GraduationCap className="h-5 w-5 mr-2 text-gray-500" />
+                    <span>
+                      {selectedExam.classSection.batch.name} | {selectedExam.classSection.semester.name}
+                    </span>
+                  </div>
+                  <div className="flex items-center text-gray-600 mb-2">
+                    <Calendar className="h-4 w-4 mr-1 text-gray-500" />
+                    <span>{format(new Date(selectedExam.examDate), "PPP")}</span>
+                  </div>
+                  <div className="flex items-center text-gray-600">
+                    <Clock className="h-4 w-4 mr-1 text-gray-500" />
+                    <span>
+                      {format(new Date(selectedExam.startTime), "p")} - {format(new Date(selectedExam.endTime), "p")}
+                    </span>
+                  </div>
+                </div>
+                <div>
+                  <div className="flex items-center text-gray-600 mb-2">
+                    <Clock className="h-4 w-4 mr-1 text-gray-500" />
+                    <span>{selectedExam.durationMinutes} minutes</span>
+                  </div>
+                  <div className="flex items-center text-gray-600 mb-2">
+                    <span className="font-medium mr-1">Total Marks:</span>
+                    <span>{selectedExam.totalMarks}</span>
+                  </div>
+                  <div className="flex items-center text-gray-600">
+                    <span className="font-medium mr-1">Passing Marks:</span>
+                    <span>{selectedExam.passingMarks}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-6">
+              {loadingExamDetails ? (
+                <div className="flex items-center justify-center h-64">
+                  <Loader size="medium" message="Loading exam details..." />
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  <h3 className="text-xl font-semibold text-gray-800">Exam Questions ({selectedExam.questions.length})</h3>
+                  
+                  {selectedExam.questions.map((question, index) => (
+                    <div key={question.id} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+                      <div className="mb-2 flex justify-between">
+                        <h4 className="font-medium text-gray-800">Question {index + 1}</h4>
+                        <span className="text-sm text-gray-500">
+                          {question.marks} {question.marks === 1 ? 'mark' : 'marks'} 
+                          {question.difficultyLevel ? ` • ${question.difficultyLevel}` : ''}
+                        </span>
+                      </div>
+                      <p className="text-gray-700 mb-3">{question.questionText}</p>
+                      
+                      {question.options && question.options.length > 0 && (
+                        <div className="mt-2">
+                          <p className="text-sm font-medium text-gray-700 mb-1">Options:</p>
+                          <ul className="space-y-1 ml-5 list-disc">
+                            {question.options.map((option, i) => (
+                              <li key={i} className="text-sm text-gray-600">{option}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      
+                      {question.correctAnswer && question.correctAnswer.length > 0 && (
+                        <div className="mt-3 pt-2 border-t border-gray-100">
+                          <p className="text-sm font-medium text-gray-700 mb-1">Correct Answer:</p>
+                          {question.correctAnswer.length === 1 ? (
+                            <p className="text-sm text-gray-800">{question.correctAnswer[0]}</p>
+                          ) : (
+                            <ul className="space-y-1 ml-5 list-disc">
+                              {question.correctAnswer.map((answer, i) => (
+                                <li key={i} className="text-sm text-gray-800">{answer}</li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            
+            <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end">
+              <button
+                onClick={closeExamDetails}
+                className="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 transition-colors mr-2"
+              >
+                Close
+              </button>
+              {/* <button
+                className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors"
+              >
+                Edit Exam
+              </button> */}
+            </div>
+          </div>
         </div>
       )}
     </div>
