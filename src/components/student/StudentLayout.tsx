@@ -1,4 +1,5 @@
 'use client';
+import React from 'react';
 import Sidebar from './Sidebar';
 
 interface StudentLayoutProps {
@@ -7,11 +8,13 @@ interface StudentLayoutProps {
 
 export default function StudentLayout({ children }: StudentLayoutProps) {
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-100 flex">
       <Sidebar />
-      <main className="flex-1 overflow-auto">
-        {children}
-      </main>
+      <div className="flex-1 ml-64">
+        <main className="w-full">
+          {children}
+        </main>
+      </div>
     </div>
   );
 } 

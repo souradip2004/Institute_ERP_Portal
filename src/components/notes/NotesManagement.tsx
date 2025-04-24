@@ -44,6 +44,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import VideoPlayerModal from './NotesViewer/modal';
+import { redirect } from 'next/navigation';
 
 interface NotesManagementProps {
     teacherId: string;
@@ -114,6 +115,9 @@ const NotesManagement: React.FC<NotesManagementProps> = ({
     const [teacherUserId, setTeacherUserId] = useState<string | null>(null);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const userString = localStorage.getItem("user");
+    const user = userString ? JSON.parse(userString) : null;
+    const classId = user?.classSectionId as string;
 
     // Setup form
     const form = useForm<NoteFormValues>({
@@ -148,7 +152,7 @@ const NotesManagement: React.FC<NotesManagementProps> = ({
                 setError('Error fetching teacher data');
             }
         };
-        
+
         fetchTeacherData();
     }, [teacherId]);
 
@@ -201,7 +205,7 @@ const NotesManagement: React.FC<NotesManagementProps> = ({
             content: note.content || '',
             subjectName: note.subjectName || '',
             isPublished: note.isPublished,
-            gender: note.gender || 'Male',
+            gender: (note.gender === 'Female' ? 'Female' : 'Male') as 'Male' | 'Female',
         });
         setEditDialogOpen(true);
     };
@@ -315,8 +319,8 @@ const NotesManagement: React.FC<NotesManagementProps> = ({
                                 setTimeout(checkForVideoData, 10000);
                                 return;
                             }
-                            
-                            console.log(`Received video data for note ${noteId}:`, 
+
+                            console.log(`Received video data for note ${noteId}:`,
                                 JSON.stringify(videoData).substring(0, 200) + '...');
 
                             // Store in localStorage
@@ -345,14 +349,14 @@ const NotesManagement: React.FC<NotesManagementProps> = ({
                 } catch (error) {
                     console.error('Error checking for video data:', error);
                     attempts++;
-                    
+
                     // Don't continue retrying on network errors if server is unreachable
                     if (attempts >= 3 && error instanceof TypeError && error.message.includes('Failed to fetch')) {
                         toast.error('Unable to connect to server. Please check your connection and try again later.');
                         setProcessingVideoData(false);
                         return;
                     }
-                    
+
                     setTimeout(checkForVideoData, 10000); // Try again despite error
                 }
             };
@@ -406,14 +410,14 @@ const NotesManagement: React.FC<NotesManagementProps> = ({
                             toast.error('Teacher user information not available. Please try again in a moment.');
                             return;
                         }
-                        
+
                         // Upload the file to S3 first
                         fileUploadResult = await uploadFileToS3(fileToUpload);
                         pdfUrl = fileUploadResult.url;
-                        
+
                         // Create note with attachment
                         noteData.fileType = 'pdf';
-                        
+
                         const attachmentData = {
                             fileUrl: fileUploadResult.url,
                             fileName: fileUploadResult.fileName,
@@ -421,7 +425,7 @@ const NotesManagement: React.FC<NotesManagementProps> = ({
                             fileSize: fileUploadResult.fileSize,
                             uploadedById: teacherUserId || '', // Use the user ID associated with the teacher
                         };
-                        
+
                         response = await fetch('/api/notes', {
                             method: 'POST',
                             headers: {
@@ -561,7 +565,7 @@ const NotesManagement: React.FC<NotesManagementProps> = ({
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-                    <div 
+                    <div
                         className="bg-gradient-to-br from-indigo-500 to-purple-600 p-6 rounded-xl text-white shadow-md hover:shadow-lg transition-shadow cursor-pointer flex flex-col items-center justify-center h-48"
                         onClick={() => setUploadDialogOpen(true)}
                     >
@@ -580,7 +584,8 @@ const NotesManagement: React.FC<NotesManagementProps> = ({
                         <p className="text-white/80 text-sm text-center">Create practice problems for students</p>
                     </div>
 
-                    <div className="bg-gradient-to-br from-amber-500 to-orange-600 p-6 rounded-xl text-white shadow-md hover:shadow-lg transition-shadow cursor-pointer flex flex-col items-center justify-center h-48">
+                    <div className="bg-gradient-to-br from-amber-500 to-orange-600 p-6 rounded-xl text-white shadow-md hover:shadow-lg transition-shadow cursor-pointer flex flex-col items-center justify-center h-48"
+                        onClick={() => redirect(`/t/classes/${classId}/assignments`)}>
                         <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center mb-4">
                             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 22h14a2 2 0 0 0 2-2V7.5L14.5 2H6a2 2 0 0 0-2 2v4"></path><path d="M14 2v6h6"></path><path d="M2 15h10"></path><path d="m9 18 3-3-3-3"></path></svg>
                         </div>
@@ -591,19 +596,19 @@ const NotesManagement: React.FC<NotesManagementProps> = ({
 
                 <div className="mb-8">
                     <div className="flex border-b border-gray-200 mb-4">
-                        <button 
+                        <button
                             className={`px-4 py-2 font-medium text-sm ${activeTab === 'all' ? 'text-indigo-600 border-b-2 border-indigo-600' : 'text-gray-500 hover:text-gray-700'}`}
                             onClick={() => setActiveTab('all')}
                         >
                             All Notes
                         </button>
-                        <button 
+                        <button
                             className={`px-4 py-2 font-medium text-sm ${activeTab === 'published' ? 'text-indigo-600 border-b-2 border-indigo-600' : 'text-gray-500 hover:text-gray-700'}`}
                             onClick={() => setActiveTab('published')}
                         >
                             Published
                         </button>
-                        <button 
+                        <button
                             className={`px-4 py-2 font-medium text-sm ${activeTab === 'drafts' ? 'text-indigo-600 border-b-2 border-indigo-600' : 'text-gray-500 hover:text-gray-700'}`}
                             onClick={() => setActiveTab('drafts')}
                         >
@@ -638,7 +643,7 @@ const NotesManagement: React.FC<NotesManagementProps> = ({
                                     <TableCell colSpan={5} className="text-center py-12">
                                         <div className="flex flex-col items-center">
                                             <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center text-gray-400 mb-3">
-                                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" /><polyline points="14 2 14 8 20 8" /></svg>
                                             </div>
                                             <p className="text-gray-500 mb-1">No notes found</p>
                                             <p className="text-gray-400 text-sm">Upload your first note to get started</p>
@@ -664,12 +669,12 @@ const NotesManagement: React.FC<NotesManagementProps> = ({
                                                 <span className="flex items-center gap-1">
                                                     {note.fileType === 'video' ? (
                                                         <>
-                                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m22 8-6 4 6 4V8Z"/><rect width="14" height="12" x="2" y="6" rx="2" ry="2"/></svg>
+                                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m22 8-6 4 6 4V8Z" /><rect width="14" height="12" x="2" y="6" rx="2" ry="2" /></svg>
                                                             <span>Video</span>
                                                         </>
                                                     ) : (
                                                         <>
-                                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
+                                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" /><polyline points="14 2 14 8 20 8" /></svg>
                                                             <span>PDF</span>
                                                         </>
                                                     )}
@@ -685,7 +690,7 @@ const NotesManagement: React.FC<NotesManagementProps> = ({
                                                         className="h-8 w-8 rounded-full hover:bg-indigo-50 hover:text-indigo-700"
                                                         title="View interactive notes"
                                                     >
-                                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="2"/><path d="M12 19c-4 0-7.5-3-9-6 1.5-3 5-6 9-6s7.5 3 9 6c-1.5 3-5 6-9 6Z"/></svg>
+                                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="2" /><path d="M12 19c-4 0-7.5-3-9-6 1.5-3 5-6 9-6s7.5 3 9 6c-1.5 3-5 6-9 6Z" /></svg>
                                                     </Button>
                                                     <Button
                                                         variant="ghost"
@@ -871,9 +876,9 @@ const NotesManagement: React.FC<NotesManagementProps> = ({
                                 >
                                     Cancel
                                 </Button>
-                                <Button 
-                                    type="submit" 
-                                    disabled={uploadingFile || (fileToUpload && !teacherUserId)}
+                                <Button
+                                    type="submit"
+                                    disabled={uploadingFile || (!!fileToUpload && teacherUserId === null)}
                                 >
                                     {uploadingFile ? 'Uploading...' : fileToUpload && !teacherUserId ? 'Loading user data...' : 'Upload Note'}
                                 </Button>
@@ -999,8 +1004,8 @@ const NotesManagement: React.FC<NotesManagementProps> = ({
             </Dialog>
 
             {/* Video Player Modal */}
-            <VideoPlayerModal 
-                isOpen={showVideoModal} 
+            <VideoPlayerModal
+                isOpen={showVideoModal}
                 onClose={() => setShowVideoModal(false)}
             >
                 {selectedNoteId && (

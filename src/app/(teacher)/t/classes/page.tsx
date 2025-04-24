@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import Loader from '@/components/ui/Loader';
 
 interface ClassData {
   id: string;
@@ -52,28 +53,28 @@ export default function ClassesPage() {
       try {
         setLoading(true);
         setError(null);
-        
+
         // Default to 'teacher123' if no teacher ID found (for testing only)
         const currentTeacherId = teacherId || 'teacher123';
-        
+
         // Try to fetch from API endpoints
         const endpoints = [
           `/api/teachers/${currentTeacherId}/classes`,
           `/api/classes?teacherId=${currentTeacherId}`
         ];
-        
+
         let fetchedClasses = null;
-        
+
         for (const endpoint of endpoints) {
           try {
             const response = await fetch(endpoint, {
               credentials: 'include',
               cache: 'no-store'
             });
-            
+
             if (response.ok) {
               const data = await response.json();
-              
+
               if (Array.isArray(data) && data.length > 0) {
                 fetchedClasses = data;
                 break;
@@ -107,7 +108,7 @@ export default function ClassesPage() {
               }
             };
           });
-          
+
           setClasses(transformedClasses);
         } else {
           setClasses([]);
@@ -133,7 +134,8 @@ export default function ClassesPage() {
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+        {/* <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div> */}
+        <Loader size="large" />
       </div>
     );
   }
@@ -141,13 +143,13 @@ export default function ClassesPage() {
   return (
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-6">Classes and Sections</h1>
-      
+
       {error ? (
         <div className="bg-red-50 text-red-500 p-4 rounded-md mb-6">
           <p>{error}</p>
         </div>
       ) : null}
-      
+
       {classes.length === 0 && !error ? (
         <div className="bg-white rounded-lg shadow-md p-8 text-center">
           <h2 className="text-xl font-semibold mb-4">No Classes Found</h2>
@@ -156,17 +158,17 @@ export default function ClassesPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {classes.map((classItem) => (
-            <div 
-              key={classItem.id} 
+            <div
+              key={classItem.id}
               className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow relative cursor-pointer"
-              onClick={() => router.push(`/t/classes/${classItem.id}`)}
+            // onClick={() => router.push(`/t/classes/${classItem.id}` as any)}
             >
               <div className="p-6 border-b">
                 <div className="flex justify-between items-center mb-4">
                   <h2 className="text-xl font-bold">{classItem.name}</h2>
                   <span className="text-xl font-bold">{classItem.section}</span>
                 </div>
-                
+
                 <div className="flex flex-wrap gap-2 mb-4">
                   {classItem.subjects.length > 0 ? (
                     classItem.subjects.map((subject, index) => (
@@ -178,7 +180,7 @@ export default function ClassesPage() {
                     <span className="text-gray-500 text-sm">No subjects assigned</span>
                   )}
                 </div>
-                
+
                 <div className="grid grid-cols-2 gap-4 mb-4">
                   <div>
                     <p className="text-gray-500 text-sm">Total Students</p>
@@ -190,8 +192,8 @@ export default function ClassesPage() {
                       <div className="flex items-center">
                         <p className="text-3xl font-bold">{classItem.attendancePercentage}%</p>
                         <div className="ml-2 w-16 h-3 bg-gray-200 rounded-full">
-                          <div 
-                            className={`h-3 rounded-full ${getAttendanceColorClass(classItem.attendancePercentage)}`} 
+                          <div
+                            className={`h-3 rounded-full ${getAttendanceColorClass(classItem.attendancePercentage)}`}
                             style={{ width: `${classItem.attendancePercentage}%` }}
                           ></div>
                         </div>
@@ -201,7 +203,7 @@ export default function ClassesPage() {
                     )}
                   </div>
                 </div>
-                
+
                 <div className="border-t pt-4">
                   <div className="flex items-center mb-2">
                     <span className="text-red-500 mr-2">📝</span>
@@ -211,7 +213,7 @@ export default function ClassesPage() {
                       {classItem.lastAssignment.daysAgo > 0 && ` – ${classItem.lastAssignment.daysAgo} day${classItem.lastAssignment.daysAgo > 1 ? 's' : ''} ago`}
                     </span>
                   </div>
-                  
+
                   <div className="flex items-center">
                     <span className="text-blue-500 mr-2">📅</span>
                     <span>Next Exam: </span>

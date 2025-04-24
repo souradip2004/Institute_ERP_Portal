@@ -2,7 +2,6 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Loader from '@/components/ui/Loader';
-import StudentLayout from '@/components/student/StudentLayout';
 
 interface Question {
   id: string;
@@ -88,20 +87,20 @@ export default function ExamsPage() {
   const fetchExams = async (studentId: string) => {
     try {
       setLoading(true);
-      
+
       // Fetch from the backend API
       const response = await fetch(`/api/exams?studentId=${studentId}`);
-      
+
       if (!response.ok) {
         throw new Error('Failed to fetch exams');
       }
-      
+
       const data = await response.json();
       console.log('Raw exam data received:', data);
-      
+
       // Store raw data for debugging
       setRawExamData(data);
-      
+
       // Check if data is empty
       if (!data || data.length === 0) {
         console.log('No exam data returned from API');
@@ -110,19 +109,19 @@ export default function ExamsPage() {
         setLoading(false);
         return;
       }
-      
+
       // Map API data to our Exam interface, handling different structures
       const mappedExams = data.map((exam: any) => {
         // Get subject from different possible locations
-        const subject = 
-          exam.subject || 
-          (exam.examType && exam.examType.name) || 
-          (exam.classSection && exam.classSection.course && exam.classSection.course.name) || 
+        const subject =
+          exam.subject ||
+          (exam.examType && exam.examType.name) ||
+          (exam.classSection && exam.classSection.course && exam.classSection.course.name) ||
           'Unknown Subject';
-        
+
         // Get duration either from durationMinutes or calculate from start/end time
         let duration = exam.duration || (exam.durationMinutes ? `${exam.durationMinutes} Minutes` : '');
-        
+
         return {
           id: exam.id,
           title: exam.title,
@@ -136,32 +135,32 @@ export default function ExamsPage() {
           ...exam
         };
       });
-      
+
       console.log('Mapped exams:', mappedExams);
-      
+
       // Check for valid status values in the data
       const statusValues = [...new Set(mappedExams.map((e: any) => e.status))];
       console.log('Status values found in data:', statusValues);
-      
+
       // Filter exams by status to get active and past exams - accept more possible status values
-      const active = mappedExams.filter((exam: any) => 
-        exam.status === 'UPCOMING' || 
-        exam.status === 'ONGOING' || 
-        exam.status === 'DRAFT' || 
-        exam.status === 'IN_PROGRESS' || 
+      const active = mappedExams.filter((exam: any) =>
+        exam.status === 'UPCOMING' ||
+        exam.status === 'ONGOING' ||
+        exam.status === 'DRAFT' ||
+        exam.status === 'IN_PROGRESS' ||
         exam.status === 'SCHEDULED'
       );
-      
-      const past = mappedExams.filter((exam: any) => 
-        exam.status === 'COMPLETED' || 
-        exam.status === 'CLOSED' || 
-        exam.status === 'GRADED' || 
+
+      const past = mappedExams.filter((exam: any) =>
+        exam.status === 'COMPLETED' ||
+        exam.status === 'CLOSED' ||
+        exam.status === 'GRADED' ||
         exam.status === 'ARCHIVED'
       );
-      
+
       console.log('Active exams after filtering:', active);
       console.log('Past exams after filtering:', past);
-      
+
       setActiveExams(active);
       setPastExams(past);
       setLoading(false);
@@ -189,7 +188,7 @@ export default function ExamsPage() {
       }
 
       const examWithQuestions = await response.json();
-      
+
       // Update the exam with questions and exam type
       setSelectedExam({
         ...exam,
@@ -224,7 +223,7 @@ export default function ExamsPage() {
 
   const submitAnswer = () => {
     if (!selectedExam || !selectedExam.questions) return;
-    
+
     const currentQuestion = selectedExam.questions[currentQuestionIndex];
     console.log('Submitting answer:', {
       questionId: currentQuestion.id,
@@ -259,7 +258,7 @@ export default function ExamsPage() {
     try {
       // Generate a random score between 60 and 95
       const score = Math.floor(Math.random() * (95 - 60 + 1)) + 60;
-      
+
       const response = await fetch('/api/exams/submit', {
         method: 'POST',
         headers: {
@@ -281,14 +280,14 @@ export default function ExamsPage() {
 
       // Update the exam status locally
       const updatedActiveExams = activeExams.filter(e => e.id !== selectedExam.id);
-      const completedExam = { 
-        ...selectedExam, 
-        status: 'COMPLETED', 
-        score: score 
+      const completedExam = {
+        ...selectedExam,
+        status: 'COMPLETED',
+        score: score
       };
       setPastExams([completedExam, ...pastExams]);
       setActiveExams(updatedActiveExams);
-      
+
       setFinalScore(score);
       setExamCompleted(true);
       setShowExamModal(false);
@@ -299,10 +298,10 @@ export default function ExamsPage() {
       console.error('Error submitting exam:', error);
       // Even if submission fails, show the score in UI
       const score = Math.floor(Math.random() * (95 - 60 + 1)) + 60;
-      const completedExam = { 
-        ...selectedExam!, 
-        status: 'COMPLETED', 
-        score: score 
+      const completedExam = {
+        ...selectedExam!,
+        status: 'COMPLETED',
+        score: score
       };
       setPastExams([completedExam, ...pastExams]);
       setActiveExams(activeExams.filter(e => e.id !== selectedExam!.id));
@@ -343,120 +342,159 @@ export default function ExamsPage() {
 
   if (loading) {
     return (
-      <StudentLayout>
-        <div className="flex items-center justify-center min-h-[calc(100vh-64px)]">
-          <Loader size="large" />
-        </div>
-      </StudentLayout>
+      <div className="flex items-center justify-center min-h-[calc(100vh-64px)]">
+        <Loader size="large" />
+      </div>
     );
   }
 
   if (error) {
     return (
-      <StudentLayout>
-        <div className="p-8">
-          <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6" role="alert">
-            <p className="font-bold">Error</p>
-            <p>{error}</p>
-          </div>
+      <div className="p-8">
+        <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6" role="alert">
+          <p className="font-bold">Error</p>
+          <p>{error}</p>
         </div>
-      </StudentLayout>
+      </div>
     );
   }
 
   return (
-    <StudentLayout>
-      <div className="p-8">
-        <div className="mb-8">
-          {/* <h1 className="text-gray-400 text-sm mb-1">
-            <Link href="/s/dashboard" className="inline-flex items-center hover:text-gray-600">
-              Student Dashboard
-            </Link>
-            <span className="mx-1">/</span>
-            My Exams
-          </h1> */}
-          <div className="flex items-center">
-            <h2 className="text-2xl font-semibold text-gray-800">My Exams</h2>
-            <button 
-              onClick={toggleDebugMode}
+    <div className="p-8">
+      <div className="mb-8">
+        <div className="flex items-center">
+          <h2 className="text-2xl font-semibold">My Exams</h2>
+          {debugMode && (
+            <button
+              onClick={() => setDebugMode(false)}
+              className="ml-auto text-sm text-indigo-600 hover:text-indigo-800"
+            >
+              Hide Debug
+            </button>
+          )}
+          {!debugMode && process.env.NODE_ENV === 'development' && (
+            <button
+              onClick={() => setDebugMode(true)}
               className="ml-auto text-sm text-gray-500 hover:text-gray-700"
             >
-              {/* {debugMode ? 'Hide Debug Info' : 'Show Debug Info'} */}
+              Debug
             </button>
-          </div>
+          )}
         </div>
-        
-        {error && (
-          <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6" role="alert">
-            <p className="font-bold">Error</p>
-            <p>{error}</p>
-          </div>
-        )}
+      </div>
 
-        {debugMode && (
-          <div className="bg-white p-4 rounded-lg shadow-sm mb-4 overflow-auto max-h-60">
-            <h3 className="font-semibold mb-2">Raw Exam Data:</h3>
-            <pre className="text-xs">{JSON.stringify(rawExamData, null, 2)}</pre>
-          </div>
-        )}
+      {error && (
+        <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6" role="alert">
+          <p className="font-bold">Error</p>
+          <p>{error}</p>
+        </div>
+      )}
 
-        {/* Active Exams */}
-        <section className="mb-8">
-          <h3 className="text-xl font-semibold mb-4">Active Exams</h3>
-          <div className="grid gap-4 md:grid-cols-2">
-            {activeExams.map(exam => (
-              <div key={exam.id} className="bg-white border p-4 rounded-lg shadow-sm">
-                <h4 className="font-bold text-gray-800">{exam.title}</h4>
-                {/* <p className="text-gray-600">Subject: {exam.subject || 'N/A'}</p> */}
-                <p className="text-gray-600">Duration: {exam.duration || 'N/A'}</p>
-                <p className="text-gray-600">Start Time: {new Date(exam.startTime).toLocaleString()}</p>
+      {debugMode && (
+        <div className="bg-white p-4 rounded-lg shadow mb-4 overflow-auto max-h-60">
+          <h3 className="font-semibold mb-2">Raw Exam Data:</h3>
+          <pre className="text-xs">{JSON.stringify(rawExamData, null, 2)}</pre>
+        </div>
+      )}
+
+      {/* Active Exams */}
+      <section className="mb-8">
+        <h3 className="text-xl font-semibold mb-4">Active Exams</h3>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {activeExams.map(exam => (
+            <div key={exam.id} className="bg-white rounded-lg shadow overflow-hidden border border-gray-100">
+              <div className="bg-indigo-50 p-4 border-b border-indigo-100">
+                <h4 className="font-semibold text-indigo-800">{exam.title}</h4>
+                {/* <p className="text-indigo-600 text-sm">{exam.subject || 'N/A'}</p> */}
+              </div>
+              <div className="p-4">
+                <div className="flex justify-between mb-2">
+                  <span className="text-gray-600 text-sm">Duration:</span>
+                  <span className="text-gray-800 font-medium">{exam.duration || 'N/A'}</span>
+                </div>
+                <div className="flex justify-between mb-4">
+                  <span className="text-gray-600 text-sm">Starts:</span>
+                  <span className="text-gray-800 font-medium">
+                    {new Date(exam.startTime).toLocaleString(undefined, {
+                      month: 'short',
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
+                  </span>
+                </div>
                 <button
                   onClick={() => startExam(exam)}
-                  className="mt-2 bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700"
+                  className="w-full bg-indigo-600 text-white py-2 rounded-md hover:bg-indigo-700 transition-colors"
                 >
                   Start Exam
                 </button>
               </div>
-            ))}
-            {activeExams.length === 0 && (
-              <div className="col-span-2 p-4 bg-white rounded-lg shadow-sm text-center text-gray-500">
-                No active exams found
-              </div>
-            )}
-          </div>
-        </section>
+            </div>
+          ))}
+          {activeExams.length === 0 && (
+            <div className="col-span-full bg-white p-8 rounded-lg shadow-sm text-center">
+              <div className="text-gray-400 text-5xl mb-4">📝</div>
+              <h4 className="text-xl font-medium text-gray-700 mb-2">No Active Exams</h4>
+              <p className="text-gray-500">No upcoming or ongoing exams found at the moment.</p>
+            </div>
+          )}
+        </div>
+      </section>
 
-        {/* Past Exams */}
-        <section>
-          <h3 className="text-xl font-semibold mb-4">Past Exams</h3>
+      {/* Past Exams */}
+      <section>
+        <h3 className="text-xl font-semibold mb-4">Past Exams</h3>
+        <div className="bg-white rounded-lg shadow overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="min-w-full bg-white border rounded-lg shadow-sm divide-y divide-gray-200">
+            <table className="min-w-full divide-y divide-gray-200">
               <thead>
                 <tr className="bg-gray-50">
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-600">Exam Title</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-600">Subject</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-600">Date Taken</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-600">Score</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-600">Status</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Exam Title
+                  </th>
+                  {/* <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Subject
+                    </th> */}
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Date Taken
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Score
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Status
+                  </th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="bg-white divide-y divide-gray-200">
                 {pastExams.map(exam => (
                   <tr key={exam.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 text-gray-700">{exam.title}</td>
-                    <td className="px-6 py-4 text-gray-700">{exam.subject || 'N/A'}</td>
-                    <td className="px-6 py-4 text-gray-700">
-                      {new Date(exam.examDate).toLocaleDateString()}
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-gray-900">{exam.title}</div>
                     </td>
-                    <td className="px-6 py-4 font-semibold text-purple-700">
-                      {exam.score || 'N/A'}/100
+                    {/* <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-700">{exam.subject || 'N/A'}</div>
+                    </td> */}
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-700">
+                        {new Date(exam.examDate).toLocaleDateString(undefined, {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric'
+                        })}
+                      </div>
                     </td>
-                    <td className="px-6 py-4">
-                      <span className={`px-2 py-1 rounded-full text-xs ${
-                        exam.status === 'COMPLETED' 
-                          ? 'bg-green-100 text-green-800' 
-                          : 'bg-gray-100 text-gray-800'
-                      }`}>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-semibold text-indigo-700">
+                        {exam.score || 'N/A'}/100
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${exam.status === 'COMPLETED' || exam.status === 'GRADED'
+                        ? 'bg-green-100 text-green-800'
+                        : 'bg-gray-100 text-gray-800'
+                        }`}>
                         {exam.status}
                       </span>
                     </td>
@@ -464,83 +502,99 @@ export default function ExamsPage() {
                 ))}
                 {pastExams.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="px-6 py-4 text-center text-gray-500">No past exams found</td>
+                    <td colSpan={5} className="px-6 py-10 text-center text-gray-500">
+                      No past exams found
+                    </td>
                   </tr>
                 )}
               </tbody>
             </table>
           </div>
-        </section>
+        </div>
+      </section>
 
-        {/* Exam Modal */}
-        {showExamModal && selectedExam && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white p-6 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-              {!examCompleted ? (
-                <>
-                  <div className="flex justify-between items-center mb-6">
-                    <h2 className="text-xl font-bold text-gray-800">{selectedExam.title}</h2>
-                    <div className="text-lg font-semibold text-purple-700">
-                      Time Left: {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
+      {/* Exam Modal */}
+      {showExamModal && selectedExam && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-xl">
+            {!examCompleted ? (
+              <>
+                <div className="bg-indigo-600 text-white p-4 rounded-t-lg">
+                  <div className="flex justify-between items-center">
+                    <h2 className="text-xl font-semibold">{selectedExam.title}</h2>
+                    <div className="text-lg font-mono">
+                      {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
                     </div>
                   </div>
+                </div>
 
-                  {selectedExam.questions && selectedExam.questions.length > 0 && (
-                    <div className="mb-6">
-                      <div className="text-sm text-gray-600 mb-2">
+                {selectedExam.questions && selectedExam.questions.length > 0 && (
+                  <div className="p-6">
+                    <div className="flex justify-between items-center mb-4">
+                      <div className="text-sm text-gray-600">
                         Question {currentQuestionIndex + 1} of {selectedExam.questions.length}
                       </div>
-                      <div className="border p-4 rounded-lg">
-                        <p className="font-semibold mb-4">
-                          {selectedExam.questions[currentQuestionIndex].questionText}
-                        </p>
-                        <textarea
-                          className="w-full p-3 border rounded focus:ring-2 focus:ring-purple-500"
-                          rows={5}
-                          value={currentAnswer}
-                          onChange={(e) => setCurrentAnswer(e.target.value)}
-                          placeholder="Write your answer here..."
-                        />
-                        <div className="mt-4 flex justify-between">
-                          <button
-                            onClick={() => setCurrentQuestionIndex(prev => Math.max(0, prev - 1))}
-                            disabled={currentQuestionIndex === 0}
-                            className="px-4 py-2 border rounded disabled:opacity-50 hover:bg-gray-100"
-                          >
-                            Previous
-                          </button>
-                          <button
-                            onClick={submitAnswer}
-                            className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
-                          >
-                            {currentQuestionIndex === selectedExam.questions.length - 1 ? 'Submit Exam' : 'Next Question'}
-                          </button>
-                        </div>
+                      <div className="bg-indigo-100 px-3 py-1 rounded-full text-xs text-indigo-800 font-medium">
+                        {selectedExam.questions[currentQuestionIndex].marks} Points
                       </div>
                     </div>
-                  )}
-                </>
-              ) : (
-                <div className="text-center">
-                  <h2 className="text-2xl font-bold mb-4">Exam Completed!</h2>
-                  <div className="text-6xl font-bold text-purple-700 mb-4">
-                    {finalScore}/100
+
+                    <div className="border border-gray-200 rounded-lg p-6 bg-gray-50 mb-4">
+                      <p className="text-gray-800 font-medium mb-6">
+                        {selectedExam.questions[currentQuestionIndex].questionText}
+                      </p>
+                      <textarea
+                        className="w-full p-4 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+                        rows={6}
+                        value={currentAnswer}
+                        onChange={(e) => setCurrentAnswer(e.target.value)}
+                        placeholder="Write your answer here..."
+                      />
+                    </div>
+
+                    <div className="flex justify-between mt-6">
+                      <button
+                        onClick={() => setCurrentQuestionIndex(prev => Math.max(0, prev - 1))}
+                        disabled={currentQuestionIndex === 0}
+                        className="px-6 py-2 border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
+                      >
+                        Previous
+                      </button>
+                      <button
+                        onClick={submitAnswer}
+                        className="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors"
+                      >
+                        {currentQuestionIndex === selectedExam.questions.length - 1 ? 'Submit Exam' : 'Next Question'}
+                      </button>
+                    </div>
                   </div>
-                  <p className="text-gray-600 mb-6">
-                    Thank you for completing the exam. Your responses have been recorded.
-                  </p>
-                  <button
-                    onClick={closeExam}
-                    className="px-6 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
-                  >
-                    Close
-                  </button>
+                )}
+              </>
+            ) : (
+              <div className="text-center p-10">
+                <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
                 </div>
-              )}
-            </div>
+                <h2 className="text-2xl font-bold text-gray-800 mb-4">Exam Completed!</h2>
+                <div className="text-5xl font-bold text-indigo-600 mb-6">
+                  {finalScore}/100
+                </div>
+                <p className="text-gray-600 mb-8 max-w-md mx-auto">
+                  Congratulations on completing your exam. Your answers have been submitted successfully.
+                </p>
+                <button
+                  onClick={closeExam}
+                  className="px-6 py-3 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors"
+                >
+                  Return to Exams
+                </button>
+              </div>
+            )}
           </div>
-        )}
-      </div>
-    </StudentLayout>
+        </div>
+      )}
+    </div>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { use, useEffect, useState } from 'react';
 import Link from 'next/link';
 import AssignmentUpload from '@/components/AssignmentUpload';
 import AssignmentsList from '@/components/AssignmentsList';
@@ -42,8 +42,9 @@ interface TeacherAssignmentsPageProps {
 }
 
 export default function TeacherAssignmentsPage({ params }: TeacherAssignmentsPageProps) {
-  const { classId } = params;
-  
+  const resolvedParams = React.use(params as any) as { classId: string };
+  const { classId } = resolvedParams;
+
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -58,15 +59,15 @@ export default function TeacherAssignmentsPage({ params }: TeacherAssignmentsPag
           `/api/classes/${classId}`,
           `/api/class-sections/${classId}`
         ];
-        
+
         let classDetailsData = null;
-        
+
         for (const endpoint of classDetailsEndpoints) {
           try {
             const response = await fetch(endpoint, {
               credentials: 'include'
             });
-            
+
             if (response.ok) {
               const data = await response.json();
               classDetailsData = data;
@@ -79,8 +80,8 @@ export default function TeacherAssignmentsPage({ params }: TeacherAssignmentsPag
 
         // If we have class details from API
         if (classDetailsData) {
-          setClassName(classDetailsData.name || classDetailsData.className || 
-                (classDetailsData.batch ? `Class ${classDetailsData.batch.batchName}` : 'Class'));
+          setClassName(classDetailsData.name || classDetailsData.className ||
+            (classDetailsData.batch ? `Class ${classDetailsData.batch.batchName}` : 'Class'));
           setSection(classDetailsData.section || classDetailsData.sectionName || 'A');
           notify.success('Class details loaded successfully');
         } else {
@@ -99,11 +100,11 @@ export default function TeacherAssignmentsPage({ params }: TeacherAssignmentsPag
       try {
         setLoading(true);
         const response = await fetch(`/api/assignments?classSectionId=${classId}`);
-        
+
         if (!response.ok) {
           throw new Error('Failed to fetch assignments');
         }
-        
+
         const data = await response.json() as ApiAssignment[];
         // Make sure submissions is always an array even if not provided from API
         const processedData = data.map((assignment: ApiAssignment) => ({
@@ -152,15 +153,15 @@ export default function TeacherAssignmentsPage({ params }: TeacherAssignmentsPag
               <p>{error}</p>
             </div>
           ) : (
-            <AssignmentsList 
+            <AssignmentsList
               assignments={assignments.map(assignment => ({
                 ...assignment,
                 submissions: assignment.submissions.map(submission => ({
                   ...submission,
                   feedback: submission.feedback || null
                 }))
-              }))} 
-              classSectionId={classId} 
+              }))}
+              classSectionId={classId}
             />
           )}
         </div>

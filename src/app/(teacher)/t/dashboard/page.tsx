@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import Link from "next/link";
 import { LogoutButton } from "@/components/auth/logout-button";
+import Loader from '@/components/ui/Loader';
 
 interface Notification {
   id: string;
@@ -52,6 +53,10 @@ export default function TeacherDashboardPage() {
   const [teacherId, setTeacherId] = useState<string | null>(null);
   const [classSectionId, setClassSectionId] = useState<string | null>(null);
 
+  const userString = localStorage.getItem("user");
+  const user = userString ? JSON.parse(userString) : null;
+  const classId = user?.classSectionId as string;
+
   useEffect(() => {
     const getUserData = () => {
       if (typeof window !== 'undefined') {
@@ -74,27 +79,27 @@ export default function TeacherDashboardPage() {
     };
 
     getUserData();
-    
+
     const loadData = async () => {
       try {
         setLoading(true);
-        
+
         // Execute all data fetching operations in parallel
         const [attendanceResult] = await Promise.allSettled([
           fetchAttendanceData()
         ]);
-        
+
         // Handle attendance data
         if (attendanceResult.status === 'fulfilled') {
           setTeacherAttendance(attendanceResult.value.teacherAttendance);
           setClassAttendance(attendanceResult.value.classAttendance);
         }
-        
+
         // Fetch other data types - these can be done sequentially to avoid overwhelming the API
         await fetchNotifications();
         await fetchAssignments();
         await fetchExams();
-        
+
         setLoading(false);
       } catch (error) {
         console.error("Error loading dashboard data:", error);
@@ -114,7 +119,7 @@ export default function TeacherDashboardPage() {
           const response = await fetch(`/api/notifications?teacherId=${teacherId}`, {
             credentials: 'include'
           });
-          
+
           if (response.ok) {
             const data = await response.json();
             setNotifications(data);
@@ -124,7 +129,7 @@ export default function TeacherDashboardPage() {
           console.error('API fetch error:', apiError);
         }
       }
-      
+
       // Fallback to sample data if API fails or teacherId is not available
       setNotifications([
         {
@@ -170,7 +175,7 @@ export default function TeacherDashboardPage() {
             credentials: 'include',
             body: JSON.stringify({ notificationIds, teacherId })
           });
-          
+
           if (response.ok) {
             // Update local state after successful API call
             setNotifications(prevNotifications =>
@@ -186,7 +191,7 @@ export default function TeacherDashboardPage() {
           console.error('API update error:', apiError);
         }
       }
-      
+
       // Fallback if API fails
       setNotifications(prevNotifications =>
         prevNotifications.map(notification =>
@@ -207,7 +212,7 @@ export default function TeacherDashboardPage() {
         const response = await fetch(`/api/teachers/${teacherId}/classes`, {
           credentials: 'include'
         });
-        
+
         if (response.ok) {
           const data = await response.json();
           // Extract assignments from classes if available
@@ -234,12 +239,12 @@ export default function TeacherDashboardPage() {
           }
         }
       }
-      
+
       // Try to fetch all assignments directly if teacher-specific failed
       const response = await fetch(`/api/assignments`, {
         credentials: 'include'
       });
-      
+
       if (response.ok) {
         const data = await response.json();
         if (Array.isArray(data)) {
@@ -257,7 +262,7 @@ export default function TeacherDashboardPage() {
           return;
         }
       }
-      
+
       // If all API attempts fail, use empty array
       setAssignments([]);
     } catch (error) {
@@ -272,7 +277,7 @@ export default function TeacherDashboardPage() {
       const response = await fetch(`/api/exams`, {
         credentials: 'include'
       });
-      
+
       if (response.ok) {
         const data = await response.json();
         if (Array.isArray(data)) {
@@ -290,13 +295,13 @@ export default function TeacherDashboardPage() {
           return;
         }
       }
-      
+
       // If teacher ID is available, try to fetch class-specific exams
       if (teacherId) {
         const classesResponse = await fetch(`/api/teachers/${teacherId}/classes`, {
           credentials: 'include'
         });
-        
+
         if (classesResponse.ok) {
           const classesData = await classesResponse.json();
           // Extract upcoming exams from classes
@@ -322,7 +327,7 @@ export default function TeacherDashboardPage() {
           }
         }
       }
-      
+
       // If all API attempts fail, use empty array
       setExams([]);
     } catch (error) {
@@ -331,48 +336,48 @@ export default function TeacherDashboardPage() {
     }
   };
 
-  const fetchAttendanceData = async (): Promise<{teacherAttendance: number, classAttendance: ClassAttendance[]}> => {
+  const fetchAttendanceData = async (): Promise<{ teacherAttendance: number, classAttendance: ClassAttendance[] }> => {
     try {
       // First, try to get the teacherId from state
       const currentTeacherId = teacherId || "teacher123"; // Use stored teacherId or fallback
-      
+
       // Try to fetch teacher's attendance summary
       let teacherAttendanceValue = 97; // Default to a reasonable value
       try {
         const summaryResponse = await fetch(`/api/teachers/${currentTeacherId}/attendance/summary`, {
           credentials: 'include'
         });
-        
+
         if (summaryResponse.ok) {
           const summaryData = await summaryResponse.json();
           if (summaryData && typeof summaryData.percentage !== 'undefined') {
             // Remove % sign if present and convert to number
-            teacherAttendanceValue = typeof summaryData.percentage === 'string' 
-              ? Number(summaryData.percentage.replace('%', '')) 
+            teacherAttendanceValue = typeof summaryData.percentage === 'string'
+              ? Number(summaryData.percentage.replace('%', ''))
               : Number(summaryData.percentage);
           }
         }
       } catch (error) {
         console.error("Error fetching teacher attendance:", error);
       }
-      
+
       // Try to fetch classes taught by this teacher
       let classes = [];
       try {
         const classesResponse = await fetch(`/api/teachers/${currentTeacherId}/classes`, {
           credentials: 'include'
         });
-        
+
         if (classesResponse.ok) {
           const classesData = await classesResponse.json();
-          classes = Array.isArray(classesData) 
-            ? classesData 
+          classes = Array.isArray(classesData)
+            ? classesData
             : (classesData?.classes || []);
         }
       } catch (error) {
         console.error("Error fetching teacher's classes:", error);
       }
-      
+
       // If no classes were found from the API, use fallback classes
       if (classes.length === 0) {
         classes = [
@@ -381,20 +386,20 @@ export default function TeacherDashboardPage() {
           { id: "class3", name: "Chemistry", section: "Section C" }
         ];
       }
-      
+
       // For each class, fetch attendance data
       const attendancePromises = classes.map(async (classInfo: any) => {
         try {
           const classId = classInfo.id || classInfo.classId;
           if (!classId) return null;
-          
+
           const attendanceResponse = await fetch(`/api/classes/${classId}/attendance`, {
             credentials: 'include'
           });
-          
+
           if (attendanceResponse.ok) {
             const attendanceData = await attendanceResponse.json();
-            
+
             // Convert percentage to number, ensuring it's a proper number
             let percentageValue = 0;
             if (typeof attendanceData?.percentage !== 'undefined') {
@@ -403,7 +408,7 @@ export default function TeacherDashboardPage() {
                 ? Number(attendanceData.percentage.replace('%', ''))
                 : Number(attendanceData.percentage);
             }
-            
+
             return {
               id: classId,
               name: classInfo.name || classInfo.className || "Unnamed Class",
@@ -416,10 +421,10 @@ export default function TeacherDashboardPage() {
         }
         return null;
       });
-      
+
       const attendanceResults = await Promise.all(attendancePromises);
       let validAttendance = attendanceResults.filter(item => item !== null) as ClassAttendance[];
-      
+
       // Use fallback data if no valid attendance data was found
       if (validAttendance.length === 0) {
         validAttendance = [
@@ -428,7 +433,7 @@ export default function TeacherDashboardPage() {
           { id: "class3", name: "Chemistry", sectionName: "Section C", percentage: 92 }
         ];
       }
-      
+
       return {
         teacherAttendance: teacherAttendanceValue,
         classAttendance: validAttendance
@@ -473,7 +478,7 @@ export default function TeacherDashboardPage() {
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+        <Loader size='large' />
       </div>
     );
   }
@@ -544,11 +549,11 @@ export default function TeacherDashboardPage() {
         <div className="bg-white p-6 rounded-lg shadow-sm">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-xl font-semibold">Attendance</h2>
-            <Link href="/t/attendance" className="text-blue-600 hover:text-blue-900">
+            <Link href={"/t/attendance" as any} className="text-blue-600 hover:text-blue-900">
               View Detailed Attendance
             </Link>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {/* Your Attendance - Circle */}
             <div>
@@ -572,7 +577,7 @@ export default function TeacherDashboardPage() {
                 </div>
               </div>
             </div>
-            
+
             {/* Students Attendance - Bars */}
             <div>
               <h3 className="text-lg font-medium mb-4">Class Attendance</h3>
@@ -588,11 +593,10 @@ export default function TeacherDashboardPage() {
                         <p className="text-xs text-gray-500 w-20">Section: {classItem.sectionName}</p>
                         <div className="flex-1 bg-gray-200 rounded-full h-3">
                           <div
-                            className={`h-3 rounded-full ${
-                              classItem.percentage > 90 ? 'bg-green-600' :
+                            className={`h-3 rounded-full ${classItem.percentage > 90 ? 'bg-green-600' :
                               classItem.percentage > 80 ? 'bg-blue-500' :
-                              classItem.percentage > 70 ? 'bg-yellow-500' : 'bg-red-500'
-                            }`}
+                                classItem.percentage > 70 ? 'bg-yellow-500' : 'bg-red-500'
+                              }`}
                             style={{ width: `${classItem.percentage}%` }}
                           ></div>
                         </div>
@@ -611,7 +615,7 @@ export default function TeacherDashboardPage() {
         <div className="bg-white p-6 rounded-lg shadow-sm">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-semibold">Recent Assignments</h2>
-            <Link href="/t/assignments" className="text-blue-600 hover:text-blue-900">
+            <Link href={"/t/classes/" + classId + "/assignments" as any} className="text-blue-600 hover:text-blue-900">
               View All Classes
             </Link>
           </div>
@@ -639,8 +643,8 @@ export default function TeacherDashboardPage() {
                       <td className="py-3">{assignment.submissions}</td>
                       <td className="py-3">{assignment.status}</td>
                       <td className="py-3">
-                        <Link 
-                          href={`/t/classes/${assignment.id}/assignments`} 
+                        <Link
+                          href={`/t/classes/${assignment.id}/assignments`}
                           className="text-blue-600 hover:text-blue-900"
                         >
                           View
@@ -664,7 +668,10 @@ export default function TeacherDashboardPage() {
         <div className="bg-white p-6 rounded-lg shadow-sm">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-semibold">Upcoming Exams</h2>
-            <Link href="/t/exams" className="text-blue-600 hover:text-blue-900">
+            <Link
+              href={`/t/classes/${classId}/exams` as any}
+              className="text-blue-600 hover:text-blue-900"
+            >
               View All Exams
             </Link>
           </div>
@@ -692,8 +699,8 @@ export default function TeacherDashboardPage() {
                       <td className="py-3">{exam.mode}</td>
                       <td className="py-3">{exam.status}</td>
                       <td className="py-3">
-                        <Link 
-                          href={`/t/classes/${exam.id}/exams`} 
+                        <Link
+                          href={`/t/classes/${exam.id}/exams` as any}
                           className="text-blue-600 hover:text-blue-900"
                         >
                           View
