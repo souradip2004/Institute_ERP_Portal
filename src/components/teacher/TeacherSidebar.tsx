@@ -48,7 +48,7 @@ export default function TeacherSidebar() {
 
   const navItems = [
     { name: 'Dashboard', href: '/t/dashboard', icon: '📊' },
-    { name: 'Exams', href: '/t/exams', icon: '📝' },
+    { name: 'Exams', href: `/t/classes/${classId}/exams`, icon: '📝' },
     { name: 'Assignments', href: '#', icon: '📚', onClick: handleAssignmentsClick },
     { name: 'Notes', href: '#', icon: '📔', onClick: handleNotesClick },
     { name: 'Attendance', href: '/t/attendance', icon: '📋' },

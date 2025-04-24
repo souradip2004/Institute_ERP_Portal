@@ -1,9 +1,9 @@
 "use client";
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { format } from "date-fns";
-import { useParams } from 'next/navigation';
 import Loader from '@/components/ui/Loader';
+import { Calendar, Clock, CheckCheck, X, FileText, BookOpen, GraduationCap } from 'lucide-react';
 
 interface Question {
   question: string;
@@ -53,17 +53,20 @@ interface ExamsPageProps {
 }
 
 export default function ExamsPage({ params }: ExamsPageProps) {
-  const { classId } = params;
-  
+  const resolvedParams = React.use(params as any) as { classId: string };
+  const classId = resolvedParams;
+
+  // Tab state
+  const [activeTab, setActiveTab] = useState<'view' | 'create'>('view');
+
   // States for exam creation
-  const [showCreateForm, setShowCreateForm] = useState(false);
   const [examTitle, setExamTitle] = useState("");
   const [questions, setQuestions] = useState<Question[]>([]);
   const [pdfUrl, setPdfUrl] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [numQuestions, setNumQuestions] = useState<string>("2");
-  
+
   // New states for additional exam fields
   const [classSections, setClassSections] = useState<ClassSection[]>([]);
   const [selectedClassSection, setSelectedClassSection] = useState("");
@@ -220,7 +223,7 @@ export default function ExamsPage({ params }: ExamsPageProps) {
         setPassingMarks("");
         setNumQuestions("2");
         setError("");
-        setShowCreateForm(false);
+        setActiveTab('view');
         fetchExams();
       }
     } catch (err: any) {
@@ -240,269 +243,396 @@ export default function ExamsPage({ params }: ExamsPageProps) {
   };
 
   return (
-    <div className="container mx-auto p-4">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Exam Management</h1>
-        <button
-          onClick={() => setShowCreateForm(!showCreateForm)}
-          className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-        >
-          {showCreateForm ? "View Exams" : "Create New Exam"}
-        </button>
+    <div className="container mx-auto px-4 py-8 max-w-7xl">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-800">Exam Management</h1>
+          <p className="text-gray-600 mt-1">Create and manage exams for your classes</p>
+        </div>
+        <div className="bg-white rounded-lg shadow-sm p-1 inline-flex">
+          <button
+            onClick={() => setActiveTab('view')}
+            className={`px-4 py-2 rounded-md font-medium transition-colors ${activeTab === 'view'
+              ? 'bg-purple-100 text-purple-700'
+              : 'text-gray-600 hover:bg-gray-100'
+              }`}
+          >
+            <span className="flex items-center gap-2">
+              <BookOpen className="h-5 w-5" />
+              View Exams
+            </span>
+          </button>
+          <button
+            onClick={() => setActiveTab('create')}
+            className={`px-4 py-2 rounded-md font-medium transition-colors ${activeTab === 'create'
+              ? 'bg-purple-100 text-purple-700'
+              : 'text-gray-600 hover:bg-gray-100'
+              }`}
+          >
+            <span className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              Create Exam
+            </span>
+          </button>
+        </div>
       </div>
 
       {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-          {error}
+        <div className="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded-md shadow-sm">
+          <div className="flex items-start">
+            <X className="h-5 w-5 mr-2 mt-0.5" />
+            <p>{error}</p>
+          </div>
         </div>
       )}
 
-      {showCreateForm ? (
+      {activeTab === 'create' ? (
         // Create Exam Form
-        <div className="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
-          <div className="mb-4">
-            <label className="block text-gray-700 text-sm font-bold mb-2">
-              Exam Title
-            </label>
-            <input
-              type="text"
-              value={examTitle}
-              onChange={(e) => setExamTitle(e.target.value)}
-              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-              placeholder="Enter exam title"
-            />
+        <div className="bg-white shadow-md rounded-lg overflow-hidden">
+          <div className="p-6 border-b border-gray-200">
+            <h2 className="text-xl font-semibold text-gray-800">Create New Exam</h2>
+            <p className="text-gray-500 text-sm mt-1">Fill the form below to create a new exam</p>
           </div>
 
-          <div className="mb-4">
-            <label className="block text-gray-700 text-sm font-bold mb-2">
-              Class Section
-            </label>
-            <select
-              value={selectedClassSection}
-              onChange={(e) => setSelectedClassSection(e.target.value)}
-              className="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-            >
-              <option value="">Select Class Section</option>
-              {classSections.map((section) => (
-                <option key={section.id} value={section.id}>
-                  {section.batch.name} - {section.semester.name}
-                </option>
-              ))}
-            </select>
+          <div className="p-6">
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Exam Title
+                  </label>
+                  <input
+                    type="text"
+                    value={examTitle}
+                    onChange={(e) => setExamTitle(e.target.value)}
+                    className="w-full px-4 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors"
+                    placeholder="Enter exam title"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Class Section
+                  </label>
+                  <select
+                    value={selectedClassSection}
+                    onChange={(e) => setSelectedClassSection(e.target.value)}
+                    className="w-full px-4 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors"
+                  >
+                    <option value="">Select Class Section</option>
+                    {classSections.map((section) => (
+                      <option key={section.id} value={section.id}>
+                        {section.batch.name} - {section.semester.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <span className="flex items-center gap-1">
+                      <Clock className="h-4 w-4" />
+                      Duration (minutes)
+                    </span>
+                  </label>
+                  <input
+                    type="number"
+                    value={durationMinutes}
+                    onChange={(e) => setDurationMinutes(e.target.value)}
+                    className="w-full px-4 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <span className="flex items-center gap-1">
+                      <GraduationCap className="h-4 w-4" />
+                      Total Marks
+                    </span>
+                  </label>
+                  <input
+                    type="number"
+                    value={totalMarks}
+                    onChange={(e) => setTotalMarks(e.target.value)}
+                    className="w-full px-4 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <span className="flex items-center gap-1">
+                      <CheckCheck className="h-4 w-4" />
+                      Passing Marks
+                    </span>
+                  </label>
+                  <input
+                    type="number"
+                    value={passingMarks}
+                    onChange={(e) => setPassingMarks(e.target.value)}
+                    className="w-full px-4 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <span className="flex items-center gap-1">
+                      <Calendar className="h-4 w-4" />
+                      Exam Date
+                    </span>
+                  </label>
+                  <input
+                    type="date"
+                    value={examDate}
+                    onChange={(e) => setExamDate(e.target.value)}
+                    className="w-full px-4 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <span className="flex items-center gap-1">
+                      <Clock className="h-4 w-4" />
+                      Start Time
+                    </span>
+                  </label>
+                  <input
+                    type="time"
+                    value={startTime}
+                    onChange={(e) => setStartTime(e.target.value)}
+                    className="w-full px-4 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <span className="flex items-center gap-1">
+                      <Clock className="h-4 w-4" />
+                      End Time
+                    </span>
+                  </label>
+                  <input
+                    type="time"
+                    value={endTime}
+                    onChange={(e) => setEndTime(e.target.value)}
+                    className="w-full px-4 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors"
+                  />
+                </div>
+              </div>
+
+              <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                <h3 className="font-medium text-gray-700 mb-3">Question Generator</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      PDF URL
+                    </label>
+                    <input
+                      type="text"
+                      value={pdfUrl}
+                      onChange={(e) => setPdfUrl(e.target.value)}
+                      className="w-full px-4 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors"
+                      placeholder="Enter PDF URL"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Number of Questions
+                    </label>
+                    <input
+                      type="number"
+                      value={numQuestions}
+                      onChange={(e) => setNumQuestions(e.target.value)}
+                      className="w-full px-4 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  onClick={extractQuestions}
+                  disabled={loading}
+                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 transition-colors"
+                >
+                  {loading ? <Loader size="small" /> : "Extract Questions from PDF"}
+                </button>
+              </div>
+
+              {questions.length > 0 && (
+                <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                  <div className="p-4 bg-purple-50 border-b border-gray-200">
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-semibold text-purple-800">
+                        Generated Questions ({questions.filter(q => q.isSelected).length}/{questions.length} selected)
+                      </h3>
+                      <button
+                        className="text-xs text-purple-700 hover:text-purple-900"
+                        onClick={() => setQuestions(questions.map(q => ({ ...q, isSelected: true })))}
+                      >
+                        Select All
+                      </button>
+                    </div>
+                  </div>
+                  <div className="divide-y divide-gray-200 max-h-80 overflow-y-auto">
+                    {questions.map((q, index) => (
+                      <div
+                        key={index}
+                        className={`p-4 transition-colors ${q.isSelected ? "bg-purple-50" : "hover:bg-gray-50"
+                          }`}
+                      >
+                        <label className="flex items-start gap-3 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={q.isSelected}
+                            onChange={() => toggleQuestionSelection(index)}
+                            className="mt-1 h-4 w-4 text-purple-600 rounded border-gray-300 focus:ring-purple-500"
+                          />
+                          <div>
+                            <p className="font-medium text-gray-800">Q{index + 1}: {q.question}</p>
+                            <div className="text-sm text-gray-600 mt-1 pl-4">
+                              <span className="font-medium">Answer: </span>
+                              {q.answer ? (
+                                Array.isArray(q.answer) ? (
+                                  <ul className="list-disc pl-5 mt-1 space-y-1">
+                                    {q.answer.map((ans, i) => (
+                                      <li key={i}>{ans}</li>
+                                    ))}
+                                  </ul>
+                                ) : typeof q.answer === "string" ? (
+                                  <div className="pl-2 border-l-2 border-gray-300 mt-1">
+                                    {q.answer.split(". ").map((option, i) => (
+                                      <p key={i} className="mb-1">{option}</p>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <span className="italic">No answer available</span>
+                                )
+                              ) : (
+                                <span className="italic">No answer available</span>
+                              )}
+                            </div>
+                          </div>
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            <div>
-              <label className="block text-gray-700 text-sm font-bold mb-2">
-                Duration (minutes)
-              </label>
-              <input
-                type="number"
-                value={durationMinutes}
-                onChange={(e) => setDurationMinutes(e.target.value)}
-                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-              />
-            </div>
-
-            <div>
-              <label className="block text-gray-700 text-sm font-bold mb-2">
-                Total Marks
-              </label>
-              <input
-                type="number"
-                value={totalMarks}
-                onChange={(e) => setTotalMarks(e.target.value)}
-                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-              />
-            </div>
-
-            <div>
-              <label className="block text-gray-700 text-sm font-bold mb-2">
-                Passing Marks
-              </label>
-              <input
-                type="number"
-                value={passingMarks}
-                onChange={(e) => setPassingMarks(e.target.value)}
-                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-              />
-            </div>
-
-            <div>
-              <label className="block text-gray-700 text-sm font-bold mb-2">
-                Exam Date
-              </label>
-              <input
-                type="date"
-                value={examDate}
-                onChange={(e) => setExamDate(e.target.value)}
-                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-              />
-            </div>
-
-            <div>
-              <label className="block text-gray-700 text-sm font-bold mb-2">
-                Start Time
-              </label>
-              <input
-                type="time"
-                value={startTime}
-                onChange={(e) => setStartTime(e.target.value)}
-                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-              />
-            </div>
-
-            <div>
-              <label className="block text-gray-700 text-sm font-bold mb-2">
-                End Time
-              </label>
-              <input
-                type="time"
-                value={endTime}
-                onChange={(e) => setEndTime(e.target.value)}
-                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-              />
-            </div>
-          </div>
-
-          <div className="mb-4">
-            <label className="block text-gray-700 text-sm font-bold mb-2">
-              PDF URL
-            </label>
-            <input
-              type="text"
-              value={pdfUrl}
-              onChange={(e) => setPdfUrl(e.target.value)}
-              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-              placeholder="Enter PDF URL"
-            />
-          </div>
-
-          <div className="mb-4">
-            <label className="block text-gray-700 text-sm font-bold mb-2">
-              Number of Questions
-            </label>
-            <input
-              type="number"
-              value={numQuestions}
-              onChange={(e) => setNumQuestions(e.target.value)}
-              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-            />
-          </div>
-
-          <div className="mb-4">
+          <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
             <button
-              onClick={extractQuestions}
+              onClick={handleCreateExam}
               disabled={loading}
-              className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline disabled:opacity-50 mr-2"
+              className="w-full sm:w-auto bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-6 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 disabled:opacity-50 transition-colors flex items-center justify-center"
             >
-              {loading ? <Loader size="small" /> : "Extract Questions"}
+              {loading ? <Loader size="small" /> : "Create Exam"}
             </button>
           </div>
-
-          {questions.length > 0 && (
-            <div className="mb-4">
-              <h2 className="text-xl font-bold mb-2">Questions</h2>
-              <div className="space-y-2">
-                {questions.map((q, index) => (
-                  <div
-                    key={index}
-                    className={`p-4 border rounded ${
-                      q.isSelected ? "border-blue-500 bg-blue-50" : ""
-                    }`}
-                  >
-                    <label className="flex items-start gap-2">
-                      <input
-                        type="checkbox"
-                        checked={q.isSelected}
-                        onChange={() => toggleQuestionSelection(index)}
-                        className="mt-1"
-                      />
-                      <div>
-                        <p className="font-medium">{q.question}</p>
-                        <p className="text-sm text-gray-600">
-                          Answer:{" "}
-                          {q.answer ? (
-                            Array.isArray(q.answer) ? (
-                              q.answer.join(", ")
-                            ) : typeof q.answer === "string" ? (
-                              q.answer.split(". ").map((option, i) => (
-                                <span key={i}>
-                                  {option}
-                                  <br />
-                                </span>
-                              ))
-                            ) : (
-                              "No answer available"
-                            )
-                          ) : (
-                            "No answer available"
-                          )}
-                        </p>
-                      </div>
-                    </label>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <button
-            onClick={handleCreateExam}
-            disabled={loading}
-            className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline disabled:opacity-50"
-          >
-            {loading ? <Loader size="small" /> : "Create Exam"}
-          </button>
         </div>
       ) : (
         // Exam List
         <div>
           {loadingExams ? (
-            <Loader size="large" message="Loading exams..." />
+            <div className="flex items-center justify-center h-64">
+              <Loader size="large" message="Loading exams..." />
+            </div>
           ) : exams.length === 0 ? (
-            <div className="text-center py-4 text-gray-500">No exams created yet</div>
+            <div className="bg-white rounded-lg shadow-md p-8 text-center">
+              <FileText className="h-16 w-16 mx-auto text-gray-400 mb-4" />
+              <h3 className="text-xl font-medium text-gray-700 mb-2">No exams created yet</h3>
+              <p className="text-gray-500 mb-6">Start by creating your first exam for this class</p>
+              <button
+                onClick={() => setActiveTab('create')}
+                className="bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-6 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition-colors"
+              >
+                Create Your First Exam
+              </button>
+            </div>
           ) : (
-            <div className="grid gap-4">
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-2">
               {exams.map((exam) => (
                 <div
                   key={exam.id}
-                  className="bg-white shadow-md rounded-lg p-6 hover:shadow-lg transition-shadow"
+                  className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow border border-gray-200"
                 >
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h2 className="text-xl font-bold mb-2">{exam.title}</h2>
-                      <p className="text-gray-600">
-                        Batch: {exam.classSection.batch.name} | Semester:{" "}
-                        {exam.classSection.semester.name}
-                      </p>
-                      <p className="text-gray-600">
-                        Duration: {exam.durationMinutes} minutes | Total Marks:{" "}
-                        {exam.totalMarks} | Passing Marks: {exam.passingMarks}
-                      </p>
-                      <p className="text-gray-600">
-                        Questions: {exam.questions.length}
-                      </p>
-                      <p className="text-gray-600">
-                        Date: {format(new Date(exam.examDate), "PPP")}
-                      </p>
-                      <p className="text-gray-600">
-                        Time: {format(new Date(exam.startTime), "p")} -{" "}
-                        {format(new Date(exam.endTime), "p")}
-                      </p>
-                    </div>
-                    <span
-                      className={`px-3 py-1 rounded-full text-sm font-semibold ${
-                        exam.status === "DRAFT"
+                  <div className="p-6">
+                    <div className="flex justify-between items-start mb-4">
+                      <h2 className="text-xl font-bold text-gray-800">{exam.title}</h2>
+                      <span
+                        className={`px-3 py-1 rounded-full text-xs font-semibold ${exam.status === "DRAFT"
                           ? "bg-yellow-100 text-yellow-800"
                           : exam.status === "PUBLISHED"
-                          ? "bg-green-100 text-green-800"
-                          : "bg-gray-100 text-gray-800"
-                      }`}
-                    >
-                      {exam.status}
-                    </span>
+                            ? "bg-green-100 text-green-800"
+                            : exam.status === "COMPLETED"
+                              ? "bg-blue-100 text-blue-800"
+                              : "bg-gray-100 text-gray-800"
+                          }`}
+                      >
+                        {exam.status}
+                      </span>
+                    </div>
+
+                    <div className="space-y-3">
+                      <div className="flex items-center text-gray-600">
+                        <GraduationCap className="h-5 w-5 mr-2 text-gray-500" />
+                        <span>
+                          {exam.classSection.batch.name} | {exam.classSection.semester.name}
+                        </span>
+                      </div>
+
+                      <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
+                        <div className="flex items-center text-gray-600">
+                          <Clock className="h-4 w-4 mr-1 text-gray-500" />
+                          <span>{exam.durationMinutes} minutes</span>
+                        </div>
+
+                        <div className="flex items-center text-gray-600">
+                          <FileText className="h-4 w-4 mr-1 text-gray-500" />
+                          <span>{exam.questions.length} questions</span>
+                        </div>
+
+                        <div className="flex items-center text-gray-600">
+                          <span className="font-medium mr-1">Marks:</span>
+                          <span>{exam.totalMarks} total</span>
+                        </div>
+
+                        <div className="flex items-center text-gray-600">
+                          <span className="font-medium mr-1">Pass:</span>
+                          <span>{exam.passingMarks} marks</span>
+                        </div>
+                      </div>
+
+                      <div className="pt-2 border-t border-gray-100">
+                        <div className="flex items-center text-gray-600">
+                          <Calendar className="h-4 w-4 mr-1 text-gray-500" />
+                          <span>{format(new Date(exam.examDate), "PPP")}</span>
+                        </div>
+
+                        <div className="flex items-center text-gray-600 mt-1">
+                          <Clock className="h-4 w-4 mr-1 text-gray-500" />
+                          <span>
+                            {format(new Date(exam.startTime), "p")} - {format(new Date(exam.endTime), "p")}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
+
+                  {/* <div className="px-6 py-3 bg-gray-50 border-t border-gray-200">
+                    <div className="flex space-x-2 justify-end">
+                      <button className="px-3 py-1 bg-white border border-gray-300 rounded text-gray-600 text-sm hover:bg-gray-50 transition-colors">
+                        View Details
+                      </button>
+                      <button className="px-3 py-1 bg-purple-100 border border-purple-200 rounded text-purple-700 text-sm hover:bg-purple-200 transition-colors">
+                        Manage
+                      </button>
+                    </div>
+                  </div> */}
                 </div>
               ))}
             </div>
