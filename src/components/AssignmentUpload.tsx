@@ -51,26 +51,55 @@ const AssignmentUpload = ({ classSectionId }: AssignmentUploadProps) => {
     }
 
     setIsSubmitting(true);
-    const formData = new FormData();
-    formData.append('title', title);
-    formData.append('maxPoints', totalMarks);
-    formData.append('dueDate', dueDate);
-    formData.append('classSectionId', classSectionId);
-    formData.append('submissionType', 'INDIVIDUAL');
-    if (file) {
-      formData.append('file', file);
-    }
+    const loadingId = notify.loading('Creating assignment...');
 
     try {
-      const loadingId = notify.loading('Creating assignment...');
-      
+      let fileUrl = null;
+      let fileKey = null;
+
+      // If a file is provided, upload it to S3 via the PDF upload API
+      if (file) {
+        const fileFormData = new FormData();
+        fileFormData.append('pdf', file);
+
+        const uploadResponse = await fetch('/api/upload/pdf', {
+          method: 'POST',
+          body: fileFormData,
+        });
+
+        if (!uploadResponse.ok) {
+          throw new Error('Failed to upload file');
+        }
+
+        const uploadResult = await uploadResponse.json();
+        fileUrl = uploadResult.url;
+        fileKey = uploadResult.key;
+      }
+
+      // Create assignment with file URL if available
+      const formData = new FormData();
+      formData.append('title', title);
+      formData.append('maxPoints', totalMarks);
+      formData.append('dueDate', dueDate);
+      formData.append('classSectionId', classSectionId);
+      formData.append('submissionType', 'INDIVIDUAL');
+
+      // Add the file URL and key from S3 if available
+      if (fileUrl) {
+        formData.append('fileUrl', fileUrl);
+      }
+
+      if (fileKey) {
+        formData.append('fileKey', fileKey);
+      }
+
       const response = await fetch('/api/assignments/create', {
         method: 'POST',
         body: formData,
       });
 
       notify.dismiss(loadingId);
-      
+
       if (!response.ok) {
         throw new Error('Failed to create assignment');
       }
@@ -80,13 +109,14 @@ const AssignmentUpload = ({ classSectionId }: AssignmentUploadProps) => {
       setTotalMarks('');
       setDueDate('');
       setFile(null);
-      
+
       notify.success('Assignment created successfully!');
-      
+
       // Refresh data
       router.refresh();
     } catch (error) {
       console.error('Error creating assignment:', error);
+      notify.dismiss(loadingId);
       notify.error('Failed to create assignment. Please try again.');
     } finally {
       setIsSubmitting(false);
@@ -150,16 +180,16 @@ const AssignmentUpload = ({ classSectionId }: AssignmentUploadProps) => {
                 className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
               />
               {isMounted && (
-                <input 
-                  type="time" 
-                  className="ml-2 border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500" 
+                <input
+                  type="time"
+                  className="ml-2 border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
                   defaultValue="12:00"
                 />
               )}
             </div>
           </div>
 
-          <div 
+          <div
             className="border-2 border-dashed border-gray-300 rounded-md p-6 text-center cursor-pointer hover:border-purple-500 transition-colors"
             onDrop={handleDrop}
             onDragOver={handleDragOver}
@@ -176,11 +206,12 @@ const AssignmentUpload = ({ classSectionId }: AssignmentUploadProps) => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
               </svg>
               <p className="text-sm text-gray-600 mb-1">
-                { file ? file.name : 'Drag and Drop Your File Here' }
+                {file ? file.name : 'Drag and Drop Your File Here'}
               </p>
               <p className="text-xs text-gray-500 mb-2">or</p>
               <p className="text-sm font-medium text-purple-600">Choose From Computer</p>
             </div>
+
           </div>
 
           <div className="flex space-x-4">
@@ -251,4 +282,4 @@ const AssignmentUpload = ({ classSectionId }: AssignmentUploadProps) => {
   );
 };
 
-export default AssignmentUpload; 
+export default AssignmentUpload;

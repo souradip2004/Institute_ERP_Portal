@@ -41,7 +41,7 @@ const TeacherHeader: FC<TeacherHeaderProps> = ({ className, classId }) => {
           {tabs.map((tab) => (
             <Link
               key={tab.name}
-              href={tab.href}
+              href={tab.href as any}
               className={`
                 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm
                 ${isActive(tab.href)

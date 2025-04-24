@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import NotesManagement from '@/components/notes/NotesManagement';
 import { redirect } from 'next/navigation';
+import Loader from '@/components/ui/Loader';
 
 export default function TeacherNotesClient({ classId }: { classId: string }) {
     const [isLoading, setIsLoading] = useState(true);
@@ -55,8 +56,17 @@ export default function TeacherNotesClient({ classId }: { classId: string }) {
         fetchData();
     }, [classId]);
 
+    // if (isLoading) {
+    //     return <div className="p-4"></div>;
+
+    // }
+
     if (isLoading) {
-        return <div className="p-4">Loading...</div>;
+        return (
+            <div className="flex justify-center items-center min-h-screen">
+                <Loader size="large" />
+            </div>
+        );
     }
 
     if (error) {
