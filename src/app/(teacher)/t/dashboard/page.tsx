@@ -53,9 +53,14 @@ export default function TeacherDashboardPage() {
   const [teacherId, setTeacherId] = useState<string | null>(null);
   const [classSectionId, setClassSectionId] = useState<string | null>(null);
 
-  const userString = localStorage.getItem("user");
-  const user = userString ? JSON.parse(userString) : null;
-  const classId = user?.classSectionId as string;
+  let user: { classSectionId?: string } | null = null;
+  let classId: string | undefined = undefined;
+
+  if (typeof window !== "undefined") {
+    const userString = localStorage.getItem("user");
+    user = userString ? JSON.parse(userString) : null;
+    classId = user?.classSectionId;
+  }
 
   useEffect(() => {
     const getUserData = () => {

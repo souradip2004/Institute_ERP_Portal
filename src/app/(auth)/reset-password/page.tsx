@@ -1,22 +1,35 @@
 "use client";
-
 import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-
-export default function ResetPasswordPage() {
+import { Suspense } from "react";
+export default function ResetPasswordPage(){
+  return (
+    <Suspense>
+      <ResetPasswordPage1 />
+    </Suspense>
+  )
+}
+function ResetPasswordPage1() {
   const searchParams = useSearchParams();
   const token = searchParams?.get("token");
-
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [tokenValid, setTokenValid] = useState(true);
+
+  if (!searchParams) {
+    return (
+      <div className="flex min-h-screen items-center justify-center px-4 py-12">
+        <p>Loading...</p>
+      </div>
+    );
+  }
 
   useEffect(() => {
     const validateToken = async () => {
@@ -80,6 +93,7 @@ export default function ResetPasswordPage() {
 
   if (!tokenValid) {
     return (
+      <Suspense>
       <div className="flex min-h-screen items-center justify-center px-4 py-12">
         <Card className="w-full max-w-md">
           <CardHeader className="space-y-1">
@@ -99,10 +113,12 @@ export default function ResetPasswordPage() {
           </CardContent>
         </Card>
       </div>
+      </Suspense>
     );
   }
 
   return (
+    <Suspense>
     <div className="flex min-h-screen items-center justify-center px-4 py-12">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
@@ -155,5 +171,6 @@ export default function ResetPasswordPage() {
         </CardContent>
       </Card>
     </div>
+    </Suspense>
   );
 }

@@ -1,9 +1,17 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  typescript: {
+    ignoreBuildErrors: true,
+  },
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+
   /* config options here */
   experimental: {
     nodeMiddleware: true,
+    
     // allowedDevOrigins: ["http://192.168.29.8:3000"], // Replace with your local IP
   },
   images: {

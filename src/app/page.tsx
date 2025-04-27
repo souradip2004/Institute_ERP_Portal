@@ -7,9 +7,9 @@ import Cookies from 'js-cookie';
 
 export default function CustomLoginForm() {
   // State for form inputs
-  const [identifier, setIdentifier] = useState('alice-admin-1745175849057@springfield.edu');
-  const [password, setPassword] = useState('password123');
-  const [role, setRole] = useState('TEACHER');
+  const [identifier, setIdentifier] = useState('');
+  const [password, setPassword] = useState('');
+  const [role, setRole] = useState('STUDENT');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -40,6 +40,10 @@ export default function CustomLoginForm() {
       }
 
       // Store user data in localStorage for client-side access
+      if(typeof window !== 'undefined') {
+        localStorage.setItem('user', JSON.stringify(data.user));
+        localStorage.setItem('auth_token', data.token);
+      }
       // localStorage.setItem('user', JSON.stringify(data.user));
       // localStorage.setItem('auth_token', data.token);
 

@@ -91,10 +91,93 @@ export default function ExamsPage({ params }: ExamsPageProps) {
   const [selectedExam, setSelectedExam] = useState<Exam | null>(null);
   const [loadingExamDetails, setLoadingExamDetails] = useState(false);
 
+  // Force logout and redirect to login
+  const forceLogout = () => {
+    // Clear any auth cookies
+    document.cookie = "auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+    document.cookie = "next-auth.session-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+    
+    // Add message to local storage for login page
+    localStorage.setItem('auth_error', 'Your session was invalid. Please log in again.');
+    
+    // Redirect to login after a short delay to allow the error message to be seen
+    setTimeout(() => {
+      window.location.href = '/login';
+    }, 2000);
+  };
+
+  // Check if user is authenticated as a teacher
+  const checkAuthStatus = async () => {
+    try {
+      console.log("Checking authentication status...");
+      
+      // First try to get user data from localStorage
+      const storedUser = localStorage.getItem('user');
+      let userData = null;
+      
+      if (storedUser) {
+        try {
+          userData = JSON.parse(storedUser);
+          console.log("Found stored user data:", userData);
+          
+          // If we have valid teacher data in localStorage, we can proceed
+          if (userData?.role === 'TEACHER') {
+            console.log("User is authenticated as a teacher based on localStorage");
+            return true;
+          }
+        } catch (e) {
+          console.error("Error parsing stored user data:", e);
+        }
+      }
+      
+      // If we don't have valid data in localStorage or it's not a teacher,
+      // check with the server
+      console.log("Checking authentication with server...");
+      const response = await axios.get('/api/auth/session', {
+        withCredentials: true
+      });
+      
+      if (!response.data?.user?.role) {
+        console.error("No valid user data in session");
+        setError("You must be logged in as a teacher to access this page");
+        forceLogout();
+        return false;
+      }
+      
+      if (response.data.user.role !== 'TEACHER') {
+        console.error(`User role is ${response.data.user.role}, not TEACHER`);
+        setError("Only teachers can access this page");
+        forceLogout();
+        return false;
+      }
+      
+      // Update localStorage with current user data
+      localStorage.setItem('user', JSON.stringify(response.data.user));
+      console.log("User is authenticated as a teacher via API");
+      return true;
+      
+    } catch (err) {
+      console.error("Authentication check failed:", err);
+      setError("Authentication failed. Please try logging in again.");
+      forceLogout();
+      return false;
+    }
+  };
+
   // Fetch exams and class sections on component mount
   useEffect(() => {
-    fetchExams();
-    fetchClassSections();
+    // First check if we have authentication cookies
+    const initPage = async () => {
+      const isAuthenticated = await checkAuthStatus();
+      
+      if (isAuthenticated) {
+        // Then fetch the data
+        fetchExams();
+        fetchClassSections();
+      }
+    };
+    
+    initPage();
   }, []);
 
   const fetchClassSections = async () => {
@@ -460,6 +543,7 @@ export default function ExamsPage({ params }: ExamsPageProps) {
                       PDF URL
                     </label>
                     <input
+                      id="pdfUrlInput"
                       type="text"
                       value={pdfUrl}
                       onChange={(e) => setPdfUrl(e.target.value)}

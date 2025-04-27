@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, ReactNode } from "react";
+import { useState, ReactNode, useEffect } from "react";
 import { signIn } from "next-auth/react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -32,7 +32,20 @@ export function AuthCard({
   const [loading, setLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false); // For login
 
-  const user = window.localStorage.getItem("user");
+  // Check for error messages in localStorage from sessions that were invalidated
+  useEffect(() => {
+    if(typeof window !== "undefined"){
+    const storedError = localStorage.getItem('auth_error');
+    if (storedError) {
+      setError(storedError);
+      // Clear the error after displaying it
+      localStorage.removeItem('auth_error');
+    }}
+  }, []);
+let user: string | null = null;
+if(typeof window !== "undefined"){
+   user = window.localStorage.getItem("user");
+}
   console.log(user);
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,13 +59,48 @@ export function AuthCard({
         password,
         redirect: false, // Handle redirect manually
       });
-      console.log(result);
-      window.localStorage.setItem("user", JSON.stringify(result));
+      console.log("Login result:", result);
+      
       if (result?.error) {
         setError(result.error);
         setLoading(false);
       } else {
-        window.location.href = "/a/dashboard"; // Redirect on success
+        // Get user details to determine correct redirect
+        try {
+          const userResponse = await fetch("/api/auth/session", {
+            credentials: "include"
+          });
+          const userData = await userResponse.json();
+          console.log("User data after login:", userData);
+          
+          if (userData?.user) {
+            // Store user info in localStorage
+            if(typeof window !== "undefined"){
+            window.localStorage.setItem("user", JSON.stringify(userData.user));
+            }
+            // Redirect based on user role
+            if (userData.user.role === "TEACHER") {
+              if(typeof window !== "undefined"){
+              window.location.href = "/t/dashboard"; // Teacher dashboard
+              }
+            } else if (userData.user.role === "STUDENT") {
+              if(typeof window !== "undefined"){
+              window.location.href = "/s/dashboard"; // Student dashboard
+              }
+            } else {
+              if(typeof window !== "undefined"){
+              window.location.href = "/a/dashboard"; // Admin dashboard (default)
+              }
+            }
+          } else {
+            if(typeof window !== "undefined"){
+            window.location.href = "/a/dashboard"; // Fallback to admin dashboard
+            }
+          }
+        } catch (err) {
+          console.error("Error fetching user data:", err);
+          window.location.href = "/a/dashboard"; // Fallback to admin dashboard
+        }
       }
     } else {
       // Handle registration via API
@@ -78,7 +126,9 @@ export function AuthCard({
         if (signInResult?.error) {
           setError(signInResult.error);
         } else {
+          if(typeof window !== "undefined"){
           window.location.href = "/a/dashboard";
+          }
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Something went wrong");
@@ -141,7 +191,7 @@ export function AuthCard({
                 required
               />
             </div>
-            {type === "login" && (
+            {type === "login" && typeof window !=="undefined" && (
               <div className="flex items-center space-x-2">
                 <Checkbox
                   id="remember"
@@ -170,7 +220,7 @@ export function AuthCard({
 
 
 
-          {type === "login" && (
+          {type === "login" && typeof window !=="undefined" && (
             <p className="text-sm text-muted-foreground">
               {new URLSearchParams(window.location.search).get("verified") === "true"
                 ? "Email verified! Please sign in."
