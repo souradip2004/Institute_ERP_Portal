@@ -24,7 +24,7 @@ export default function StudentNotesPage() {
                 }
 
                 const user = JSON.parse(userData);
-                if (user.role !== 'STUDENT' || !user.studentId) {
+                if (user.role !== 'STUDENT') {
                     setError('Access denied. Student account required.');
                     return;
                 }

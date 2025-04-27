@@ -15,10 +15,10 @@ export class StudentService {
     let user;
 try{
     // Check if userId is provided - use existing user
-    if (data.userId) {
+    if (data.user.connect.id) {
       // Verify the user exists and isn't already linked to a student
       user = await prisma.user.findUnique({
-        where: { id: data.userId },
+        where: { id: data.user.connect.id },
         include: { student: true },
       });
       if (!user) {

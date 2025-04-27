@@ -237,6 +237,9 @@ export default function AddStudentModal({ id, isOpen, onClose, onSuccess }: AddS
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
+          email: studentData.email,
+          password: studentData.password,
+          
           studentRoll: studentData.rollNumber,
           user: { connect: { id: userData.id } },
           department: { connect: { id: studentData.department } },
