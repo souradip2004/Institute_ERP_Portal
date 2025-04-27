@@ -116,7 +116,6 @@ export default function CustomLoginForm() {
             onChange={(e) => setRole(e.target.value)}
             className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
           >
-            <option value="USER">User</option>
             <option value="STUDENT">Student</option>
             <option value="TEACHER">Teacher</option>
             <option value="ADMIN">Admin</option>
