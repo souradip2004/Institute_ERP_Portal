@@ -105,6 +105,9 @@ const AddTeacherModal = ({ id, isOpen, onClose, onSuccess }: AddTeacherProps) =>
       });
       
       if (!teacherResponse.ok) {
+        console.log("Teacher response:", teacherResponse);
+        const errorText = await teacherResponse.text();
+        console.error("Error creating teacher:", errorText);
         throw new Error("Failed to create teacher");
       }
       

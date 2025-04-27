@@ -52,6 +52,7 @@ export default function CustomLoginForm() {
       // Redirect based on role
       router.refresh();
       if (role === 'STUDENT') {
+        localStorage.setItem('user', JSON.stringify(data.user));
         router.push('/s/dashboard');
       } else if (role === 'TEACHER') {
         router.push('/t/dashboard');

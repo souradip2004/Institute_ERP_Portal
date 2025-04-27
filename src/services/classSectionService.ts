@@ -62,6 +62,10 @@ export class ClassSectionService {
 
     // Validate required fields
     if (!sectionName || !batchId || !courseId || !semesterId || !teacherId) {
+      console.error(
+        "Missing required fields for creating class section",
+        { sectionName, batchId, courseId, semesterId, teacherId }
+      );
       throw new Error(
         "sectionName, batchId, courseId, semesterId, and teacherId are required"
       );

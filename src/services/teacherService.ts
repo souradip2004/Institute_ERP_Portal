@@ -18,7 +18,14 @@ export class TeacherService {
     return prisma.teacher.findUnique({ where: { userId }, include: { user: true } });
   }
   async createTeacher(data: any) {
-    return await prisma.teacher.create({ data });
+    try{
+      const message=await prisma.teacher.create({ data });
+      console.log("teacher created",message);
+    return message;
+    }catch(error){
+      console.log("error in creating teacher",error);
+      return error
+    }
   }
 
   async getTeacherById(id: string) {

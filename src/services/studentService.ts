@@ -11,8 +11,9 @@ export class StudentService {
   }
 
   async createStudent(data: any) {
+    console.log("Creating student with data:", data); // Debugging line
     let user;
-
+try{
     // Check if userId is provided - use existing user
     if (data.userId) {
       // Verify the user exists and isn't already linked to a student
@@ -20,7 +21,6 @@ export class StudentService {
         where: { id: data.userId },
         include: { student: true },
       });
-
       if (!user) {
         throw new Error("User not found");
       }
@@ -45,9 +45,11 @@ export class StudentService {
     }
 
     // Verify department exists
+    console.log("Department ID:", data.department.connect.id); // Debugging line
+    console.log("Batch ID:", data.batch.connect.id); // Debugging line
     const department = await prisma.department.findUnique({
       where: {
-        id: data.departmentId,
+        id: data.department.connect.id,
       },
     });
 
@@ -58,7 +60,7 @@ export class StudentService {
     // Verify batch exists
     const batch = await prisma.batch.findUnique({
       where: {
-        id: data.batchId,
+        id: data.batch.connect.id,
       },
     });
 
@@ -67,18 +69,15 @@ export class StudentService {
     }
 
     // Create student with proper relations
-    return prisma.student.create({
+    const student=await prisma.student.create({
       data: {
         userId: user.id,
         studentRoll: data.rollNumber || data.studentRoll,
-        parentGuardianName: data.parentGuardianName,
-        parentGuardianPhone: data.parentGuardianPhone,
-        parentGuardianEmail: data.parentGuardianEmail,
-        departmentId: data.departmentId,
-        batchId: data.batchId,
+        departmentId: data.department.connect.id,
+        batchId: data.batch.connect.id, 
         currentSemester: data.currentSemester,
         currentYear: data.currentYear,
-        enrollmentStatus: "ACTIVE",
+        enrollmentStatus: "ACTIVE",      
       },
       include: {
         user: true,
@@ -86,6 +85,49 @@ export class StudentService {
         batch: true,
       },
     });
+    const enrolstudent=await prisma.studentClassEnrollment.create({
+      data: {
+        studentId: student.id,
+        classSectionId: data.class.connect.id,
+        enrollmentStatus: "ENROLLED", // Adding the required property
+      },
+      include: {
+        classSection: true,
+      },
+    });
+
+    if (!student) {
+      throw new Error("Failed to create student");
+    }
+    const updatedStudent = await prisma.student.update({
+      where: { id: student.id },
+      data: {
+        classEnrollments: {
+          connect: { id: enrolstudent.id },
+        },
+      },
+    });
+    const studentWithClass = await prisma.student.findUnique({
+      where: { id: student.id },
+      include: {
+        user: true,
+        department: true,
+        batch: true,
+        classEnrollments: {
+          include: {
+            classSection: true,
+          },
+        },
+      },
+    });
+    if (!studentWithClass) {
+      throw new Error("Failed to fetch student with class section");
+    }
+    return studentWithClass;
+  }catch (error) {
+    console.error("Error creating student:", error);
+    throw new Error("Failed to create student");
+  }
   }
 
   async getStudentById(id: string, includeClassSection = false) {

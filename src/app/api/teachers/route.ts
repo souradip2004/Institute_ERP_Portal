@@ -67,5 +67,17 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
-  return NextResponse.json({ error: "Not implemented" }, { status: 501 });
+  try {
+    const service = new TeacherService();
+    const data = await req.json();
+    const teacher = await service.createTeacher(data);
+
+    return NextResponse.json(teacher, { status: 201 });
+  } catch (error) {
+    console.error("Error creating teacher:", error);
+    return NextResponse.json(
+      { error: "Failed to create teacher" },
+      { status: 500 }
+    );
+  }
 }

@@ -227,7 +227,9 @@ export default function AddStudentModal({ id, isOpen, onClose, onSuccess }: AddS
       }
       
       const userData = await userResponse.json();
-      
+      console.log("datas",{
+        studentData
+      })
       // Create student with user reference
       const studentResponse = await fetch("/api/students", {
         method: "POST",
@@ -243,6 +245,7 @@ export default function AddStudentModal({ id, isOpen, onClose, onSuccess }: AddS
           enrollmentStatus: "ACTIVE",
           currentSemester: 1,
           currentYear: 1,
+          institutionId: id
         }),
       });
       

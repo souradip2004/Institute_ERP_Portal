@@ -47,17 +47,10 @@ export class ClassSectionController {
           { error: "Authentication required" },
           { status: 401 }
         );
-      if (user.role !== "TEACHER" && user.role !== "ADMIN") {
-        return NextResponse.json(
-          {
-            error: "Unauthorized. Only teachers or admins can create sessions",
-          },
-          { status: 403 }
-        );
-      }
+   
 
       const data = await req.json();
-      const { sectionName, batchId, courseId, semesterId, maxStudents } = data;
+      const { sectionName, batchId, courseId, semesterId, maxStudents,teacherId } = data;
 
       if (!batchId || !courseId || !semesterId) {
         return NextResponse.json(
@@ -71,7 +64,7 @@ export class ClassSectionController {
         batchId,
         courseId,
         semesterId,
-        teacherId: user.teacher?.id as string,
+        teacherId,
         maxStudents,
       };
       const classSection = await classSectionService.createClassSection(
