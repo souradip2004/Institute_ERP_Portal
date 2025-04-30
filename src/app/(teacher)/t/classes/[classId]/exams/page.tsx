@@ -493,7 +493,7 @@ export default function ExamsPage({ params }: ExamsPageProps) {
 
       {activeTab === 'create' ? (
         // Create Exam Form
-        <div className="bg-white shadow-md rounded-lg overflow-hidden">
+        <div className="bg-white shadow-md rounded-lg overflow-visible">
           <div className="p-6 border-b border-gray-200">
             <h2 className="text-xl font-semibold text-gray-800">Create New Exam</h2>
             <p className="text-gray-500 text-sm mt-1">Fill the form below to create a new exam</p>
@@ -668,7 +668,7 @@ export default function ExamsPage({ params }: ExamsPageProps) {
               </div>
 
               {questions.length > 0 && (
-                <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                <div className="bg-white border border-gray-200 rounded-lg overflow-visible">
                   <div className="p-4 bg-purple-50 border-b border-gray-200">
                     <div className="flex items-center justify-between">
                       <h3 className="font-semibold text-purple-800">
@@ -682,12 +682,11 @@ export default function ExamsPage({ params }: ExamsPageProps) {
                       </button>
                     </div>
                   </div>
-                  <div className="divide-y divide-gray-200 max-h-80 overflow-y-auto">
+                  <div className="max-h-80 overflow-y-auto">
                     {questions.map((q, index) => (
                       <div
                         key={index}
-                        className={`p-4 transition-colors ${q.isSelected ? "bg-purple-50" : "hover:bg-gray-50"
-                          }`}
+                        className={`p-4 transition-colors border-b border-gray-200 last:border-b-0 ${q.isSelected ? "bg-purple-50" : "hover:bg-gray-50"}`}
                       >
                         <label className="flex items-start gap-3 cursor-pointer">
                           <input
