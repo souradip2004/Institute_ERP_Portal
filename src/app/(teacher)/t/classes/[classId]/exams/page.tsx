@@ -11,6 +11,49 @@ interface Question {
   isSelected: boolean;
 }
 
+interface TeacherClassSection {
+  section: {
+    id: string;
+    name: string;
+    batch: {
+      id: string;
+      batchName: string;
+    };
+    semester: {
+      id: string;
+      name: string;
+    };
+    maxStudents: number;
+    enrolledStudents: Array<{
+      studentId: string;
+      name: string;
+      email: string;
+    }>;
+  };
+  course: {
+    id: string;
+    name: string;
+    code: string;
+    department: {
+      id: string;
+      name: string;
+      code: string;
+    };
+    createdBy: {
+      id: string;
+      name: string;
+      email: string;
+    };
+  };
+  semester: {
+    id: string;
+    name: string;
+    startDate: string;
+    endDate: string;
+    isCurrent: boolean;
+  } | null;
+}
+
 interface ClassSection {
   id: string;
   batch: {
@@ -61,8 +104,6 @@ interface ExamsPageProps {
 
 export default function ExamsPage({ params }: ExamsPageProps) {
   const resolvedParams = React.use(params as any) as { classId: string };
-  const classId = resolvedParams;
-
   // Tab state
   const [activeTab, setActiveTab] = useState<'view' | 'create'>('view');
 
@@ -75,7 +116,7 @@ export default function ExamsPage({ params }: ExamsPageProps) {
   const [numQuestions, setNumQuestions] = useState<string>("2");
 
   // New states for additional exam fields
-  const [classSections, setClassSections] = useState<ClassSection[]>([]);
+  const [classSections, setClassSections] = useState<TeacherClassSection[]>([]);
   const [selectedClassSection, setSelectedClassSection] = useState("");
   const [durationMinutes, setDurationMinutes] = useState<string>("60");
   const [totalMarks, setTotalMarks] = useState<string>("");
@@ -96,10 +137,10 @@ export default function ExamsPage({ params }: ExamsPageProps) {
     // Clear any auth cookies
     document.cookie = "auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
     document.cookie = "next-auth.session-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
-    
+
     // Add message to local storage for login page
     localStorage.setItem('auth_error', 'Your session was invalid. Please log in again.');
-    
+
     // Redirect to login after a short delay to allow the error message to be seen
     setTimeout(() => {
       window.location.href = '/login';
@@ -110,18 +151,18 @@ export default function ExamsPage({ params }: ExamsPageProps) {
   const checkAuthStatus = async () => {
     try {
       console.log("Checking authentication status...");
-      
+
       // First try to get user data from localStorage
       const storedUser = localStorage.getItem('user');
       let userData = null;
-      
+
       if (storedUser) {
         try {
           userData = JSON.parse(storedUser);
           console.log("Found stored user data:", userData);
-          
+
           // If we have valid teacher data in localStorage, we can proceed
-          if (userData?.role === 'TEACHER') {
+          if (userData?.role === 'TEACHER' && userData?.teacherId) {
             console.log("User is authenticated as a teacher based on localStorage");
             return true;
           }
@@ -129,33 +170,57 @@ export default function ExamsPage({ params }: ExamsPageProps) {
           console.error("Error parsing stored user data:", e);
         }
       }
-      
+
       // If we don't have valid data in localStorage or it's not a teacher,
       // check with the server
       console.log("Checking authentication with server...");
       const response = await axios.get('/api/auth/session', {
         withCredentials: true
       });
-      
+
       if (!response.data?.user?.role) {
         console.error("No valid user data in session");
         setError("You must be logged in as a teacher to access this page");
         forceLogout();
         return false;
       }
-      
+
       if (response.data.user.role !== 'TEACHER') {
         console.error(`User role is ${response.data.user.role}, not TEACHER`);
         setError("Only teachers can access this page");
         forceLogout();
         return false;
       }
-      
+
+      // Fetch teacher details to get the teacherId if not already in the user data
+      if (!response.data.user.teacherId) {
+        try {
+          const teacherResponse = await axios.get('/api/teacher/profile', {
+            withCredentials: true
+          });
+
+          if (teacherResponse.data && teacherResponse.data.id) {
+            // Add teacherId to user data
+            response.data.user.teacherId = teacherResponse.data.id;
+          } else {
+            console.error("Teacher ID not found in profile data");
+            setError("Teacher information not found");
+            forceLogout();
+            return false;
+          }
+        } catch (err) {
+          console.error("Failed to fetch teacher profile:", err);
+          setError("Failed to retrieve teacher information");
+          forceLogout();
+          return false;
+        }
+      }
+
       // Update localStorage with current user data
       localStorage.setItem('user', JSON.stringify(response.data.user));
       console.log("User is authenticated as a teacher via API");
       return true;
-      
+
     } catch (err) {
       console.error("Authentication check failed:", err);
       setError("Authentication failed. Please try logging in again.");
@@ -169,25 +234,53 @@ export default function ExamsPage({ params }: ExamsPageProps) {
     // First check if we have authentication cookies
     const initPage = async () => {
       const isAuthenticated = await checkAuthStatus();
-      
+
       if (isAuthenticated) {
         // Then fetch the data
         fetchExams();
         fetchClassSections();
       }
     };
-    
+
     initPage();
   }, []);
 
   const fetchClassSections = async () => {
     try {
-      const response = await axios.get("/api/teacher/class-sections", {
+      // Get the user data from localStorage to extract teacherId
+      const storedUser = localStorage.getItem('user');
+      let teacherId = '';
+
+      if (storedUser) {
+        try {
+          const userData = JSON.parse(storedUser);
+          teacherId = userData?.teacherId;
+
+          if (!teacherId) {
+            setError("Teacher ID not found");
+            return;
+          }
+        } catch (e) {
+          console.error("Error parsing stored user data:", e);
+          setError("Error retrieving teacher information");
+          return;
+        }
+      } else {
+        setError("User information not found");
+        return;
+      }
+
+      // Call the new API endpoint with the teacherId
+      const response = await axios.get(`/api/teachers/${teacherId}/section`, {
         withCredentials: true,
       });
-      setClassSections(response.data.classSections);
-      if (response.data.classSections.length > 0) {
-        setSelectedClassSection(response.data.classSections[0].id);
+
+      // Update state with the response data
+      setClassSections(response.data);
+
+      // If there are class sections, select the first one by default
+      if (response.data.length > 0) {
+        setSelectedClassSection(response.data[0].section.id);
       }
     } catch (err: any) {
       console.error("Error fetching class sections:", err);
@@ -198,7 +291,7 @@ export default function ExamsPage({ params }: ExamsPageProps) {
   const fetchExams = async () => {
     try {
       setLoadingExams(true);
-      const response = await axios.get(`/api/exam/list?classSectionId=${classId}`, {
+      const response = await axios.get(`/api/exam/list?classSectionId=${resolvedParams.classId}`, {
         withCredentials: true,
       });
       setExams(response.data.exams);
@@ -432,9 +525,9 @@ export default function ExamsPage({ params }: ExamsPageProps) {
                     className="w-full px-4 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors"
                   >
                     <option value="">Select Class Section</option>
-                    {classSections.map((section) => (
-                      <option key={section.id} value={section.id}>
-                        {section.batch.name} - {section.semester.name}
+                    {classSections.map((item) => (
+                      <option key={item.section.id} value={item.section.id}>
+                        {item.course.name} - {item.section.name}
                       </option>
                     ))}
                   </select>
@@ -738,7 +831,7 @@ export default function ExamsPage({ params }: ExamsPageProps) {
 
                   <div className="px-6 py-3 bg-gray-50 border-t border-gray-200">
                     <div className="flex space-x-2 justify-end">
-                      <button 
+                      <button
                         onClick={() => fetchExamDetails(exam.id)}
                         className="px-3 py-1 bg-white border border-gray-300 rounded text-gray-600 text-sm hover:bg-gray-50 transition-colors"
                       >
@@ -761,7 +854,7 @@ export default function ExamsPage({ params }: ExamsPageProps) {
           <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
             <div className="p-6 border-b border-gray-200 flex justify-between items-center">
               <h2 className="text-2xl font-bold text-gray-800">{selectedExam.title}</h2>
-              <button 
+              <button
                 onClick={closeExamDetails}
                 className="text-gray-500 hover:text-gray-700"
               >
@@ -814,18 +907,18 @@ export default function ExamsPage({ params }: ExamsPageProps) {
               ) : (
                 <div className="space-y-6">
                   <h3 className="text-xl font-semibold text-gray-800">Exam Questions ({selectedExam.questions.length})</h3>
-                  
+
                   {selectedExam.questions.map((question, index) => (
                     <div key={question.id} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
                       <div className="mb-2 flex justify-between">
                         <h4 className="font-medium text-gray-800">Question {index + 1}</h4>
                         <span className="text-sm text-gray-500">
-                          {question.marks} {question.marks === 1 ? 'mark' : 'marks'} 
+                          {question.marks} {question.marks === 1 ? 'mark' : 'marks'}
                           {question.difficultyLevel ? ` • ${question.difficultyLevel}` : ''}
                         </span>
                       </div>
                       <p className="text-gray-700 mb-3">{question.questionText}</p>
-                      
+
                       {question.options && question.options.length > 0 && (
                         <div className="mt-2">
                           <p className="text-sm font-medium text-gray-700 mb-1">Options:</p>
@@ -836,7 +929,7 @@ export default function ExamsPage({ params }: ExamsPageProps) {
                           </ul>
                         </div>
                       )}
-                      
+
                       {question.correctAnswer && question.correctAnswer.length > 0 && (
                         <div className="mt-3 pt-2 border-t border-gray-100">
                           <p className="text-sm font-medium text-gray-700 mb-1">Correct Answer:</p>
@@ -856,7 +949,7 @@ export default function ExamsPage({ params }: ExamsPageProps) {
                 </div>
               )}
             </div>
-            
+
             <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end">
               <button
                 onClick={closeExamDetails}
