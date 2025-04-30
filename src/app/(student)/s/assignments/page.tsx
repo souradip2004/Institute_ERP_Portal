@@ -36,6 +36,7 @@ interface RawAssignment {
   dueDate?: string;
   submissions?: {
     id: string;
+    assignmentId: string;
     studentId: string;
     status: string;
     obtainedPoints?: number;
@@ -83,8 +84,31 @@ export default function AssignmentsPage() {
     try {
       setLoading(true);
 
-      // Fetch from the backend API - first we need to get the class sections
-      const response = await fetch(`/api/assignments`);
+      // Get user data from localStorage to extract classSectionId
+      const userDataStr = localStorage.getItem('user');
+      if (!userDataStr) {
+        throw Error('User data not found. Please log in again.');
+      }
+
+      const userData = JSON.parse(userDataStr);
+      const classSectionId = userData.classSectionId;
+
+      if (!classSectionId) {
+        console.warn('No classSectionId found in user data, falling back to fetching all assignments');
+        // Fall back to original API if no classSectionId is found
+        const response = await fetch(`/api/assignments`);
+
+        if (!response.ok) {
+          throw Error('Failed to fetch assignments');
+        }
+
+        const data = await response.json();
+        handleAssignmentData(data, studentId);
+        return;
+      }
+
+      // Fetch from the new API endpoint with classSectionId
+      const response = await fetch(`/api/assignments/my-assignments?classSectionId=${classSectionId}`);
 
       if (!response.ok) {
         throw Error('Failed to fetch assignments');
@@ -93,61 +117,7 @@ export default function AssignmentsPage() {
       const data = await response.json();
       console.log('Raw assignment data received:', data);
 
-      // Store raw data for debugging
-      setRawAssignmentData(data);
-
-      // Check if data is empty
-      if (!data || data.length === 0) {
-        console.log('No assignment data returned from API');
-        setOngoingAssignments([]);
-        setCompletedAssignments([]);
-        setLoading(false);
-        return;
-      }
-
-      // Process and map assignments
-      const processedAssignments = data.map((assignment: RawAssignment) => {
-        // Format due date
-        let formattedDueDate = 'No due date';
-        if (assignment.dueDate) {
-          const date = new Date(assignment.dueDate);
-          formattedDueDate = `${date.getDate()}th ${date.toLocaleString('default', { month: 'long' })}, ${date.getFullYear()}`;
-        }
-
-        // Find submission for this student
-        const studentSubmission = assignment.submissions?.find((sub) =>
-          sub.studentId === studentId
-        );
-
-        return {
-          id: assignment.id,
-          title: assignment.title,
-          dueDate: formattedDueDate,
-          status: studentSubmission ? studentSubmission.status : 'PENDING',
-          submissions: assignment.submissions,
-          maxPoints: assignment.maxPoints
-        };
-      });
-
-      // Filter assignments into ongoing and completed
-      const ongoing = processedAssignments.filter((assignment: Assignment) =>
-        !assignment.submissions?.some((sub: AssignmentSubmission) =>
-          sub.studentId === studentId && sub.status === 'GRADED'
-        )
-      );
-
-      const completed = processedAssignments.filter((assignment: Assignment) =>
-        assignment.submissions?.some((sub: AssignmentSubmission) =>
-          sub.studentId === studentId && sub.status === 'GRADED'
-        )
-      );
-
-      console.log('Ongoing assignments:', ongoing);
-      console.log('Completed assignments:', completed);
-
-      setOngoingAssignments(ongoing);
-      setCompletedAssignments(completed);
-      setLoading(false);
+      handleAssignmentData(data, studentId);
     } catch (err) {
       console.error('Error fetching assignments:', err);
       setOngoingAssignments([]);
@@ -156,10 +126,69 @@ export default function AssignmentsPage() {
     }
   };
 
+  // Extract processing logic to a separate function for reuse
+  const handleAssignmentData = (data: RawAssignment[], studentId: string) => {
+    // Store raw data for debugging
+    setRawAssignmentData(data);
+
+    // Check if data is empty
+    if (!data || data.length === 0) {
+      console.log('No assignment data returned from API');
+      setOngoingAssignments([]);
+      setCompletedAssignments([]);
+      setLoading(false);
+      return;
+    }
+
+    // Process and map assignments
+    const processedAssignments = data.map((assignment: RawAssignment): Assignment => {
+      // Format due date
+      let formattedDueDate = 'No due date';
+      if (assignment.dueDate) {
+        const date = new Date(assignment.dueDate);
+        formattedDueDate = `${date.getDate()}th ${date.toLocaleString('default', { month: 'long' })}, ${date.getFullYear()}`;
+      }
+
+      // Find submission for this student
+      const studentSubmission = assignment.submissions?.find((sub) =>
+        sub.studentId === studentId
+      );
+
+      // Map to Assignment type
+      return {
+        id: assignment.id,
+        title: assignment.title,
+        dueDate: formattedDueDate,
+        status: studentSubmission ? studentSubmission.status : 'PENDING',
+        submissions: assignment.submissions as unknown as AssignmentSubmission[], // Type assertion
+        maxPoints: assignment.maxPoints
+      };
+    });
+
+    // Filter assignments into ongoing and completed
+    const ongoing = processedAssignments.filter((assignment) =>
+      !assignment.submissions?.some((sub) =>
+        sub.studentId === studentId && sub.status === 'GRADED'
+      )
+    );
+
+    const completed = processedAssignments.filter((assignment) =>
+      assignment.submissions?.some((sub) =>
+        sub.studentId === studentId && sub.status === 'GRADED'
+      )
+    );
+
+    console.log('Ongoing assignments:', ongoing);
+    console.log('Completed assignments:', completed);
+
+    setOngoingAssignments(ongoing);
+    setCompletedAssignments(completed);
+    setLoading(false);
+  };
+
   const getStatusDisplay = (assignment: Assignment) => {
     const studentSubmission = assignment.submissions?.find(sub =>
-      sub.assignmentId === assignment.id &&
-      (studentData?.studentId === sub.id || studentData?.id === sub.id)
+      sub.studentId === (studentData?.studentId || studentData?.id)
     );
 
     if (studentSubmission) {
@@ -171,8 +200,7 @@ export default function AssignmentsPage() {
 
   const getActionButton = (assignment: Assignment) => {
     const studentSubmission = assignment.submissions?.find(sub =>
-      sub.assignmentId === assignment.id &&
-      (studentData?.studentId === sub.id || studentData?.id === sub.id)
+      sub.studentId === (studentData?.studentId || studentData?.id)
     );
 
     if (!studentSubmission || studentSubmission.status !== 'GRADED') {
@@ -192,8 +220,7 @@ export default function AssignmentsPage() {
 
   const getGrade = (assignment: Assignment) => {
     const studentSubmission = assignment.submissions?.find(sub =>
-      sub.assignmentId === assignment.id &&
-      (studentData?.studentId === sub.id || studentData?.id === sub.id)
+      sub.studentId === (studentData?.studentId || studentData?.id)
     );
 
     if (studentSubmission?.obtainedPoints !== undefined) {

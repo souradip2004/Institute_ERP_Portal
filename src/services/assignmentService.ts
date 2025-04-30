@@ -13,15 +13,15 @@ export class AssignmentService {
     submissionType: "INDIVIDUAL" | "GROUP";
     groupId?: string;
     file?: { buffer: Buffer; originalName: string; mimetype: string };
-    attachments?: { 
+    attachments?: {
       create: Array<{
         fileUrl: string;
         fileName: string;
         fileType: string;
         fileSize: number;
         uploadedById: string;
-      }>
-    }
+      }>;
+    };
   }): Promise<Assignment> {
     let fileUrl: string | undefined;
     let fileName: string | undefined;
@@ -56,18 +56,19 @@ export class AssignmentService {
         groupId: data.groupId,
         isPublished: false,
         status: "SCHEDULED",
-        attachments: data.attachments ? data.attachments :
-          (fileUrl && fileName && fileType && fileSize)
-            ? {
-                create: {
-                  fileUrl,
-                  fileName,
-                  fileType,
-                  fileSize,
-                  uploadedById: data.createdById,
-                },
-              }
-            : undefined,
+        attachments: data.attachments
+          ? data.attachments
+          : fileUrl && fileName && fileType && fileSize
+          ? {
+              create: {
+                fileUrl,
+                fileName,
+                fileType,
+                fileSize,
+                uploadedById: data.createdById,
+              },
+            }
+          : undefined,
       },
       include: {
         attachments: true,
@@ -194,6 +195,38 @@ export class AssignmentService {
 
     await prisma.assignment.delete({
       where: { id },
+    });
+  }
+
+  static async getAssignmentsByClassSection(
+    classSectionId: string,
+    studentId: string
+  ): Promise<Assignment[]> {
+    return prisma.assignment.findMany({
+      where: {
+        classSectionId,
+        isPublished: true, // Only get published assignments
+      },
+      include: {
+        attachments: true,
+        classSection: {
+          include: {
+            batch: true,
+            semester: true,
+          },
+        },
+        createdBy: true,
+        submissions: {
+          where: {
+            studentId, // Only include submissions by this student
+          },
+          include: {
+            student: true,
+            attachments: true,
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
     });
   }
 }

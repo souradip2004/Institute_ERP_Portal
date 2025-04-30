@@ -73,7 +73,9 @@ export class AssignmentController {
     }
   }
 
-  static async createAssignmentJson(request: NextRequest): Promise<NextResponse> {
+  static async createAssignmentJson(
+    request: NextRequest
+  ): Promise<NextResponse> {
     try {
       const user = await AuthUtils.getCurrentUser(request);
       if (!user || user.role !== Role.TEACHER || !user.teacher) {
@@ -82,15 +84,15 @@ export class AssignmentController {
 
       // Parse JSON data
       const data = await request.json();
-      const { 
-        title, 
-        description, 
-        classSectionId, 
-        dueDate, 
-        maxPoints, 
-        submissionType = "INDIVIDUAL", 
+      const {
+        title,
+        description,
+        classSectionId,
+        dueDate,
+        maxPoints,
+        submissionType = "INDIVIDUAL",
         groupId,
-        attachments = []
+        attachments = [],
       } = data;
 
       if (!title || !classSectionId || !maxPoints || !submissionType) {
@@ -115,18 +117,20 @@ export class AssignmentController {
       let attachmentsData;
       if (attachments && attachments.length > 0) {
         attachmentsData = {
-          create: attachments.map((attachment: {
-            fileUrl: string;
-            fileName: string;
-            fileType: string;
-            fileSize: number | string;
-          }) => ({
-            fileUrl: attachment.fileUrl,
-            fileName: attachment.fileName,
-            fileType: attachment.fileType,
-            fileSize: Number(attachment.fileSize),
-            uploadedById: user.id, // User ID for the User relation
-          }))
+          create: attachments.map(
+            (attachment: {
+              fileUrl: string;
+              fileName: string;
+              fileType: string;
+              fileSize: number | string;
+            }) => ({
+              fileUrl: attachment.fileUrl,
+              fileName: attachment.fileName,
+              fileType: attachment.fileType,
+              fileSize: Number(attachment.fileSize),
+              uploadedById: user.id, // User ID for the User relation
+            })
+          ),
         };
       }
 
@@ -140,14 +144,17 @@ export class AssignmentController {
         maxPoints: parseFloat(maxPoints),
         submissionType,
         groupId,
-        attachments: attachmentsData
+        attachments: attachmentsData,
       });
 
       return NextResponse.json(assignment, { status: 201 });
     } catch (error) {
       console.error("Error creating assignment:", error);
       return NextResponse.json(
-        { error: "Internal server error", details: error instanceof Error ? error.message : String(error) },
+        {
+          error: "Internal server error",
+          details: error instanceof Error ? error.message : String(error),
+        },
         { status: 500 }
       );
     }
@@ -353,6 +360,52 @@ export class AssignmentController {
       );
     } catch (error) {
       console.error("Error deleting assignment:", error);
+      return NextResponse.json(
+        { error: "Internal server error" },
+        { status: 500 }
+      );
+    }
+  }
+
+  static async getMyAssignments(request: NextRequest): Promise<NextResponse> {
+    try {
+      const user = await AuthUtils.getCurrentUser(request);
+      if (!user || user.role !== Role.STUDENT || !user.student) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+
+      // Get classSectionId from query parameter
+      const classSectionId = request.nextUrl.searchParams.get("classSectionId");
+
+      if (!classSectionId) {
+        return NextResponse.json(
+          { error: "Missing classSectionId" },
+          { status: 400 }
+        );
+      }
+
+      // Check if student is enrolled in this class section
+      const isEnrolled = await AuthUtils.isStudentEnrolledInClassSection(
+        user.student.id,
+        classSectionId
+      );
+
+      if (!isEnrolled) {
+        return NextResponse.json(
+          { error: "Not enrolled in this class section" },
+          { status: 403 }
+        );
+      }
+
+      // Get assignments for this class section
+      const assignments = await AssignmentService.getAssignmentsByClassSection(
+        classSectionId,
+        user.student.id
+      );
+
+      return NextResponse.json(assignments, { status: 200 });
+    } catch (error) {
+      console.error("Error fetching student assignments:", error);
       return NextResponse.json(
         { error: "Internal server error" },
         { status: 500 }
