@@ -395,6 +395,80 @@ export class TeacherService {
   }
 
 
+  async getTeacherCourseSections(teacherId: string) {
+  const relations = await prisma.teacherCourseSectionRelation.findMany({
+    where: { teacherId },
+    include: {
+      course: {
+        include: {
+          department: true,
+          createdBy: {
+            include: {
+              user: {
+                select: { id: true, name: true, email: true },
+              },
+            },
+          },
+        },
+      },
+      classSection: {
+        include: {
+          batch: true,
+          semester: true,
+          studentEnrollments: {
+            include: {
+              student: {
+                include: {
+                  user: {
+                    select: { id: true, name: true, email: true },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      semester: true,
+    },
+  });
+
+  if (!relations || relations.length === 0) return [];
+
+  const structuredData = relations.map((relation) => {
+    const section = relation.classSection;
+
+    return {
+      section: {
+        id: section.id,
+        name: `${section.batch.batchName} - Sem ${section.semester.name}`,
+        batch: section.batch,
+        semester: section.semester,
+        maxStudents: section.maxStudents,
+        enrolledStudents: section.studentEnrollments.map((enroll) => ({
+          studentId: enroll.student.id,
+          name: enroll.student.user?.name || "Unknown",
+          email: enroll.student.user?.email || "N/A",
+        })),
+      },
+      course: {
+        id: relation.course.id,
+        name: relation.course.name,
+        code: relation.course.courseCode,
+        department: relation.course.department,
+        createdBy: {
+          id: relation.course.createdBy.id,
+          name: relation.course.createdBy.user?.name || "Unknown",
+          email: relation.course.createdBy.user?.email || "N/A",
+        },
+      },
+      semester: relation.semester || null,
+    };
+  });
+
+  return structuredData;
+}
+
+
 
 
 

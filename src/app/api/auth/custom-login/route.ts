@@ -8,13 +8,16 @@ import { ClassEnrollmentStatus } from "@prisma/client";
 export async function POST(request: NextRequest) {
   try {
     const { identifier, password, role } = await request.json();
-
+// console.log('identifier, password, role);
+    console.log('------------------------------------------------identifier, password, role: ', identifier, password, role);
     if (!identifier || !password) {
       return NextResponse.json(
         { error: "Username/email and password are required" },
         { status: 400 }
       );
     }
+
+
 
     // Find user by email or username
     const user = await prisma.user.findFirst({

@@ -53,6 +53,7 @@ export default function TeacherSidebar() {
     { name: 'Notes', href: '#', icon: '📔', onClick: handleNotesClick },
     { name: 'Attendance', href: '/t/attendance', icon: '📋' },
     { name: 'Classes', href: '/t/classes', icon: '👨‍🏫' },
+    {name: 'Copy checking', href: '/t/pythonCopyChecking', icon: '📝' },
   ];
 
   return (

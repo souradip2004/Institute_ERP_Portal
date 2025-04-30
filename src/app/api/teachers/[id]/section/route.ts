@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
 
   try {
     // Fetch teacher dashboard details using the service
-    const teacherDetails = await teacherService.getSectionWithCourse(teacherId);
+    const teacherDetails = await teacherService.getTeacherCourseSections(teacherId);
 
     // Check if teacher details were found
     if (!teacherDetails) {
