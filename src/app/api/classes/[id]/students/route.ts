@@ -1,40 +1,90 @@
-import { NextResponse } from 'next/server';
+import { NextResponse } from "next/server";
+import prisma from "@/lib/prisma";
 
 export async function GET(
   request: Request,
   { params }: { params: { id: string } }
 ) {
   try {
-    const classId = params.id;
+    const classSectionId = params.id;
 
-    if (!classId) {
-      return NextResponse.json({ error: 'Class ID is required' }, { status: 400 });
+    if (!classSectionId) {
+      return NextResponse.json(
+        { error: "Class ID is required" },
+        { status: 400 }
+      );
     }
 
-    console.log(`Fetching students for class ID: ${classId}`);
+    console.log(`Fetching students for class ID: ${classSectionId}`);
 
-    // In a real implementation, this would query your database
-    // For now, we'll return mock data
-    const students = [];
-    
-    // Generate 25 sample students
-    for (let i = 1; i <= 25; i++) {
-      students.push({
-        id: `student${i}`,
-        name: `Student ${i}`,
-        rollNo: `R${i.toString().padStart(3, '0')}`,
-        user: {
-          name: `Student ${i}`,
-          email: `student${i}@example.com`
+    // Fetch students enrolled in this class section from the database
+    const enrollments = await prisma.studentClassEnrollment.findMany({
+      where: {
+        classSectionId,
+        enrollmentStatus: "ENROLLED", // Only get currently enrolled students
+      },
+      include: {
+        student: {
+          include: {
+            user: {
+              select: {
+                name: true,
+                email: true,
+              },
+            },
+            attendanceRecords: {
+              where: {
+                attendanceSession: {
+                  classSectionId,
+                },
+              },
+            },
+          },
         },
-        attendancePercentage: Math.floor(Math.random() * 30) + 60, // 60-90%
-        status: Math.random() > 0.2 ? 'PRESENT' : 'ABSENT'
-      });
-    }
+      },
+    });
+
+    // Format the data to match the expected structure
+    const students = enrollments.map((enrollment) => {
+      // Calculate attendance percentage
+      const totalAttendanceRecords =
+        enrollment.student.attendanceRecords.length;
+      const presentRecords = enrollment.student.attendanceRecords.filter(
+        (record) => record.status === "PRESENT"
+      ).length;
+
+      const attendancePercentage =
+        totalAttendanceRecords > 0
+          ? Math.round((presentRecords / totalAttendanceRecords) * 100)
+          : 0;
+
+      // Check if student was present in the most recent attendance record
+      const latestAttendance = enrollment.student.attendanceRecords.sort(
+        (a, b) =>
+          new Date(b.recordedAt).getTime() - new Date(a.recordedAt).getTime()
+      )[0];
+
+      const status = latestAttendance ? latestAttendance.status : "UNKNOWN";
+
+      return {
+        id: enrollment.student.id,
+        name: enrollment.student.user.name || "Unknown",
+        rollNo: enrollment.student.studentRoll,
+        user: {
+          name: enrollment.student.user.name || "Unknown",
+          email: enrollment.student.user.email || "unknown@example.com",
+        },
+        attendancePercentage: attendancePercentage || 0,
+        status: status || "UNKNOWN",
+      };
+    });
 
     return NextResponse.json(students);
   } catch (error) {
-    console.error('Error in class students API route:', error);
-    return NextResponse.json({ error: 'Failed to fetch students data' }, { status: 500 });
+    console.error("Error in class students API route:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch students data" },
+      { status: 500 }
+    );
   }
-} 
+}
