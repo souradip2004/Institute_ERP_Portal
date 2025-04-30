@@ -6,6 +6,7 @@ interface ClassCardProps {
   schedule: string;
   attendance: string;
   isAbsentToday: boolean;
+  isPresentToday: boolean;
   noClassToday?: boolean;
 }
 
@@ -15,29 +16,30 @@ export default function ClassCard({
   schedule,
   attendance,
   isAbsentToday,
+  isPresentToday,
   noClassToday = false
 }: ClassCardProps) {
-  let statusLabel = "Present Today";
-  let statusColor = "text-green-700";
+  let statusLabel = "Not Recorded";
+  let statusColor = "text-gray-600";
   const bgColor = "bg-white";
-  
+
   if (isAbsentToday) {
     statusLabel = "Absent Today";
     statusColor = "text-red-600";
-  } else if (noClassToday) {
-    statusLabel = "No Class Today";
-    statusColor = "text-gray-600";
+  } else if (isPresentToday) {
+    statusLabel = "Present Today";
+    statusColor = "text-green-700";
   }
-  
+
   return (
     <div className={`${bgColor} p-5 rounded-lg shadow border border-gray-100`}>
       <div className="flex justify-between items-start mb-5">
         <h3 className="text-lg font-semibold text-gray-800">{subjectName}</h3>
         <span className={`text-sm font-medium ${statusColor}`}>{statusLabel}</span>
       </div>
-      
+
       <p className="text-base font-medium text-gray-700 mb-5">{teacherName}</p>
-      
+
       <div className="grid grid-cols-2 gap-3">
         <div>
           <p className="text-xs text-gray-500 mb-1">Today&apos;s Schedule</p>
