@@ -73,7 +73,7 @@ export default function ExamsPage() {
         setStudentData(userData);
 
         // Fetch exams
-        await fetchExams(userData.studentId || userData.id);
+        await fetchExams(userData.studentId || userData.id, userData.classSectionId);
       } catch (error) {
         console.error("Error fetching user data:", error);
         setError("Failed to load user data. Please refresh the page.");
@@ -84,12 +84,22 @@ export default function ExamsPage() {
     fetchUserData();
   }, []);
 
-  const fetchExams = async (studentId: string) => {
+  const fetchExams = async (studentId: string, classSectionId?: string) => {
     try {
       setLoading(true);
 
+      let url = `/api/exams?studentId=${studentId}`;
+
+      // If classSectionId is provided, use the new API endpoint
+      if (classSectionId) {
+        url = `/api/exams/my-exams?classSectionId=${classSectionId}`;
+        console.log(`Fetching exams for class section: ${classSectionId}`);
+      } else {
+        console.warn('No classSectionId found, falling back to all exams');
+      }
+
       // Fetch from the backend API
-      const response = await fetch(`/api/exams?studentId=${studentId}`);
+      const response = await fetch(url);
 
       if (!response.ok) {
         throw new Error('Failed to fetch exams');
