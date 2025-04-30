@@ -34,18 +34,19 @@ export function AuthCard({
 
   // Check for error messages in localStorage from sessions that were invalidated
   useEffect(() => {
-    if(typeof window !== "undefined"){
-    const storedError = localStorage.getItem('auth_error');
-    if (storedError) {
-      setError(storedError);
-      // Clear the error after displaying it
-      localStorage.removeItem('auth_error');
-    }}
+    if (typeof window !== "undefined") {
+      const storedError = localStorage.getItem('auth_error');
+      if (storedError) {
+        setError(storedError);
+        // Clear the error after displaying it
+        localStorage.removeItem('auth_error');
+      }
+    }
   }, []);
-let user: string | null = null;
-if(typeof window !== "undefined"){
-   user = window.localStorage.getItem("user");
-}
+  let user: string | null = null;
+  if (typeof window !== "undefined") {
+    user = window.localStorage.getItem("user");
+  }
   console.log(user);
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,14 +54,27 @@ if(typeof window !== "undefined"){
     setError("");
 
     if (type === "login") {
+      // Determine if input is email or username
+      const isEmail = email.includes('@');
+
+      // Use the appropriate credentials provider based on input type
+      const providerId = isEmail ? "credentials-email" : "credentials-username";
+
+      // Prepare credentials based on the provider
+      const credentials = isEmail
+        ? { email, password }
+        : { username: email, password };
+
+      console.log(`Logging in with ${providerId}`, credentials);
+
       // Handle login with NextAuth
-      const result = await signIn("credentials", {
-        email,
-        password,
+      const result = await signIn(providerId, {
+        ...credentials,
         redirect: false, // Handle redirect manually
       });
+
       console.log("Login result:", result);
-      
+
       if (result?.error) {
         setError(result.error);
         setLoading(false);
@@ -72,29 +86,31 @@ if(typeof window !== "undefined"){
           });
           const userData = await userResponse.json();
           console.log("User data after login:", userData);
-          
+
           if (userData?.user) {
             // Store user info in localStorage
-            if(typeof window !== "undefined"){
-            window.localStorage.setItem("user", JSON.stringify(userData.user));
+            if (typeof window !== "undefined") {
+              window.localStorage.setItem("user", JSON.stringify(userData.user));
+              window.localStorage.setItem("session", JSON.stringify(userData));
             }
+
             // Redirect based on user role
             if (userData.user.role === "TEACHER") {
-              if(typeof window !== "undefined"){
-              window.location.href = "/t/dashboard"; // Teacher dashboard
+              if (typeof window !== "undefined") {
+                window.location.href = "/t/dashboard"; // Teacher dashboard
               }
             } else if (userData.user.role === "STUDENT") {
-              if(typeof window !== "undefined"){
-              window.location.href = "/s/dashboard"; // Student dashboard
+              if (typeof window !== "undefined") {
+                window.location.href = "/s/dashboard"; // Student dashboard
               }
             } else {
-              if(typeof window !== "undefined"){
-              window.location.href = "/a/dashboard"; // Admin dashboard (default)
+              if (typeof window !== "undefined") {
+                window.location.href = "/a/dashboard"; // Admin dashboard (default)
               }
             }
           } else {
-            if(typeof window !== "undefined"){
-            window.location.href = "/a/dashboard"; // Fallback to admin dashboard
+            if (typeof window !== "undefined") {
+              window.location.href = "/a/dashboard"; // Fallback to admin dashboard
             }
           }
         } catch (err) {
@@ -126,8 +142,8 @@ if(typeof window !== "undefined"){
         if (signInResult?.error) {
           setError(signInResult.error);
         } else {
-          if(typeof window !== "undefined"){
-          window.location.href = "/a/dashboard";
+          if (typeof window !== "undefined") {
+            window.location.href = "/a/dashboard";
           }
         }
       } catch (err) {
@@ -161,13 +177,13 @@ if(typeof window !== "undefined"){
               </div>
             )}
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">Email or Username</Label>
               <Input
                 id="email"
-                type="email"
+                type="text"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="m@example.com"
+                placeholder="Enter email or username"
                 required
               />
             </div>
@@ -191,7 +207,7 @@ if(typeof window !== "undefined"){
                 required
               />
             </div>
-            {type === "login" && typeof window !=="undefined" && (
+            {type === "login" && typeof window !== "undefined" && (
               <div className="flex items-center space-x-2">
                 <Checkbox
                   id="remember"
@@ -220,7 +236,7 @@ if(typeof window !== "undefined"){
 
 
 
-          {type === "login" && typeof window !=="undefined" && (
+          {type === "login" && typeof window !== "undefined" && (
             <p className="text-sm text-muted-foreground">
               {new URLSearchParams(window.location.search).get("verified") === "true"
                 ? "Email verified! Please sign in."

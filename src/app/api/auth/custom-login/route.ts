@@ -8,16 +8,12 @@ import { ClassEnrollmentStatus } from "@prisma/client";
 export async function POST(request: NextRequest) {
   try {
     const { identifier, password, role } = await request.json();
-// console.log('identifier, password, role);
-    console.log('------------------------------------------------identifier, password, role: ', identifier, password, role);
     if (!identifier || !password) {
       return NextResponse.json(
         { error: "Username/email and password are required" },
         { status: 400 }
       );
     }
-
-
 
     // Find user by email or username
     const user = await prisma.user.findFirst({
@@ -30,21 +26,21 @@ export async function POST(request: NextRequest) {
           include: {
             classEnrollments: {
               include: {
-                classSection: true
+                classSection: true,
               },
               where: {
-                enrollmentStatus: ClassEnrollmentStatus.ENROLLED
+                enrollmentStatus: ClassEnrollmentStatus.ENROLLED,
               },
-              take: 1
-            }
-          }
+              take: 1,
+            },
+          },
         },
         teacher: {
           include: {
             classSections: {
-              take: 1
-            }
-          }
+              take: 1,
+            },
+          },
         },
       },
     });
@@ -67,10 +63,11 @@ export async function POST(request: NextRequest) {
 
     // Get the class section ID based on user role
     let classSectionId = null;
-    
-    if (user.role === 'STUDENT') {
-      classSectionId = user.student?.classEnrollments?.[0]?.classSection?.id || null;
-    } else if (user.role === 'TEACHER') {
+
+    if (user.role === "STUDENT") {
+      classSectionId =
+        user.student?.classEnrollments?.[0]?.classSection?.id || null;
+    } else if (user.role === "TEACHER") {
       classSectionId = user.teacher?.classSections?.[0]?.id || null;
     }
 
@@ -86,7 +83,7 @@ export async function POST(request: NextRequest) {
       classSectionId,
     };
 
-    console.log('userData: ',userData);
+    console.log("userData: ", userData);
 
     // Generate JWT token
     const token = sign(userData, process.env.JWT_SECRET || "your-secret-key", {

@@ -5,6 +5,9 @@ declare module "next-auth" {
   interface User extends DafaultUser {
     role?: string;
     emailVerified?: Date | null;
+    username?: string | null;
+    studentId?: string | null;
+    teacherId?: string | null;
   }
 
   interface Session {
@@ -12,6 +15,9 @@ declare module "next-auth" {
       id: string;
       role?: string;
       emailVerified?: Date | null;
+      username?: string | null;
+      studentId?: string | null;
+      teacherId?: string | null;
     } & DefaultSession["user"];
   }
 }
