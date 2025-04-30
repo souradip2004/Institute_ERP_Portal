@@ -348,6 +348,7 @@ export default function Dashboard() {
                 schedule={`${classSession.startTime} - ${classSession.endTime}`}
                 attendance={classSession.attendancePercentage}
                 isAbsentToday={classSession.attendanceStatus === 'ABSENT'}
+                isPresentToday={classSession.attendanceStatus === 'PRESENT' || classSession.attendanceStatus === 'LATE'}
                 noClassToday={classSession.status === 'CANCELLED'}
               />
             ))
