@@ -221,14 +221,14 @@ async  getTodayAttendanceSessions(id: string): Promise<AttendanceSessionResponse
     const today: Date = new Date();
     today.setHours(0, 0, 0, 0);
     const tomorrow: Date = new Date(today);
-    tomorrow.setDate(today.getDate() + 100); // Note: 100 days seems unusually large; consider adjusting
+    tomorrow.setDate(today.getDate() + 2);
 
     // Fetch attendance sessions
     const sessions = await prisma.attendanceSession.findMany({
       where: {
         teacherId,
         sessionDate: {
-          // gte: today,
+          gte: today,
           lt: tomorrow,
         },
       },
