@@ -55,7 +55,7 @@ export default function ClassesPage() {
         setError(null);
 
         // Default to 'teacher123' if no teacher ID found (for testing only)
-        const currentTeacherId = teacherId || 'teacher123';
+        const currentTeacherId = teacherId ;
 
         // Try to fetch from API endpoints
         const endpoints = [
@@ -64,17 +64,20 @@ export default function ClassesPage() {
         ];
 
         let fetchedClasses = null;
-
+console.log('try to get data from backend');
         for (const endpoint of endpoints) {
           try {
+
             const response = await fetch(endpoint, {
               credentials: 'include',
               cache: 'no-store'
             });
 
             if (response.ok) {
+              console.log('data recieve from backend');
               const data = await response.json();
-
+              console.log('data: ');
+              console.log(data);
               if (Array.isArray(data) && data.length > 0) {
                 fetchedClasses = data;
                 break;
