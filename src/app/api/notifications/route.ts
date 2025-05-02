@@ -6,7 +6,7 @@ export async function GET(request: NextRequest) {
   try {
     // Get auth token from cookie
     const token = request.cookies.get('auth_token')?.value;
-    
+
     if (!token) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
@@ -17,15 +17,42 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Invalid token" }, { status: 401 });
     }
 
-    // Get notifications for the user
+    // Get teacherId from query parameters
+    const { searchParams } = new URL(request.url);
+    const userId = searchParams.get('teacherId');
+    console.log('Fetching notifications for userId:', userId);
+
+    if (!userId) {
+      console.log('No userId provided in query params');
+      return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
+    }
+
+    // Get notifications for the specific teacher
     const notifications = await prisma.notification.findMany({
       where: {
-        userId: decoded.id
+        userId: userId
       },
       orderBy: {
         createdAt: 'desc'
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true
+          }
+        }
       }
     });
+
+    console.log('Found notifications:', notifications.map(n => ({
+      id: n.id,
+      userId: n.userId,
+      title: n.title,
+      message: n.message,
+      user: n.user
+    })));
+    console.log('Number of notifications found:', notifications.length);
 
     return NextResponse.json(notifications);
   } catch (error) {
@@ -41,7 +68,7 @@ export async function PUT(request: NextRequest) {
   try {
     // Get auth token from cookie
     const token = request.cookies.get('auth_token')?.value;
-    
+
     if (!token) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }

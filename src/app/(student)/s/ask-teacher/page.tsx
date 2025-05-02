@@ -91,6 +91,7 @@ export default function AskTeacherPage() {
 
     // Store the message input in case we need to restore it on error
     const currentMessage = messageInput.trim();
+    let newMessageId: string | null = null;
 
     try {
       // Add message to local state immediately for instant feedback
@@ -100,6 +101,7 @@ export default function AskTeacherPage() {
         sender: 'student',
         timestamp: new Date(),
       };
+      newMessageId = newMessage.id;
       setMessages(prev => [...prev, newMessage]);
 
       // Clear input
@@ -114,13 +116,14 @@ export default function AskTeacherPage() {
         credentials: 'include', // Include cookies in the request
         body: JSON.stringify({
           message: currentMessage,
-          teacherId: selectedTeacher.user.id
+          teacherId: selectedTeacher.id
         }),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to send message');
+        console.error('Error response from server:', errorData);
+        throw new Error(errorData.error || errorData.details || 'Failed to send message');
       }
 
       const result = await response.json();
@@ -131,6 +134,10 @@ export default function AskTeacherPage() {
       setError(error instanceof Error ? error.message : 'Failed to send message. Please try again.');
       // Add the failed message back to the input
       setMessageInput(currentMessage);
+      // Remove the failed message from the messages list
+      if (newMessageId) {
+        setMessages(prev => prev.filter(msg => msg.id !== newMessageId));
+      }
     }
   };
 
@@ -195,8 +202,8 @@ export default function AskTeacherPage() {
                   <div
                     key={msg.id}
                     className={`${msg.sender === 'student'
-                        ? 'self-end bg-purple-100'
-                        : 'self-start bg-white shadow-sm'
+                      ? 'self-end bg-purple-100'
+                      : 'self-start bg-white shadow-sm'
                       } p-3 rounded-lg max-w-xs`}
                   >
                     <p>{msg.content}</p>

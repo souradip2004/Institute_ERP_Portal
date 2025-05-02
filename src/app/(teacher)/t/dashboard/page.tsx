@@ -69,26 +69,47 @@ export default function TeacherDashboardPage() {
         if (userData) {
           try {
             const parsedUserData = JSON.parse(userData);
+            console.log('Parsed user data:', parsedUserData);
+
             if (parsedUserData.name) {
               setTeacherName(parsedUserData.name);
             }
-            if (parsedUserData.teacherId || parsedUserData.id) {
-              setTeacherId(parsedUserData.teacherId || parsedUserData.id);
+
+            // Set teacher ID immediately
+            if (parsedUserData.teacherId) {
+              console.log('Setting teacher ID from teacherId:', parsedUserData.teacherId);
+              setTeacherId(parsedUserData.teacherId);
+            } else if (parsedUserData.id) {
+              console.log('Setting teacher ID from id:', parsedUserData.id);
+              setTeacherId(parsedUserData.id);
+            } else {
+              console.log('No teacher ID found in user data');
             }
+
             setClassSectionId(parsedUserData.classSectionId);
           } catch (error) {
             console.error('Error parsing user data from localStorage:', error);
           }
+        } else {
+          console.log('No user data found in localStorage');
         }
       }
     };
 
     getUserData();
+  }, []);
 
+  useEffect(() => {
     const loadData = async () => {
       try {
         setLoading(true);
+        // Wait for teacherId to be set
+        if (!teacherId) {
+          console.log('Waiting for teacher ID to be set...');
+          return;
+        }
 
+        console.log('Loading data for teacher ID:', teacherId);
         // Execute all data fetching operations in parallel
         const [attendanceResult] = await Promise.allSettled([
           fetchAttendanceData()
@@ -100,7 +121,7 @@ export default function TeacherDashboardPage() {
           setClassAttendance(attendanceResult.value.classAttendance);
         }
 
-        // Fetch other data types - these can be done sequentially to avoid overwhelming the API
+        // Fetch other data types
         await fetchNotifications();
         await fetchAssignments();
         await fetchExams();
@@ -114,56 +135,47 @@ export default function TeacherDashboardPage() {
     };
 
     loadData();
-  }, []);
+  }, [teacherId]); // Add teacherId as dependency
 
   const fetchNotifications = async () => {
     try {
-      // Attempt to fetch from API first
-      if (teacherId) {
-        try {
-          const response = await fetch(`/api/notifications?teacherId=${teacherId}`, {
-            credentials: 'include'
-          });
-
-          if (response.ok) {
-            const data = await response.json();
-            setNotifications(data);
-            return;
-          }
-        } catch (apiError) {
-          console.error('API fetch error:', apiError);
-        }
+      if (!teacherId) {
+        console.log('No teacherId available for fetching notifications');
+        return;
       }
 
-      // Fallback to sample data if API fails or teacherId is not available
-      setNotifications([
-        {
-          id: '1',
-          title: 'New Student Added',
-          message: 'Ravi Kumar has been added to Class 9-A. Update attendance and subject materials.',
-          notificationType: 'student',
-          isRead: false,
-          createdAt: new Date(Date.now() - 120 * 60000).toISOString() // 2 min ago
-        },
-        {
-          id: '2',
-          title: 'Class Schedule Changed',
-          message: 'Your Tuesday Math period for 10-B has been rescheduled to 11:00 AM.',
-          notificationType: 'schedule',
-          isRead: false,
-          createdAt: new Date(Date.now() - 480 * 60000).toISOString() // 8 min ago
-        },
-        {
-          id: '3',
-          title: 'Attendance Submitted',
-          message: 'Your attendance for Class 11-A (Today) is recorded successfully.',
-          notificationType: 'attendance',
-          isRead: false,
-          createdAt: new Date().toISOString() // Just now
-        }
-      ]);
+      // First get the teacher's user ID
+      const teacherResponse = await fetch(`/api/teachers/${teacherId}`, {
+        credentials: 'include'
+      });
+
+      if (!teacherResponse.ok) {
+        console.error('Failed to fetch teacher data:', await teacherResponse.json());
+        return;
+      }
+
+      const teacherData = await teacherResponse.json();
+      console.log('Fetched teacher data:', teacherData);
+
+      if (!teacherData.userId) {
+        console.error('No userId found in teacher data');
+        return;
+      }
+
+      console.log('Fetching notifications for userId:', teacherData.userId);
+      const response = await fetch(`/api/notifications?teacherId=${teacherData.userId}`);
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Error fetching notifications:', errorData);
+        throw new Error('Failed to fetch notifications');
+      }
+
+      const data = await response.json();
+      console.log('Received notifications:', data);
+      setNotifications(data);
     } catch (error) {
-      console.error('Error fetching notifications:', error);
+      console.error('Error in fetchNotifications:', error);
       setNotifications([]);
     }
   };
