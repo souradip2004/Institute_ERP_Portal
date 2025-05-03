@@ -16,6 +16,7 @@ import {
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { redirect } from "next/navigation";
 
 export default async function DashboardPage() {
   await auth();
@@ -26,7 +27,7 @@ export default async function DashboardPage() {
   //const userId ="cm9q0nf8z0004bowkhzw2d3s0";
 
   if (!userId) {
-    return <p className="text-center text-red-500">User not found.</p>;
+    redirect("/login");
   }
 
   // Fetch user details

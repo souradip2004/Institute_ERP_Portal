@@ -7,6 +7,7 @@ import ViewTeachers from "@/components/admin/ViewTeachersComponent";
 import ViewClassSectionsPage from "@/components/admin/ViewClassSectionPage";
 import ViewStudentPage from "@/components/admin/ViewStudentPage";
 import Sider from "@/components/admin/navigator";
+import { redirect } from "next/navigation";
 // import AddTeacher from "bin/adminPage/admin not use/AddTeacher";
 export default async function AdminPage() {
   const session = await auth();
@@ -16,7 +17,7 @@ export default async function AdminPage() {
 
   console.log(session)
   if (!userId) {
-    return <p style={{ textAlign: "center", color: "red" }}>User not found.</p>;
+    redirect("/login");
   }
 
   // Fetch user details
