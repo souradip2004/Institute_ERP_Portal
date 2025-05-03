@@ -12,6 +12,7 @@ import crypto from "crypto";
 
 export const { auth, handlers, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
+  trustHost: true,
   providers: [
     Github,
     Google,
@@ -215,6 +216,7 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
 
       return session;
     },
+    
   },
   events: {
     signOut: async () => {
