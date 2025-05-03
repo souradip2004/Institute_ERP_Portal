@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
         email,
         name,
         password: hashedPassword,
-        role: "STUDENT", // Default role
+        role: "ADMIN", // Default role
       },
     });
 

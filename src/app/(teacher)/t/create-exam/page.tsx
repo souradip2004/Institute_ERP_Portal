@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import axios from "axios";
+import { forceLogout as logoutAndRedirect } from "@/lib/logout-utils";
 
 interface Question {
   question: string;
@@ -37,7 +38,7 @@ export default function CreateExam() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [numQuestions, setNumQuestions] = useState(2);
-  
+
   // New states for additional exam fields
   const [classSections, setClassSections] = useState<ClassSection[]>([]);
   const [selectedClassSectionId, setSelectedClassSectionId] = useState("");
@@ -56,7 +57,7 @@ export default function CreateExam() {
     if (pdfUrlSection) {
       // Ensure the element is properly scrolled into view with better positioning
       pdfUrlSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      
+
       // Try to focus the input inside this section after scrolling
       setTimeout(() => {
         const pdfUrlInput = document.getElementById('pdfUrlInput');
@@ -72,37 +73,30 @@ export default function CreateExam() {
   // Helper function to generate display name for class sections
   const getClassSectionDisplayName = (section: ClassSection) => {
     let displayName = "";
-    
+
     if (section.course?.name) {
       displayName += `${section.course.name} (${section.course.code}) - `;
     }
-    
+
     if (section.sectionName) {
       displayName += `Section ${section.sectionName}`;
     }
-    
+
     if (section.batch?.name) {
       displayName += ` - ${section.batch.name}`;
     }
-    
+
     if (section.semester?.name) {
       displayName += ` - ${section.semester.name}`;
     }
-    
+
     return displayName || "Unknown Section";
   };
 
   // Force logout and redirect to login
   const forceLogout = () => {
-    // Clear any auth cookies
-    document.cookie = "auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
-    document.cookie = "next-auth.session-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
-    
-    // Add message to local storage for login page
-    localStorage.setItem('auth_error', 'Your session was invalid. Please log in again.');
-    
-    // Redirect to login
-    window.location.href = '/login';
+    const errorMessage = 'Your session was invalid. Please log in again.';
+    logoutAndRedirect(errorMessage);
   };
 
   useEffect(() => {
@@ -113,12 +107,12 @@ export default function CreateExam() {
         // First try to get user data from localStorage
         const storedUser = localStorage.getItem('user');
         let userData = null;
-        
+
         if (storedUser) {
           try {
             userData = JSON.parse(storedUser);
             console.log("Found stored user data:", userData);
-            
+
             // If we have valid teacher data in localStorage, we can proceed
             if (userData?.role === 'TEACHER') {
               console.log("User is authenticated as a teacher based on localStorage");
@@ -129,20 +123,20 @@ export default function CreateExam() {
             console.error("Error parsing stored user data:", e);
           }
         }
-        
+
         const authResponse = await axios.get('/api/auth/session', {
           withCredentials: true
         });
-        
+
         console.log('Auth status:', authResponse.data);
-        
+
         // If not logged in, redirect to login
         if (!authResponse.data || !authResponse.data.user) {
           setError("You must be logged in as a teacher to create exams");
           forceLogout();
           return;
         }
-        
+
         // If not a teacher, show error
         if (authResponse.data.user.role !== 'TEACHER') {
           setError("Only teachers can create exams");
@@ -159,10 +153,10 @@ export default function CreateExam() {
             withCredentials: true
           });
           console.log('Teacher profile:', teacherResponse.data);
-          
+
           if (teacherResponse.data.success) {
             setCurrentTeacher(teacherResponse.data.teacher);
-            
+
             // Verify the user ID matches the teacher's user ID
             if (teacherResponse.data.teacher.userId !== authResponse.data.user.id) {
               console.error('User ID mismatch!', {
@@ -184,7 +178,7 @@ export default function CreateExam() {
           forceLogout();
           return;
         }
-        
+
         // If we're authenticated, fetch class sections regardless of the method
         fetchClassSections();
       } catch (err) {
@@ -195,7 +189,7 @@ export default function CreateExam() {
         setLoadingAuth(false);
       }
     };
-    
+
     checkAuth();
   }, []);
 
@@ -205,9 +199,9 @@ export default function CreateExam() {
       const response = await axios.get("/api/teacher/class-sections", {
         withCredentials: true,
       });
-      
+
       console.log('Class sections response:', response.data);
-      
+
       if (response.data.classSections && response.data.classSections.length > 0) {
         setClassSections(response.data.classSections);
         setSelectedClassSectionId(response.data.classSections[0].id);
@@ -277,13 +271,13 @@ export default function CreateExam() {
 
     try {
       setLoading(true);
-      
+
       // First confirm this teacher has permission for this class section
       try {
         const sectionCheckResponse = await axios.get(`/api/teacher/class-sections/${selectedClassSectionId}/check-permission`, {
           withCredentials: true
         });
-        
+
         if (!sectionCheckResponse.data.hasPermission) {
           setError(`You don't have permission to create exams for this class section (${selectedClassSectionId})`);
           setLoading(false);
@@ -321,7 +315,7 @@ export default function CreateExam() {
       }
     } catch (err: any) {
       console.error("Error creating exam:", err);
-      
+
       // Log detailed error information
       if (err.response) {
         console.log("Error response details:", {
@@ -330,7 +324,7 @@ export default function CreateExam() {
           data: err.response.data
         });
       }
-      
+
       // Set appropriate error message
       if (err.response?.status === 401) {
         setError("You need to be logged in to create exams. Please log in and try again.");
@@ -385,7 +379,7 @@ export default function CreateExam() {
               <p><span className="font-semibold">User ID:</span> {currentTeacher.userId}</p>
               <p><span className="font-semibold">Department:</span> {currentTeacher.department?.name || 'Unknown'}</p>
             </div>
-            <button 
+            <button
               onClick={forceLogout}
               className="mt-3 px-3 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 text-sm"
             >
@@ -399,8 +393,8 @@ export default function CreateExam() {
             <div className="flex flex-col">
               <p>{error}</p>
               {(error.includes("logged in") || error.includes("login") || error.includes("authentication")) && (
-                <button 
-                  onClick={() => window.location.href = '/login'} 
+                <button
+                  onClick={() => window.location.href = '/login'}
                   className="mt-2 self-start px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
                 >
                   Go to Login
@@ -475,9 +469,8 @@ export default function CreateExam() {
               {questions.map((q, index) => (
                 <div
                   key={index}
-                  className={`p-4 border rounded ${
-                    q.isSelected ? "border-blue-500 bg-blue-50" : ""
-                  }`}
+                  className={`p-4 border rounded ${q.isSelected ? "border-blue-500 bg-blue-50" : ""
+                    }`}
                 >
                   <label className="flex items-start gap-2">
                     <input
@@ -540,7 +533,7 @@ export default function CreateExam() {
               <p>Total sections: {classSections.length}</p>
               <p>Selected section ID: {selectedClassSectionId || 'none'}</p>
               <p>Loading auth: {loadingAuth ? 'true' : 'false'}</p>
-              <button 
+              <button
                 onClick={fetchClassSections}
                 className="px-2 py-1 bg-gray-200 rounded text-xs mt-1"
               >

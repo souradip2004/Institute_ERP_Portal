@@ -4,6 +4,7 @@ import axios from "axios";
 import { format } from "date-fns";
 import Loader from '@/components/ui/Loader';
 import { Calendar, Clock, CheckCheck, X, FileText, BookOpen, GraduationCap, XCircle } from 'lucide-react';
+import { forceLogout as logoutAndRedirect } from "@/lib/logout-utils";
 
 interface Question {
   question: string;
@@ -134,17 +135,9 @@ export default function ExamsPage({ params }: ExamsPageProps) {
 
   // Force logout and redirect to login
   const forceLogout = () => {
-    // Clear any auth cookies
-    document.cookie = "auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
-    document.cookie = "next-auth.session-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
-
-    // Add message to local storage for login page
-    localStorage.setItem('auth_error', 'Your session was invalid. Please log in again.');
-
-    // Redirect to login after a short delay to allow the error message to be seen
-    setTimeout(() => {
-      window.location.href = '/login';
-    }, 2000);
+    const errorMessage = 'Your session was invalid. Please log in again.';
+    // Use the utility function with a custom error message and delay
+    logoutAndRedirect(errorMessage, 2000);
   };
 
   // Check if user is authenticated as a teacher

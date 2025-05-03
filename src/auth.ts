@@ -216,14 +216,31 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
 
       return session;
     },
-    
   },
   events: {
     signOut: async () => {
-      // Clear localStorage on signout
+      // Clear all localStorage on signout
       if (typeof window !== "undefined") {
-        localStorage.removeItem("authToken");
-        localStorage.removeItem("session");
+        // Dynamically import the clearAuthData function since this file runs on both server and client
+        try {
+          const { clearAuthData } = await import("@/lib/logout-utils");
+          clearAuthData();
+        } catch (error) {
+          // Fallback if import fails
+          localStorage.removeItem("authToken");
+          localStorage.removeItem("auth_token");
+          localStorage.removeItem("session");
+          localStorage.removeItem("user");
+          localStorage.removeItem("userId");
+          localStorage.removeItem("teacherId");
+          localStorage.removeItem("auth_error");
+
+          // Clear note related data
+          const noteKeys = Object.keys(localStorage).filter((key) =>
+            key.startsWith("noteVideoData_")
+          );
+          noteKeys.forEach((key) => localStorage.removeItem(key));
+        }
       }
     },
   },
