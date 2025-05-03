@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  
   typescript: {
     ignoreBuildErrors: true,
   },
@@ -25,6 +26,11 @@ const nextConfig: NextConfig = {
       {
         protocol: "https",
         hostname: "avatars.githubusercontent.com",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "media-hosting.imagekit.io", // <-- Add this
         pathname: "/**",
       },
     ],

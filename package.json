@@ -57,6 +57,7 @@
     "react-hook-form": "^7.55.0",
     "react-hot-toast": "^2.5.2",
     "shadcn": "^2.4.1",
+    "swiper": "^11.2.6",
     "tailwind-merge": "^3.0.2",
     "textarea": "^0.3.0",
     "three": "^0.175.0",
