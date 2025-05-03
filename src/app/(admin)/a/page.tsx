@@ -11,10 +11,10 @@ import Sider from "@/components/admin/navigator";
 export default async function AdminPage() {
   const session = await auth();
 
-   const userId = session?.user?.id;
+  const userId = session?.user?.id;
   //const userId ="cm9q0nf8z0004bowkhzw2d3s0";
 
-console.log(session)
+  console.log(session)
   if (!userId) {
     return <p style={{ textAlign: "center", color: "red" }}>User not found.</p>;
   }
@@ -32,7 +32,7 @@ console.log(session)
     });
     institutionData = await institutionRes.json();
   }
-   console.log(userData)
+  console.log(userData)
   if (!institutionData) {
     return (
       <div style={{ textAlign: "center", padding: "20px" }}>
@@ -42,7 +42,7 @@ console.log(session)
     );
   }
   console.log(institutionData)
-const id = institutionData.id
+  const id = institutionData.id
   const teachers = await fetchTeachers(institutionData.id);
   const students = await fetchStudents();
   const classes = await fetchClasses();
@@ -66,12 +66,12 @@ const id = institutionData.id
           <Link href="/admin/profile">Profile</Link>
         </div>
       </div>*/}
-      <Sider id={id} userId={userId}/>
+      <Sider id={id} userId={userId} />
       {/* Profile Section */}
 
 
-  
-        
-      </div>
+
+
+    </div>
   );
 }

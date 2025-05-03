@@ -2,8 +2,16 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Trash2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-export default function DeleteInstitutionButton({ institutionId, userId }) {
+interface DeleteInstitutionButtonProps {
+  institutionId: string;
+  userId: string;
+}
+
+export default function DeleteInstitutionButton({ institutionId, userId }: DeleteInstitutionButtonProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
@@ -39,21 +47,18 @@ export default function DeleteInstitutionButton({ institutionId, userId }) {
   }
 
   return (
-    <button 
-      onClick={handleDelete} 
-      disabled={loading} 
-      style={{
-        marginTop: "10px",
-        padding: "10px 20px",
-        backgroundColor: loading ? "#aaa" : "#dc3545",
-        color: "#fff",
-        border: "none",
-        borderRadius: "8px",
-        fontSize: "16px",
-        cursor: loading ? "not-allowed" : "pointer",
-      }}
+    <Button
+      onClick={handleDelete}
+      disabled={loading}
+      variant="destructive"
+      size="sm"
+      className={cn(
+        "gap-2 font-medium transition-all",
+        loading && "opacity-70"
+      )}
     >
+      <Trash2 className="w-4 h-4" />
       {loading ? "Deleting..." : "Delete Institution"}
-    </button>
+    </Button>
   );
 }
