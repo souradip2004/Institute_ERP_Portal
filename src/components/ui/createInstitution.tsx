@@ -35,7 +35,7 @@ export default function CreateInstitutionForm({ userId, email }) {
       console.log("Submitting Institution Data:", formData);
 
       // Step 1: Create Institution
-      const res = await fetch("http://localhost:3000/api/institutions", {
+      const res = await fetch("https://commercial.aiclassroom.in/api/institutions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
@@ -48,7 +48,7 @@ export default function CreateInstitutionForm({ userId, email }) {
       
       if (!institution.id) throw new Error("Institution ID is missing from the response.");
 
-      const updateUserRes = await fetch(`http://localhost:3000/api/users/${userId}`, {
+      const updateUserRes = await fetch(`https://commercial.aiclassroom.in/api/users/${userId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ institutionId: institution.id }),

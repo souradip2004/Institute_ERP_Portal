@@ -19,14 +19,14 @@ export default async function DashboardPage() {
   }
 
   // Fetch user details
-  const userRes = await fetch(`http://localhost:3000/api/users/${userId}`, { cache: "no-store" });
+  const userRes = await fetch(`https://commercial.aiclassroom.in/api/users/${userId}`, { cache: "no-store" });
   const userData = await userRes.json();
 
   let institutionData = null;
 
   // Fetch institution details if institutionId exists
   if (userData?.institutionId) {
-    const institutionRes = await fetch(`http://localhost:3000/api/institutions/${userData.institutionId}`, {
+    const institutionRes = await fetch(`https://commercial.aiclassroom.in/api/institutions/${userData.institutionId}`, {
       cache: "no-store",
     });
     institutionData = await institutionRes.json();
@@ -70,7 +70,7 @@ export default async function DashboardPage() {
                 <div className="p-6 sm:p-8">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 pb-6 border-b border-gray-100">
                     <h3 className="text-2xl font-bold text-purple-700 mb-2 sm:mb-0">
-                      <a href="http://localhost:3000/a" className="hover:underline transition-all">
+                      <a href="https://commercial.aiclassroom.in/a" className="hover:underline transition-all">
                         {institutionData.name}
                       </a>
                     </h3>

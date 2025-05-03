@@ -20,14 +20,14 @@ console.log(session)
   }
 
   // Fetch user details
-  const userRes = await fetch(`http://localhost:3000/api/users/${userId}`, { cache: "no-store" });
+  const userRes = await fetch(`https://commercial.aiclassroom.in/api/users/${userId}`, { cache: "no-store" });
   const userData = await userRes.json();
 
   let institutionData = null;
 
   // Fetch institution details if institutionId exists
   if (userData?.institutionId) {
-    const institutionRes = await fetch(`http://localhost:3000/api/institutions/${userData.institutionId}`, {
+    const institutionRes = await fetch(`https://commercial.aiclassroom.in/api/institutions/${userData.institutionId}`, {
       cache: "no-store",
     });
     institutionData = await institutionRes.json();
