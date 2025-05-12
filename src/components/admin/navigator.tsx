@@ -70,7 +70,7 @@ const Navigator = ({ id, userId }: NavigatorProps) => {
         <div className="p-4">
           <div className="mb-8">
             <Link href="/a/dashboard" className="flex items-center">
-              <span className="text-2xl font-bold text-blue-600">ABIV</span>
+              <span className="text-2xl font-bold text-blue-600">AI Classroom</span>
             </Link>
           </div>
           

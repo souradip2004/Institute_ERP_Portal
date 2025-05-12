@@ -117,7 +117,7 @@ export async function GET(
       ];
 
       return {
-        id: `class${index + 1}`,
+        id: relation.course.id,
         className: `Class ${section.batch.batchName}`,
         sectionName: String.fromCharCode(65 + index), // A, B, C, etc.
         subject: relation.course.name,

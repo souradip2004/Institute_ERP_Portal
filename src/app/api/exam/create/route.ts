@@ -7,44 +7,10 @@ const SECRET_KEY = process.env.JWT_SECRET || 'your-secret-key';
 export async function POST(req: NextRequest) {
   try {
     // Get auth token from cookie
-    const token = req.cookies.get('auth_token')?.value;
-    
-    if (!token) {
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
-    }
 
-    // Verify token
-    const decoded = jwt.verify(token, SECRET_KEY) as any;
-    if (!decoded || !decoded.id) {
-      return NextResponse.json({ error: "Invalid token" }, { status: 401 });
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { id: decoded.id },
-      select: { 
-        role: true,
-        institutionId: true
-      }
-    });
-
-    if (!user || user.role !== "TEACHER") {
-      return NextResponse.json({ error: "Unauthorized - Teacher access required" }, { status: 403 });
-    }
-
-    if (!user.institutionId) {
-      return NextResponse.json({ error: "Teacher must be associated with an institution" }, { status: 400 });
-    }
-
-    // Get teacher record
-    const teacher = await prisma.teacher.findFirst({
-      where: { userId: decoded.id }
-    });
-
-    if (!teacher) {
-      return NextResponse.json({ error: "Teacher record not found" }, { status: 403 });
-    }
 
     const { 
+      userId,
       title, 
       questions, 
       classSectionId,
@@ -56,12 +22,45 @@ export async function POST(req: NextRequest) {
       endTime,
       isAiGenerated = true
     } = await req.json();
+    console.log("Request body:", userId);
+    //get user details from req
+
+    const user = userId;
+    const newuser=await fetch(`https://commercial.aiclassroom.in/api/users/${userId.id}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${req.headers.get('Authorization')}`
+      }
+    })
+    const userData = await newuser.json();
+    if (!user || user.role !== "TEACHER") {
+      console.log("User role:", user.role);
+      return NextResponse.json({ error: "Unauthorized - Teacher access required" }, { status: 403 });
+    }
+
+    if (!userData.institutionId) {
+      console.log("User institution ID:", userData.institutionId);
+      return NextResponse.json({ error: "Teacher must be associated with an institution" }, { status: 400 });
+    }
+
+    // Get teacher record
+    const teacher = await prisma.teacher.findFirst({
+      where: { userId: user.id }
+    });
+
+    if (!teacher) {
+      console.log("Teacher record not found for user ID:", user.id);
+      return NextResponse.json({ error: "Teacher record not found" }, { status: 403 });
+    }
 
     if (!title || !questions || !Array.isArray(questions)) {
+      console.log("Exam data:", { title, questions });
       return NextResponse.json({ error: "Invalid exam data" }, { status: 400 });
     }
 
     if (!classSectionId) {
+      console.log("Class section ID is required");
       return NextResponse.json({ error: "Class section is required" }, { status: 400 });
     }
 
@@ -74,6 +73,7 @@ export async function POST(req: NextRequest) {
     });
 
     if (!classSection) {
+      console.log("Class section not found for teacher ID:", teacher.id);
       return NextResponse.json({ error: "Invalid class section" }, { status: 400 });
     }
 
@@ -81,7 +81,7 @@ export async function POST(req: NextRequest) {
     let examType = await prisma.examType.findFirst({
       where: {
         name: "MCQ",
-        institutionId: user.institutionId
+        institutionId: userData.institutionId
       }
     });
 
@@ -90,7 +90,7 @@ export async function POST(req: NextRequest) {
         data: {
           name: "MCQ",
           description: "Multiple Choice Questions",
-          institutionId: user.institutionId,
+          institutionId: userData.institutionId,
           weightage: 1.0
         }
       });
@@ -131,6 +131,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true, examId: exam.id });
   } catch (error: any) {
     console.error("Error creating exam:", error);
+    console.log("Error creating exam:", error);
     return NextResponse.json(
       { error: "Failed to create exam", details: error.message },
       { status: 500 }

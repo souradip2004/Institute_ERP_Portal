@@ -348,7 +348,26 @@ model AttendanceSession {
 
   @@map("attendance_sessions")
 }
+model TeacherAnswerSheet {
+  id                   String   @id @default(uuid())
+  ansSheetS3URL        String
+  config1              Json
+  config2              Json
+  config3              Json
+  examId               String
+  pythonParsedResponse Json[]
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+}
 
+model StudentSubmissionRecord {
+  id                    String   @id @default(uuid())
+  examId                String
+  studentAnswerSheetURL String
+  totalMarks            Float
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+}
 model Attendance {
   id                  String            @id @default(cuid())
   attendanceSessionId String            @map("attendance_session_id")
@@ -457,7 +476,6 @@ model ExamSubmission {
   exam           Exam               @relation(fields: [examId], references: [id])
   gradedBy       Teacher?           @relation("GradedByTeacher", fields: [gradedById], references: [id])
   student        Student            @relation(fields: [studentId], references: [id])
-
   @@map("exam_submissions")
 }
 

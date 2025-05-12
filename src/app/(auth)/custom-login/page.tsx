@@ -49,6 +49,7 @@ export default function CustomLoginForm() {
         sameSite: 'strict',
       });
 
+
       // Redirect based on role
       router.refresh();
       if (role === 'STUDENT') {

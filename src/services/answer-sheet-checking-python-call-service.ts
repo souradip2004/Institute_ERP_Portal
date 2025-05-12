@@ -5,12 +5,12 @@ export async function segregateFromPdf(fileUrls: string[]) {
     console.log("🔄 Sending PDF URL(s) to AnsKey Segregate API...with fileURLs: " + fileUrls);
 
     const response = await axios.post(
-      'https://anskey-segregate-from-pdfs-33f7051-v1.app.beam.cloud',
+      'https://anskey-segregate-from-pdfs-e5c6c86-v1.app.beam.cloud' ,
       { file_url_list: fileUrls },
       {
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer ALXP7mhHyKz1MQATKH7CIQXK9VQBpvoNNuxPvLONWyPCfgemj18cz2T74r4drBpvOkf-3orOQT_6r-63mHPZAA==',
+          'Authorization': 'Bearer cpxjIHGyDUggeCZSEgd7TSs_xuIaJLxQyplSlPcpEv35qftljIUmetr9Drtj_MUyC9PUSJLvV1vbjljWohB8Sw==',
         }
       }
     );
@@ -56,7 +56,7 @@ export async function checkAnswerWithModelKey(
     console.log(JSON.parse(configJson1string))
     console.log('......................................................\n\n\n\n\n\n');
     const response = await fetch(
-      'https://answer-checking-4-89f26c7-v1.app.beam.cloud',
+      'https://answer-checking-4-dad1d16-v1.app.beam.cloud',
       {
         method: 'POST',
         body: JSON.stringify({
@@ -66,7 +66,7 @@ export async function checkAnswerWithModelKey(
         }),
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer ALXP7mhHyKz1MQATKH7CIQXK9VQBpvoNNuxPvLONWyPCfgemj18cz2T74r4drBpvOkf-3orOQT_6r-63mHPZAA==',
+          'Authorization': 'Bearer cpxjIHGyDUggeCZSEgd7TSs_xuIaJLxQyplSlPcpEv35qftljIUmetr9Drtj_MUyC9PUSJLvV1vbjljWohB8Sw==',
           "Connection": "keep-alive",
         }
       }
@@ -133,7 +133,7 @@ export async function checkAnswerWithDiagramSupport(
     
 
     const response = await axios.post(
-      'https://answer-and-diagram-checking-5-d324ec2-v1.app.beam.cloud',
+      'https://answer-and-diagram-checking-5-12af4c2-v1.app.beam.cloud',
       {
         student_uid: studentUid,
         student_ans_pdf_url: studentAnsPdfUrl,
@@ -145,7 +145,7 @@ export async function checkAnswerWithDiagramSupport(
       {
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer ALXP7mhHyKz1MQATKH7CIQXK9VQBpvoNNuxPvLONWyPCfgemj18cz2T74r4drBpvOkf-3orOQT_6r-63mHPZAA==',
+          'Authorization': 'Bearer cpxjIHGyDUggeCZSEgd7TSs_xuIaJLxQyplSlPcpEv35qftljIUmetr9Drtj_MUyC9PUSJLvV1vbjljWohB8Sw==',
         }
       }
     );

@@ -125,7 +125,6 @@ export default function TeacherDashboardPage() {
         await fetchNotifications();
         await fetchAssignments();
         await fetchExams();
-
         setLoading(false);
       } catch (error) {
         console.error("Error loading dashboard data:", error);
@@ -224,64 +223,25 @@ export default function TeacherDashboardPage() {
 
   const fetchAssignments = async () => {
     try {
-      if (teacherId) {
-        // Try to fetch from the teacher-specific assignments endpoint
-        const response = await fetch(`/api/teachers/${teacherId}/classes`, {
-          credentials: 'include'
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          // Extract assignments from classes if available
-          if (data && Array.isArray(data)) {
-            // Collect assignments from all classes
-            const allAssignments = [];
-            for (const classData of data) {
-              if (classData.lastAssignment) {
-                allAssignments.push({
-                  id: classData.id,
-                  title: classData.lastAssignment.title,
-                  class: `${classData.name} ${classData.section || ''}`,
-                  subject: classData.subject || 'General',
-                  dueDate: new Date().toISOString().split('T')[0], // Today as fallback
-                  submissions: '0/0',
-                  status: 'Active'
-                });
-              }
-            }
-            if (allAssignments.length > 0) {
-              setAssignments(allAssignments);
-              return;
-            }
-          }
-        }
+      if (!teacherId) {
+        console.log('No teacherId available for fetching assignments');
+        return;
       }
 
-      // Try to fetch all assignments directly if teacher-specific failed
-      const response = await fetch(`/api/assignments`, {
+      const response = await fetch(`/api/teachers/${teacherId}/dashboardDetail`, {
         credentials: 'include'
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        if (Array.isArray(data)) {
-          // Map API data to the Assignment interface
-          const formattedAssignments = data.map((item: any) => ({
-            id: item.id,
-            title: item.title,
-            class: item.className || 'N/A',
-            subject: item.subject || 'General',
-            dueDate: item.dueDate || new Date().toISOString().split('T')[0],
-            submissions: item.submissionCount ? `${item.submissionCount}/${item.totalStudents || 0}` : '0/0',
-            status: item.status || 'Active'
-          }));
-          setAssignments(formattedAssignments);
-          return;
-        }
+      if (!response.ok) {
+        throw new Error('Failed to fetch dashboard data');
       }
 
-      // If all API attempts fail, use empty array
-      setAssignments([]);
+      const data = await response.json();
+      if (data && data.assignments) {
+        setAssignments(data.assignments);
+      } else {
+        setAssignments([]);
+      }
     } catch (error) {
       console.error('Error fetching assignments:', error);
       setAssignments([]);
@@ -290,63 +250,25 @@ export default function TeacherDashboardPage() {
 
   const fetchExams = async () => {
     try {
-      // Try the general exams endpoint first
-      const response = await fetch(`/api/exams`, {
+      if (!teacherId) {
+        console.log('No teacherId available for fetching exams');
+        return;
+      }
+
+      const response = await fetch(`/api/teachers/${teacherId}/dashboardDetail`, {
         credentials: 'include'
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        if (Array.isArray(data)) {
-          // Map API data to the Exam interface
-          const formattedExams = data.map((item: any) => ({
-            id: item.id,
-            title: item.title,
-            class: item.className || 'N/A',
-            subject: item.subject || 'General',
-            date: item.examDate ? new Date(item.examDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-            mode: item.mode || 'Online',
-            status: item.status || 'Upcoming'
-          }));
-          setExams(formattedExams);
-          return;
-        }
+      if (!response.ok) {
+        throw new Error('Failed to fetch dashboard data');
       }
 
-      // If teacher ID is available, try to fetch class-specific exams
-      if (teacherId) {
-        const classesResponse = await fetch(`/api/teachers/${teacherId}/classes`, {
-          credentials: 'include'
-        });
-
-        if (classesResponse.ok) {
-          const classesData = await classesResponse.json();
-          // Extract upcoming exams from classes
-          if (Array.isArray(classesData)) {
-            const allExams = [];
-            for (const classData of classesData) {
-              if (classData.nextExam) {
-                allExams.push({
-                  id: classData.id,
-                  title: 'Class Exam',
-                  class: `${classData.name} ${classData.section || ''}`,
-                  subject: classData.subject || 'General',
-                  date: classData.nextExam.date || new Date().toISOString().split('T')[0],
-                  mode: 'In Person',
-                  status: 'Upcoming'
-                });
-              }
-            }
-            if (allExams.length > 0) {
-              setExams(allExams);
-              return;
-            }
-          }
-        }
+      const data = await response.json();
+      if (data && data.exams) {
+        setExams(data.exams);
+      } else {
+        setExams([]);
       }
-
-      // If all API attempts fail, use empty array
-      setExams([]);
     } catch (error) {
       console.error('Error fetching exams:', error);
       setExams([]);
@@ -700,7 +622,6 @@ export default function TeacherDashboardPage() {
                   <th className="text-left py-3">Class</th>
                   <th className="text-left py-3">Subject</th>
                   <th className="text-left py-3">Date</th>
-                  <th className="text-left py-3">Mode</th>
                   <th className="text-left py-3">Status</th>
                   <th className="text-left py-3">Action</th>
                 </tr>
@@ -713,7 +634,6 @@ export default function TeacherDashboardPage() {
                       <td className="py-3">{exam.class}</td>
                       <td className="py-3">{exam.subject}</td>
                       <td className="py-3">{exam.date}</td>
-                      <td className="py-3">{exam.mode}</td>
                       <td className="py-3">{exam.status}</td>
                       <td className="py-3">
                         <Link
@@ -727,7 +647,7 @@ export default function TeacherDashboardPage() {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={7} className="py-6 text-center text-gray-500">
+                    <td colSpan={6} className="py-6 text-center text-gray-500">
                       No exams found
                     </td>
                   </tr>

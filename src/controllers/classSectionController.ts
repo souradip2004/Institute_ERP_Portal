@@ -41,12 +41,7 @@ export class ClassSectionController {
 
   async createClassSection(req: NextRequest) {
     try {
-      const user = await AuthUtils.getCurrentUser(req);
-      if (!user)
-        return NextResponse.json(
-          { error: "Authentication required" },
-          { status: 401 }
-        );
+     
    
 
       const data = await req.json();

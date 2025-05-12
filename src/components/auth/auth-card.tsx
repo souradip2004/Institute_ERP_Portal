@@ -57,7 +57,6 @@ export function AuthCard({
 
     // Set user data
     setUser(localStorage.getItem("user"));
-
     // Set query parameters
     setQueryParams(new URLSearchParams(window.location.search));
   }, []);
@@ -145,6 +144,15 @@ export function AuthCard({
 
         // Set a success message in localStorage to display after redirect
         localStorage.setItem('auth_success', 'Account created successfully. Please sign in.');
+        const sendemail=await fetch("/api/emails/welcome",{
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email }),
+        });
+        if (!sendemail.ok) {
+          const data = await sendemail.json();
+          console.log("Error sending welcome email:", data.error);
+        }
 
         // Redirect to login page instead of auto-signing in
         window.location.href = "/login";
@@ -209,7 +217,7 @@ export function AuthCard({
                     className="text-sm text-primary underline underline-offset-4 hover:text-primary/90"
                   >
                     Forgot password?
-                  </a>
+                  </a> 
                 )}
               </div>
               <div className="relative">

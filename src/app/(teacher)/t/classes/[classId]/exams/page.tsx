@@ -248,7 +248,6 @@ export default function ExamsPage({ params }: ExamsPageProps) {
         try {
           const userData = JSON.parse(storedUser);
           teacherId = userData?.teacherId;
-
           if (!teacherId) {
             setError("Teacher ID not found");
             return;
@@ -282,9 +281,11 @@ export default function ExamsPage({ params }: ExamsPageProps) {
   };
 
   const fetchExams = async () => {
+    const storedData = localStorage.getItem('user');
+    const userData = storedData ? JSON.parse(storedData) : null;
     try {
       setLoadingExams(true);
-      const response = await axios.get(`/api/exam/list?classSectionId=${resolvedParams.classId}`, {
+      const response = await axios.get(`/api/exam/list/${userData.id}`, {
         withCredentials: true,
       });
       setExams(response.data.exams);
@@ -374,6 +375,7 @@ export default function ExamsPage({ params }: ExamsPageProps) {
       const response = await axios.post(
         "/api/exam/create",
         {
+          userId:JSON.parse(localStorage.getItem('user')),
           title: examTitle,
           questions: selectedQuestions,
           classSectionId: selectedClassSection,
@@ -424,7 +426,7 @@ export default function ExamsPage({ params }: ExamsPageProps) {
   const fetchExamDetails = async (examId: string) => {
     try {
       setLoadingExamDetails(true);
-      const response = await axios.get(`/api/exam/${examId}`, {
+      const response = await axios.get(`/api/exam/${examId}/${JSON.parse(localStorage.getItem('user')).id}`, {
         withCredentials: true,
       });
       setSelectedExam(response.data.exam);

@@ -28,22 +28,17 @@ export default function TeacherSidebar() {
 
   const handleAssignmentsClick = (e: React.MouseEvent) => {
     e.preventDefault();
-    if (classId) {
-      router.push(`/t/classes/${classId}/assignments`);
-    } else {
-      // If no class ID, go to dashboard
-      router.push('/t/dashboard');
-    }
+   
+      router.push(`/t/assignments`);
   };
 
   const handleNotesClick = (e: React.MouseEvent) => {
     e.preventDefault();
-    if (classId) {
-      router.push(`/t/classes/${classId}/notes`);
-    } else {
+   
+      router.push(`/t/classes/cmaht5fyk000e4hc6pcdvyi9r/notes`);
+   
       // If no class ID, go to classes page
-      router.push('/t/classes' as any);
-    }
+    
   };
 
   const navItems = [
@@ -61,7 +56,7 @@ export default function TeacherSidebar() {
       <div className="p-4">
         <div className="mb-8">
           <Link href="/t/dashboard" className="flex items-center">
-            <span className="text-2xl font-bold text-blue-600">ABIV</span>
+            <span className="text-2xl font-bold text-blue-600">AI Classroom</span>
           </Link>
         </div>
 

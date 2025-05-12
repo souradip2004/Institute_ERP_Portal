@@ -24,6 +24,6 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json(teacherDetails);
   } catch (error) {
-    return NextResponse.json({ error: 'Something went wrong' }, { status: 500 });
+    return NextResponse.json({ error: error }, { status: 500 });
   }
 }

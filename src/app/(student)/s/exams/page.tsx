@@ -184,9 +184,10 @@ export default function ExamsPage() {
   };
 
   const startExam = async (exam: Exam) => {
+    alert('Starting exam: ' + exam.id);
     try {
       // Fetch exam details with questions
-      const response = await fetch(`/api/exams/${exam.id}`, {
+      const response = await fetch(`/api/exams/sadasdsad/${exam.id}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',

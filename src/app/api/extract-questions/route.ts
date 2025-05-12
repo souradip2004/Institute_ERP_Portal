@@ -3,8 +3,8 @@ import jwt from 'jsonwebtoken';
 import axios from 'axios';
 
 const SECRET_KEY = process.env.JWT_SECRET || 'your-secret-key';
-const API_URL = "https://question-generation-f79eeb2-v1.app.beam.cloud";
-const BEARER_TOKEN = "ALXP7mhHyKz1MQATKH7CIQXK9VQBpvoNNuxPvLONWyPCfgemj18cz2T74r4drBpvOkf-3orOQT_6r-63mHPZAA==";
+const API_URL = 'https://question-generation-76b332e-v1.app.beam.cloud';
+const BEARER_TOKEN = "cpxjIHGyDUggeCZSEgd7TSs_xuIaJLxQyplSlPcpEv35qftljIUmetr9Drtj_MUyC9PUSJLvV1vbjljWohB8Sw==";
 
 interface Question {
   question: string;
@@ -22,18 +22,7 @@ interface ApiResponse {
 export async function POST(req: NextRequest) {
   try {
     // Get auth token from cookie
-    const token = req.cookies.get('auth_token')?.value;
-    
-    if (!token) {
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
-    }
-
-    // Verify token
-    const decoded = jwt.verify(token, SECRET_KEY) as any;
-    if (!decoded || !decoded.id) {
-      return NextResponse.json({ error: "Invalid token" }, { status: 401 });
-    }
-
+ 
     const { pdfUrl, numQuestions = 2 } = await req.json();
 
     if (!pdfUrl) {

@@ -56,6 +56,7 @@ export default function TeacherAssignmentsPage() {
           try {
             const parsedUserData = JSON.parse(userData);
             if (parsedUserData.teacherId || parsedUserData.id) {
+              console.log('Parsed User Data:', parsedUserData);
               setTeacherId(parsedUserData.teacherId || parsedUserData.id);
             }
           } catch (error) {
@@ -76,7 +77,7 @@ export default function TeacherAssignmentsPage() {
         
         // Default to 'teacher123' if no teacher ID found (for testing only)
         const currentTeacherId = teacherId || 'teacher123';
-        
+        console.log('Current Teacher ID:', currentTeacherId);
         // Try to fetch from API endpoints
         const endpoints = [
           `/api/teachers/${currentTeacherId}/classes`,
