@@ -81,6 +81,7 @@ console.log("fileUrl", data.classSectionId);
   static async submitAssignment(data: {
     assignmentId: string;
     studentId: string;
+    userId: string;
     file?: { buffer: Buffer; originalName: string; mimetype: string };
   }): Promise<AssignmentSubmission> {
     let fileUrl: string | undefined;
@@ -115,7 +116,7 @@ console.log("fileUrl", data.classSectionId);
 
     const isLate =
       (assignment.dueDate && new Date() > assignment.dueDate) || undefined;
-
+ console.log("studentId", data.studentId);  
     return prisma.assignmentSubmission.create({
       data: {
         assignmentId: data.assignmentId,
@@ -131,7 +132,7 @@ console.log("fileUrl", data.classSectionId);
                   fileName,
                   fileType,
                   fileSize,
-                  uploadedById: data.studentId,
+                  uploadedById: data.userId,
                 },
               }
             : undefined,

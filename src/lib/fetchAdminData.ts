@@ -1,6 +1,6 @@
 // lib/fetchAdminData.ts
 export async function fetchTeachers(id: string) {
-    const res = await fetch("http://localhost:3000/api/teachers", { cache: "no-store" });
+    const res = await fetch("https://commercial.aiclassroom.in/api/teachers", { cache: "no-store" });
     if (res.status === 404) {
       return [];
     }
@@ -16,12 +16,12 @@ export async function fetchTeachers(id: string) {
   }
   
   export async function fetchStudents() {
-    const res = await fetch("http://localhost:3000/api/students", { cache: "no-store" });
+    const res = await fetch("https://commercial.aiclassroom.in/api/students", { cache: "no-store" });
     return res.ok ? await res.json() : [];
   }
   
   export async function fetchClasses() {
-    const res = await fetch("http://localhost:3000/api/classes", { cache: "no-store" });
+    const res = await fetch("https://commercial.aiclassroom.in/api/classes", { cache: "no-store" });
     return res.ok ? await res.json() : [];
   }
   

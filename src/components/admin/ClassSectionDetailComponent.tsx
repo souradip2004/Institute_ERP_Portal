@@ -84,9 +84,9 @@ export default function ClassSectionDetail({ classSection, onBack }: ClassSectio
       try {
         const response = await fetch(`/api/classes/${classSection.id}/students`);
         if (!response.ok) {
+          
           throw new Error('Failed to fetch students');
         }
-
         const data = await response.json();
         if (Array.isArray(data)) {
           setStudents(data);

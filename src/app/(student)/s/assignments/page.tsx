@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Loader from '@/components/ui/Loader';
 import { ArrowLeft, Download, Calendar, FileCheck, ClipboardCheck } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface Assignment {
   id: string;
@@ -108,7 +109,7 @@ export default function AssignmentsPage() {
       }
 
       // Fetch from the new API endpoint with classSectionId
-      const response = await fetch(`/api/assignments/my-assignments?classSectionId=${classSectionId}`);
+      const response = await fetch(`/api/assignments/my-assignments?classSectionId=${classSectionId}?user=${studentId}`);
 
       if (!response.ok) {
         throw Error('Failed to fetch assignments');
@@ -168,13 +169,13 @@ export default function AssignmentsPage() {
     // Filter assignments into ongoing and completed
     const ongoing = processedAssignments.filter((assignment) =>
       !assignment.submissions?.some((sub) =>
-        sub.studentId === studentId && sub.status === 'GRADED'
+        sub.studentId === studentId
       )
     );
 
     const completed = processedAssignments.filter((assignment) =>
       assignment.submissions?.some((sub) =>
-        sub.studentId === studentId && sub.status === 'GRADED'
+        sub.studentId === studentId 
       )
     );
 
@@ -205,9 +206,56 @@ export default function AssignmentsPage() {
 
     if (!studentSubmission || studentSubmission.status !== 'GRADED') {
       return (
-        <Link href={`/s/assignments/submit/${assignment.id}` as any} className="text-purple-800 font-medium hover:text-purple-900">
+        <Button onClick={async()=>{
+          // Handle submission logic here
+           //static async submitAssignment(request: NextRequest): Promise<NextResponse> {
+             // try {
+               // const formData = await request.formData();
+                //const assignmentId = formData.get("assignmentId") as string;
+                //const file = formData.get("file") as File | null;
+                //const user=formData.get("user");
+                //if (!assignmentId) {
+                  //return NextResponse.json(
+                    //{ error: "Missing assignmentId" },
+                    //{ status: 400 }
+                  //);
+                //}
+                const fileInput = document.createElement('input');
+                fileInput.type = 'file';
+                fileInput.accept = 'application/pdf';
+
+                fileInput.onchange = async (event) => {
+                  const file = (event.target as HTMLInputElement).files?.[0];
+                  if (!file) {
+                    console.error('No file selected');
+                    return;
+                  }
+
+                  console.log(`Submitting assignment ${assignment.id} with file:`, file.name);
+                  const formData = new FormData();
+                  formData.append('assignmentId', assignment.id);
+                  formData.append('file', file);
+                  formData.append('user', localStorage.getItem('user') || '');
+                  try {
+                    const response = await fetch(`/api/assignments/submit`, {
+                      method: 'POST',
+                      body: formData,
+                    });
+
+                    if (!response.ok) {
+                      throw new Error('Failed to submit assignment');
+                    }
+
+                    alert('Assignment submitted successfully');
+                  } catch (error) {
+                    console.error('Error submitting assignment:', error);
+                  }
+                };
+
+                fileInput.click();
+        }} className="text-purple-800 font-medium hover:text-purple-900">
           Submit Now
-        </Link>
+        </Button>
       );
     }
 

@@ -3,6 +3,7 @@
 import { useState, useEffect, FormEvent } from "react";
 import { Card } from "@/components/ui/card";
 import Loader from "@/components/ui/Loader";
+import { Button } from "../ui/button";
 
 interface Department {
   id: string;
@@ -22,7 +23,7 @@ const AddTeacherModal = ({ id, isOpen, onClose, onSuccess }: AddTeacherProps) =>
   const [departmentData, setDepartmentData] = useState<Department[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showNewDepartment, setShowNewDepartment] = useState(false);
-  
+  const [ismultiple,setmultiple] = useState(false);
   const [teacherData, setTeacherData] = useState({
     name: "",
     email: "",
@@ -32,7 +33,6 @@ const AddTeacherModal = ({ id, isOpen, onClose, onSuccess }: AddTeacherProps) =>
     employeeCode: "",
     newDepartment: "",
   });
-
   useEffect(() => {
     if (isOpen) {
       fetchDepartments();
@@ -58,11 +58,11 @@ const AddTeacherModal = ({ id, isOpen, onClose, onSuccess }: AddTeacherProps) =>
       setIsLoading(false);
     }
   };
-
+ 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
-    
+    if(!ismultiple){
     try {
       // Create user
       const userResponse = await fetch("/api/users", {
@@ -122,6 +122,75 @@ const AddTeacherModal = ({ id, isOpen, onClose, onSuccess }: AddTeacherProps) =>
     } finally {
       setIsLoading(false);
     }
+  }else{
+    const emails = teacherData.email.split(",").map(email => email.trim());
+    const employeeCodes = teacherData.employeeCode.split(",").map(code => code.trim());
+    if (emails.length !== employeeCodes.length) {
+      alert("Number of emails and employee codes must match");
+      setIsLoading(false);
+      return;
+    }
+    try {
+      // Create users
+      const userPromises = emails.map((email, index) => {
+        const randomPassword = Math.random().toString(36).slice(-8);
+        const teacherName = email.split("@")[0];
+        return fetch("/api/users", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            name: teacherName,
+            email,
+            password: teacherData.password,
+            role: "TEACHER",
+            institutionId: id,
+            emailVerified: new Date(),
+          }),
+        });
+      });
+
+      const userResponses = await Promise.all(userPromises);
+      const users = await Promise.all(userResponses.map(res => res.json()));
+
+      // Create teachers
+      const departmentId = departmentData.find(
+        (department) => department.name === teacherData.department
+      )?.id;
+
+      const teacherPromises = users.map((user, index) => {
+        return fetch("/api/teachers", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            teacherCode: employeeCodes[index],
+            employmentStatus: "FULL_TIME",
+            user: { connect: { id: user.id } },
+            department: { connect: { id: departmentId } },
+          }),
+        });
+      });
+
+      await Promise.all(teacherPromises);
+
+      // Reset form and close modal
+      resetForm();
+      onSuccess();
+      onClose();
+    }
+    catch (error: unknown) {
+      console.error("Error creating teachers:", error);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      alert("Error creating teachers: " + errorMessage);
+    }
+    finally {
+      setIsLoading(false);
+    }
+  }
+
   };
 
   const createNewDepartment = async () => {
@@ -202,8 +271,16 @@ const AddTeacherModal = ({ id, isOpen, onClose, onSuccess }: AddTeacherProps) =>
           {isLoading ? (
             <Loader size="medium" message="Processing..." />
           ) : (
-            <form onSubmit={handleSubmit}>
+            <form onSubmit={handleSubmit}> 
               <div className="space-y-4">
+                <Button
+                  variant="outline"
+                  className="w-full mb-4"
+                  onClick={() => setmultiple(!ismultiple)}
+                >
+                  {ismultiple ? "Add Single Teacher" : "Add Multiple Teachers"}
+                </Button>
+                {!ismultiple && (
                 <div>
                   <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
                     Name*
@@ -217,7 +294,8 @@ const AddTeacherModal = ({ id, isOpen, onClose, onSuccess }: AddTeacherProps) =>
                     className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
                   />
                 </div>
-                
+                )}
+                {!ismultiple && (
                 <div>
                   <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
                     Email*
@@ -231,7 +309,23 @@ const AddTeacherModal = ({ id, isOpen, onClose, onSuccess }: AddTeacherProps) =>
                     className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
                   />
                 </div>
-                
+          )}
+          {ismultiple && (
+            <div>
+                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                    Emails (Seperated by commas)*
+                  </label>
+                  <input
+                    id="email"
+                    type="text"
+                    required
+                    value={teacherData.email}
+                    onChange={(e) => setTeacherData({ ...teacherData, email: e.target.value })}
+                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                </div>
+              )}
+              {!ismultiple && (
                 <div>
                   <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
                     Password*
@@ -245,10 +339,10 @@ const AddTeacherModal = ({ id, isOpen, onClose, onSuccess }: AddTeacherProps) =>
                     className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
                   />
                 </div>
-                
+              )}
                 <div>
                   <label htmlFor="employeeCode" className="block text-sm font-medium text-gray-700 mb-1">
-                    Employee Code*
+                    Employee Code {ismultiple ? "(Separated by Commas)" : ""}*
                   </label>
                   <input
                     id="employeeCode"

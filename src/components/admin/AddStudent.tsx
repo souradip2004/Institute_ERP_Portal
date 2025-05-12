@@ -3,6 +3,7 @@
 import { useState, useEffect, FormEvent } from "react";
 import { Card } from "@/components/ui/card";
 import Loader from "@/components/ui/Loader";
+import { Button } from "../ui/button";
 
 interface Department {
   id: string;
@@ -39,7 +40,7 @@ export default function AddStudentModal({ id, isOpen, onClose, onSuccess }: AddS
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showNewDepartment, setShowNewDepartment] = useState(false);
-
+  const [multiplestudent, setMultiplestudent] = useState(false);
   const [studentData, setStudentData] = useState({
     rollNumber: "",
     department: "",
@@ -159,10 +160,10 @@ export default function AddStudentModal({ id, isOpen, onClose, onSuccess }: AddS
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if(!multiplestudent){
     try {
       setLoading(true);
       setError(null);
-
       const userResponse = await fetch("/api/users", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -209,6 +210,71 @@ export default function AddStudentModal({ id, isOpen, onClose, onSuccess }: AddS
       setError(error.message || "Failed to add student");
     } finally {
       setLoading(false);
+    }}
+    else{
+      const rollNumbers = studentData.rollNumber.split(",").map((roll) => roll.trim());
+      const emails = studentData.email.split(",").map((email) => email.trim());
+      if (rollNumbers.length !== emails.length) {
+        setError("Roll numbers and emails count do not match");
+        return;
+      }
+      try {
+        setLoading(true);
+        setError(null);
+
+        for (let i = 0; i < rollNumbers.length; i++) {
+          const randomCode = Math.floor(1000 + Math.random() * 9000).toString();
+          const userResponse = await fetch("/api/users", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              name: rollNumbers[i],
+              email: emails[i],
+              password: randomCode,
+              role: "STUDENT",
+              institutionId: id,
+              emailVerified: new Date(),
+            }),
+          });
+
+          if (!userResponse.ok) throw new Error("Failed to create user");
+          const userData = await userResponse.json();
+
+          const studentResponse = await fetch("/api/students", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              email: emails[i],
+              password: studentData.password,
+              studentRoll: rollNumbers[i],
+              user: { connect: { id: userData.id } },
+              department: { connect: { id: studentData.department } },
+              batch: { connect: { id: studentData.batch } },
+              classes:
+                studentData.classes.length > 0
+                  ? { connect: studentData.classes.map((id) => ({ id })) }
+                  : undefined,
+              enrollmentStatus: "ACTIVE",
+              currentSemester: 1,
+              currentYear: 1,
+              institutionId: id
+            }),
+          });
+
+          if (!studentResponse.ok) throw new Error("Failed to create student");
+        }
+
+        resetForm();
+        onSuccess();
+        onClose();
+      }
+      catch (error: any) {
+        console.error("Error adding student:", error);
+        setError(error.message || "Failed to add student");
+      }
+      finally {
+        setLoading(false);
+      }
     }
   };
 
@@ -245,9 +311,17 @@ export default function AddStudentModal({ id, isOpen, onClose, onSuccess }: AddS
 
           {!loading && (
             <form onSubmit={handleSubmit} className="space-y-4">
+              <Button
+                  variant="outline"
+                  className="w-full mb-4"
+                  onClick={() => setMultiplestudent(!multiplestudent)}
+                >
+                  {multiplestudent ? "Add Single Student" : "Add Multiple Students"}
+                </Button>
               {/* Roll Number */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Roll Number*</label>
+
+                <label className="block text-sm font-medium text-gray-700 mb-1">Roll Number* {multiplestudent ? "(Seperated by commas)" : ""}</label>
                 <input
                   type="text"
                   required
@@ -258,8 +332,9 @@ export default function AddStudentModal({ id, isOpen, onClose, onSuccess }: AddS
               </div>
 
               {/* Email */}
+              {!multiplestudent && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Email*</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Email* </label>
                 <input
                   type="email"
                   required
@@ -268,8 +343,21 @@ export default function AddStudentModal({ id, isOpen, onClose, onSuccess }: AddS
                   className="w-full p-2 border rounded-md"
                 />
               </div>
-
+              )}
+              {multiplestudent && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Email* {multiplestudent ? "(Seperated by commas)" : ""}</label>
+                  <input
+                    type="text"
+                    required
+                    value={studentData.email}
+                    onChange={(e) => setStudentData({ ...studentData, email: e.target.value })}
+                    className="w-full p-2 border rounded-md"
+                  />
+                </div>
+              )}
               {/* Password */}
+              {!multiplestudent && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Password*</label>
                 <input
@@ -280,6 +368,7 @@ export default function AddStudentModal({ id, isOpen, onClose, onSuccess }: AddS
                   className="w-full p-2 border rounded-md"
                 />
               </div>
+              )}
 
               {/* Department */}
               <div>

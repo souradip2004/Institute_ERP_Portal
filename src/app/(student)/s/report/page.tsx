@@ -9,7 +9,12 @@ export default function ReportCard() {
       <h1 className="text-2xl font-semibold text-center mb-6">AI Classroom | Student Report Card</h1>
 
       <div className="grid grid-cols-2 gap-4 text-sm mb-8">
-        <div><strong>Roll:</strong> {JSON.parse(localStorage.getItem('user')).name}</div>
+        <div>
+          <strong>Roll:</strong>{' '}
+          {typeof window !== 'undefined' && localStorage.getItem('user')
+            ? JSON.parse(localStorage.getItem('user') || '{}').name
+            : 'N/A'}
+        </div>
        
         <div><strong>Overall Percentage:</strong> <span className="text-green-600 font-medium">87.4%</span></div>
       </div>

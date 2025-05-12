@@ -1,5 +1,6 @@
 'use client';
 
+import { get } from 'http';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 
@@ -44,9 +45,6 @@ const AssignmentsList = ({ assignments, classSectionId }: AssignmentsListProps) 
           // Create an array of promises to fetch all submission details
           const submissionsPromises = selectedAssignment.submissions.map(async (submission) => {
             // If we already have complete student data, don't fetch again
-            if (submission.student?.user?.name && submission.student.user.name !== 'Unknown Student') {
-              return submission;
-            }
             
             const response = await fetch(`/api/assignments/submissions/${submission.id}`);
             if (!response.ok) {
@@ -103,15 +101,17 @@ const AssignmentsList = ({ assignments, classSectionId }: AssignmentsListProps) 
 
   const getStudentName = (submission: AssignmentSubmission) => {
     // First check in the expanded submissions if available
-    const expandedSubmission = expandedSubmissions.find(s => s.id === submission.id);
-    if (expandedSubmission?.student?.user?.name) {
-      return expandedSubmission.student.user.name;
-    }
-    
-    // Fall back to the original submission data
-    return submission.student && submission.student.user && submission.student.user.name 
-      ? submission.student.user.name 
-      : 'Unknown Student';
+    const getname=async()=>{
+   const student =await fetch(`/api/users/${submission.uploadedById}`,{
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    })
+    const studentData = await student.json();
+      return studentData.name? studentData.name :"unknown";
+  }
+  return getname()
   };
 
   return (
@@ -224,10 +224,10 @@ const AssignmentsList = ({ assignments, classSectionId }: AssignmentsListProps) 
                     expandedSubmissions.map((submission) => (
                       <tr key={submission.id}>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                          {getStudentName(submission)}
+                          {submission.uploadedById}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {new Date(submission.submissionTime).toLocaleDateString()}
+                          {new Date(submission.createdAt).toLocaleDateString()}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           {submission.feedback || (submission.status === 'GRADED' ? 'Well Done' : submission.status === 'PENDING' ? 'Need Improvement' : '---')}

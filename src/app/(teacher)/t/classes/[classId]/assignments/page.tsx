@@ -113,10 +113,18 @@ export default function TeacherAssignmentsPage({ params }: TeacherAssignmentsPag
 
         const data = await response.json() as ApiAssignment[];
         // Make sure submissions is always an array even if not provided from API
-        const processedData = data.map((assignment: ApiAssignment) => ({
-          ...assignment,
-          submissions: assignment.submissions || []
-        }));
+const processedData = await Promise.all(data.map(async (assignment: ApiAssignment) => {
+  const submissionsResponse = await fetch(`/api/assignments/${assignment.id}`, {
+    method: 'GET',
+    credentials: 'include'
+  });
+  const actualSubmissions = await submissionsResponse.json();
+  console.log('Fetched submissions for assignment:', assignment.id, actualSubmissions);
+  return {
+    ...assignment,
+    submissions: actualSubmissions.attachments || []
+  };
+}));
         setAssignments(processedData);
         notify.success('Assignments loaded successfully');
       } catch (error: unknown) {

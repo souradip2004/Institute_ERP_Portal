@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { AssignmentService } from "@/services/assignmentService";
 import { AuthUtils } from "@/utils/authUtils";
 import { Role } from "@prisma/client";
+import prisma from "@/lib/prisma";
 
 export class AssignmentController {
   static async createAssignment(request: NextRequest): Promise<NextResponse> {
@@ -155,15 +156,11 @@ console.log("User ID:", userId);
 
   static async submitAssignment(request: NextRequest): Promise<NextResponse> {
     try {
-      const user = await AuthUtils.getCurrentUser(request);
-      if (!user || user.role !== Role.STUDENT || !user.student) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-      }
-
       const formData = await request.formData();
       const assignmentId = formData.get("assignmentId") as string;
       const file = formData.get("file") as File | null;
-
+      const user=JSON.parse(formData.get("user"));
+      console.log("User ID:", user.studentId);
       if (!assignmentId) {
         return NextResponse.json(
           { error: "Missing assignmentId" },
@@ -181,16 +178,7 @@ console.log("User ID:", userId);
         );
       }
 
-      const isEnrolled = await AuthUtils.isStudentEnrolledInClassSection(
-        user.student.id,
-        assignment.classSectionId
-      );
-      if (!isEnrolled) {
-        return NextResponse.json(
-          { error: "Student not enrolled in this class" },
-          { status: 403 }
-        );
-      }
+     
 
       let fileData;
       if (file) {
@@ -201,10 +189,23 @@ console.log("User ID:", userId);
           mimetype: file.type,
         };
       }
+      const studentExists = await prisma.student.findUnique({
+        where: {
+          id: user.studentId,
+        },
+      });
+      if (!studentExists) {
+        console.log("Student not found");
+        return NextResponse.json(
+          { error: "Student not found" },
+          { status: 404 }
+        );
+      }
 
       const submission = await AssignmentService.submitAssignment({
+        userId: user.id,
         assignmentId,
-        studentId: user.student.id,
+        studentId: user.studentId,
         file: fileData,
       });
 
@@ -308,11 +309,14 @@ console.log("User ID:", userId);
 
   static async getMyAssignments(request: NextRequest): Promise<NextResponse> {
     try {
-      const user = await AuthUtils.getCurrentUser(request);
-      if (!user || user.role !== Role.STUDENT || !user.student) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  
+const user=request.nextUrl.searchParams.get("user");
+      if (!user) {
+        return NextResponse.json(
+          { error: "Missing user" },
+          { status: 400 }
+        );
       }
-
       // Get classSectionId from query parameter
       const classSectionId = request.nextUrl.searchParams.get("classSectionId");
 
@@ -324,22 +328,13 @@ console.log("User ID:", userId);
       }
 
       // Check if student is enrolled in this class section
-      const isEnrolled = await AuthUtils.isStudentEnrolledInClassSection(
-        user.student.id,
-        classSectionId
-      );
+    
 
-      if (!isEnrolled) {
-        return NextResponse.json(
-          { error: "Not enrolled in this class section" },
-          { status: 403 }
-        );
-      }
-
+     
       // Get assignments for this class section
       const assignments = await AssignmentService.getAssignmentsByClassSection(
         classSectionId,
-        user.student.id
+        user
       );
 
       return NextResponse.json(assignments, { status: 200 });
