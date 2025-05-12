@@ -33,7 +33,38 @@ export async function sendVerificationEmail(to: string, token: string) {
 
   await transporter.sendMail(mailOptions);
 }
+export async function sendWelcomeEmail(to: string) {
+  const subject = "Welcome to Our Service!";
+  const htmlContent = `
+    <h1>Welcome to Ai Classroom </h1>
+    <p>Thank you for signing up. We are excited to have you on board!</p>
+    <p>If you have any questions, feel free to reach out.</p>
+  `;
+  const mailOptions = {
+    from: process.env.SMTP_FROM_EMAIL,
+    to,
+    subject,
+    html: htmlContent,
+  };
 
+  await transporter.sendMail(mailOptions);
+}
+export async function sendOtpEmail(to: string, otp: string) {
+  const subject = "Your OTP Code";
+  const htmlContent = `
+    <h1>Your OTP Code</h1>
+    <p>Your OTP code is: <strong>${otp}</strong></p>
+    <p>This code will expire in 5 minutes.</p>
+  `;
+  const mailOptions = {
+    from: process.env.SMTP_FROM_EMAIL,
+    to,
+    subject,
+    html: htmlContent,
+  };
+
+  transporter.sendMail(mailOptions);
+}
 export async function sendMassEmail(
   to: string[],
   subject: string,

@@ -6,6 +6,7 @@ export async function POST(req: NextRequest) {
   const contentType = req.headers.get("content-type") || "";
   
   if (contentType.includes("application/json")) {
+    console.log("JSON request detected");
     return AssignmentController.createAssignmentJson(req);
   } else {
     return AssignmentController.createAssignment(req);

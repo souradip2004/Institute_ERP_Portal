@@ -43,7 +43,7 @@ export class AssignmentService {
       fileType = data.file.mimetype;
       fileSize = data.file.buffer.length;
     }
-
+console.log("fileUrl", data.classSectionId);
     return prisma.assignment.create({
       data: {
         title: data.title,

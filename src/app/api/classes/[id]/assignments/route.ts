@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-
+import { PrismaClient } from '@prisma/client';
+const prisma = new PrismaClient();
 export async function GET(
   request: Request,
   { params }: { params: { id: string } }
@@ -10,7 +11,38 @@ export async function GET(
     if (!classId) {
       return NextResponse.json({ error: 'Class ID is required' }, { status: 400 });
     }
-
+const response=await prisma.assignment.findMany({
+      where: { classSectionId: classId },
+      include: {
+        classSection: {
+          include: {
+            batch: true,
+            semester: true,
+            studentEnrollments: {
+              include: {
+                student: {
+                  include: {
+                    user: {
+                      select: { id: true, name: true, email: true },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        createdBy: {
+          include: {
+            user: {
+              select: { id: true, name: true, email: true },
+            },
+          },
+        },
+      },
+    });
+    console.log(response);
+    // If no class ID is provided, return an error
+    
     console.log(`Fetching assignments for class ID: ${classId}`);
 
     // In a real implementation, this would query your database
@@ -23,39 +55,7 @@ export async function GET(
     const lastWeek = new Date(today);
     lastWeek.setDate(lastWeek.getDate() - 7);
     
-    const assignments = [
-      {
-        id: 'asg1',
-        title: 'Chapter 1 Problems',
-        description: 'Complete problems 1-10 from Chapter 1 of the textbook.',
-        dueDate: tomorrow.toISOString(),
-        createdAt: today.toISOString(),
-        status: 'active',
-        submissionCount: 15,
-        totalStudents: 30
-      },
-      {
-        id: 'asg2',
-        title: 'Research Paper on Plate Tectonics',
-        description: 'Write a 3-page research paper on continental drift and plate tectonics.',
-        dueDate: nextWeek.toISOString(),
-        createdAt: today.toISOString(),
-        status: 'active',
-        submissionCount: 8,
-        totalStudents: 30,
-        fileUrl: 'https://example.com/sample-assignment.pdf'
-      },
-      {
-        id: 'asg3',
-        title: 'Chapter 3 Quiz',
-        description: 'Complete the online quiz covering Chapter 3 materials.',
-        dueDate: lastWeek.toISOString(),
-        createdAt: lastWeek.toISOString(),
-        status: 'past_due',
-        submissionCount: 28,
-        totalStudents: 30
-      }
-    ];
+    const assignments = response
 
     return NextResponse.json(assignments);
   } catch (error) {

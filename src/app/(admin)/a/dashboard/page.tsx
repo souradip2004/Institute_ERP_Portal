@@ -31,14 +31,14 @@ export default async function DashboardPage() {
   }
 
   // Fetch user details
-  const userRes = await fetch(`https://commercial.aiclassroom.in/api/users/${userId}`, { cache: "no-store" });
+  const userRes = await fetch(`http://localhost:3000/api/users/${userId}`, { cache: "no-store" });
   const userData = await userRes.json();
 
   let institutionData = null;
 
   // Fetch institution details if institutionId exists
   if (userData?.institutionId) {
-    const institutionRes = await fetch(`https://commercial.aiclassroom.in/api/institutions/${userData.institutionId}`, {
+    const institutionRes = await fetch(`http://localhost:3000/api/institutions/${userData.institutionId}`, {
       cache: "no-store",
     });
     institutionData = await institutionRes.json();
@@ -113,7 +113,7 @@ export default async function DashboardPage() {
               {institutionData && (
                 <div className="mt-2 sm:mt-0">
                   <Link
-                    href="https://commercial.aiclassroom.in/a"
+                    href="http://localhost:3000/a"
                     className={cn(
                       buttonVariants({ variant: "outline", size: "sm" }),
                       "text-indigo-600 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800 hover:bg-indigo-50 dark:hover:bg-indigo-950"

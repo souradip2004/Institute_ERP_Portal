@@ -10,26 +10,21 @@ export class StudentService {
     });
   }
 
-  async createStudent(data: any) {
-    console.log("Creating student with data:", data); // Debugging line
-    let user;
-try{
-    // Check if userId is provided - use existing user
-    if (data.user.connect.id) {
-      // Verify the user exists and isn't already linked to a student
+ async createStudent(data: any) {
+  console.log("Creating student with data:", data);
+  let user;
+
+  try {
+    // Handle user creation or connection
+    if (data.user?.connect?.id) {
       user = await prisma.user.findUnique({
         where: { id: data.user.connect.id },
         include: { student: true },
       });
-      if (!user) {
-        throw new Error("User not found");
-      }
 
-      if (user.student) {
-        throw new Error("This user is already linked to a student");
-      }
+      if (!user) throw new Error("User not found");
+      if (user.student) throw new Error("This user is already linked to a student");
     } else {
-      // Create a new user if userId is not provided
       user = await prisma.user.create({
         data: {
           email: data.email,
@@ -38,76 +33,50 @@ try{
           institutionId: data.institutionId,
         },
       });
-
-      if (!user) {
-        throw new Error("Failed to create user");
-      }
     }
 
-    // Verify department exists
-    console.log("Department ID:", data.department.connect.id); // Debugging line
-    console.log("Batch ID:", data.batch.connect.id); // Debugging line
+    // Validate department
     const department = await prisma.department.findUnique({
-      where: {
-        id: data.department.connect.id,
-      },
+      where: { id: data.department.connect.id },
     });
+    if (!department) throw new Error("Department not found");
 
-    if (!department) {
-      throw new Error("Department not found");
-    }
-
-    // Verify batch exists
+    // Validate batch
     const batch = await prisma.batch.findUnique({
-      where: {
-        id: data.batch.connect.id,
-      },
+      where: { id: data.batch.connect.id },
     });
+    if (!batch) throw new Error("Batch not found");
 
-    if (!batch) {
-      throw new Error("Batch not found");
-    }
-
-    // Create student with proper relations
-    const student=await prisma.student.create({
+    // Create student
+    const student = await prisma.student.create({
       data: {
         userId: user.id,
         studentRoll: data.rollNumber || data.studentRoll,
         departmentId: data.department.connect.id,
-        batchId: data.batch.connect.id, 
+        batchId: data.batch.connect.id,
         currentSemester: data.currentSemester,
         currentYear: data.currentYear,
-        enrollmentStatus: "ACTIVE",      
-      },
-      include: {
-        user: true,
-        department: true,
-        batch: true,
-      },
-    });
-    const enrolstudent=await prisma.studentClassEnrollment.create({
-      data: {
-        studentId: student.id,
-        classSectionId: data.class.connect.id,
-        enrollmentStatus: "ENROLLED", // Adding the required property
-      },
-      include: {
-        classSection: true,
+        enrollmentStatus: "ACTIVE",
       },
     });
 
-    if (!student) {
-      throw new Error("Failed to create student");
-    }
-    const updatedStudent = await prisma.student.update({
-      where: { id: student.id },
-      data: {
-        classEnrollments: {
-          connect: { id: enrolstudent.id },
+    if (!student) throw new Error("Failed to create student");
+
+    // Enroll in multiple classes
+    const enrollmentPromises = (data.classes?.connect || []).map((cls: { id: string }) =>
+      prisma.studentClassEnrollment.create({
+        data: {
+          studentId: student.id,
+          classSectionId: cls.id,
+          enrollmentStatus: "ENROLLED",
         },
-      },
-    });
-    const studentWithClass = await prisma.student.findUnique({
+      })
+    );
+
+    const enrollments = await Promise.all(enrollmentPromises);
+
+    // Return full student object with relations
+    const studentWithDetails = await prisma.student.findUnique({
       where: { id: student.id },
       include: {
         user: true,
@@ -120,15 +89,17 @@ try{
         },
       },
     });
-    if (!studentWithClass) {
-      throw new Error("Failed to fetch student with class section");
-    }
-    return studentWithClass;
-  }catch (error) {
+
+    if (!studentWithDetails) throw new Error("Failed to fetch student with classes");
+
+    return studentWithDetails;
+
+  } catch (error) {
     console.error("Error creating student:", error);
     throw new Error("Failed to create student");
   }
-  }
+}
+
 
   async getStudentById(id: string, includeClassSection = false) {
     return prisma.student.findUnique({

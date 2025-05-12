@@ -36,7 +36,7 @@ export default function ClassesPage() {
           try {
             const parsedUserData = JSON.parse(userData);
             if (parsedUserData.teacherId || parsedUserData.id) {
-              setTeacherId(parsedUserData.teacherId || parsedUserData.id);
+              setTeacherId(parsedUserData.teacherId);
             }
           } catch (error) {
             console.error('Error parsing user data from localStorage:', error);
@@ -59,8 +59,7 @@ export default function ClassesPage() {
 
         // Try to fetch from API endpoints
         const endpoints = [
-          `/api/teachers/${currentTeacherId}/classes`,
-          `/api/classes?teacherId=${currentTeacherId}`
+          `/api/teachers/${currentTeacherId}/classes`
         ];
 
         let fetchedClasses = null;
@@ -115,7 +114,6 @@ console.log('try to get data from backend');
           setClasses(transformedClasses);
         } else {
           setClasses([]);
-          setError('No classes found. You may not have any assigned classes yet.');
         }
       } catch (error) {
         console.error('Error fetching classes:', error);

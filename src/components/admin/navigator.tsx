@@ -24,8 +24,9 @@ const Navigator = ({ id, userId }: NavigatorProps) => {
       case "Dashboard":
         return (
           <div className="space-y-6">
-            <AddClass id={id} userid={userId} />
-            <ViewClassSectionPage id={id} />
+            <AddTeacher id={id} />
+            <ViewTeachers id={id} />
+
           </div>
         );
       case "Users":
@@ -39,8 +40,8 @@ const Navigator = ({ id, userId }: NavigatorProps) => {
       case "Teacher":
         return (
           <div className="space-y-6">
-            <AddTeacher id={id} />
-            <ViewTeachers id={id} />
+                        <AddClass id={id} userid={userId} />
+            <ViewClassSectionPage id={id} />
           </div>
         );
       case "Student":
@@ -56,8 +57,8 @@ const Navigator = ({ id, userId }: NavigatorProps) => {
   };
 
   const navItems = [
-    { name: "Class Management", component: "Dashboard", icon: "🏫" },
-    { name: "Teacher Management", component: "Teacher", icon: "👨‍🏫" },
+    { name: "Teacher Management", component: "Dashboard", icon: "👨‍🏫" },
+        { name: "Class Management", component: "Teacher", icon: "🏫" },
     { name: "Student Management", component: "Student", icon: "👨‍🎓" },
     // { name: "Attendance Management", component: "Attendance", icon: "📋" },
     // { name: "Notifications", component: "Notifications", icon: "🔔" },

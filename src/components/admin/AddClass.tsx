@@ -62,6 +62,7 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
   const [batchOptions, setBatchOptions] = useState<string[]>([]);
   const [batchData, setBatchData] = useState<Batch[]>([]);
   const [courseData, setCourseData] = useState<Course[]>([]);
+  const [toggler,setToggler] = useState(false);
   const [semesterData, setSemesterData] = useState<Semester[]>([]);
   const [courseOptions, setCourseOptions] = useState<string[]>([]);
   const [departmentOptions, setDepartmentOptions] = useState<string[]>([]);
@@ -77,7 +78,7 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
   const [showInput, setShowInput] = useState({ semester: false, batch: false, course: false, department: false });
 
   useEffect(() => {
-    fetch("https://commercial.aiclassroom.in/api/departments", {
+    fetch("http://localhost:3000/api/departments", {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -92,10 +93,10 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
       .catch((error) => {
         console.error("Error fetching departments:", error);
       });
-  }, [id]);
+  }, [id,toggler]);
 
   useEffect(() => {
-    fetch("https://commercial.aiclassroom.in/api/semesters", {
+    fetch("http://localhost:3000/api/semesters", {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -110,12 +111,12 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
       .catch((error) => {
         console.error("Error fetching semesters:", error);
       });
-  }, [id]);
+  }, [id,toggler]);
 
   useEffect(() => {
     if (!department[0]?.id) return;
     
-    fetch("https://commercial.aiclassroom.in/api/batches", {
+    fetch("http://localhost:3000/api/batches", {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -130,10 +131,10 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
       .catch((error) => {
         console.error("Error fetching batches:", error);
       });
-  }, [department]);
+  }, [department,toggler]);
 
   useEffect(() => {
-    fetch("https://commercial.aiclassroom.in/api/teachers", {
+    fetch("http://localhost:3000/api/teachers", {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -147,12 +148,12 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
       .catch((error) => {
         console.error("Error fetching teachers:", error);
       });
-  }, [id]);
+  }, [id,toggler]);
 
   useEffect(() => {
     if (!department[0]?.id) return;
     
-    fetch("https://commercial.aiclassroom.in/api/courses", {
+    fetch("http://localhost:3000/api/courses", {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -167,7 +168,7 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
       .catch((error) => {
         console.error("Error fetching courses:", error);
       });
-  }, [department]);
+  }, [department,toggler]);
 
   const { addClass, loading, error } = useAddClass();
 
@@ -354,7 +355,7 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
                   <button
                     type="button"
                     onClick={async() => {
-                      await fetch("https://commercial.aiclassroom.in/api/semesters", {
+                      await fetch("http://localhost:3000/api/semesters", {
                         method: "POST",
                         headers: {
                           "Content-Type": "application/json",
@@ -368,7 +369,9 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
                         }),
                       }).then((res) => {
                         if (res.ok) {
-                          window.location.reload();
+                          setToggler(!toggler);
+                          setShowInput({ ...showInput, semester: false });
+                          
                         } else {
                           alert("Error adding semester");
                         }
@@ -384,7 +387,7 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
 
             {/* Batch */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Batch</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Batch Year</label>
               <select
                 value={classData.batch}
                 onChange={(e) => handleDropdownChange("batch", e.target.value)}
@@ -409,7 +412,7 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
                   <button
                     type="button"
                     onClick={() => {
-                      fetch("https://commercial.aiclassroom.in/api/batches", {
+                      fetch("http://localhost:3000/api/batches", {
                         method: "POST",
                         headers: {
                           "Content-Type": "application/json",
@@ -423,7 +426,8 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
                         }),
                       }).then((res) => {
                         if (res.ok) {
-                          window.location.reload();
+                          setToggler(!toggler);
+                          setShowInput({ ...showInput, batch: false });
                         } else {
                           alert("Error adding batch");
                         }
@@ -485,7 +489,7 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
                   <button
                     type="button"
                     onClick={() => {
-                      fetch("https://commercial.aiclassroom.in/api/courses", {
+                      fetch("http://localhost:3000/api/courses", {
                         method: "POST",
                         headers: {
                           "Content-Type": "application/json",
@@ -501,7 +505,8 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
                         }),
                       }).then((res) => {
                         if (res.ok) {
-                          window.location.reload();
+                          setToggler(!toggler);
+                          setShowInput({ ...showInput, course: false });
                         } else {
                           alert("Error adding course");
                         }

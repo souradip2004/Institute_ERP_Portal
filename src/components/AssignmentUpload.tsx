@@ -130,6 +130,8 @@ const AssignmentUpload = ({ classSectionId }: AssignmentUploadProps) => {
         title,
         maxPoints: totalMarks,
         dueDate,
+        userId:JSON.parse(localStorage.getItem('user')).id,
+        teacherId: JSON.parse(localStorage.getItem('user')).teacherId,
         classSectionId,
         submissionType: 'INDIVIDUAL',
         attachments: fileUrl ? [{

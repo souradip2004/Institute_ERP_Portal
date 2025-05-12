@@ -86,28 +86,21 @@ export async function getImgCategoryFromGemini(
 export async function splitPdfToImages(pdfUrl: string): Promise<string[]> {
   try {
     const response = await fetch(
-      "https://split-pdf-to-images-13caa30-v1.app.beam.cloud",
-      {
-        method: "POST",
-        headers: {
-          Connection: "keep-alive",
-          "Content-Type": "application/json",
-          Authorization:
-            "Bearer ALXP7mhHyKz1MQATKH7CIQXK9VQBpvoNNuxPvLONWyPCfgemj18cz2T74r4drBpvOkf-3orOQT_6r-63mHPZAA==",
-        },
-        body: JSON.stringify({
-          file_url: pdfUrl,
-          file_uid: "xe5w-3345-we31-dfv",
-        }),
-      }
-    );
-
+        "https://api.aiclassroom.in/split-to-images",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ fileUrl:pdfUrl }),
+        }
+      )
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
     const pdfData = await response.json();
-    return pdfData.Pdf_Pages_Data || [];
+    return pdfData.data.Pdf_Pages_Data || [];
   } catch (error) {
     console.error("Error splitting PDF:", error);
     throw error;
@@ -123,20 +116,19 @@ export async function processNotesData(
     console.log(`Processing ${imageUrls.length} images with gender: ${gender}`);
     
     const response = await fetch(
-      "https://notes-2-video-parallel-array-2-0d3d4cb-v1.app.beam.cloud",
+      'https://notes-2-video-parallel-array-0ce7c4c-v1.app.beam.cloud',
       {
         method: "POST",
         headers: {
           Connection: "keep-alive",
           "Content-Type": "application/json",
           Authorization:
-            "Bearer ALXP7mhHyKz1MQATKH7CIQXK9VQBpvoNNuxPvLONWyPCfgemj18cz2T74r4drBpvOkf-3orOQT_6r-63mHPZAA==",
+            "Bearer cpxjIHGyDUggeCZSEgd7TSs_xuIaJLxQyplSlPcpEv35qftljIUmetr9Drtj_MUyC9PUSJLvV1vbjljWohB8Sw==",
         },
         body: JSON.stringify({
           file_url_list: imageUrls,
           language: "hinglish",
           pdf_uid: "3456-22ded-2",
-          gender: gender,
         }),
       }
     );
@@ -187,24 +179,22 @@ export async function processNotesData(
 export async function generateImageForText(prompt: string): Promise<string> {
   try {
     const response = await fetch(
-      "https://image-generator-63c60fc-v1.app.beam.cloud",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization:
-            "Bearer ALXP7mhHyKz1MQATKH7CIQXK9VQBpvoNNuxPvLONWyPCfgemj18cz2T74r4drBpvOkf-3orOQT_6r-63mHPZAA==",
-        },
-        body: JSON.stringify({ prompt }),
-      }
-    );
+              "https://api.aiclassroom.in/generate-image",
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json"
+                },
+                body: JSON.stringify({sentence:prompt}),
+              }
+            );
 
     if (!response.ok) {
       throw new Error(`Image generation failed: ${response.statusText}`);
     }
 
     const data = await response.json();
-    return data.image || "";
+    return data.data.image || "";
   } catch (error) {
     console.error("Error generating image:", error);
     throw error;

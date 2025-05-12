@@ -12,7 +12,10 @@ export default function Sidebar() {
     { title: 'Notes Library', href: '/s/notes', icon: '📔' },
     { title: 'Assignments', href: '/s/assignments', icon: '📚' },
     { title: 'Exams and Reports', href: '/s/exams', icon: '📝' },
+    { title: 'Mentorship', href: '/s/mentorship', icon: '🌟' },
+    {title:'Report Card', href:'/s/report', icon:'📈'},
     { title: 'Ask Teacher', href: '/s/ask-teacher', icon: '❓' },
+    
   ];
 
   return (

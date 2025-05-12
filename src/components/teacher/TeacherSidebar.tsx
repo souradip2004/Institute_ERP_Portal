@@ -28,17 +28,13 @@ export default function TeacherSidebar() {
 
   const handleAssignmentsClick = (e: React.MouseEvent) => {
     e.preventDefault();
-   
       router.push(`/t/assignments`);
   };
 
   const handleNotesClick = (e: React.MouseEvent) => {
     e.preventDefault();
-   
-      router.push(`/t/classes/cmaht5fyk000e4hc6pcdvyi9r/notes`);
-   
+      router.push(`/t/notes`);
       // If no class ID, go to classes page
-    
   };
 
   const navItems = [
@@ -59,7 +55,7 @@ export default function TeacherSidebar() {
             <span className="text-2xl font-bold text-blue-600">AI Classroom</span>
           </Link>
         </div>
-
+        
         <nav className="space-y-1">
           {navItems.map((item) => {
             // Check if this is the assignments or notes link

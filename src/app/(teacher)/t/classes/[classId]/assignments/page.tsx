@@ -54,6 +54,11 @@ export default function TeacherAssignmentsPage({ params }: TeacherAssignmentsPag
   useEffect(() => {
     const fetchClassDetails = async () => {
       try {
+        for(let i=0;i<10;i++)
+          console.log (' ------------- ')
+            console.log('Class ID:', classId);
+
+
         // Try to fetch class details from API
         const classDetailsEndpoints = [
           `/api/classes/${classId}`,
@@ -99,7 +104,8 @@ export default function TeacherAssignmentsPage({ params }: TeacherAssignmentsPag
     const fetchAssignments = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`/api/assignments?classSectionId=${classId}`);
+        console.log('Fetching assignments for class ID:', classId);
+        const response = await fetch(`/api/classes/${classId}/assignments`);
 
         if (!response.ok) {
           throw new Error('Failed to fetch assignments');

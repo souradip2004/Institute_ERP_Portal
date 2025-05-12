@@ -74,7 +74,7 @@ export class ClassSectionService {
     // Uncomment for Redis/BullMQ integration
     // return await classSectionQueue.add('create-section', { data });
 
-    return prisma.classSection.create({
+    const create = await prisma.classSection.create({
       data: {
         sectionName,
         batchId,
@@ -85,6 +85,16 @@ export class ClassSectionService {
         updatedAt: new Date(),
       },
     });
+    const teacherclass=await prisma.teacherCourseSectionRelation.create({
+      data: {
+        teacherId,
+        classSectionId: create.id,
+        courseId,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    });
+    return create;
   }
 
   async getClassSectionById(id: string): Promise<ClassSection | null> {

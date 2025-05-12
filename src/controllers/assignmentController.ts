@@ -65,6 +65,7 @@ export class AssignmentController {
 
       return NextResponse.json(assignment, { status: 201 });
     } catch (error) {
+      console.log("Error creating assignment:", error);
       console.error("Error creating assignment:", error);
       return NextResponse.json(
         { error: "Internal server error" },
@@ -77,10 +78,7 @@ export class AssignmentController {
     request: NextRequest
   ): Promise<NextResponse> {
     try {
-      const user = await AuthUtils.getCurrentUser(request);
-      if (!user || user.role !== Role.TEACHER || !user.teacher) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-      }
+      
 
       // Parse JSON data
       const data = await request.json();
@@ -88,13 +86,17 @@ export class AssignmentController {
         title,
         description,
         classSectionId,
+        userId,
         dueDate,
         maxPoints,
+        teacherId,
         submissionType = "INDIVIDUAL",
         groupId,
         attachments = [],
       } = data;
-
+console.log("User ID:", userId);
+      console.log("Teacher ID:", teacherId);
+      console.log("classSectionId:", classSectionId);
       if (!title || !classSectionId || !maxPoints || !submissionType) {
         return NextResponse.json(
           { error: "Missing required fields" },
@@ -102,16 +104,7 @@ export class AssignmentController {
         );
       }
 
-      const isTeacherAssigned = await AuthUtils.isTeacherAssignedToClassSection(
-        user.teacher.id,
-        classSectionId
-      );
-      if (!isTeacherAssigned) {
-        return NextResponse.json(
-          { error: "Teacher not assigned to this class" },
-          { status: 403 }
-        );
-      }
+   
 
       // Process attachments if provided
       let attachmentsData;
@@ -128,7 +121,7 @@ export class AssignmentController {
               fileName: attachment.fileName,
               fileType: attachment.fileType,
               fileSize: Number(attachment.fileSize),
-              uploadedById: user.id, // User ID for the User relation
+              uploadedById: userId, // User ID for the User relation
             })
           ),
         };
@@ -139,7 +132,7 @@ export class AssignmentController {
         title,
         description,
         classSectionId,
-        createdById: user.teacher.id,
+        createdById: teacherId,
         dueDate: dueDate ? new Date(dueDate) : undefined,
         maxPoints: parseFloat(maxPoints),
         submissionType,
@@ -227,37 +220,12 @@ export class AssignmentController {
 
   static async getAssignments(request: NextRequest): Promise<NextResponse> {
     try {
-      const user = await AuthUtils.getCurrentUser(request);
-      if (!user) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-      }
+     
 
       const classSectionId =
         request.nextUrl.searchParams.get("classSectionId") || undefined;
 
-      if (user.role === Role.STUDENT && classSectionId) {
-        const isEnrolled = await AuthUtils.isStudentEnrolledInClassSection(
-          user.student!.id,
-          classSectionId
-        );
-        if (!isEnrolled) {
-          return NextResponse.json(
-            { error: "Not enrolled in this class" },
-            { status: 403 }
-          );
-        }
-      } else if (user.role === Role.TEACHER && classSectionId) {
-        const isAssigned = await AuthUtils.isTeacherAssignedToClassSection(
-          user.teacher!.id,
-          classSectionId
-        );
-        if (!isAssigned) {
-          return NextResponse.json(
-            { error: "Not assigned to this class" },
-            { status: 403 }
-          );
-        }
-      }
+   
 
       const assignments = await AssignmentService.getAssignments(
         classSectionId
@@ -277,11 +245,7 @@ export class AssignmentController {
     id: string
   ): Promise<NextResponse> {
     try {
-      const user = await AuthUtils.getCurrentUser(request);
-      if (!user) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-      }
-
+     
       const assignment = await AssignmentService.getAssignmentById(id);
       if (!assignment) {
         return NextResponse.json(
@@ -289,31 +253,6 @@ export class AssignmentController {
           { status: 404 }
         );
       }
-
-      if (user.role === Role.STUDENT) {
-        const isEnrolled = await AuthUtils.isStudentEnrolledInClassSection(
-          user.student!.id,
-          assignment.classSectionId
-        );
-        if (!isEnrolled) {
-          return NextResponse.json(
-            { error: "Not enrolled in this class" },
-            { status: 403 }
-          );
-        }
-      } else if (user.role === Role.TEACHER) {
-        const isAssigned = await AuthUtils.isTeacherAssignedToClassSection(
-          user.teacher!.id,
-          assignment.classSectionId
-        );
-        if (!isAssigned) {
-          return NextResponse.json(
-            { error: "Not assigned to this class" },
-            { status: 403 }
-          );
-        }
-      }
-
       return NextResponse.json(assignment, { status: 200 });
     } catch (error) {
       console.error("Error fetching assignment:", error);

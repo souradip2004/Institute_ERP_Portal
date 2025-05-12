@@ -250,40 +250,21 @@ export default function TeacherAssignmentsPage() {
                 </div>
                 
                 <div className="mb-4">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-gray-500">Total Assignments</span>
-                    <span className="text-xl font-bold">{classItem.assignmentCount}</span>
-                  </div>
+                  
                   
                   <Link 
-                    href={`/t/classes/${classItem.id}/assignments`}
+                    href={`/t/classes/${classItem.id}/notes`}
                     className="text-blue-600 hover:text-blue-800 text-sm flex items-center"
                     onClick={(e) => e.stopPropagation()}
                   >
-                    View all assignments
+                    View all Notes
                     <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                     </svg>
                   </Link>
                 </div>
                 
-                <div className="border-t pt-4">
-                  <h3 className="font-medium mb-2">Latest Assignment</h3>
-                  
-                  {classItem.latestAssignment ? (
-                    <div className="bg-gray-50 p-3 rounded-md">
-                      <div className="flex justify-between items-start mb-2">
-                        <p className="font-medium">{classItem.latestAssignment.title}</p>
-                        {getStatusBadge(classItem.latestAssignment.status)}
-                      </div>
-                      <p className="text-sm text-gray-600">
-                        Due: {new Date(classItem.latestAssignment.dueDate).toLocaleDateString()}
-                      </p>
-                    </div>
-                  ) : (
-                    <p className="text-gray-500 italic">No assignments yet</p>
-                  )}
-                </div>
+                
               </div>
             </div>
           ))}
