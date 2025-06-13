@@ -22,6 +22,7 @@ export async function POST(request: NextRequest) {
         ...(role ? { role } : {}), // Only include role in query if provided
       },
       include: {
+        institution: true,
         student: {
           include: {
             classEnrollments: {
@@ -81,6 +82,7 @@ export async function POST(request: NextRequest) {
       studentId: user.student?.id || null,
       teacherId: user.teacher?.id || null,
       classSectionId,
+      institutionId:user.institution?.id||null
     };
 
     console.log("userData: ", userData);

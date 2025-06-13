@@ -49,6 +49,7 @@ export default function ExamsPage() {
   const [selectedExam, setSelectedExam] = useState<Exam | null>(null);
   const [showExamModal, setShowExamModal] = useState(false);
   const [examInProgress, setExamInProgress] = useState(false);
+  const [classSection,setClassSections]=useState([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [currentAnswer, setCurrentAnswer] = useState('');
   const [answers, setAnswers] = useState<{ [key: string]: string }>({});
@@ -69,11 +70,27 @@ export default function ExamsPage() {
           return;
         }
 
-        const userData = JSON.parse(userDataStr);
+        const userData = JSON.parse(userDataStr);  
+              const classdetails=await fetch(`/api/students/${userData.studentId}`,{
+                method:"GET",
+ headers: {
+          'Content-Type': 'application/json',
+        },
+              })
+              if(!classdetails.ok){
+                alert("no classes found")
+                return;
+              }
+const classes=await classdetails.json();
+const classenrollments=classes?.classEnrollments
+const classd=[]
+for(let i=0;i<classenrollments.length;i++){
+  classd.push(classenrollments[i].classSectionId)
+}
+setClassSections(classd)
         setStudentData(userData);
-
         // Fetch exams
-        await fetchExams(userData.studentId || userData.id, userData.classSectionId);
+        await fetchExams(userData.studentId || userData.id, undefined);
       } catch (error) {
         console.error("Error fetching user data:", error);
         setError("Failed to load user data. Please refresh the page.");
@@ -92,7 +109,7 @@ export default function ExamsPage() {
 
       // If classSectionId is provided, use the new API endpoint
       if (classSectionId) {
-        url = `/api/exams/my-exams?classSectionId=${classSectionId}`;
+        url = `/api/exams/my-exams?classSectionId=${classSectionId}&studentID=${studentId}`;
         console.log(`Fetching exams for class section: ${classSectionId}`);
       } else {
         console.warn('No classSectionId found, falling back to all exams');
@@ -165,14 +182,27 @@ export default function ExamsPage() {
         exam.status === 'COMPLETED' ||
         exam.status === 'CLOSED' ||
         exam.status === 'GRADED' ||
-        exam.status === 'ARCHIVED'
+        exam.status === 'ARCHIVED' ||
+        exam.status === 'PENDING'
       );
+      const passt=await fetch(
+        `/api/exam-submissions/student/${studentId}`
+        ,{
+          method:"GET",
+          headers: {
+          'Content-Type': 'application/json',
+        },
+        }
+      )
+      if(passt.ok)
+      {
+        const pass2=await passt.json();
+        setPastExams(pass2)
+      }
 
       console.log('Active exams after filtering:', active);
       console.log('Past exams after filtering:', past);
-
       setActiveExams(active);
-      setPastExams(past);
       setLoading(false);
     } catch (err) {
       console.error('Error fetching exams:', err);
@@ -184,7 +214,18 @@ export default function ExamsPage() {
   };
 
   const startExam = async (exam: Exam) => {
-    alert('Starting exam: ' + exam.id);
+    const now = new Date();
+    const examStart = new Date(exam.startTime);
+    const examEnd = exam.endTime ? new Date(exam.endTime) : null;
+
+    if (now < examStart) {
+      setError('Exam has not started yet.');
+      return;
+    }
+    if (examEnd && now > examEnd) {
+      setError('Exam has already ended.');
+      return;
+    }
     try {
       // Fetch exam details with questions
       const response = await fetch(`/api/exams/sadasdsad/${exam.id}`, {
@@ -276,10 +317,12 @@ export default function ExamsPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          examId: selectedExam.id,
-          studentId: studentData?.id || 'temp-student-id',
-          answers,
-          score,
+           examId: selectedExam.id,
+        submissionTime: new Date(),
+        obtainedMarks:score,
+        status: "PENDING",
+        feedback: "GOOD",
+          studentId: studentData?.studentId
         }),
       });
 
@@ -412,7 +455,9 @@ export default function ExamsPage() {
       <section className="mb-8">
         <h3 className="text-xl font-semibold mb-4">Active Exams</h3>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {activeExams.map(exam => (
+            {activeExams
+            .filter(exam => classSection.includes(exam.classSectionId))
+            .map(exam => (
             <div key={exam.id} className="bg-white rounded-lg shadow overflow-hidden border border-gray-100">
               <div className="bg-indigo-50 p-4 border-b border-indigo-100">
                 <h4 className="font-semibold text-indigo-800">{exam.title}</h4>
@@ -482,23 +527,26 @@ export default function ExamsPage() {
                 {pastExams.map(exam => (
                   <tr key={exam.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">{exam.title}</div>
+                      <div className="text-sm font-medium text-gray-900">{exam.title||exam.exam.title}</div>
                     </td>
                     {/* <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-700">{exam.subject || 'N/A'}</div>
                     </td> */}
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-700">
-                        {new Date(exam.examDate).toLocaleDateString(undefined, {
-                          year: 'numeric',
-                          month: 'short',
-                          day: 'numeric'
-                        })}
+                     {new Date(exam.examDate || exam.createdAt).toLocaleDateString(undefined, {
+  year: 'numeric',
+  month: 'short',
+  day: 'numeric'
+})
+
+                        
+                        }
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-semibold text-indigo-700">
-                        {exam.score || 'N/A'}/100
+                        {exam.score || exam.obtainedMarks}/100
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">

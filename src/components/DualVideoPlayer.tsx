@@ -15,11 +15,10 @@ interface DualVideoPlayerProps {
   onError?: (error: string) => void;
   transitionTypes?: ('fade' | 'displacement' | 'noise')[];
 }
-
 const DualVideoPlayer: React.FC<DualVideoPlayerProps> = ({
   images,
-  teacherVideoUrl,
-  audioDuration,
+  teacherVideoUrl, 
+  audioDuration, 
   title = "Educational Video",
   onError,
   transitionTypes = ['fade', 'displacement', 'noise']

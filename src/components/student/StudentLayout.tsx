@@ -8,6 +8,11 @@ interface StudentLayoutProps {
 
 export default function StudentLayout({ children }: StudentLayoutProps) {
   return (
+    <>
+      <head>
+        <meta name="viewport" content="width=1024, user-scalable=no" />
+        <title>Admin</title>
+      </head>
     <div className="min-h-screen bg-gray-100 flex">
       <Sidebar />
       <div className="flex-1 ml-64">
@@ -16,5 +21,6 @@ export default function StudentLayout({ children }: StudentLayoutProps) {
         </main>
       </div>
     </div>
+    </>
   );
 } 

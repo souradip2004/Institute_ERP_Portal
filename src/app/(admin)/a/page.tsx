@@ -8,6 +8,8 @@ import ViewClassSectionsPage from "@/components/admin/ViewClassSectionPage";
 import ViewStudentPage from "@/components/admin/ViewStudentPage";
 import Sider from "@/components/admin/navigator";
 import { redirect } from "next/navigation";
+import Head from "next/head";
+
 // import AddTeacher from "bin/adminPage/admin not use/AddTeacher";
 export default async function AdminPage() {
   const session = await auth();
@@ -49,7 +51,13 @@ export default async function AdminPage() {
   const classes = await fetchClasses();
 
   return (
+    <>
+      <Head>
+        <meta name="viewport" content="width=1024, user-scalable=no" />
+      </Head>
+
     <div style={{ display: "flex" }}>
+
       {/* Sidebar */}
       {/* Sidebar 
       <div style={{ width: "25%", padding: "20px", background: "#f7f7f7", height: "100vh" }}>
@@ -74,5 +82,6 @@ export default async function AdminPage() {
 
 
     </div>
+    </>
   );
 }

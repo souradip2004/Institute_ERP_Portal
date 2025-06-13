@@ -3,16 +3,13 @@ import { AuthUtils } from "@/utils/authUtils";
 import { Role } from "@prisma/client";
 import prisma from "@/lib/prisma";
 
-export async function PUT(
+export async function POST(
   request: NextRequest,
   { params }: { params: { submissionId: string } }
 ) {
   try {
-    const user = await AuthUtils.getCurrentUser(request);
-    if (!user || user.role !== Role.TEACHER || !user.teacher) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
+    
+console.log("triggered")
     const submissionId = params.submissionId;
     
     // Check if submission exists
@@ -36,22 +33,14 @@ export async function PUT(
     }
 
     // Check if teacher is assigned to the class section
-    const isAssigned = await AuthUtils.isTeacherAssignedToClassSection(
-      user.teacher.id,
-      submission.assignment.classSectionId
-    );
+
     
-    if (!isAssigned) {
-      return NextResponse.json(
-        { error: "Not authorized to grade this submission" },
-        { status: 403 }
-      );
-    }
+    
 
     // Parse request body
     const data = await request.json();
-    const { obtainedPoints, feedback } = data;
-
+    const { obtainedPoints, feedback,teacherId } = data;
+console.log(obtainedPoints,feedback,teacherId)
     // Validate obtained points
     if (
       typeof obtainedPoints !== "number" ||
@@ -73,7 +62,7 @@ export async function PUT(
         obtainedPoints,
         feedback,
         status: "GRADED",
-        gradedById: user.teacher.id,
+        gradedById: teacherId,
         gradedAt: new Date(),
       },
       include: {

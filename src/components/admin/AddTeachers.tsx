@@ -85,7 +85,15 @@ const AddTeacherModal = ({ id, isOpen, onClose, onSuccess }: AddTeacherProps) =>
       }
       
       const user = await userResponse.json();
-      
+      const sendemail=await fetch("/api/emails/logindetails",{
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email:teacherData.email,password:teacherData.password}),
+        });
+        if (!sendemail.ok) {
+          const data = await sendemail.json();
+          console.log("Error sending welcome email:", data.error);
+        }
       // Create teacher
       const departmentId = departmentData.find(
         (department) => department.name === teacherData.department
@@ -132,9 +140,18 @@ const AddTeacherModal = ({ id, isOpen, onClose, onSuccess }: AddTeacherProps) =>
     }
     try {
       // Create users
-      const userPromises = emails.map((email, index) => {
+      const userPromises = emails.map(async(email, index) => {
         const randomPassword = Math.random().toString(36).slice(-8);
         const teacherName = email.split("@")[0];
+        const sendemail=await fetch("/api/emails/logindetails",{
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email,password:randomPassword}),
+        });
+        if (!sendemail.ok) {
+          const data = await sendemail.json();
+          console.log("Error sending welcome email:", data.error);
+        }
         return fetch("/api/users", {
           method: "POST",
           headers: {
@@ -143,12 +160,13 @@ const AddTeacherModal = ({ id, isOpen, onClose, onSuccess }: AddTeacherProps) =>
           body: JSON.stringify({
             name: teacherName,
             email,
-            password: teacherData.password,
+            password: randomPassword,
             role: "TEACHER",
             institutionId: id,
             emailVerified: new Date(),
           }),
         });
+        
       });
 
       const userResponses = await Promise.all(userPromises);

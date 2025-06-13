@@ -297,6 +297,10 @@ export default function ClassSectionDetail({ classSection, onBack }: ClassSectio
                         <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                           Status
                         </th>
+
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Report Card 
+                          </th>
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
@@ -305,10 +309,12 @@ export default function ClassSectionDetail({ classSection, onBack }: ClassSectio
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                             {student.name}
                           </td>
+                           
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                             {student.rollNo}
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          
+                                                <td className="px py-4  whitespace-nowrap text-sm text-gray-500">
                             {student.user.email}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
@@ -329,6 +335,11 @@ export default function ClassSectionDetail({ classSection, onBack }: ClassSectio
                               ${student.status === 'PRESENT' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
                               {student.status}
                             </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            <text onClick={()=>window.location.href=`/a/report?id=${student.id}&name=${student.name}`}>
+                            View Report
+                            </text>
                           </td>
                         </tr>
                       ))}

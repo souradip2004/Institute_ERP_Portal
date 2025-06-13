@@ -5,28 +5,12 @@ import jwt from 'jsonwebtoken';
 export async function POST(request: NextRequest) {
   try {
     // Get auth token from cookie
-    const token = request.cookies.get('auth_token')?.value;
-
-    if (!token) {
-      console.log("No auth token found in cookies");
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
-    }
-
-    // Verify token
-    let decoded;
-    try {
-      decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key') as any;
-      if (!decoded || !decoded.id) {
-        console.log("Invalid token or missing id in decoded token");
-        return NextResponse.json({ error: "Invalid token" }, { status: 401 });
-      }
-    } catch (jwtError) {
-      console.error("JWT verification error:", jwtError);
-      return NextResponse.json({ error: "Invalid token" }, { status: 401 });
-    }
-
+     
     const body = await request.json();
+    const userId = request.nextUrl.searchParams.get("user");
+
     console.log("Received request body:", body);
+    console.log("user id:", userId);
 
     const { message, teacherId } = body;
 
@@ -34,6 +18,14 @@ export async function POST(request: NextRequest) {
       console.log("Missing required fields:", { message, teacherId });
       return NextResponse.json(
         { error: "Message and teacher ID are required" },
+        { status: 400 }
+      );
+    }
+
+    if (!userId) {
+      console.log("Missing userId (classSectionId) in query params");
+      return NextResponse.json(
+        { error: "User ID (classSectionId) is required in query params" },
         { status: 400 }
       );
     }
@@ -62,12 +54,12 @@ export async function POST(request: NextRequest) {
 
     // Get student data
     const student = await prisma.student.findFirst({
-      where: { userId: decoded.id },
+      where: { userId: userId},
       include: { user: true }
     });
 
     if (!student) {
-      console.log("Student not found for userId:", decoded.id);
+      console.log("Student not found for userId:", userId);
       return NextResponse.json(
         { error: "Student not found" },
         { status: 404 }

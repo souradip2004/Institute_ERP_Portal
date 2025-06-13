@@ -152,10 +152,9 @@ console.log('try to get data from backend');
       ) : null}
 
       {classes.length === 0 && !error ? (
-        <div className="bg-white rounded-lg shadow-md p-8 text-center">
-          <h2 className="text-xl font-semibold mb-4">No Classes Found</h2>
-          <p className="text-gray-600 mb-6">You currently do not have any classes assigned to you.</p>
-        </div>
+        <div className="flex justify-center items-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+      </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {classes.map((classItem) => (
@@ -188,20 +187,7 @@ console.log('try to get data from backend');
                     <p className="text-3xl font-bold">{classItem.studentCount || 0}</p>
                   </div>
                   <div>
-                    <p className="text-gray-500 text-sm">Attendance</p>
-                    {classItem.attendancePercentage > 0 ? (
-                      <div className="flex items-center">
-                        <p className="text-3xl font-bold">{classItem.attendancePercentage}%</p>
-                        <div className="ml-2 w-16 h-3 bg-gray-200 rounded-full">
-                          <div
-                            className={`h-3 rounded-full ${getAttendanceColorClass(classItem.attendancePercentage)}`}
-                            style={{ width: `${classItem.attendancePercentage}%` }}
-                          ></div>
-                        </div>
-                      </div>
-                    ) : (
-                      <p className="text-xl text-gray-500">No data</p>
-                    )}
+                    
                   </div>
                 </div>
 
@@ -216,11 +202,7 @@ console.log('try to get data from backend');
                   </div>
 
                   <div className="flex items-center">
-                    <span className="text-blue-500 mr-2">📅</span>
-                    <span>Next Exam: </span>
-                    <span className="font-medium ml-1">
-                      {classItem.nextExam.date} {classItem.nextExam.day}
-                    </span>
+                    
                   </div>
                 </div>
               </div>

@@ -441,7 +441,6 @@ export default function TeacherDashboardPage() {
           </div>
           <div className="flex items-center">
             <div className="bg-gray-100 rounded-full px-4 py-2 mr-4">
-              <span className="font-medium">{credits} Credits</span>
             </div>
             <LogoutButton />
           </div>
@@ -554,7 +553,7 @@ export default function TeacherDashboardPage() {
         <div className="bg-white p-6 rounded-lg shadow-sm">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-semibold">Recent Assignments</h2>
-            <Link href={"/t/classes/" + classId + "/assignments" as any} className="text-blue-600 hover:text-blue-900">
+            <Link href={"/t/classes/" as any} className="text-blue-600 hover:text-blue-900">
               View All Classes
             </Link>
           </div>
@@ -568,7 +567,7 @@ export default function TeacherDashboardPage() {
                   <th className="text-left py-3">Due Date</th>
                   <th className="text-left py-3">Submissions</th>
                   <th className="text-left py-3">Status</th>
-                  <th className="text-left py-3">Action</th>
+
                 </tr>
               </thead>
               <tbody>
@@ -581,14 +580,7 @@ export default function TeacherDashboardPage() {
                       <td className="py-3">{assignment.dueDate}</td>
                       <td className="py-3">{assignment.submissions}</td>
                       <td className="py-3">{assignment.status}</td>
-                      <td className="py-3">
-                        <Link
-                          href={`/t/classes/${assignment.id}/assignments`}
-                          className="text-blue-600 hover:text-blue-900"
-                        >
-                          View
-                        </Link>
-                      </td>
+                    
                     </tr>
                   ))
                 ) : (

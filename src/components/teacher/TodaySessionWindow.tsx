@@ -160,7 +160,13 @@ export default function TodaySessionsList({ teacherId }: TodaySessionsListProps)
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                  {sessions.map((session) => (
+                    {sessions
+                    .filter(
+                      (session) =>
+                      new Date(session.date).toLocaleDateString() ===
+                      new Date().toLocaleDateString()
+                    )
+                    .map((session) => (
                     <tr key={session.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm font-medium text-gray-900">{session.classSection.name}</div>

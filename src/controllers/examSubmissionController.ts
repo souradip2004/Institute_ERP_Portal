@@ -19,6 +19,7 @@ export class ExamSubmissionController {
       const submission = await examSubmissionService.create(data);
       return NextResponse.json(submission, { status: 201 });
     } catch (error: any) {
+      console.log("error",error)
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
   }
@@ -27,6 +28,17 @@ export class ExamSubmissionController {
     try {
       const submission = await examSubmissionService.getById(id);
       if (!submission) {
+        return NextResponse.json({ error: 'Exam submission not found' }, { status: 404 });
+      }
+      return NextResponse.json(submission);
+    } catch (error: any) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+  }
+  async getByStudentId(id: string){
+    try{
+      const submission=await examSubmissionService.getByStudentId(id);
+       if (!submission) {
         return NextResponse.json({ error: 'Exam submission not found' }, { status: 404 });
       }
       return NextResponse.json(submission);

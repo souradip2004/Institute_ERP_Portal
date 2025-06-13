@@ -118,6 +118,9 @@ model Institution {
   announcements       Announcement[]
   attendanceSettings  AttendanceSettings[]
   calendarEvents      CalendarEvent[]
+  studentLimit        Int                  @default(10)
+  classSectionLimit   Int                  @default(10)
+  reserveLimit        Int                  @default(0)
   creditAllocations   CreditAllocation[]
   creditTransactions  CreditTransaction[]
   credits             Credit?
@@ -301,7 +304,7 @@ model ClassSection {
   announcements      Announcement[]
   assignmentGroups   AssignmentGroup[]
   assignments        Assignment[]
-  notes              Note[]
+  notes              Note[]      
   attendanceSessions AttendanceSession[]
   calendarEvents     CalendarEvent[]
   batch              Batch                      @relation(fields: [batchId], references: [id])
@@ -309,10 +312,10 @@ model ClassSection {
   teacher            Teacher                    @relation(fields: [teacherId], references: [id])
   classStream        ClassStream[]
   exams              Exam[]
+  creditsUsed        Int                        @default(0)
   studentEnrollments StudentClassEnrollment[]
   studentMetrics     StudentPerformanceMetric[]
  teacherCourseSectionRelations TeacherCourseSectionRelation[]
-
   @@map("class_sections")
 }
 
@@ -619,9 +622,14 @@ model Credit {
   videoCreditsBalance         Int         @default(0) @map("video_credits_balance")
   questionPaperCreditsBalance Int         @default(0) @map("question_paper_credits_balance")
   copyCheckingCreditsBalance  Int         @default(0) @map("copy_checking_credits_balance")
+  attendanceCreditsBalance    Int         @default(0) @map("attendance_credits_balance")
+  assignmentCreditsBalane     Int         @default(0) @map("assignment_credits_balance")
+  total                       Int         @default(500)
   lastUpdated                 DateTime    @map("last_updated")
+  month         Int?      @map("month") // 1-12
+  year          Int?      @map("year")
   institution                 Institution @relation(fields: [institutionId], references: [id])
-
+  isPaid          Boolean         @default(false)
   @@map("credits")
 }
 

@@ -38,6 +38,7 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
           include: {
             student: true,
             teacher: true,
+            institution:true,
           },
         });
 
@@ -69,6 +70,7 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
           emailVerified: user.emailVerified || new Date(), // Allow login even if not verified
           studentId: user.student?.id || null,
           teacherId: user.teacher?.id || null,
+          institutionId:user.institution?.id || null
         };
       },
     }),
@@ -94,6 +96,7 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
           include: {
             student: true,
             teacher: true,
+            institution:true,
           },
         });
 
@@ -125,6 +128,7 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
           emailVerified: user.emailVerified || new Date(), // Allow login even if not verified
           studentId: user.student?.id || null,
           teacherId: user.teacher?.id || null,
+          institutionId: user.institution?.id || null
         };
       },
     }),
@@ -199,6 +203,7 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
         token.username = user.username;
         token.studentId = user.studentId;
         token.teacherId = user.teacherId;
+        token.institutionId=user.institutionId;
       }
 
       return token;
@@ -212,6 +217,8 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
         session.user.username = token.username as string | null;
         session.user.studentId = token.studentId as string | null;
         session.user.teacherId = token.teacherId as string | null;
+        session.user.institutionId=token.institutionId as string | null;
+        
       }
 
       return session;

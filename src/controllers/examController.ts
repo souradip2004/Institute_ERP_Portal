@@ -24,39 +24,24 @@ export class ExamController {
       const localExamService = new ExamService();
       console.log("Local ExamService instance created");
 
-      const user = await AuthUtils.getCurrentUser(req);
-      if (!user || user.role !== Role.STUDENT || !user.student) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-      }
+      
 
       // Get classSectionId from query parameter
       const classSectionId = req.nextUrl.searchParams.get("classSectionId");
       console.log("ClassSectionId:", classSectionId);
+      const studentId = req.nextUrl.searchParams.get("studentID");
 
-      if (!classSectionId) {
+      // Check for null values
+      if (!classSectionId || !studentId) {
         return NextResponse.json(
-          { error: "Missing classSectionId" },
+          { error: "Missing classSectionId or studentID in query parameters" },
           { status: 400 }
-        );
-      }
-
-      // Check if student is enrolled in this class section
-      const isEnrolled = await AuthUtils.isStudentEnrolledInClassSection(
-        user.student.id,
-        classSectionId
-      );
-      console.log("Student enrolled:", isEnrolled);
-
-      if (!isEnrolled) {
-        return NextResponse.json(
-          { error: "Not enrolled in this class section" },
-          { status: 403 }
         );
       }
 
       console.log("About to call getExamsByClassSection with:", {
         classSectionId,
-        studentId: user.student.id,
+        studentId: studentId,
       });
 
       // Get exams for this class section
@@ -65,7 +50,7 @@ export class ExamController {
       try {
         exams = await localExamService.getExamsByClassSection(
           classSectionId,
-          user.student.id
+          studentId
         );
         console.log("Successfully retrieved exams with local instance");
       } catch (localError) {
@@ -74,7 +59,7 @@ export class ExamController {
         // Try with the shared instance as fallback
         exams = await examService.getExamsByClassSection(
           classSectionId,
-          user.student.id
+          studentId
         );
         console.log("Successfully retrieved exams with shared instance");
       }

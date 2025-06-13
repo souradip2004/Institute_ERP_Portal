@@ -99,7 +99,10 @@ export default  function TeacherCourseSectionForm() {
       setError('Admin ID not found');
       return;
     }
-
+if (formData.endTime <= formData.startTime) {
+      setError('End time must be after start time');
+      return;
+}
     setLoading(true);
     setError(null);
     setSuccess(null);

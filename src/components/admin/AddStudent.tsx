@@ -179,7 +179,15 @@ export default function AddStudentModal({ id, isOpen, onClose, onSuccess }: AddS
 
       if (!userResponse.ok) throw new Error("Failed to create user");
       const userData = await userResponse.json();
-
+const sendemail=await fetch("/api/emails/logindetails",{
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email:studentData.email,password:studentData.password}),
+        });
+        if (!sendemail.ok) {
+          const data = await sendemail.json();
+          console.log("Error sending welcome email:", data.error);
+        }
       const studentResponse = await fetch("/api/students", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -239,7 +247,15 @@ export default function AddStudentModal({ id, isOpen, onClose, onSuccess }: AddS
 
           if (!userResponse.ok) throw new Error("Failed to create user");
           const userData = await userResponse.json();
-
+          const sendemail=await fetch("/api/emails/logindetails",{
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email:emails[i],password:randomCode}),
+        });
+        if (!sendemail.ok) {
+          const data = await sendemail.json();
+          console.log("Error sending welcome email:", data.error);
+        }
           const studentResponse = await fetch("/api/students", {
             method: "POST",
             headers: { "Content-Type": "application/json" },

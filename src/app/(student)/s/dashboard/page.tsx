@@ -285,7 +285,7 @@ export default function Dashboard() {
       sectionName = studentDetails.batch.batchName;
     }
 
-    yearSection = `${year}${yearSuffix} Year - Section ${sectionName}`;
+    yearSection = `Section ${sectionName}`;
 
     // Add department if available
     if (studentDetails.department?.name) {

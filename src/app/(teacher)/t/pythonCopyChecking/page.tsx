@@ -182,7 +182,7 @@ const handleStudentFileUpload = async (file: File, studentId: string) => {
               }
               );
             });
-          alert(data.totalMarks)          }}
+                   }}
           catch (error) {
             console.error('Error uploading file:', error);
           } finally {

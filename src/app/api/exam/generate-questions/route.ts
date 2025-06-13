@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import axios from "axios";
 
-const BEAM_API_URL = "https://question-generation-6b306aa-v1.app.beam.cloud";
+const BEAM_API_URL = 'https://question-generation-f79eeb2-v3.app.beam.cloud/';
 const BEAM_TOKEN =
-  "i1gmFXISubdlObf95gT3MDtmigQ-7Iw4VHk-zgKedmK8qE0eMHhIYd0e8ZlG1_fMUCrSba2EqO_F-RHU-K2NWA==";
+  "ALXP7mhHyKz1MQATKH7CIQXK9VQBpvoNNuxPvLONWyPCfgemj18cz2T74r4drBpvOkf-3orOQT_6r-63mHPZAA==";
 
 export async function POST(request: NextRequest) {
   try {

@@ -114,7 +114,7 @@ export default function StudentNotesPage() {
     }
 
     const currentEnrollment = studentData.classEnrollments[0];
-
+  
     if (!currentEnrollment.classSection) {
         return (
 

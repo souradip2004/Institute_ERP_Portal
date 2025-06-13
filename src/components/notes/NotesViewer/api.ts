@@ -116,14 +116,14 @@ export async function processNotesData(
     console.log(`Processing ${imageUrls.length} images with gender: ${gender}`);
     
     const response = await fetch(
-      'https://notes-2-video-parallel-array-0ce7c4c-v1.app.beam.cloud',
+      'https://notes-2-video-parallel-array-4-8813b48-v1.app.beam.cloud/',
       {
         method: "POST",
         headers: {
           Connection: "keep-alive",
           "Content-Type": "application/json",
           Authorization:
-            "Bearer cpxjIHGyDUggeCZSEgd7TSs_xuIaJLxQyplSlPcpEv35qftljIUmetr9Drtj_MUyC9PUSJLvV1vbjljWohB8Sw==",
+            "Bearer ALXP7mhHyKz1MQATKH7CIQXK9VQBpvoNNuxPvLONWyPCfgemj18cz2T74r4drBpvOkf-3orOQT_6r-63mHPZAA==",
         },
         body: JSON.stringify({
           file_url_list: imageUrls,

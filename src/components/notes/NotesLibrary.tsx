@@ -38,6 +38,7 @@ import {
     SlidersHorizontal, 
     Video, 
     Eye, 
+    Film,
     Book, 
     GraduationCap 
 } from 'lucide-react';
@@ -128,9 +129,7 @@ const NotesLibrary: React.FC<NotesLibraryProps> = ({
             if (data.length > 0 && !selectedSubject) {
                 const uniqueSubjects = Array.from(
                     new Set(
-                        data
-                            .filter((note: Note) => note.subjectName)
-                            .map((note: Note) => note.subjectName)
+                        data.filter((note: Note) => note.subjectName).map((note: Note) => note.subjectName)
                     )
                 );
                 setSubjects(uniqueSubjects as string[]);
@@ -414,6 +413,7 @@ const NotesLibrary: React.FC<NotesLibraryProps> = ({
                                                                 </Button>
                                                             )}
                                                             {note.attachments.length > 0 && (
+                                                                <>
                                                                 <Button
                                                                     variant="ghost"
                                                                     size="icon"
@@ -426,6 +426,32 @@ const NotesLibrary: React.FC<NotesLibraryProps> = ({
                                                                 >
                                                                     <Download size={18} />
                                                                 </Button>
+   <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                onClick={async () => {
+                                                                    const randomCode = Math.floor(100000 + Math.random() * 900000);
+                                                                    console.log("Random 6 digit code:", randomCode);
+                                                                    const response = await fetch("/api/connector", {
+                                                                        method: "POST",
+                                                                        headers: {
+                                                                            "Content-Type": "application/json"
+                                                                        },
+                                                                        body: JSON.stringify({
+                                                                            id: randomCode,
+                                                                            link: note.attachments[0].fileUrl
+                                                                        })
+                                                                    });
+                                                                    if (response.ok) {
+                                                                        window.open(`https://commercial.aiclassroom.in/share?id=${randomCode}`, '_blank');
+                                                                    }
+                                                                }}
+                                                                className="h-8 w-8 rounded-full hover:bg-yellow-50 hover:text-yellow-700"
+                                                                title="Share video link"
+                                                            >
+                                                                <Film size={16} />
+                                                            </Button>
+                                                                </>
                                                             )}
                                                             {note.attachments.length > 0 && note.attachments[0].fileType.includes('pdf') && (
                                                                 <Button

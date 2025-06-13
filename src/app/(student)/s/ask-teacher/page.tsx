@@ -16,6 +16,7 @@ interface Teacher {
   department?: {
     name: string;
   };
+  teacherCode:string;
 }
 
 interface Message {
@@ -28,6 +29,7 @@ interface Message {
 export default function AskTeacherPage() {
   const router = useRouter();
   const [teachers, setTeachers] = useState<Teacher[]>([]);
+  const [teacherCode,setTeacherCode]=useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedTeacher, setSelectedTeacher] = useState<Teacher | null>(null);
@@ -35,9 +37,39 @@ export default function AskTeacherPage() {
   const [messages, setMessages] = useState<Message[]>([]);
 
   useEffect(() => {
+
     const fetchUserData = async () => {
       try {
         // Fetch teachers
+        const user=localStorage.getItem("user")
+  const userData = JSON.parse(user);  
+              const classdetails=await fetch(`/api/students/${userData.studentId}`,{
+                method:"GET",
+ headers: {
+          'Content-Type': 'application/json',
+        },
+              })
+              if(!classdetails.ok){
+                alert("no classes found")
+                return;
+              }
+const classes=await classdetails.json();
+const classenrollments=classes?.classEnrollments
+const classd=[]
+for(let i=0;i<classenrollments.length;i++){
+  const teacher=await fetch(`/api/class-sections/${classenrollments[i].classSectionId}`,{
+                method:"GET",
+ headers: {
+          'Content-Type': 'application/json',
+        }}
+      
+      )
+      if(teacher.ok){
+        const teachers=await teacher.json();
+        classd.push(teachers?.teacher?.teacherCode)
+      }
+}
+setTeacherCode(classd)
         await fetchTeachers();
       } catch (error) {
         console.error("Error fetching user data:", error);
@@ -67,6 +99,7 @@ export default function AskTeacherPage() {
       }
 
       const data = await response.json();
+      console.log("teachers",data)
       setTeachers(data);
       setLoading(false);
     } catch (err) {
@@ -106,9 +139,9 @@ export default function AskTeacherPage() {
 
       // Clear input
       setMessageInput('');
-
+      const user=JSON.parse(localStorage.getItem("user"))
       // Send message to API
-      const response = await fetch('/api/chat/send-message', {
+      const response = await fetch(`/api/chat/send-message?user=${user.id}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -251,12 +284,12 @@ export default function AskTeacherPage() {
             <span className="mx-1">/</span>
             Ask a Teacher
           </h1> */}
-        <h2 className="text-2xl font-semibold text-gray-800">Your Department Teachers</h2>
+        <h2 className="text-2xl font-semibold text-gray-800">Your Teachers</h2>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {teachers.length > 0 ? (
-          teachers.map((teacher) => (
+          teachers.filter(teacher=>teacherCode.includes(teacher.teacherCode)).map((teacher) => (
             <div key={teacher.id} className="bg-white p-4 rounded-lg shadow-sm">
               <h3 className="text-lg font-medium mb-3 text-purple-700">
                 {teacher.department?.name || 'Teacher'}

@@ -12,6 +12,8 @@ interface Assignment {
   status: string;
   submissions?: AssignmentSubmission[];
   maxPoints?: number;
+  attachments: any;
+  classSection:any;
 }
 
 interface AssignmentSubmission {
@@ -21,6 +23,7 @@ interface AssignmentSubmission {
   status: string;
   obtainedPoints?: number;
   maxPoints?: number;
+
 }
 
 interface StudentData {
@@ -42,8 +45,10 @@ interface RawAssignment {
     status: string;
     obtainedPoints?: number;
   }[];
+  attachments: any[];
   maxPoints?: number;
   [key: string]: unknown;
+  classSection	:any;
 }
 
 export default function AssignmentsPage() {
@@ -54,7 +59,7 @@ export default function AssignmentsPage() {
   const [studentData, setStudentData] = useState<StudentData | null>(null);
   const [rawAssignmentData, setRawAssignmentData] = useState<RawAssignment[]>([]);
   const [debugMode, setDebugMode] = useState(false);
-
+  const [classSections, setClassSections] = useState<any[]>([])
   useEffect(() => {
     const fetchUserData = async () => {
       try {
@@ -92,6 +97,23 @@ export default function AssignmentsPage() {
       }
 
       const userData = JSON.parse(userDataStr);
+      const classdetails=await fetch(`/api/students/${userData.studentId}`,{
+                method:"GET",
+ headers: {
+          'Content-Type': 'application/json',
+        },
+              })
+              if(!classdetails.ok){
+                alert("no classes found")
+                return;
+              }
+const classes=await classdetails.json();
+const classenrollments=classes?.classEnrollments
+const classd=[]
+for(let i=0;i<classenrollments.length;i++){
+  classd.push(classenrollments[i].classSectionId)
+}
+setClassSections(classd)
       const classSectionId = userData.classSectionId;
 
       if (!classSectionId) {
@@ -109,7 +131,7 @@ export default function AssignmentsPage() {
       }
 
       // Fetch from the new API endpoint with classSectionId
-      const response = await fetch(`/api/assignments/my-assignments?classSectionId=${classSectionId}?user=${studentId}`);
+      const response = await fetch(`/api/assignments/my-assignments?classSectionId=${classSectionId}&user=${studentId}`);
 
       if (!response.ok) {
         throw Error('Failed to fetch assignments');
@@ -162,7 +184,9 @@ export default function AssignmentsPage() {
         dueDate: formattedDueDate,
         status: studentSubmission ? studentSubmission.status : 'PENDING',
         submissions: assignment.submissions as unknown as AssignmentSubmission[], // Type assertion
-        maxPoints: assignment.maxPoints
+        maxPoints: assignment.maxPoints,
+        attachments:assignment?.attachments[0]?.fileUrl,
+        classSection:assignment?.classSection	
       };
     });
 
@@ -253,7 +277,9 @@ export default function AssignmentsPage() {
                 };
 
                 fileInput.click();
-        }} className="text-purple-800 font-medium hover:text-purple-900">
+        }} className="text-white font-medium px-4 py-2 rounded-lg transition-colors duration-200 bg-blue-600 hover:bg-blue-700"
+
+>
           Submit Now
         </Button>
       );
@@ -360,7 +386,7 @@ export default function AssignmentsPage() {
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {ongoingAssignments.length > 0 ? (
-                ongoingAssignments.map((assignment) => (
+                ongoingAssignments.filter(assignment => classSections.includes(assignment.classSection.id)).map((assignment) => (
                   <tr key={assignment.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{assignment.title}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
@@ -374,7 +400,7 @@ export default function AssignmentsPage() {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <Link href={`/s/assignments/view/${assignment.id}` as any} className="text-blue-600 hover:text-blue-800 flex items-center">
+                      <Link href={assignment?.attachments?assignment?.attachments:""} className="text-blue-600 hover:text-blue-800 flex items-center">
                         <Download className="h-4 w-4 mr-1" />
                         Download
                       </Link>
@@ -433,7 +459,7 @@ export default function AssignmentsPage() {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <Link href={`/s/assignments/view/${assignment.id}` as any} className="text-blue-600 hover:text-blue-800 flex items-center">
+                      <Link href={assignment?.attachments?assignment?.attachments:""} className="text-blue-600 hover:text-blue-800 flex items-center">
                         <Download className="h-4 w-4 mr-1" />
                         Download
                       </Link>

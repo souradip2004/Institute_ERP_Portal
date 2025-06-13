@@ -41,6 +41,7 @@ export class AuthUtils {
               const user = await prisma.user.findUnique({
                 where: { id: decodedToken.id },
                 include: {
+                  institution:true,
                   student: {
                     select: { id: true },
                   },

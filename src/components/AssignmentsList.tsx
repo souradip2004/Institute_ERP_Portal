@@ -39,6 +39,7 @@ const AssignmentsList = ({ assignments, classSectionId }: AssignmentsListProps) 
   
   // Fetch additional submission details when an assignment is selected
   useEffect(() => {
+    console.log("Assignment",assignments)
     const fetchSubmissionDetails = async () => {
       if (selectedAssignment && selectedAssignment.submissions.length > 0) {
         try {
@@ -157,7 +158,7 @@ const AssignmentsList = ({ assignments, classSectionId }: AssignmentsListProps) 
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {assignment.submissions.length}/{28} {/* Hardcoded total students for demo */}
+                    {assignment.submissions.length}/{assignment.classSection.studentEnrollments.length} {/* Hardcoded total students for demo */}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
                     <button 
@@ -224,7 +225,7 @@ const AssignmentsList = ({ assignments, classSectionId }: AssignmentsListProps) 
                     expandedSubmissions.map((submission) => (
                       <tr key={submission.id}>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                          {submission.uploadedById}
+                          {submission.student.studentRoll}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           {new Date(submission.createdAt).toLocaleDateString()}
@@ -233,14 +234,53 @@ const AssignmentsList = ({ assignments, classSectionId }: AssignmentsListProps) 
                           {submission.feedback || (submission.status === 'GRADED' ? 'Well Done' : submission.status === 'PENDING' ? 'Need Improvement' : '---')}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {submission.obtainedPoints}/{selectedAssignment.maxPoints}
+                          <div className="flex items-center space-x-2">
+                            <input
+                              type="number"
+                              min={0}
+                              max={selectedAssignment.maxPoints}
+                              value={submission.obtainedPoints}
+                              onChange={(e) => {
+                                const newPoints = Number(e.target.value);
+                                setExpandedSubmissions((subs) =>
+                                  subs.map((s) =>
+                                    s.id === submission.id
+                                      ? { ...s, obtainedPoints: newPoints }
+                                      : s
+                                  )
+                                );
+                              }}
+                              className="w-16 border rounded px-2 py-1"
+                            />
+                            <button
+                              className="px-2 py-1 bg-purple-600 text-white rounded hover:bg-purple-700"
+                              onClick={async () => {
+                                const sub = expandedSubmissions.find((s) => s.id === submission.id);
+                                if (!sub) return;
+                      
+                                await fetch(`/api/assignments/submissions/${submission.id}/grade`, {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({
+                                    obtainedPoints: sub.obtainedPoints,
+                                    feedback: sub.obtainedPoints > 10 ? 'Well Done' : 'Need Improvement',
+                                    teacherId: selectedAssignment.classSection.teacherId,
+                                  }),
+                                });
+                                alert('Submission graded successfully');
+                                // Optionally show a success message or update state
+                              }}
+                            >
+                              Save
+                            </button>
+                            <span>
+                              / {selectedAssignment.maxPoints}
+                            </span>
+                          </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          <Link href={`/t/classes/${classSectionId}/assignments/grade/${submission.id}`} className="text-purple-600 hover:text-purple-900">
-                            Edit
-                          </Link>
-                          {' / '}
-                          <Link href={`/t/classes/${classSectionId}/assignments/download/${submission.id}`} className="text-purple-600 hover:text-purple-900">
+                         
+                          <Link href={submission.attachments[0]?.fileUrl?.split("?")[0]} className="text-purple-600 hover:text-purple-900">
                             Download
                           </Link>
                         </td>

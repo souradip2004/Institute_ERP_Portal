@@ -57,6 +57,7 @@ export default function CustomLoginForm() {
         router.push('/s/dashboard');
       } else if (role === 'TEACHER') {
         router.push('/t/dashboard');
+
       } else {
         router.push('/a/dashboard');
       }

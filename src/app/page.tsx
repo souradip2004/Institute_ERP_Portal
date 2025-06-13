@@ -162,17 +162,16 @@ export default function LandingPage() {
         >
           {features.map((feature, index) => (
             <SwiperSlide key={index}>
-              <div className="bg-white rounded-xl p-6 shadow-lg hover:shadow-xl transition duration-300 min-h-[300px] flex flex-col items-center text-center">
-                <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mb-4">
-                  <img src={feature.icon} alt={feature.title} className="w-8 h-8 object-contain" />
-                </div>
-                <h3 className="text-lg font-semibold text-purple-900 mb-2">
-                  {feature.title}
-                </h3>
-                <p className="text-gray-600 text-sm">
-                  {feature.description}
-                </p>
-              </div>
+           <div className="bg-white/70 backdrop-blur-md border border-blue-100 rounded-2xl p-6 shadow-md hover:shadow-xl transition duration-300 min-h-[300px] flex flex-col items-center text-center">
+  <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
+    <img src={feature.icon} alt={feature.title} className="w-8 h-8 object-contain" />
+  </div>
+  <h3 className="text-lg font-semibold text-blue-700 mb-2">
+    {feature.title}
+  </h3>
+  <p className="text-gray-500 text-sm">{feature.description}</p>
+</div>
+
             </SwiperSlide>
           ))}
         </Swiper>
@@ -181,7 +180,7 @@ export default function LandingPage() {
       {/* Footer */}
       <footer className="bg-white border-t mt-12">
         <div className="max-w-7xl mx-auto py-6 px-4 text-center text-sm text-gray-500">
-          &copy; 2025 ABIV. All rights reserved.
+          &copy; 2025 Ai Classroom. All rights reserved.
         </div>
       </footer>
     </div>

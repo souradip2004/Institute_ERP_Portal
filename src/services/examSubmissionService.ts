@@ -36,7 +36,17 @@ export class ExamSubmissionService {
       },
     });
   }
-
+async getByStudentId(id:string){
+  console.log(id)
+  return prisma.examSubmission.findMany({
+    where:{studentId:id},
+    include: {
+      exam: true,
+      student: true,
+      gradedBy: true,
+    },
+  })
+}
   async update(id: string, data: any) {
     return prisma.examSubmission.update({
       where: { id },

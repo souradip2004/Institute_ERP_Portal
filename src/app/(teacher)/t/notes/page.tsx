@@ -219,13 +219,12 @@ export default function TeacherAssignmentsPage() {
       ) : null}
       
       {classes.length === 0 && !error ? (
-        <div className="bg-white rounded-lg shadow-md p-8 text-center">
-          <h2 className="text-xl font-semibold mb-4">No Classes Found</h2>
-          <p className="text-gray-600 mb-6">You currently do not have any classes assigned to you.</p>
-        </div>
+         <div className="flex justify-center items-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+      </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {classes.map((classItem) => (
+           {[...new Map(classes.map((classItem) => [classItem.id, classItem])).values()].map((classItem) => (
             <div 
               key={classItem.id} 
               className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow relative cursor-pointer"

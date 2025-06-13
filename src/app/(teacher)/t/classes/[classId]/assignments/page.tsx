@@ -50,7 +50,12 @@ export default function TeacherAssignmentsPage({ params }: TeacherAssignmentsPag
   const [error, setError] = useState<string | null>(null);
   const [className, setClassName] = useState<string>('');
   const [section, setSection] = useState<string>('');
-
+  const [institutionId,setInstitutionId] = useState<string>('')
+  useEffect(()=>{
+    if(localStorage.getItem("user")){
+    setInstitutionId(JSON.parse(localStorage.getItem("user")).institutionId)
+  }
+  },[])
   useEffect(() => {
     const fetchClassDetails = async () => {
       try {
@@ -122,7 +127,7 @@ const processedData = await Promise.all(data.map(async (assignment: ApiAssignmen
   console.log('Fetched submissions for assignment:', assignment.id, actualSubmissions);
   return {
     ...assignment,
-    submissions: actualSubmissions.attachments || []
+    submissions: actualSubmissions.submissions || []
   };
 }));
         setAssignments(processedData);
@@ -159,7 +164,7 @@ const processedData = await Promise.all(data.map(async (assignment: ApiAssignmen
 
         <div className="grid grid-cols-1 gap-6">
           {/* Assignment Upload Section */}
-          <AssignmentUpload classSectionId={classId} />
+          <AssignmentUpload classSectionId={classId} instituteId={JSON.parse(localStorage.getItem("user")).institutionId} />
 
           {/* Assignments List Section */}
           {loading ? (

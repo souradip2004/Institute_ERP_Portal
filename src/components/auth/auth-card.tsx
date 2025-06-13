@@ -87,7 +87,6 @@ export function AuthCard({
       });
 
       console.log("Login result:", result);
-
       if (result?.error) {
         setError(result.error);
         setLoading(false);

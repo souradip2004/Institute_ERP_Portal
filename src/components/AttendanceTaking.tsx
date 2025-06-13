@@ -36,6 +36,7 @@ export default function AttendanceTaking() {
       recordedAt: new Date().toISOString(),
     }));
     mutation.mutate(attendanceData);
+  
   };
 
   if (isLoading) return <div>Loading...</div>;

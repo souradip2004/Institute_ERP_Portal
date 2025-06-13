@@ -1,23 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
+import { ExamSubmissionController } from "@/controllers/examSubmissionController";
 
 export async function POST(req: NextRequest) {
   try {
-    const { examId, studentId, answers, score } = await req.json();
+    const controller = new ExamSubmissionController()
+    const response = await controller.create(req)
     
-    // Instead of saving to database, just return success with the score
-    return NextResponse.json({ 
-      success: true, 
-      submission: {
-        id: Math.random().toString(36).substring(7),
-        examId,
-        studentId,
-        score: score,
-        status: 'COMPLETED',
-        submittedAt: new Date()
-      }
-    });
+    return response;
   } catch (error: any) {
-    console.error("Error:", error);
+    console.log("Error:", error);
     return NextResponse.json(
       { error: "Failed to submit exam", details: error.message },
       { status: 500 }

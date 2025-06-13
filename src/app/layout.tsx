@@ -64,6 +64,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+       <head>
+        {/* Force desktop layout on mobile */}
+                <meta name="viewport" content="width=1024, user-scalable=no" />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >

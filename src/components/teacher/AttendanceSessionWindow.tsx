@@ -32,17 +32,65 @@ interface AttendanceSessionDetails {
 
 interface AttendanceSessionWindowProps {
   sessionId: string;
+  institutionId:string;
 }
 
-export default function AttendanceSessionWindow({ sessionId }: AttendanceSessionWindowProps) {
+export default function AttendanceSessionWindow({ sessionId,institutionId }: AttendanceSessionWindowProps) {
   const [session, setSession] = useState<AttendanceSessionDetails | null>(null);
   const [attendance, setAttendance] = useState<Record<string, 'PRESENT' | 'ABSENT' | 'LATE'>>({});
   const [teacherId, setTeacherId] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [saving, setSaving] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [creditsData, setcreditsData]=useState(null)
   const router = useRouter();
+  useEffect(()=>{
+    alert(institutionId)
+    if(localStorage.getItem("user")){
+    const getData=async()=>{
+      const now = new Date();
+      const month = now.getMonth() + 1;
+      const year = now.getFullYear();
+      const result= await fetch(`/api/credits/${institutionId}?month=${month}&year=${year}`,{
+      method:"GET",
+      headers:{
+        "Content-Type":"application/json"
+      }
+    })
+    if(result.ok){
+      const res=await result.json();
+      setcreditsData(res);
+      console.log(res);
+      alert(JSON.stringify(res))
+      }
+    }
+    getData()
+  }
+  },[])
+const updateCoins=async()=>{
+    const now = new Date();
+      const month = now.getMonth() + 1; // getMonth() is zero-based
+      const year = now.getFullYear();
+      console.log("Current Credit Balance",creditsData)
 
+    const result=await fetch(`/api/credits/${institutionId}?month=${month}&year=${year}`,{
+      method:"POST",
+            headers:{
+        "Content-Type":"application/json"
+      },
+      body:JSON.stringify({
+        attendanceCreditsBalance: creditsData ? creditsData?.attendanceCreditsBalance+2 : 0,
+        total:creditsData?creditsData?.total+2:0
+      })
+
+    })
+    if(result.ok){
+      const res=await result.json();
+      alert(JSON.stringify(res))
+    }else{
+      alert(result.status)
+    }
+  }
   // For mobile optimization
   const [view, setView] = useState<'all' | 'PRESENT' | 'ABSENT' | 'LATE'>('all');
 
@@ -152,6 +200,7 @@ export default function AttendanceSessionWindow({ sessionId }: AttendanceSession
     }
 
     try {
+      updateCoins()
       setSaving(true);
       const attendanceData = Object.entries(attendance).map(([studentId, status]) => ({
         studentId,

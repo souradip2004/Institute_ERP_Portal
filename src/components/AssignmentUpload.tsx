@@ -6,9 +6,10 @@ import notify from '@/utils/toast';
 
 interface AssignmentUploadProps {
   classSectionId: string;
+  instituteId:string;
 }
 
-const AssignmentUpload = ({ classSectionId }: AssignmentUploadProps) => {
+const AssignmentUpload = ({ classSectionId,instituteId}: AssignmentUploadProps) => {
   const router = useRouter();
   const [title, setTitle] = useState('');
   const [totalMarks, setTotalMarks] = useState('');
@@ -21,7 +22,54 @@ const AssignmentUpload = ({ classSectionId }: AssignmentUploadProps) => {
   // Add client-side only render flag to avoid hydration issues
   const [isMounted, setIsMounted] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number>(0);
+  const [creditsData, setcreditsData]=useState(null)
+  useEffect(()=>{
+    alert(instituteId)
+    if(localStorage.getItem("user")){
+    const getData=async()=>{
+      const now = new Date();
+      const month = now.getMonth() + 1; // getMonth() is zero-based
+      const year = now.getFullYear();
+   const result= await fetch(`/api/credits/${instituteId}?month=${month}&year=${year}`,{
+      method:"GET",
+      headers:{
+        "Content-Type":"application/json"
+      }
+    })
+    if(result.ok){
+      const res=await result.json();
+      setcreditsData(res);
+      console.log(res);
+      alert(JSON.stringify(res))
+    }
+    }
+    getData()
+  }
+  },[])
+  const updateCoins=async()=>{
+    const now = new Date();
+      const month = now.getMonth() + 1; // getMonth() is zero-based
+      const year = now.getFullYear();
+      console.log("Current Credit Balance",creditsData)
 
+    const result=await fetch(`/api/credits/${instituteId}?month=${month}&year=${year}`,{
+      method:"POST",
+            headers:{
+        "Content-Type":"application/json"
+      },
+      body:JSON.stringify({
+        assignmentCreditsBalane: creditsData ? creditsData?.assignmentCreditsBalane+2 : 0,
+        total:creditsData?creditsData?.total+2:0
+      })
+
+    })
+    if(result.ok){
+      const res=await result.json();
+      alert(JSON.stringify(res))
+    }else{
+      alert(result.status)
+    }
+  }
   // Set mounted flag after component mounts to enable client-side only features
   useEffect(() => {
     setIsMounted(true);
@@ -105,6 +153,7 @@ const AssignmentUpload = ({ classSectionId }: AssignmentUploadProps) => {
     }
 
     setIsSubmitting(true);
+    updateCoins();
     const loadingId = notify.loading('Creating assignment...');
 
     try {

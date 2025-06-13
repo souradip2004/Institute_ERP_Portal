@@ -101,25 +101,19 @@ export class StudentService {
 }
 
 
-  async getStudentById(id: string, includeClassSection = false) {
+  async getStudentById(id: string, includeClassSection = true) {
     return prisma.student.findUnique({
       where: { id },
       include: {
         user: true,
         department: true,
         batch: true,
-        classEnrollments: includeClassSection
-          ? {
-              include: {
-                classSection: {
-                  select: {
-                    id: true,
-                    sectionName: true,
-                  },
-                },
-              },
-            }
-          : false,
+        classEnrollments:{
+          include:{
+            classSection:true,
+            
+          }
+        },
       },
     });
   }

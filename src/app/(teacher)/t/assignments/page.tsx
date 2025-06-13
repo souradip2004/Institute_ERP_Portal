@@ -219,71 +219,70 @@ export default function TeacherAssignmentsPage() {
       ) : null}
       
       {classes.length === 0 && !error ? (
-        <div className="bg-white rounded-lg shadow-md p-8 text-center">
-          <h2 className="text-xl font-semibold mb-4">No Classes Found</h2>
-          <p className="text-gray-600 mb-6">You currently do not have any classes assigned to you.</p>
-        </div>
+       <div className="flex justify-center items-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+      </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {classes.map((classItem) => (
+          {[...new Map(classes.map((classItem) => [classItem.id, classItem])).values()].map((classItem) => (
             <div 
               key={classItem.id} 
               className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow relative cursor-pointer"
               onClick={() => router.push(`/t/classes/${classItem.id}/assignments`)}
             >
               <div className="p-6">
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-xl font-bold">{classItem.name}</h2>
-                  <span className="text-gray-500 text-sm">{classItem.studentCount} Students</span>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-bold">{classItem.name}</h2>
+            <span className="text-gray-500 text-sm">{classItem.studentCount} Students</span>
+          </div>
+          
+          <div className="flex flex-wrap gap-2 mb-4">
+            {classItem.subjects.length > 0 ? (
+              classItem.subjects.map((subject, index) => (
+                <span key={index} className="bg-purple-200 text-purple-800 px-3 py-1 rounded-full text-sm">
+            {subject}
+                </span>
+              ))
+            ) : (
+              <span className="text-gray-500 text-sm">No subjects assigned</span>
+            )}
+          </div>
+          
+          <div className="mb-4">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-gray-500">Total Assignments</span>
+              <span className="text-xl font-bold">{classItem.assignmentCount}</span>
+            </div>
+            
+            <Link 
+              href={`/t/classes/${classItem.id}/assignments`}
+              className="text-blue-600 hover:text-blue-800 text-sm flex items-center"
+              onClick={(e) => e.stopPropagation()}
+            >
+              View all assignments
+              <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </Link>
+          </div>
+          
+          <div className="border-t pt-4">
+            <h3 className="font-medium mb-2">Latest Assignment</h3>
+            
+            {classItem.latestAssignment ? (
+              <div className="bg-gray-50 p-3 rounded-md">
+                <div className="flex justify-between items-start mb-2">
+            <p className="font-medium">{classItem.latestAssignment.title}</p>
+            {getStatusBadge(classItem.latestAssignment.status)}
                 </div>
-                
-                <div className="flex flex-wrap gap-2 mb-4">
-                  {classItem.subjects.length > 0 ? (
-                    classItem.subjects.map((subject, index) => (
-                      <span key={index} className="bg-purple-200 text-purple-800 px-3 py-1 rounded-full text-sm">
-                        {subject}
-                      </span>
-                    ))
-                  ) : (
-                    <span className="text-gray-500 text-sm">No subjects assigned</span>
-                  )}
-                </div>
-                
-                <div className="mb-4">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-gray-500">Total Assignments</span>
-                    <span className="text-xl font-bold">{classItem.assignmentCount}</span>
-                  </div>
-                  
-                  <Link 
-                    href={`/t/classes/${classItem.id}/assignments`}
-                    className="text-blue-600 hover:text-blue-800 text-sm flex items-center"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    View all assignments
-                    <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </Link>
-                </div>
-                
-                <div className="border-t pt-4">
-                  <h3 className="font-medium mb-2">Latest Assignment</h3>
-                  
-                  {classItem.latestAssignment ? (
-                    <div className="bg-gray-50 p-3 rounded-md">
-                      <div className="flex justify-between items-start mb-2">
-                        <p className="font-medium">{classItem.latestAssignment.title}</p>
-                        {getStatusBadge(classItem.latestAssignment.status)}
-                      </div>
-                      <p className="text-sm text-gray-600">
-                        Due: {new Date(classItem.latestAssignment.dueDate).toLocaleDateString()}
-                      </p>
-                    </div>
-                  ) : (
-                    <p className="text-gray-500 italic">No assignments yet</p>
-                  )}
-                </div>
+                <p className="text-sm text-gray-600">
+            Due: {new Date(classItem.latestAssignment.dueDate).toLocaleDateString()}
+                </p>
+              </div>
+            ) : (
+              <p className="text-gray-500 italic">No assignments yet</p>
+            )}
+          </div>
               </div>
             </div>
           ))}

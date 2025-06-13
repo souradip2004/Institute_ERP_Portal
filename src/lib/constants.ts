@@ -2,7 +2,7 @@ export const API_URLS = {
   // API Endpoints
   PDF_UPLOAD_API:
     process.env.NEXT_PUBLIC_PDF_UPLOAD_API ||
-    "http://localhost/pdfUpload/upload",
+    "https://api.aiclassroom.in/pdfUpload/upload",
   SUMMARY_CHUNKS_API:
     process.env.NEXT_PUBLIC_SUMMARY_CHUNKS_API ||
     "https://textsummarization-0d35868-v1.app.beam.cloud/",

@@ -3,8 +3,8 @@ import jwt from 'jsonwebtoken';
 import axios from 'axios';
 
 const SECRET_KEY = process.env.JWT_SECRET || 'your-secret-key';
-const API_URL = 'https://question-generation-76b332e-v1.app.beam.cloud';
-const BEARER_TOKEN = "cpxjIHGyDUggeCZSEgd7TSs_xuIaJLxQyplSlPcpEv35qftljIUmetr9Drtj_MUyC9PUSJLvV1vbjljWohB8Sw==";
+const API_URL = 'https://question-generation-f79eeb2-v3.app.beam.cloud/';
+const BEARER_TOKEN = "ALXP7mhHyKz1MQATKH7CIQXK9VQBpvoNNuxPvLONWyPCfgemj18cz2T74r4drBpvOkf-3orOQT_6r-63mHPZAA==";
 
 interface Question {
   question: string;

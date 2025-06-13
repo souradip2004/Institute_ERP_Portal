@@ -115,7 +115,7 @@ export default function ExamsPage({ params }: ExamsPageProps) {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [numQuestions, setNumQuestions] = useState<string>("2");
-
+  const [questionMode,setQuestionmode]=useState(false)
   // New states for additional exam fields
   const [classSections, setClassSections] = useState<TeacherClassSection[]>([]);
   const [selectedClassSection, setSelectedClassSection] = useState("");
@@ -132,14 +132,118 @@ export default function ExamsPage({ params }: ExamsPageProps) {
 
   const [selectedExam, setSelectedExam] = useState<Exam | null>(null);
   const [loadingExamDetails, setLoadingExamDetails] = useState(false);
+  const [creditsData,setcreditsData]=useState(null)
+  useEffect(()=>{
+    if(localStorage.getItem("user")){
+      const getData=async()=>{
+      const now = new Date();
+      const month = now.getMonth() + 1; // getMonth() is zero-based
+      const year = now.getFullYear();
+   const result= await fetch(`/api/credits/${JSON.parse(localStorage.getItem("user")).institutionId}?month=${month}&year=${year}`,{
+      method:"GET",
+      headers:{
+        "Content-Type":"application/json"
+      }
+    })
+    if(result.ok){
+      const res=await result.json();
+      setcreditsData(res);
+      console.log(res);
+      alert(JSON.stringify(res))
+    }
+    else{
+      alert("error in fetcginf")
+    }
+    
+    
+        }
+        getData();
+      }
+  },[])
+   const updateCoins=async(QuestionCount:Number)=>{
+    const now = new Date();
+      const month = now.getMonth() + 1; // getMonth() is zero-based
+      const year = now.getFullYear();
+      console.log("Current Credit Balance",creditsData)
 
+    const result=await fetch(`/api/credits/${JSON.parse(localStorage.getItem("user")).institutionId}?month=${month}&year=${year}`,{
+      method:"POST",
+            headers:{
+        "Content-Type":"application/json"
+      },
+      body:JSON.stringify({
+        questionPaperCreditsBalance: creditsData ? Number(creditsData?.questionPaperCreditsBalance) + (questionMode ? 0.5 * Number(QuestionCount) : Number(QuestionCount)) : 0,
+        total: creditsData ? Number(creditsData?.total) + (questionMode ? 0.5 * Number(QuestionCount) : Number(QuestionCount)) : 0
+      })
+
+    })
+    if(result.ok){
+      const res=await result.json();
+      alert(JSON.stringify(res))
+    }else{
+      alert(result.status)
+    }
+  }
   // Force logout and redirect to login
   const forceLogout = () => {
     const errorMessage = 'Your session was invalid. Please log in again.';
     // Use the utility function with a custom error message and delay
     logoutAndRedirect(errorMessage, 2000);
   };
+const uploadFileToS3 = async (file: File) => {
+  try {
+    const formData = new FormData();
+    formData.append('pdf', file);
 
+    // Create a custom XMLHttpRequest to track upload progress
+    return new Promise<{
+      url: string;
+      fileName: string;
+      fileType: string;
+      fileSize: number;
+    }>((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+
+      xhr.upload.addEventListener('progress', (event) => {
+        if (event.lengthComputable) {
+          const percentComplete = Math.round((event.loaded / event.total) * 100);
+          // You can update a progress bar here if needed
+        }
+      });
+
+      xhr.onreadystatechange = function () {
+        if (xhr.readyState === 4) {
+          if (xhr.status === 200) {
+            const response = JSON.parse(xhr.responseText);
+            if (response.success) {
+              resolve({
+                url: response.url,
+                fileName: response.fileName,
+                fileType: response.fileType,
+                fileSize: response.fileSize
+              });
+            } else {
+              reject(new Error(response.message || 'Upload failed'));
+            }
+          } else {
+            reject(new Error(`Upload failed with status: ${xhr.status}`));
+          }
+        }
+      };
+
+      xhr.open('POST', '/api/upload/pdf', true);
+      xhr.send(formData);
+    });
+  } catch (error) {
+    console.error("Error uploading file to S3:", error);
+    throw error;
+  }
+};
+
+// Example usage:
+// const file = ... // get a File object from an <input type="file" />
+// const result = await uploadFileToS3(file);
+// const fileUrl = result.url;
   // Check if user is authenticated as a teacher
   const checkAuthStatus = async () => {
     try {
@@ -372,6 +476,7 @@ export default function ExamsPage({ params }: ExamsPageProps) {
 
     try {
       setLoading(true);
+      updateCoins(questions.length)
       const response = await axios.post(
         "/api/exam/create",
         {
@@ -489,7 +594,21 @@ export default function ExamsPage({ params }: ExamsPageProps) {
       {activeTab === 'create' ? (
         // Create Exam Form
         <div className="bg-white shadow-md rounded-lg overflow-visible">
+          
           <div className="p-6 border-b border-gray-200">
+            <div className="flex justify-end mb-4">
+              <button
+                type="button"
+                onClick={() => setQuestionmode(!questionMode)}
+                className={`inline-flex items-center px-4 py-2 rounded-md font-medium transition-colors shadow-sm border
+                  ${!questionMode
+                    ? "bg-indigo-600 text-white hover:bg-indigo-700 border-indigo-600"
+                    : "bg-white text-indigo-700 hover:bg-indigo-50 border-indigo-300"
+                  }`}
+              >
+                {!questionMode ? "Switch to Manual Entry" : "Switch to AI Generator"}
+              </button>
+            </div>
             <h2 className="text-xl font-semibold text-gray-800">Create New Exam</h2>
             <p className="text-gray-500 text-sm mt-1">Fill the form below to create a new exam</p>
           </div>
@@ -622,22 +741,41 @@ export default function ExamsPage({ params }: ExamsPageProps) {
                   />
                 </div>
               </div>
-
+             
+              {!questionMode && (
               <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
                 <h3 className="font-medium text-gray-700 mb-3">Question Generator</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      PDF URL
+                      Upload PDF
                     </label>
                     <input
-                      id="pdfUrlInput"
-                      type="text"
-                      value={pdfUrl}
-                      onChange={(e) => setPdfUrl(e.target.value)}
-                      className="w-full px-4 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors"
-                      placeholder="Enter PDF URL"
+                      type="file"
+                      accept="application/pdf"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          try {
+                            setLoading(true);
+                            setError("");
+                            const result = await uploadFileToS3(file);
+                            setPdfUrl(result.url);
+                          } catch (err: any) {
+                            setError("Failed to upload PDF. Please try again.");
+                          } finally {
+                            setLoading(false);
+                          }
+                        }
+                      }}
+                      className="w-full px-4 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors bg-white"
                     />
+
+                    {pdfUrl && (
+                      <div className="mt-2 text-xs text-green-700 break-all">
+                        Uploaded: <a href={pdfUrl} target="_blank" rel="noopener noreferrer" className="underline">{pdfUrl}</a>
+                      </div>
+                    )}
                   </div>
 
                   <div>
@@ -661,6 +799,59 @@ export default function ExamsPage({ params }: ExamsPageProps) {
                   {loading ? <Loader size="small" /> : "Extract Questions from PDF"}
                 </button>
               </div>
+              )}
+              {questionMode &&(
+                <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                  <h3 className="font-medium text-gray-700 mb-3">Manual Question Entry</h3>
+                  <div className="space-y-4">
+                    {questions.map((q, idx) => (
+                      <div key={idx} className="flex flex-col md:flex-row gap-2 items-start md:items-center">
+                        <input
+                          type="text"
+                          value={q.question}
+                          onChange={e => {
+                            const updated = [...questions];
+                            updated[idx].question = e.target.value;
+                            setQuestions(updated);
+                          }}
+                          className="flex-1 px-3 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors"
+                          placeholder={`Question ${idx + 1}`}
+                        />
+                        <input
+                          type="text"
+                          value={typeof q.answer === "string" ? q.answer : ""}
+                          onChange={e => {
+                            const updated = [...questions];
+                            updated[idx].answer = e.target.value;
+                            setQuestions(updated);
+                          }}
+                          className="flex-1 px-3 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors"
+                          placeholder="Answer"
+                        />
+                        <button
+                          type="button"
+                          className="text-red-500 hover:text-red-700 px-2 py-1"
+                          onClick={() => setQuestions(questions.filter((_, i) => i !== idx))}
+                        >
+                          <X className="h-5 w-5" />
+                        </button>
+                      </div>
+                    ))}
+                    <button
+                      type="button"
+                      className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors"
+                      onClick={() =>
+                        setQuestions([
+                          ...questions,
+                          { question: "", answer: "", isSelected: true }
+                        ])
+                      }
+                    >
+                      Add Question
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {questions.length > 0 && (
                 <div className="bg-white border border-gray-200 rounded-lg overflow-visible">

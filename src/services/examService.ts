@@ -6,7 +6,6 @@ export class ExamService {
   getExamsByClassSection(classSectionId: string, studentId: string) {
     return this.getExamsByClassSectionImpl(classSectionId, studentId);
   }
-
   // Implement the actual logic in a separate method to avoid naming collisions
   private async getExamsByClassSectionImpl(
     classSectionId: string,

@@ -91,5 +91,5 @@ export default function SessionPage({ params }: SessionPageProps) {
     );
   }
 
-  return <AttendanceSessionWindow sessionId={sessionId} />;
+  return <AttendanceSessionWindow sessionId={sessionId} institutionId={JSON.parse(localStorage.getItem("user")).institutionId} />;
 }

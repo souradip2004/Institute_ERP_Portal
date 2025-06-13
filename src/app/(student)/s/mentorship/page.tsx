@@ -1,29 +1,115 @@
 "use client"
 
-import { useState } from "react"
+import { useState,useEffect } from "react"
 import { MessageCircle, Mic, Send, Maximize2 } from "lucide-react"
 import "./mentorship.css" // Assuming you have a CSS file for styling
 const Mentorship = () => {
+  const [marks,setmarks]=useState('');
   const [activeTab, setActiveTab] = useState("Week")
   const [message, setMessage] = useState("")
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(false);
+  const [results,setresults]=useState([]);
 const [chatHistory, setChatHistory] = useState([
     { role: "assistant", content: "Hi, I am your AI Mentor." },
   ])
   const timeTabs = ["Week", "Month", "All Time"]
+  useEffect(()=>{
+        if (localStorage.getItem("user")) {
+      const user = JSON.parse(localStorage.getItem("user"));
+      const findresults = async () => {
+        const result = await fetch(`/api/exam-submissions/student/${user.studentId}`, {
+          method: "GET",
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        })
+        if (result.ok) {
+          const result1 = await result.json();
+          const gradeFromMarks = (marks) => {
+            if (marks >= 90) return 'A+';
+            if (marks >= 80) return 'A';
+            if (marks >= 70) return 'B';
+            if (marks >= 60) return 'C';
+            if (marks >= 50) return 'D';
+            return 'F';
+          };
+        
 
-  const progressData = {
-    completion: 70,
-    subjects: [
-      { name: "Mathematics", status: "Strongest", score: 85 },
-      { name: "Chemistry", status: "Needs Work", score: 68 },
-    ],
-    subjectPerformance: [
-      { name: "Mathematics", type: "Performance", score: 46, color: "blue" },
-      { name: "Science", type: "Performance", score: 46, color: "purple" },
-      { name: "Language Arts", type: "Completion", score: 46, color: "red" },
-    ],
-  }
+          const transformed = result1.map(entry => {
+            const title = entry.exam.title;
+            const total = entry.exam.totalMarks;
+            const obtained = entry.obtainedMarks;
+            const grade = gradeFromMarks(obtained);
+            const feedback = entry.feedback;
+            return [title, total, obtained, grade, feedback];
+          });
+          setresults(transformed);
+          setmarks(JSON.stringify(transformed))
+          setChatHistory([...chatHistory,{"role":"system","content":`You are live mentor for a student whose marks in exams are ${JSON.stringify(transformed)}`}])
+        }
+      }
+          findresults()
+
+    }
+        
+  },[])
+  // Compute progressData from results
+  const progressData = (() => {
+    if (!results || results.length === 0) {
+      return {
+        completion: 0,
+        subjects: [
+          { name: "Mathematics", status: "Strongest", score: 0 },
+          { name: "N/A", status: "Needs Work", score: 0 },
+        ],
+        subjectPerformance: [],
+      }
+    }
+
+    // Aggregate scores by subject
+    const subjectScores: Record<string, { total: number; count: number }> = {}
+    results.forEach(([title, total, obtained]) => {
+      if (!subjectScores[title]) subjectScores[title] = { total: 0, count: 0 }
+      subjectScores[title].total += Number(obtained)
+      subjectScores[title].count += 1
+    })
+
+    // Calculate average for each subject
+    const subjectAverages = Object.entries(subjectScores).map(([name, { total, count }]) => ({
+      name,
+      avg: Math.round(total / count),
+    }))
+
+    // Sort by average descending
+    const sorted = [...subjectAverages].sort((a, b) => b.avg - a.avg)
+
+    // Completion as average of all obtained/total
+    const totalObtained = results.reduce((sum, [, , obtained]) => sum + Number(obtained), 0)
+    const totalPossible = results.reduce((sum, [, total]) => sum + Number(total), 0)
+    const completion = totalPossible ? Math.round((totalObtained / totalPossible) * 100) : 0
+
+    // Subject highlights
+    const strongest = sorted[0] || { name: "N/A", avg: 0 }
+    const needsWork = sorted[sorted.length - 1] || { name: "N/A", avg: 0 }
+
+    // Subject performance cards (limit to 3, assign colors)
+    const colors = ["blue", "purple", "red"]
+    const subjectPerformance = sorted.slice(0, 3).map((s, i) => ({
+      name: s.name,
+      type: "Performance",
+      score: s.avg,
+      color: colors[i] || "blue",
+    }))
+
+    return {
+      completion,
+      subjects: [
+        { name: strongest.name, status: "Strongest", score: strongest.avg },
+        { name: needsWork.name, status: "Needs Work", score: needsWork.avg },
+      ],
+      subjectPerformance,
+    }
+  })()
 
   const chatMessages = [
     { id: 1, sender: "ai", text: "Hi, I am your ChatBot Mentor." },
@@ -98,12 +184,12 @@ const handleSendMessage = async () => {
                 />
               </svg>
               <div className="progress-percentage">
-                <span>{progressData.completion}%</span>
+                <span>0%</span>
               </div>
             </div>
             <div className="progress-label">
               <span className="progress-dot"></span>
-              <span>Completed {progressData.completion}%</span>
+              <span>Completed 0%</span>
             </div>
           </div>
         </div>
@@ -190,11 +276,13 @@ const handleSendMessage = async () => {
         </div>
 
         <div className="chat-messages">
-          {chatHistory.map((msg, i) => (
+          {chatHistory.map((msg, i) => {
+            if(msg.role==="system") return;
+            return(
             <div key={i} className={`chat-message ${msg.role === "assistant" ? "ai-message" : "user-message"}`}>
               <div className="message-bubble">{msg.content}</div>
             </div>
-          ))}
+)})}
           {loading && (
             <div className="chat-message ai-message">
               <div className="message-bubble">Typing...</div>

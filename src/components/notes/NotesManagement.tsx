@@ -31,7 +31,7 @@ import {
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { ChevronLeft, Search, Upload, Trash2, Download, Edit } from 'lucide-react';
+import { ChevronLeft, Search, Upload, Trash2, Download, Edit,Film } from 'lucide-react';
 import Link from 'next/link';
 import NotesViewer from './NotesViewer/index';
 import { getLocalVideoData, storeVideoDataLocally } from './NotesViewer/utils';
@@ -373,6 +373,7 @@ const NotesManagement: React.FC<NotesManagementProps> = ({
 
     // Function to handle form submission
     const onSubmit = async (values: NoteFormValues) => {
+        setUploadDialogOpen(false);
         try {
             if (currentNote) {
                 // Update existing note
@@ -467,7 +468,7 @@ const NotesManagement: React.FC<NotesManagementProps> = ({
 
                 // If we have a PDF file, process it for video data
                 if (pdfUrl && newNote.id) {
-                    processVideoData(newNote.id, pdfUrl, values.gender);
+                    setEditDialogOpen(false);
                 }
 
                 fetchNotes();
@@ -580,8 +581,8 @@ const NotesManagement: React.FC<NotesManagementProps> = ({
                         <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center mb-4">
                             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M7 12h14"></path><path d="M7 5h14"></path><path d="M7 19h14"></path><path d="M3 5a1 1 0 1 0 0 1 1 1 0 0 0 0-1"></path><path d="M3 19a1 1 0 1 0 0 1 1 1 0 0 0 0-1"></path><rect x="1" y="10" width="4" height="4" rx="1"></rect></svg>
                         </div>
-                        <h3 className="text-xl font-semibold mb-1">Submit Numericals</h3>
-                        <p className="text-white/80 text-sm text-center">Create practice problems for students</p>
+                        <h3 className="text-xl font-semibold mb-1">Smart Resourse</h3>
+                        <p className="text-white/80 text-sm text-center">Find Guided Youtube Videos from the Web</p>
                     </div>
 
                     <div className="bg-gradient-to-br from-amber-500 to-orange-600 p-6 rounded-xl text-white shadow-md hover:shadow-lg transition-shadow cursor-pointer flex flex-col items-center justify-center h-48"
@@ -683,15 +684,7 @@ const NotesManagement: React.FC<NotesManagementProps> = ({
                                             <TableCell>{formatDate(note.createdAt)}</TableCell>
                                             <TableCell className="text-right">
                                                 <div className="flex justify-end gap-2">
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        onClick={() => handleViewVideo(note.id)}
-                                                        className="h-8 w-8 rounded-full hover:bg-indigo-50 hover:text-indigo-700"
-                                                        title="View interactive notes"
-                                                    >
-                                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="2" /><path d="M12 19c-4 0-7.5-3-9-6 1.5-3 5-6 9-6s7.5 3 9 6c-1.5 3-5 6-9 6Z" /></svg>
-                                                    </Button>
+                                                    
                                                     <Button
                                                         variant="ghost"
                                                         size="icon"
@@ -702,19 +695,47 @@ const NotesManagement: React.FC<NotesManagementProps> = ({
                                                         <Edit size={16} />
                                                     </Button>
                                                     {note.attachments.length > 0 && (
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            onClick={() => handleDownload(
-                                                                note.attachments[0].fileUrl,
-                                                                note.attachments[0].fileName
-                                                            )}
-                                                            className="h-8 w-8 rounded-full hover:bg-green-50 hover:text-green-700"
-                                                            title="Download"
-                                                        >
-                                                            <Download size={16} />
-                                                        </Button>
+                                                        <>
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                onClick={() => handleDownload(
+                                                                    note.attachments[0].fileUrl,
+                                                                    note.attachments[0].fileName
+                                                                )}
+                                                                className="h-8 w-8 rounded-full hover:bg-green-50 hover:text-green-700"
+                                                                title="Download"
+                                                            >
+                                                                <Download size={16} />
+                                                            </Button>
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                onClick={async () => {
+                                                                    const randomCode = Math.floor(100000 + Math.random() * 900000);
+                                                                    console.log("Random 6 digit code:", randomCode);
+                                                                    const response = await fetch("/api/connector", {
+                                                                        method: "POST",
+                                                                        headers: {
+                                                                            "Content-Type": "application/json"
+                                                                        },
+                                                                        body: JSON.stringify({
+                                                                            id: randomCode,
+                                                                            link: note.attachments[0].fileUrl
+                                                                        })
+                                                                    });
+                                                                    if (response.ok) {
+                                                                        window.open(`https://aiclassroom.in/share?id=${randomCode}`, '_blank');
+                                                                    }
+                                                                }}
+                                                                className="h-8 w-8 rounded-full hover:bg-yellow-50 hover:text-yellow-700"
+                                                                title="Share video link"
+                                                            >
+                                                                <Film size={16} />
+                                                            </Button>
+                                                        </>
                                                     )}
+
                                                     <Button
                                                         variant="ghost"
                                                         size="icon"
@@ -818,25 +839,7 @@ const NotesManagement: React.FC<NotesManagementProps> = ({
                                 )}
                             />
 
-                            <FormField
-                                control={form.control}
-                                name="gender"
-                                render={({ field }: { field: any }) => (
-                                    <FormItem>
-                                        <FormLabel>Voice Gender</FormLabel>
-                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Select gender" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="Male">Male</SelectItem>
-                                                <SelectItem value="Female">Female</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
+                            
 
                             <div className="space-y-2">
                                 <Label htmlFor="file">Attachment (Optional)</Label>
