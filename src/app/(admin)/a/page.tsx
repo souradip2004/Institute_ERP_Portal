@@ -10,12 +10,10 @@ import Sider from "@/components/admin/navigator";
 import { redirect } from "next/navigation";
 import Head from "next/head";
 
-// import AddTeacher from "bin/adminPage/admin not use/AddTeacher";
 export default async function AdminPage() {
   const session = await auth();
 
   const userId = session?.user?.id;
-  //const userId ="cm9q0nf8z0004bowkhzw2d3s0";
 
   console.log(session)
   if (!userId) {
@@ -51,37 +49,9 @@ export default async function AdminPage() {
   const classes = await fetchClasses();
 
   return (
+    // Removed the outer <div> with display: "flex"
     <>
-      <Head>
-        <meta name="viewport" content="width=1024, user-scalable=no" />
-      </Head>
-
-    <div style={{ display: "flex" }}>
-
-      {/* Sidebar */}
-      {/* Sidebar 
-      <div style={{ width: "25%", padding: "20px", background: "#f7f7f7", height: "100vh" }}>
-        <h2 style={{ fontSize: "24px", fontWeight: "bold", marginBottom: "20px" }}>Admin Panel</h2>
-        <ul style={{ listStyle: "none", padding: "0" }}>
-          <li><Link href="/admin/add-teacher">Add Teacher</Link></li>
-          <li><Link href="/components/admin/AddClass">Add Class</Link></li>
-          <li><Link href="/admin/view-teachers">View Teachers</Link></li>
-          <li><Link href="/admin/view-students">Student Management</Link></li>
-          <li><Link href="/admin/view-classes">Teacher Management</Link></li>
-        </ul>
-        <div style={{ marginTop: "40px" }}>
-          <Link href="/admin/departments">Manage Departments</Link><br />
-          <Link href="/admin/semesters">Manage Semesters</Link><br />
-          <Link href="/admin/profile">Profile</Link>
-        </div>
-      </div>*/}
       <Sider id={id} userId={userId} />
-      {/* Profile Section */}
-
-
-
-
-    </div>
     </>
   );
 }

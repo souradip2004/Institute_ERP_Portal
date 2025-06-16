@@ -100,38 +100,22 @@ export default function TeacherDetail({ teacher, onBack }: TeacherDetailProps) {
               <InfoItem label="Teacher Code" value={teacher.teacherCode} />
               <InfoItem label="Full Name" value={teacher.user.name} />
               <InfoItem label="Email" value={teacher.user.email} />
-              <InfoItem label="Phone" value={teacher.user.phone || 'Not provided'} />
-              <InfoItem label="Gender" value={teacher.user.gender || 'Not provided'} />
-              <InfoItem label="Date of Birth" value={formatDate(teacher.user.dateOfBirth)} />
-              <InfoItem label="Address" value={teacher.user.address || 'Not provided'} />
+
             </InfoSection>
             
-            <InfoSection title="Account Information">
+          
+          </div>
+          
+          <div className="space-y-6">
+             <InfoSection title="Account Information">
               <InfoItem label="User ID" value={teacher.userId} />
               <InfoItem label="Email Verified" value={teacher.user.emailVerified ? 'Yes' : 'No'} />
               <InfoItem label="Role" value={teacher.user.role} />
               <InfoItem label="Created At" value={formatDate(teacher.user.createdAt)} />
               <InfoItem label="Last Updated" value={formatDate(teacher.user.updatedAt)} />
             </InfoSection>
-          </div>
-          
-          <div className="space-y-6">
-            <InfoSection title="Professional Information">
-              <InfoItem label="Qualification" value={teacher.qualification} />
-              <InfoItem label="Department" value={teacher.department?.name || 'Not available'} />
-              <InfoItem label="Joining Date" value={formatDate(teacher.joiningDate)} />
-              <InfoItem label="Employment Status" value={teacher.employmentStatus.replace('_', ' ')} />
-            </InfoSection>
             
-            <InfoSection title="Performance Information">
-              <InfoItem label="Performance Score" value={`${teacher.performanceScore}/100`} />
-              <InfoItem label="Last Evaluation Date" value={formatDate(teacher.lastEvaluationDate)} />
-              <InfoItem 
-                label="Performance Level" 
-                value={performanceInfo.level}
-                className={`font-semibold ${performanceInfo.style}`} 
-              />
-            </InfoSection>
+           
           </div>
         </div>
       </div>

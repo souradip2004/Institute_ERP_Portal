@@ -6,7 +6,6 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         <>
             
   <head>
-        <meta name="viewport" content="width=1024, user-scalable=no" />
         <title>Admin</title>
       </head>
         <StudentLayout>

@@ -24,7 +24,6 @@ const AssignmentUpload = ({ classSectionId,instituteId}: AssignmentUploadProps) 
   const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [creditsData, setcreditsData]=useState(null)
   useEffect(()=>{
-    alert(instituteId)
     if(localStorage.getItem("user")){
     const getData=async()=>{
       const now = new Date();
@@ -40,7 +39,6 @@ const AssignmentUpload = ({ classSectionId,instituteId}: AssignmentUploadProps) 
       const res=await result.json();
       setcreditsData(res);
       console.log(res);
-      alert(JSON.stringify(res))
     }
     }
     getData()

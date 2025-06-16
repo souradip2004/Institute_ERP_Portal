@@ -431,6 +431,7 @@ export default function TeacherDashboardPage() {
   }
 
   return (
+
     <div className="min-h-screen bg-gray-100 p-4">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
@@ -484,6 +485,8 @@ export default function TeacherDashboardPage() {
         </div>
 
         {/* Attendance Section */}
+        {/*
+
         <div className="bg-white p-6 rounded-lg shadow-sm">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-xl font-semibold">Attendance</h2>
@@ -493,7 +496,7 @@ export default function TeacherDashboardPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* Your Attendance - Circle */}
+
             <div>
               <h3 className="text-lg font-medium mb-4">Your Attendance</h3>
               <div className="flex justify-center">
@@ -515,8 +518,6 @@ export default function TeacherDashboardPage() {
                 </div>
               </div>
             </div>
-
-            {/* Students Attendance - Bars */}
             <div>
               <h3 className="text-lg font-medium mb-4">Class Attendance</h3>
               {classAttendance.length > 0 ? (
@@ -580,7 +581,7 @@ export default function TeacherDashboardPage() {
                       <td className="py-3">{assignment.dueDate}</td>
                       <td className="py-3">{assignment.submissions}</td>
                       <td className="py-3">{assignment.status}</td>
-                    
+
                     </tr>
                   ))
                 ) : (
@@ -615,7 +616,6 @@ export default function TeacherDashboardPage() {
                   <th className="text-left py-3">Subject</th>
                   <th className="text-left py-3">Date</th>
                   <th className="text-left py-3">Status</th>
-                  <th className="text-left py-3">Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -627,14 +627,6 @@ export default function TeacherDashboardPage() {
                       <td className="py-3">{exam.subject}</td>
                       <td className="py-3">{exam.date}</td>
                       <td className="py-3">{exam.status}</td>
-                      <td className="py-3">
-                        <Link
-                          href={`/t/classes/${exam.id}/exams` as any}
-                          className="text-blue-600 hover:text-blue-900"
-                        >
-                          View
-                        </Link>
-                      </td>
                     </tr>
                   ))
                 ) : (

@@ -4,6 +4,7 @@ import Image from "next/image";
 import CreateInstitutionForm from "@/components/ui/createInstitution";
 import DeleteInstitutionButton from "@/components/ui/deleteInstitutions";
 import Loader from "@/components/ui/Loader";
+import ActionDropdown from "@/components/admin/ActionDropdown";
 import { Suspense } from "react";
 import {
   Building2,
@@ -14,6 +15,7 @@ import {
   Shield
 } from "lucide-react";
 import Link from "next/link";
+
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { redirect } from "next/navigation";
@@ -79,9 +81,9 @@ export default async function DashboardPage() {
                     {userData?.role === "ADMIN" ? "Administrator Dashboard" : "User Dashboard"}
                   </p>
                 </div>
-                <div className="flex justify-center">
-                  <LogoutButton />
-                </div>
+               <div className="flex flex-col items-center gap-2">
+      <ActionDropdown institutionId={institutionData?.id} userId={userId} />
+    </div>
               </div>
 
               <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-100 dark:border-gray-700">
@@ -110,19 +112,7 @@ export default async function DashboardPage() {
                 </span>
               </h2>
 
-              {institutionData && (
-                <div className="mt-2 sm:mt-0">
-                  <Link
-                    href="https://commercial.aiclassroom.in/a"
-                    className={cn(
-                      buttonVariants({ variant: "outline", size: "sm" }),
-                      "text-indigo-600 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800 hover:bg-indigo-50 dark:hover:bg-indigo-950"
-                    )}
-                  >
-                    Go to Institution Portal
-                  </Link>
-                </div>
-              )}
+             
             </div>
 
             {institutionData ? (
@@ -192,9 +182,26 @@ export default async function DashboardPage() {
                           </div>
                         </div>
                       </div>
-
+                                     
                       <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700 flex justify-end">
-                        <DeleteInstitutionButton institutionId={institutionData.id} userId={userId} />
+                        {institutionData && (
+                          <div className="mt-2 sm:mt-0">
+                            <Link
+                              href="https://commercial.aiclassroom.in/a"
+                              className={cn(
+                                buttonVariants({ variant: "outline", size: "sm" }),
+                                "text-indigo-600 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800 hover:bg-indigo-50 dark:hover:bg-indigo-950 relative"
+                              )}
+                            >
+                              <span className="absolute inset-0 rounded-lg bg-gradient-to-r from-indigo-200 to-purple-200 dark:from-indigo-900 dark:to-purple-900 opacity-60 pointer-events-none animate-pulse"></span>
+                                <span className="relative font-semibold">Go to Institution Portal</span>
+                               
+                            </Link>
+                             <span className="block text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                Click here to access your institution dashboard.
+                                </span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>

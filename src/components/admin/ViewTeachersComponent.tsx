@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import TeachersList, { Teacher } from '@/components/admin/TeacherListComponent';
 import TeacherDetail, { TeacherDetail as TeacherDetailType } from '@/components/admin/TeacherDetailComponent';
 import Loader from '@/components/ui/Loader';
-import AddTeacherModal from '@/components/admin/AddTeachers';
+import AddTeacherModal from '@/components/admin/AddTeachers'; // Assuming this is your modal component
 
 interface ViewTeachersProps {
   id: string;
@@ -31,11 +31,11 @@ export default function ViewTeachersComponent({ id }: ViewTeachersProps) {
       setIsLoading(true);
       // Replace with your actual API endpoint
       const response = await fetch('/api/teachers');
-      
+
       if (!response.ok) {
         throw new Error('Failed to fetch teachers');
       }
-      
+
       const data = await response.json();
       const filteredTeachers = data.filter((teacher: Teacher) => teacher?.user?.institutionId === id);
       setTeachers(filteredTeachers);
@@ -73,52 +73,56 @@ export default function ViewTeachersComponent({ id }: ViewTeachersProps) {
     fetchTeachers();
   };
 
-  // Render loading state
+  // Render loading state for initial load
   if (isLoading && teachers.length === 0) {
-    return <Loader size="large" message="Loading teachers..." fullScreen={false} />;
+    return (
+      <div className="flex justify-center items-center h-full min-h-[300px]">
+        <Loader size="large" message="Loading teachers..." fullScreen={false} />
+      </div>
+    );
   }
 
   // Render error state
   if (error) {
     return (
-      <div className="p-4 bg-red-50 text-red-500 rounded-md border border-red-200">
+      <div className="p-4 bg-red-50 text-red-500 rounded-md border border-red-200 mx-auto max-w-4xl mt-4">
         <p className="font-medium">{error}</p>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto p-4">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">Teacher Management</h1>
+    <div className="container mx-auto p-4 md:p-6"> {/* Adjusted padding for mobile vs desktop */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 space-y-4 md:space-y-0"> {/* Stack on mobile, row on desktop */}
+        <h1 className="text-xl md:text-2xl font-bold text-gray-800">Teacher Management</h1> {/* Adjust text size */}
         <button
           onClick={() => setIsAddTeacherModalOpen(true)}
-          className="px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors"
+          className="w-full md:w-auto px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors"
         >
           Add New Teacher
         </button>
       </div>
-      
+
       {activeSection === "viewTeachers" && (
-        <Card className="shadow-lg">
+        <Card className="shadow-lg p-4 md:p-6"> {/* Adjusted padding within card */}
           {isLoading ? (
-            <div className="p-8">
+            <div className="flex justify-center items-center h-48"> {/* Centered loader for refresh */}
               <Loader size="medium" message="Refreshing..." fullScreen={false} />
             </div>
           ) : (
-            <TeachersList 
-              teachers={teachers} 
-              onViewTeacher={handleViewTeacher} 
+            <TeachersList
+              teachers={teachers}
+              onViewTeacher={handleViewTeacher}
             />
           )}
         </Card>
       )}
 
       {activeSection === "viewTeacherDetail" && selectedTeacher && (
-        <Card className="shadow-lg">
-          <TeacherDetail 
-            teacher={selectedTeacher} 
-            onBack={handleBackToList} 
+        <Card className="shadow-lg p-4 md:p-6"> {/* Adjusted padding within card */}
+          <TeacherDetail
+            teacher={selectedTeacher}
+            onBack={handleBackToList}
           />
         </Card>
       )}

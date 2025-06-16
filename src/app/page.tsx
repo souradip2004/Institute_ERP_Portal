@@ -21,31 +21,31 @@ const features = [
     title: "Access to Materials",
     description:
       "Access curated notes, videos, and resources aligned with your syllabus.",
-    icon: "https://media-hosting.imagekit.io/1101acf77cf74569/image%20101.png?Expires=1840897655&Key-Pair-Id=K2ZIVPTIP2VGHC&Signature=J4edh1H5Z3qpoU~m2-z8eEdhFoOYzzCzv~Pexy0EmQTI53vKCbU-pDVlcqRWhqod7LtH5bUtLQx90fdCXXkCR9kLzn68dzVWIbvh5MoyXlhweLnDSCIKQxjImDCAcZkE3z02NnAlljarcXnPmbbEsSbrzdZnh8WfNRoKmkg5sCbSCsYRc33iGyoqMOvJSNTXJHcru1SIkQxztkCupNfwIk-17vM54naao9bKkjPC5fpq6lredt2PWPHLf6P6t9jI1X1oY0f-yrLywBiKs1L2yXdTv7USoIu~0lqvSQddgpUDABBLj0eCS9g-wnjoxa9Fve~CCaHfCe2W9SCm6jQEqA__",
+    icon: "./access.png",
   },
   {
     title: "Multi-Device Seamless Sync",
     description:
       "Learn on-the-go with full sync between mobile, tablet, and desktop platforms.",
-    icon: "https://media-hosting.imagekit.io/1a593ddb7239404b/image%20102.png?Expires=1840897655&Key-Pair-Id=K2ZIVPTIP2VGHC&Signature=yYFI8htoAeAiY-NfLzKMjk1t1rSE19ZNeiGRl0cc6IDa1RcMHZdOPvs30ybwHo1COPzUjZpefIp~t0-~BPty3cQEjZTNra6nqEJnBVyB6FUHRA3I0JdvliGHupUY-PcJuc4xQVcZLroyW~NYlNSVsz0dHe7Bqwupf2LS-uu1a2A1LT68GoltxRdq5W0Jr9GpuO1XeorSxLe6yyRulGB4c08TLBb5kKFS6EG-iS-tsUll-V~5B0Fl42W-m3jg331Ty1EuEpKGyLl8W6X7j-3PQibvWZgXiwblLeZE0A9LpZHlXuxHef3F8bttdLj3Isak8lvWtqbzINReMicYjez0Uw__",
+    icon: "./mobile.png",
   },
   {
     title: "AI POWERED VIDEO GENERATION",
     description:
       "Convert any PDF or notes into engaging, AI-generated explainer videos in seconds.",
-    icon: "https://media-hosting.imagekit.io/9ab00f8f14844dfd/pdfslider.png?Expires=1840897655&Key-Pair-Id=K2ZIVPTIP2VGHC&Signature=hsE5IpMixW~9TmsDLCTmJ~P9ur2AETqCX1OcTRKk~Kv91IvF2iKrwGU9-Og7tJmjJ5n9jw3Sol0KBBpaEnrRG6qBhDXHbRfnKbIMI9xvE3OZ2N8TMFm9b3y3LPVciAQteBOWiYZHsKpg7ngs8ei6QOfMeBYEOXgYJoTZ370dorqLlMPq1fukW94VXatnfCIEJEX2zYCGBxt52ZAJ0A~TPPPvUvHVagUPN8a~PSCztlzsEncJF7-g5oV6WDj4YD4SFuFIo74OUWzKZka-nbpS14EwxjmZJKr7sJrbG1u6lsMQWH6ZtsVH1wCJnjehAq5NNiowzI5WVSyQUiPNpMk1QA__",
+    icon: "./pdfvideo.png",
   },
   {
     title: "LIVE DOUBT SOLVING WITH AI AND MENTORS",
     description:
       "Real-time chat support from AI tutors and human mentors for instant problem-solving.",
-    icon: "https://media-hosting.imagekit.io/ef8d3c17b3c84875/image%20100.png?Expires=1840897655&Key-Pair-Id=K2ZIVPTIP2VGHC&Signature=QhXnNJnl63E6T2tgwPrcxgsd0NLAtsQ~EO9evC3cAHLmaTuYyFv0S50vGljXMITDKZscHMWJ01vaMm30uxtrMhoN1Vpu9AeFzlFSptyUCkGoy7PSsBWYf-h~FhB15xz5DZjVsLvblpZRa2nPIZeo4RMXxEz6pInQYAjvZjJ9ZLifFYzhpgv3JAUEH0IGTJSFp8n6vq8Ef~sN2LKi1XaUrcM50F6Yh8S9oHBQNZOnmTWENXYTtSc8WaeF71viXwHacphN9YXp-lFHWR0xRkw8CMxESPNWwwfu6FoOHPjUt1biajvS7NdrbASf5ZsQ8Sues44FJqN1BJE-YnqIoKOhuw__",
+    icon:"/mentorai.png",
   },
   {
     title: "Personalized Dashboard",
     description:
       "Track your progress and manage upcoming tasks with an intuitive planner.",
-    icon: "https://media-hosting.imagekit.io/23c58a4ecfd84b69/image%20105.png?Expires=1840897655&Key-Pair-Id=K2ZIVPTIP2VGHC&Signature=FRGXmc4ZSt0UU9cHfR-wmYm1F1y89FMDjISEVxHTGTXRvFOiMj8gNO0unnPDJhn4Du7B035V6j4mZW70widJZ~wtQfRArduxyRPVmMFm9WCHC2hyr7wB1K550xvgZ252bqByBbJL~O12~CgJ4WiClHALyFV14nUhK9Kowyp~FfwCUJlKVYHMyc3e~xYadsRqsLvSIQm3f-Sjc2XwQBqBto0Ou1aoyofWoo1zxKDGeHFD0~L~H-bJlGGcDxY-IW5Vj3~cBpyNN538PjrfDo9kS-bzwRqxIOpRNjO4DYWyeZROVTTzlCpgCrMl45aaISuGKy9IK5pMyIkoVvRIoogLbw__",
+    icon: "./aidash.png",
   },
 ];
 
@@ -163,8 +163,8 @@ export default function LandingPage() {
           {features.map((feature, index) => (
             <SwiperSlide key={index}>
            <div className="bg-white/70 backdrop-blur-md border border-blue-100 rounded-2xl p-6 shadow-md hover:shadow-xl transition duration-300 min-h-[300px] flex flex-col items-center text-center">
-  <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
-    <img src={feature.icon} alt={feature.title} className="w-8 h-8 object-contain" />
+  <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4 overflow-hidden">
+    <img src={feature.icon} alt={feature.title} className="w-full h-full object-contain" />
   </div>
   <h3 className="text-lg font-semibold text-blue-700 mb-2">
     {feature.title}
@@ -180,7 +180,7 @@ export default function LandingPage() {
       {/* Footer */}
       <footer className="bg-white border-t mt-12">
         <div className="max-w-7xl mx-auto py-6 px-4 text-center text-sm text-gray-500">
-          &copy; 2025 Ai Classroom. All rights reserved.
+          &copy; 2025 AI Classroom. All rights reserved.
         </div>
       </footer>
     </div>

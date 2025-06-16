@@ -38,20 +38,22 @@ const STATUS_STYLES = {
 
 export default function TeachersList({ teachers, onViewTeacher }: TeachersListProps) {
   return (
-    <div className="p-4">
+    <div className="p-4 sm:p-6"> {/* Adjust overall padding for smaller screens */}
       <h2 className="text-xl font-bold mb-4 text-gray-800">Teachers</h2>
-      
+
       {teachers.length === 0 ? (
         <div className="bg-gray-50 p-8 text-center rounded-md">
           <p className="text-gray-500">No teachers found</p>
         </div>
       ) : (
+        // Added overflow-x-auto to the container holding the table
+        // This makes the table horizontally scrollable on small screens
         <div className="overflow-x-auto rounded-md border border-gray-200">
           <table className="min-w-full bg-white divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Teacher Code
+                  Code
                 </th>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Name
@@ -60,7 +62,7 @@ export default function TeachersList({ teachers, onViewTeacher }: TeachersListPr
                   Email
                 </th>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Qualification
+                  Qual.
                 </th>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Status
@@ -79,20 +81,24 @@ export default function TeachersList({ teachers, onViewTeacher }: TeachersListPr
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                     {teacher.user.name}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                  {/* Email handling: Use truncate and overflow for long emails */}
+                  <td className="px-6 py-4 text-sm text-gray-700 max-w-[150px] sm:max-w-none truncate sm:whitespace-normal">
                     {teacher.user.email}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                    {/* Consider abbreviating on mobile if needed, or rely on horizontal scroll */}
                     {teacher.qualification}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${STATUS_STYLES[teacher.employmentStatus]}`}>
-                      {teacher.employmentStatus.replace('_', ' ')}
+                      {/* Shorten text for small screens */}
+                      <span className="hidden sm:inline">{teacher.employmentStatus.replace('_', ' ')}</span>
+                      <span className="sm:hidden">{teacher.employmentStatus.split('_')[0].charAt(0)}.{teacher.employmentStatus.split('_')[1].charAt(0)}.</span> {/* E.g., F.T. for FULL_TIME */}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <button 
-                      onClick={() => onViewTeacher(teacher.id)} 
+                    <button
+                      onClick={() => onViewTeacher(teacher.id)}
                       className="text-purple-600 hover:text-purple-900 transition-colors focus:outline-none focus:underline"
                       aria-label={`View details for ${teacher.user.name}`}
                     >

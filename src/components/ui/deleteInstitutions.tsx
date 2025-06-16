@@ -20,7 +20,6 @@ export default function DeleteInstitutionButton({ institutionId, userId }: Delet
 
     setLoading(true);
     try {
-      // Send DELETE request to remove the institution
       const deleteRes = await fetch(`https://commercial.aiclassroom.in/api/institutions/${institutionId}`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
@@ -29,7 +28,6 @@ export default function DeleteInstitutionButton({ institutionId, userId }: Delet
 
       if (!deleteRes.ok) throw new Error("Failed to delete institution.");
 
-      // Send PUT request to remove institution from user profile
       await fetch(`https://commercial.aiclassroom.in/api/users/${userId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -37,7 +35,7 @@ export default function DeleteInstitutionButton({ institutionId, userId }: Delet
       });
 
       alert("Institution deleted successfully!");
-      router.refresh(); // Refresh page after deletion
+      router.refresh();
     } catch (error) {
       console.error("Error deleting institution:", error);
       alert("Failed to delete institution.");
@@ -51,13 +49,21 @@ export default function DeleteInstitutionButton({ institutionId, userId }: Delet
       onClick={handleDelete}
       disabled={loading}
       variant="destructive"
+      // Keep size="sm" as a base, but then override/enhance with className
       size="sm"
       className={cn(
         "gap-2 font-medium transition-all",
+        // --- ADD THESE CLASSES TO MAKE IT EVEN SMALLER ---
+        "h-7 text-xs px-2", // Smaller height, smaller text, less padding
+        // You might need to adjust the icon size as well if it looks too big
+        // For example, if Trash2 icon is too big, you'd target it specifically
+        // by passing a class or modifying its size directly in its component:
+        // "h-7 text-xs px-2 [&>svg]:w-3 [&>svg]:h-3", // Example: target child SVG to make it smaller
+        // -----------------------------------------------
         loading && "opacity-70"
       )}
     >
-      <Trash2 className="w-4 h-4" />
+      <Trash2 className="w-4 h-4" /> {/* Keep this line, or adjust if needed */}
       {loading ? "Deleting..." : "Delete Institution"}
     </Button>
   );

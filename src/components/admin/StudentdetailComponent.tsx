@@ -89,16 +89,15 @@ export default function StudentDetail({ student, onBack }: StudentDetailProps) {
               <InfoItem label="Roll Number" value={student.studentRoll} />
               <InfoItem label="Full Name" value={student.user.name} />
               <InfoItem label="Email" value={student.user.email} />
-              <InfoItem label="Phone" value={student.user.phone || 'Not provided'} />
-              <InfoItem label="Gender" value={student.user.gender || 'Not provided'} />
-              <InfoItem label="Date of Birth" value={formatDate(student.user.dateOfBirth)} />
-              <InfoItem label="Address" value={student.user.address || 'Not provided'} />
+             
             </InfoSection>
             
-            <InfoSection title="Parent/Guardian Information">
-              <InfoItem label="Name" value={student.parentGuardianName || 'Not provided'} />
-              <InfoItem label="Phone" value={student.parentGuardianPhone || 'Not provided'} />
-              <InfoItem label="Email" value={student.parentGuardianEmail || 'Not provided'} />
+          <InfoSection title="Account Information">
+              <InfoItem label="User ID" value={student.userId} />
+              <InfoItem label="Email Verified" value={student.user.emailVerified ? 'Yes' : 'No'} />
+              <InfoItem label="Role" value={student.user.role} />
+              <InfoItem label="Created At" value={formatDate(student.user.createdAt)} />
+              <InfoItem label="Last Updated" value={formatDate(student.user.updatedAt)} />
             </InfoSection>
           </div>
           
@@ -114,13 +113,7 @@ export default function StudentDetail({ student, onBack }: StudentDetailProps) {
               <InfoItem label="Enrollment Status" value={student.enrollmentStatus} />
             </InfoSection>
             
-            <InfoSection title="Account Information">
-              <InfoItem label="User ID" value={student.userId} />
-              <InfoItem label="Email Verified" value={student.user.emailVerified ? 'Yes' : 'No'} />
-              <InfoItem label="Role" value={student.user.role} />
-              <InfoItem label="Created At" value={formatDate(student.user.createdAt)} />
-              <InfoItem label="Last Updated" value={formatDate(student.user.updatedAt)} />
-            </InfoSection>
+          
           </div>
         </div>
       </div>

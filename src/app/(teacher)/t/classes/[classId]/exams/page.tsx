@@ -149,7 +149,6 @@ export default function ExamsPage({ params }: ExamsPageProps) {
       const res=await result.json();
       setcreditsData(res);
       console.log(res);
-      alert(JSON.stringify(res))
     }
     else{
       alert("error in fetcginf")
@@ -179,9 +178,7 @@ export default function ExamsPage({ params }: ExamsPageProps) {
     })
     if(result.ok){
       const res=await result.json();
-      alert(JSON.stringify(res))
     }else{
-      alert(result.status)
     }
   }
   // Force logout and redirect to login

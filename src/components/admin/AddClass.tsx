@@ -272,7 +272,7 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
           
           {/* Section Name */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Section Name</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Class Section Name</label>
             <p className="text-xs text-gray-500 mb-2">A unique name for this class section (e.g., "Section A", "Morning Batch").</p>
             <input
               type="text"
@@ -286,8 +286,8 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
 
           {/* Max Students */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Max Students</label>
-            <p className="text-xs text-gray-500 mb-2">The maximum number of students allowed in this section.</p>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Students Count</label>
+            <p className="text-xs text-gray-500 mb-2">The number of students allowed in this section.</p>
             <input
               type="number"
               placeholder="Max Students"
@@ -301,7 +301,7 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
           {/* Department */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Department</label>
-            <p className="text-xs text-gray-500 mb-2">Select the academic department this class belongs to.</p>
+            <p className="text-xs text-gray-500 mb-2">Select the academic department this class belongs to. Example - CSE,EEE,12,etc</p>
             <select
               value={classData.department}
               onChange={(e) => handleDropdownChange("department", e.target.value)}
@@ -326,8 +326,10 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
                 <button
                   type="button"
                   onClick={async () => {
+                          const randomCode = Math.floor(1000 + Math.random() * 9000).toString();
+
                     if (!newOption.trim()) return; // Prevent adding empty department
-                    await fetch("https://commercial.aiclassroom.in/api/departments", {
+                    await fetch("/api/departments", {
                       method: "POST",
                       headers: {
                         "Content-Type": "application/json",
@@ -335,6 +337,7 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
                       body: JSON.stringify({
                         name: newOption,
                         institutionId: id,
+                        code: randomCode, // Generate a random code for the department
                       }),
                     }).then((res) => {
                       if (res.ok) {

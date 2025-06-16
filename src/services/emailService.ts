@@ -115,11 +115,25 @@ export async function sendUserDetails(to: string,password:string) {
   await transporter.sendMail(mailOptions);
 }
 export async function sendOtpEmail(to: string, otp: string) {
-  const subject = "Your OTP Code";
+  const subject = "Your OTP Code for Commercial AI Classroom"; // Make sure to customize this!
   const htmlContent = `
-    <h1>Your OTP Code</h1>
-    <p>Your OTP code is: <strong>${otp}</strong></p>
-    <p>This code will expire in 5 minutes.</p>
+    <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #ddd; border-radius: 8px; overflow: hidden;">
+      <div style="background-color: #f7f7f7; padding: 20px; text-align: center; border-bottom: 1px solid #eee;">
+        <h1 style="color: #333; margin: 0; font-size: 24px;">Your One-Time Password</h1>
+      </div>
+      <div style="padding: 30px; text-align: center;">
+        <p style="font-size: 16px; margin-bottom: 20px;">Hello,</p>
+        <p style="font-size: 16px; margin-bottom: 20px;">We received a request for a one-time password to access your account. Please use the following code:</p>
+        <div style="background-color: #eef; padding: 15px 25px; border-radius: 5px; display: inline-block; margin-bottom: 20px;">
+          <strong style="font-size: 32px; color: #007bff; letter-spacing: 2px;">${otp}</strong>
+        </div>
+        <p style="font-size: 14px; color: #888; margin-top: 20px;">This code is valid for 5 minutes only.</p>
+        <p style="font-size: 14px; color: #888; margin-top: 10px;">If you didn't request this code, please ignore this email.</p>
+      </div>
+      <div style="background-color: #f7f7f7; padding: 15px; text-align: center; font-size: 12px; color: #777; border-top: 1px solid #eee;">
+        <p>&copy; ${new Date().getFullYear()} AI Classroom. All rights reserved.</p>
+      </div>
+    </div>
   `;
   const mailOptions = {
     from: process.env.SMTP_FROM_EMAIL,

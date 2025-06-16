@@ -10,6 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { FormDivider } from "./form-divider";
 import { SocialLoginButtons } from "./social-login-buttons";
 import { Eye, EyeOff } from "lucide-react";
+import { set } from "mongoose";
 
 interface AuthCardProps {
   title: string;
@@ -31,6 +32,9 @@ export function AuthCard({
   const [confirmPassword, setConfirmPassword] = useState(""); // Added for register
   const [name, setName] = useState(""); // Only for register
   const [error, setError] = useState("");
+  const [otp, setOtp] = useState(""); // For OTP verification if needed
+  const [rotp, setRotp] = useState(""); // For OTP input
+  const [otpvalidation, setOtpValidation] = useState(false); // For OTP validation state
   const [success, setSuccess] = useState(""); // For success messages
   const [loading, setLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false); // For login
@@ -122,11 +126,18 @@ export function AuthCard({
       }
     } else {
       // Additional validation for registration
+      if(otp!== rotp) {
+        setError("Invalid OTP");
+        setLoading(false);
+        return;
+      }
       if (password !== confirmPassword) {
         setError("Passwords do not match");
         setLoading(false);
         return;
       }
+      console.log("Creating account...");
+      console.log(email+" "+password+" "+name+" "+rotp);
 
       // Handle registration via API
       try {
@@ -143,7 +154,7 @@ export function AuthCard({
 
         // Set a success message in localStorage to display after redirect
         localStorage.setItem('auth_success', 'Account created successfully. Please sign in.');
-        const sendemail=await fetch("/api/emails/welcome",{
+        const sendemail = await fetch("/api/emails/welcome", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email }),
@@ -189,6 +200,7 @@ export function AuthCard({
                 <Label htmlFor="name">Name</Label>
                 <Input
                   id="name"
+                  disabled={!otpvalidation?false:true}
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="John Doe"
@@ -201,6 +213,8 @@ export function AuthCard({
               <Input
                 id="email"
                 type="text"
+                                  disabled={!otpvalidation?false:true}
+
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="Enter email or username"
@@ -216,13 +230,15 @@ export function AuthCard({
                     className="text-sm text-primary underline underline-offset-4 hover:text-primary/90"
                   >
                     Forgot password?
-                  </a> 
+                  </a>
                 )}
               </div>
               <div className="relative">
                 <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
+                                    disabled={!otpvalidation?false:true}
+
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
@@ -237,17 +253,21 @@ export function AuthCard({
                 </button>
               </div>
             </div>
+           
             {type === "register" && (
               <div className="space-y-2">
                 <Label htmlFor="confirmPassword">Confirm Password</Label>
                 <div className="relative">
                   <Input
                     id="confirmPassword"
+                                      disabled={!otpvalidation?false:true}
+
                     type={showConfirmPassword ? "text" : "password"}
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     required
                   />
+
                   <button
                     type="button"
                     onClick={toggleConfirmPasswordVisibility}
@@ -259,6 +279,20 @@ export function AuthCard({
                 </div>
               </div>
             )}
+             {type === "register" && otpvalidation && (
+              <div className="space-y-2">
+                <Label htmlFor="otp"> OTP </Label>
+                <div className="relative">
+                  <Input
+                    id="otp"
+                    type="text"
+                    value={rotp}
+                    onChange={(e) => setRotp(e.target.value)}
+                    required
+                  />
+                  </div>
+                  </div>
+)}
             {type === "login" && (
               <div className="flex items-center space-x-2">
                 <Checkbox
@@ -274,15 +308,47 @@ export function AuthCard({
                 </label>
               </div>
             )}
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Loading..." : type === "login" ? "Sign in" : "Create account"}
-            </Button>
+            {type === "login" && (
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? "Loading..." : type === "login" ? "Sign in" : "Create account"}
+              </Button>
+            )}
+            {type === "register" && otpvalidation && (
+              <Button type="submit" className="w-full" disabled={loading}>
+                Create account
+              </Button>
+            )}
+            {type === "register" && !otpvalidation && (
+              <Button className="w-full" 
+                  type="button" 
+              onClick={async () => {
+                if(password !== confirmPassword) {
+                  setError("Passwords do not match");
+                  return;
+                }
+                const otpCode = Math.floor(1000 + Math.random() * 9000).toString();
+                setOtp(otpCode);
+                const sendemail = await fetch("/api/emails/otp", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ email, otp: otpCode}),
+                });
+                if (!sendemail.ok) {
+                  const data = await sendemail.json();
+                  console.log("Error sending welcome email:", data.error);
+                } else {
+                  setOtpValidation(true);
+                  alert("OTP sent to your email. Please check your inbox.");
+                }
+              }}>
+                Send OTP
+              </Button>
+            )}
           </form>
 
           {showSocialLogin && (
             <>
               <FormDivider />
-              <SocialLoginButtons isLoading={loading} />
             </>
           )}
 

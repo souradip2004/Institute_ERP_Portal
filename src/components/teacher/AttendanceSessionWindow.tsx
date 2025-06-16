@@ -61,7 +61,6 @@ export default function AttendanceSessionWindow({ sessionId,institutionId }: Att
       const res=await result.json();
       setcreditsData(res);
       console.log(res);
-      alert(JSON.stringify(res))
       }
     }
     getData()
@@ -86,7 +85,6 @@ const updateCoins=async()=>{
     })
     if(result.ok){
       const res=await result.json();
-      alert(JSON.stringify(res))
     }else{
       alert(result.status)
     }

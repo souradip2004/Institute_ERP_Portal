@@ -1,17 +1,15 @@
-'use client';
-import TeacherSidebar from './TeacherSidebar';
+// src/components/teacher/TeacherLayout.js (or .tsx)
+// src/components/teacher/TeacherLayout.js (or .tsx)
+import TeacherSidebar from './TeacherSidebar'; // Adjust path as necessary
 
-interface TeacherLayoutProps {
-  children: React.ReactNode;
-}
-
-export default function TeacherLayout({ children }: TeacherLayoutProps) {
+export default function TeacherLayout({ children }) {
   return (
     <div className="flex h-screen bg-gray-50">
-      <TeacherSidebar />
-      <main className="flex-1 overflow-auto ml-64 p-6">
+            <TeacherSidebar />
+
+      <main className="flex-1 overflow-auto p-6">
         {children}
       </main>
     </div>
   );
-} 
+}

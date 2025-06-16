@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import AddClass from "./AddClass";
 import ViewTeachers from "./ViewTeachersComponent";
 import AddStudent from "./AddStudent";
@@ -17,7 +17,8 @@ import {
   GraduationCap,
   CalendarCheck2,
   Bell,
-  Video,
+  Menu, // Added for mobile toggle
+  X,    // Added for mobile close
 } from "lucide-react";
 
 interface NavigatorProps {
@@ -27,7 +28,27 @@ interface NavigatorProps {
 
 const Navigator = ({ id, userId }: NavigatorProps) => {
   const [activeComponent, setActiveComponent] = useState<string>("Dashboard");
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true); // State for sidebar's open/close
+  const [isMobileView, setIsMobileView] = useState(false); // State to track mobile view
   const pathname = usePathname();
+
+  useEffect(() => {
+    // Client-side execution check
+    if (typeof window !== 'undefined') {
+      const checkMobile = () => window.innerWidth < 768; // Tailwind's 'md' breakpoint
+      setIsMobileView(checkMobile());
+      setIsSidebarOpen(!checkMobile()); // Set initial sidebar state: open on desktop, closed on mobile
+
+      const handleResize = () => {
+        setIsMobileView(checkMobile());
+        // Adjust sidebar state on resize: open for desktop, close for mobile
+        setIsSidebarOpen(!checkMobile());
+      };
+
+      window.addEventListener('resize', handleResize);
+      return () => window.removeEventListener('resize', handleResize);
+    }
+  }, []);
 
   const renderComponent = () => {
     switch (activeComponent) {
@@ -45,23 +66,31 @@ const Navigator = ({ id, userId }: NavigatorProps) => {
             <StudentDetail id={id} />
           </div>
         );
-      case "Teacher":
+      case "Teacher": // Renamed to "Class Management" in navItems
         return (
           <div className="space-y-6">
             <AddClass id={id} userid={userId} />
             <ViewClassSectionPage id={id} />
           </div>
-
         );
       case "CostManagement":
-      return(
-                  <div className="space-y-6">
-           <CostManagementPage id={id}/>
+        return (
+          <div className="space-y-6">
+            <CostManagementPage id={id} />
           </div>
-      )
-      
+        );
       default:
         return <div>Select an option from the sidebar</div>;
+    }
+  };
+
+  // Function to close sidebar on navigation (for mobile)
+  const handleNavLinkClick = (componentName?: string) => {
+    if (componentName) {
+      setActiveComponent(componentName);
+    }
+    if (isMobileView) {
+      setIsSidebarOpen(false);
     }
   };
 
@@ -74,19 +103,51 @@ const Navigator = ({ id, userId }: NavigatorProps) => {
   ];
 
   return (
-    <div className="flex h-screen">
+    <div className="flex h-screen bg-gray-50">
+      {/* Mobile Toggle Button (visible only on mobile) */}
+      {isMobileView && !isSidebarOpen && (
+        <button
+          onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+          className="fixed top-4 left-4 z-[60] p-2 bg-blue-600 text-white rounded-md md:hidden" // Moved to right
+        >
+          {!isSidebarOpen && <Menu size={24} />}
+        </button>
+      )}
+
+      {/* Overlay for mobile when sidebar is open */}
+      {isMobileView && isSidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black opacity-50 z-50 md:hidden" // z-index between toggle and sidebar
+          onClick={() => setIsSidebarOpen(false)}
+        ></div>
+      )}
+
       {/* Sidebar */}
-      <aside className="w-64 h-full bg-white shadow-md fixed top-0 left-0 border-r border-gray-200">
+      <aside
+        className={`fixed top-0 left-0 h-full bg-white shadow-md border-r border-gray-200 z-[55] transition-transform duration-300 ease-in-out
+          ${isMobileView && !isSidebarOpen ? '-translate-x-full' : 'translate-x-0'}
+          ${isMobileView ? 'w-64' : 'w-64 md:translate-x-0'} `}
+      >
         <div className="p-5">
           {/* Logo */}
           <div className="flex items-center mb-8">
-<Image
-            src="https://media-hosting.imagekit.io/ec92e4e35be64d63/navlogo.png?Expires=1840897655&Key-Pair-Id=K2ZIVPTIP2VGHC&Signature=l6NqfsMDqkEtJKGne9jQGByswyVWZVOrHU2GGaayrbu4NTBQuKV5FZ4c-II7yle67m~uWVboQmHUb3kogbqNjNUkwJpSK5md7ufqh-ru1VYWk88f8SjXjRfRFxxxMayQzi3Bnoc4iLtuaL25zHXMpKaZSnTPwgbykC9UK2ZVRvwMz6aUFc7eTfDXJoz1tITJ1C2SCfffvvc9Z~1g45cQd0Gl447yTrqqw~XEAl1ekj4Wrnf5sqq6dvFgYpdciK~QUYl8olW9UAea6ZKHRAw2W6sqM0cAjyzxDbHS4GrN7muT9zd5pvkPwbt~A50mkyWKN68FDikIyfwnrqp989YQyw__"
-            alt="Logo"
-            width={160}
-            height={40}
-            className="object-contain"
-          />          </div>
+            <Image
+              src="https://media-hosting.imagekit.io/ec92e4e35be64d63/navlogo.png?Expires=1840897655&Key-Pair-Id=K2ZIVPTIP2VGHC&Signature=l6NqfsMDqkEtJKGne9jQGByswyVWZVOrHU2GGaayrbu4NTBQuKV5FZ4c-II7yle67m~uWVboQmHUb3kogbqNjNUkwJpSK5md7ufqh-ru1VYWk88f8SjXjRfRFxxxMayQzi3Bnoc4iLtuaL25zHXMpKaZSnTPwgbykC9UK2ZVRvwMz6aUFc7eTfDXJoz1tITJ1C2SCfffvvc9Z~1g45cQd0Gl447yTrqqw~XEAl1ekj4Wrnf5sqq6dvFgYpdciK~QUYl8olW9UAea6ZKHRAw2W6sqM0cAjyzxDbHS4GrN7muT9zd5pvkPwbt~A50mkyWKN68FDikIyfwnrqp989YQyw__"
+              alt="Logo"
+              width={160}
+              height={40}
+              className="object-contain"
+            />
+            {/* Close button for mobile inside sidebar */}
+             {isMobileView && (
+              <button
+                onClick={() => setIsSidebarOpen(false)}
+                className="ml-auto p-2 text-gray-500 hover:text-gray-700" // ml-auto pushes it to the right
+              >
+                <X size={24} />
+              </button>
+            )}
+          </div>
 
           {/* Nav Items */}
           <nav className="space-y-2">
@@ -103,6 +164,7 @@ const Navigator = ({ id, userId }: NavigatorProps) => {
                 <Link
                   key={item.name}
                   href={item.href}
+                  onClick={handleNavLinkClick} // Call to close sidebar
                   className={`${commonClasses} ${isActive ? activeClasses : inactiveClasses}`}
                 >
                   <span className="mr-3">{item.icon}</span>
@@ -111,7 +173,7 @@ const Navigator = ({ id, userId }: NavigatorProps) => {
               ) : (
                 <button
                   key={item.name}
-                  onClick={() => setActiveComponent(item.component)}
+                  onClick={() => handleNavLinkClick(item.component)} // Call to close sidebar
                   className={`${commonClasses} ${isActive ? activeClasses : inactiveClasses} w-full text-left`}
                 >
                   <span className="mr-3">{item.icon}</span>
@@ -124,7 +186,13 @@ const Navigator = ({ id, userId }: NavigatorProps) => {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 ml-64 p-6 overflow-y-auto">
+      <main
+        className={`flex-1 p-6 overflow-y-auto transition-all duration-300 ease-in-out
+          ${isMobileView ? 'ml-0' : 'ml-64'} /* Desktop: ml-64; Mobile: ml-0 */
+          ${isMobileView && !isSidebarOpen ? 'pl-4 pr-4 pt-16' : ''} /* Mobile closed padding (adjust pt based on toggle button height) */
+          ${isMobileView && isSidebarOpen ? 'overflow-hidden max-h-screen' : ''} /* Prevent scrolling main content when sidebar is open */
+        `}
+      >
         {renderComponent()}
       </main>
     </div>
