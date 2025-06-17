@@ -106,7 +106,7 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
   useEffect(() => {
     const fetchDepartments = async () => {
       try {
-        const res = await fetch("http://localhost:3000/api/departments", {
+        const res = await fetch("https://commercial.aiclassroom.in/api/departments", {
           method: "GET",
           headers: { "Content-Type": "application/json" },
         });
@@ -126,7 +126,7 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
   useEffect(() => {
     const fetchSemesters = async () => {
       try {
-        const res = await fetch("http://localhost:3000/api/semesters", {
+        const res = await fetch("https://commercial.aiclassroom.in/api/semesters", {
           method: "GET",
           headers: { "Content-Type": "application/json" },
         });
@@ -152,7 +152,7 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
         return;
       }
       try {
-        const res = await fetch("http://localhost:3000/api/batches", {
+        const res = await fetch("https://commercial.aiclassroom.in/api/batches", {
           method: "GET",
           headers: { "Content-Type": "application/json" },
         });
@@ -172,7 +172,7 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
   useEffect(() => {
     const fetchTeachers = async () => {
       try {
-        const res = await fetch("http://localhost:3000/api/teachers", {
+        const res = await fetch("https://commercial.aiclassroom.in/api/teachers", {
           method: "GET",
           headers: { "Content-Type": "application/json" },
         });
@@ -197,7 +197,7 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
         return;
       }
       try {
-        const res = await fetch("http://localhost:3000/api/courses", {
+        const res = await fetch("https://commercial.aiclassroom.in/api/courses", {
           method: "GET",
           headers: { "Content-Type": "application/json" },
         });
@@ -479,7 +479,7 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
                       return;
                     }
                     try {
-                      const res = await fetch("http://localhost:3000/api/semesters", {
+                      const res = await fetch("https://commercial.aiclassroom.in/api/semesters", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({
@@ -552,7 +552,7 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
                       return;
                     }
                     try {
-                      const res = await fetch("http://localhost:3000/api/batches", {
+                      const res = await fetch("https://commercial.aiclassroom.in/api/batches", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({
@@ -645,7 +645,7 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
                       return;
                     }
                     try {
-                      const res = await fetch("http://localhost:3000/api/courses", {
+                      const res = await fetch("https://commercial.aiclassroom.in/api/courses", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({
