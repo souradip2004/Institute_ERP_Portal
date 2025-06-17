@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import AddClass from "./AddClass";
 import ViewTeachers from "./ViewTeachersComponent";
 import AddStudent from "./AddStudent";
@@ -10,6 +10,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
 import CostManagementPage from "./CostManagement";
+import CreateAttendance from "./CreateAttendance";
 // Lucide Icons
 import {
   BookOpenCheck,
@@ -18,7 +19,9 @@ import {
   CalendarCheck2,
   Bell,
   Menu, // Added for mobile toggle
-  X,    // Added for mobile close
+  X, // Added for mobile close
+  RotateCw, // Icon for landscape mode
+  Monitor, // Icon for desktop mode
 } from "lucide-react";
 
 interface NavigatorProps {
@@ -28,25 +31,41 @@ interface NavigatorProps {
 
 const Navigator = ({ id, userId }: NavigatorProps) => {
   const [activeComponent, setActiveComponent] = useState<string>("Dashboard");
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true); // State for sidebar's open/close
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true); // Initial state: sidebar is open
   const [isMobileView, setIsMobileView] = useState(false); // State to track mobile view
+  const [showOrientationPopup, setShowOrientationPopup] = useState(false); // State for the popup
+  const hasShownPopup = useRef(false); // Ref to track if popup has been shown in current session
   const pathname = usePathname();
 
   useEffect(() => {
     // Client-side execution check
-    if (typeof window !== 'undefined') {
+    if (typeof window !== "undefined") {
       const checkMobile = () => window.innerWidth < 768; // Tailwind's 'md' breakpoint
-      setIsMobileView(checkMobile());
-      setIsSidebarOpen(!checkMobile()); // Set initial sidebar state: open on desktop, closed on mobile
+      const checkPortrait = () => window.innerHeight > window.innerWidth; // Check if in portrait mode
 
       const handleResize = () => {
-        setIsMobileView(checkMobile());
-        // Adjust sidebar state on resize: open for desktop, close for mobile
-        setIsSidebarOpen(!checkMobile());
+        const mobile = checkMobile();
+        const portrait = checkPortrait();
+
+        setIsMobileView(mobile);
+        // Do not automatically close sidebar for desktop; let the toggle control it
+        // setIsSidebarOpen(!mobile); // <-- REMOVE OR MODIFY THIS LINE
+
+        // Show popup only if on mobile, in portrait, and hasn't been shown yet
+        if (mobile && portrait && !hasShownPopup.current) {
+          setShowOrientationPopup(true);
+          hasShownPopup.current = true; // Mark as shown for this session
+        } else if (!mobile || !portrait) {
+          // Hide popup if not on mobile or not in portrait (e.g., landscape or desktop)
+          setShowOrientationPopup(false);
+        }
       };
 
-      window.addEventListener('resize', handleResize);
-      return () => window.removeEventListener('resize', handleResize);
+      // Set initial state
+      handleResize();
+
+      window.addEventListener("resize", handleResize);
+      return () => window.removeEventListener("resize", handleResize);
     }
   }, []);
 
@@ -79,6 +98,12 @@ const Navigator = ({ id, userId }: NavigatorProps) => {
             <CostManagementPage id={id} />
           </div>
         );
+      case "Attendance":
+        return (
+          <div className="space-y-6">
+            <CreateAttendance />
+          </div>
+        );
       default:
         return <div>Select an option from the sidebar</div>;
     }
@@ -89,26 +114,59 @@ const Navigator = ({ id, userId }: NavigatorProps) => {
     if (componentName) {
       setActiveComponent(componentName);
     }
-    if (isMobileView) {
+    // Only close sidebar on navigation if it's currently open AND it's mobile view
+    if (isMobileView && isSidebarOpen) {
       setIsSidebarOpen(false);
     }
   };
 
   const navItems = [
-    { name: "Teacher Management", component: "Dashboard", icon: <Users2 size={18} /> },
-    { name: "Class Management", component: "Teacher", icon: <BookOpenCheck size={18} /> },
-    { name: "Student Management", component: "Student", icon: <GraduationCap size={18} /> },
-    { name: "Attendance Management", href: "/a/create-attendance-session", icon: <CalendarCheck2 size={18} /> },
-    { name: "Cost Management", component: "CostManagement", icon: <Bell size={18} /> }
+    {
+      name: "Teacher Management",
+      component: "Dashboard",
+      icon: <Users2 size={18} />,
+    },
+    {
+      name: "Class Management",
+      component: "Teacher",
+      icon: <BookOpenCheck size={18} />,
+    },
+    {
+      name: "Student Management",
+      component: "Student",
+      icon: <GraduationCap size={18} />,
+    },
+    {
+      name: "Attendance Management",
+      component: "Attendance",
+      icon: <CalendarCheck2 size={18} />,
+    },
+    {
+      name: "Cost Management",
+      component: "CostManagement",
+      icon: <Bell size={18} />,
+    },
   ];
 
   return (
     <div className="flex h-screen bg-gray-50">
-      {/* Mobile Toggle Button (visible only on mobile) */}
+      {/* Mobile Toggle Button (visible only on mobile when sidebar is closed) */}
       {isMobileView && !isSidebarOpen && (
         <button
-          onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-          className="fixed top-4 left-4 z-[60] p-2 bg-blue-600 text-white rounded-md md:hidden" // Moved to right
+          onClick={() => setIsSidebarOpen(true)} // Open sidebar
+          className="fixed top-4 left-4 z-[60] p-2 bg-blue-600 text-white rounded-md md:hidden shadow-lg"
+        >
+          <Menu size={24} />
+        </button>
+      )}
+
+      {/* Desktop Toggle Button (visible only on desktop) */}
+      {!isMobileView && !isSidebarOpen && (
+        <button
+          onClick={() => setIsSidebarOpen(!isSidebarOpen)} // Toggle sidebar
+          className={`fixed top-4 z-[60] p-2 bg-blue-600 text-white rounded-md shadow-lg transition-all duration-300 ease-in-out ${
+            isSidebarOpen ? "left-68" : "left-4" // Position based on sidebar state
+          }`}
         >
           {!isSidebarOpen && <Menu size={24} />}
         </button>
@@ -117,32 +175,32 @@ const Navigator = ({ id, userId }: NavigatorProps) => {
       {/* Overlay for mobile when sidebar is open */}
       {isMobileView && isSidebarOpen && (
         <div
-          className="fixed inset-0 bg-black opacity-50 z-50 md:hidden" // z-index between toggle and sidebar
+          className="fixed inset-0 bg-black bg-opacity-50 z-50 md:hidden"
           onClick={() => setIsSidebarOpen(false)}
         ></div>
       )}
 
       {/* Sidebar */}
       <aside
-        className={`fixed top-0 left-0 h-full bg-white shadow-md border-r border-gray-200 z-[55] transition-transform duration-300 ease-in-out
-          ${isMobileView && !isSidebarOpen ? '-translate-x-full' : 'translate-x-0'}
-          ${isMobileView ? 'w-64' : 'w-64 md:translate-x-0'} `}
+        className={`fixed top-0 left-0 h-full bg-white shadow-xl border-r border-gray-200 z-[55] transition-transform duration-300 ease-in-out
+          ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}
+          w-64`}
       >
         <div className="p-5">
           {/* Logo */}
-          <div className="flex items-center mb-8">
+          <div className="flex items-center mb-8 justify-between">
             <Image
-              src="https://media-hosting.imagekit.io/ec92e4e35be64d63/navlogo.png?Expires=1840897655&Key-Pair-Id=K2ZIVPTIP2VGHC&Signature=l6NqfsMDqkEtJKGne9jQGByswyVWZVOrHU2GGaayrbu4NTBQuKV5FZ4c-II7yle67m~uWVboQmHUb3kogbqNjNUkwJpSK5md7ufqh-ru1VYWk88f8SjXjRfRFxxxMayQzi3Bnoc4iLtuaL25zHXMpKaZSnTPwgbykC9UK2ZVRvwMz6aUFc7eTfDXJoz1tITJ1C2SCfffvvc9Z~1g45cQd0Gl447yTrqqw~XEAl1ekj4Wrnf5sqq6dvFgYpdciK~QUYl8olW9UAea6ZKHRAw2W6sqM0cAjyzxDbHS4GrN7muT9zd5pvkPwbt~A50mkyWKN68FDikIyfwnrqp989YQyw__"
+              src="/logo.png"
               alt="Logo"
               width={160}
               height={40}
               className="object-contain"
             />
-            {/* Close button for mobile inside sidebar */}
-             {isMobileView && (
+            {/* Close button for mobile inside sidebar (or desktop if sidebar is open) */}
+            {isSidebarOpen && (
               <button
                 onClick={() => setIsSidebarOpen(false)}
-                className="ml-auto p-2 text-gray-500 hover:text-gray-700" // ml-auto pushes it to the right
+                className="p-2 text-gray-500 hover:text-gray-700 transition-colors duration-200 " // Only show on mobile within sidebar
               >
                 <X size={24} />
               </button>
@@ -156,27 +214,50 @@ const Navigator = ({ id, userId }: NavigatorProps) => {
                 ? pathname === item.href
                 : activeComponent === item.component;
 
-              const commonClasses = "flex items-center px-4 py-2 rounded-md transition-colors text-sm font-medium";
-              const activeClasses = "bg-gradient-to-r from-blue-500 to-purple-500 text-white";
-              const inactiveClasses = "text-gray-700 hover:bg-gray-100";
+              const commonClasses =
+                "flex items-center px-4 py-2 rounded-lg transition-all duration-300 text-sm font-medium group"; // Added group for hover effects
+              const activeClasses =
+                "bg-gradient-to-r from-blue-600 to-indigo-700 text-white shadow-md"; // Darker gradient, shadow
+              const inactiveClasses =
+                "text-gray-700 hover:bg-gray-100 hover:text-blue-600"; // Lighter hover
 
               return item.href ? (
                 <Link
                   key={item.name}
                   href={item.href}
-                  onClick={handleNavLinkClick} // Call to close sidebar
-                  className={`${commonClasses} ${isActive ? activeClasses : inactiveClasses}`}
+                  onClick={handleNavLinkClick}
+                  className={`${commonClasses} ${
+                    isActive ? activeClasses : inactiveClasses
+                  }`}
                 >
-                  <span className="mr-3">{item.icon}</span>
+                  <span
+                    className={`mr-3 ${
+                      isActive
+                        ? "text-white"
+                        : "text-gray-500 group-hover:text-blue-600"
+                    }`}
+                  >
+                    {item.icon}
+                  </span>
                   {item.name}
                 </Link>
               ) : (
                 <button
                   key={item.name}
-                  onClick={() => handleNavLinkClick(item.component)} // Call to close sidebar
-                  className={`${commonClasses} ${isActive ? activeClasses : inactiveClasses} w-full text-left`}
+                  onClick={() => handleNavLinkClick(item.component)}
+                  className={`${commonClasses} ${
+                    isActive ? activeClasses : inactiveClasses
+                  } w-full text-left`}
                 >
-                  <span className="mr-3">{item.icon}</span>
+                  <span
+                    className={`mr-3 ${
+                      isActive
+                        ? "text-white"
+                        : "text-gray-500 group-hover:text-blue-600"
+                    }`}
+                  >
+                    {item.icon}
+                  </span>
                   {item.name}
                 </button>
               );
@@ -188,13 +269,80 @@ const Navigator = ({ id, userId }: NavigatorProps) => {
       {/* Main Content */}
       <main
         className={`flex-1 p-6 overflow-y-auto transition-all duration-300 ease-in-out
-          ${isMobileView ? 'ml-0' : 'ml-64'} /* Desktop: ml-64; Mobile: ml-0 */
-          ${isMobileView && !isSidebarOpen ? 'pl-4 pr-4 pt-16' : ''} /* Mobile closed padding (adjust pt based on toggle button height) */
-          ${isMobileView && isSidebarOpen ? 'overflow-hidden max-h-screen' : ''} /* Prevent scrolling main content when sidebar is open */
+          ${isSidebarOpen ? "ml-64" : "ml-0"}
+          ${isMobileView && !isSidebarOpen ? "pl-4 pr-4 pt-16" : ""}
+          ${isMobileView && isSidebarOpen ? "overflow-hidden max-h-screen" : ""}
         `}
       >
         {renderComponent()}
       </main>
+
+      {/* --- Orientation Popup --- */}
+      {showOrientationPopup && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black bg-opacity-70 backdrop-blur-sm p-4">
+          <div className="relative bg-white rounded-xl shadow-2xl p-8 max-w-sm w-full text-center transform scale-100 animate-fade-in-up">
+            <button
+              onClick={() => setShowOrientationPopup(false)}
+              className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 transition-colors"
+              aria-label="Close message"
+            >
+              <X size={24} />
+            </button>
+
+            <div className="mb-6">
+              <div className="bg-gradient-to-r from-blue-100 to-indigo-100 p-4 rounded-full inline-flex justify-center items-center mb-4 shadow-md">
+                <RotateCw size={36} className="text-blue-600" />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-800 mb-2">
+                Optimal Viewing Experience
+              </h3>
+              <p className="text-gray-600 text-base leading-relaxed">
+                For the best experience, please rotate your device to{" "}
+                <span className="font-semibold text-blue-700">
+                  landscape mode
+                </span>{" "}
+                or use Desktop View.
+              </p>
+            </div>
+
+            <div className="flex justify-center items-center space-x-4 text-gray-500 text-sm">
+              <div className="flex flex-col items-center">
+                <RotateCw size={24} className="mb-1 text-gray-400" />
+                <span>Landscape</span>
+              </div>
+              <span>/</span>
+              <div className="flex flex-col items-center">
+                <Monitor size={24} className="mb-1 text-gray-400" />
+                <span>Desktop View</span>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setShowOrientationPopup(false)}
+              className="mt-6 w-full py-3 px-4 bg-blue-600 text-white rounded-lg shadow-lg hover:bg-blue-700 transition-colors font-semibold"
+            >
+              Got It!
+            </button>
+          </div>
+        </div>
+      )}
+
+      <style jsx>{`
+        /* Custom animation for the popup */
+        @keyframes fade-in-up {
+          from {
+            opacity: 0;
+            transform: translateY(20px) scale(0.95);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
+        }
+        .animate-fade-in-up {
+          animation: fade-in-up 0.3s ease-out forwards;
+        }
+      `}</style>
     </div>
   );
 };

@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react'; // Added useState, useEffect
+import { useState, useEffect, useCallback } from 'react'; // Added useCallback
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { LogoutButton } from '@/components/auth/logout-button';
@@ -17,31 +17,52 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 
-export default function Sidebar() {
+interface SidebarProps {
+  onSidebarToggle: (isOpen: boolean) => void; // Callback to inform parent of sidebar state
+}
+
+export default function Sidebar({ onSidebarToggle }: SidebarProps) {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(true); // Default to open for desktop, adjust based on initial screen size
   const [isMobile, setIsMobile] = useState(false); // State to track mobile view
+
+  // Memoize the callback to prevent unnecessary re-renders in parent
+  const memoizedOnSidebarToggle = useCallback(
+    (openStatus: boolean) => {
+      onSidebarToggle(openStatus);
+    },
+    [onSidebarToggle]
+  );
 
   useEffect(() => {
     // Client-side execution check
     if (typeof window !== 'undefined') {
       // Determine initial screen size
       const checkMobile = () => window.innerWidth < 768; // Tailwind's 'md' breakpoint
-      setIsMobile(checkMobile());
-      setIsOpen(!checkMobile()); // If mobile, start closed; if desktop, start open
+      const initialIsMobile = checkMobile(); // Get initial mobile status
+      setIsMobile(initialIsMobile);
+      setIsOpen(!initialIsMobile); // If mobile, start closed; if desktop, start open
+      memoizedOnSidebarToggle(!initialIsMobile); // Inform parent about initial state
 
       // Add event listener for window resize
       const handleResize = () => {
-        setIsMobile(checkMobile());
+        const currentIsMobile = checkMobile();
+        setIsMobile(currentIsMobile);
         // If transitioning from mobile to desktop, open sidebar
         // If transitioning from desktop to mobile, close sidebar
-        setIsOpen(!checkMobile());
+        setIsOpen(!currentIsMobile);
+        memoizedOnSidebarToggle(!currentIsMobile); // Inform parent
       };
 
       window.addEventListener('resize', handleResize);
       return () => window.removeEventListener('resize', handleResize);
     }
-  }, []);
+  }, [memoizedOnSidebarToggle]); // Add memoized callback to dependency array
+
+  // Effect to inform parent whenever isOpen changes (for user-initiated toggles)
+  useEffect(() => {
+    memoizedOnSidebarToggle(isOpen);
+  }, [isOpen, memoizedOnSidebarToggle]);
 
   const handleNavLinkClick = () => {
     if (isMobile) {
@@ -66,8 +87,21 @@ export default function Sidebar() {
         <button
           onClick={() => setIsOpen(!isOpen)}
           className="fixed top-4 left-4 z-50 p-2 bg-blue-600 text-white rounded-md md:hidden" // md:hidden hides it on desktop
+          aria-label={isOpen ? "Close sidebar" : "Open sidebar"}
         >
           {isOpen ? <X size={24} /> : <Menu size={24} />}
+        </button>
+      )}
+
+      {/* Desktop Toggle Button (outside the sidebar) */}
+      {!isMobile && !isOpen && ( // Show on desktop regardless of isOpen state to allow opening
+        <button
+          onClick={() => setIsOpen(!isOpen)}
+          className={`fixed top-4 p-2 bg-blue-600 text-white rounded-md shadow-lg z-50 transition-all duration-300 ease-in-out
+            ${isOpen ? 'left-68' : 'left-4'}`} /* Adjust left position based on sidebar state */
+          aria-label={isOpen ? "Collapse sidebar" : "Expand sidebar"}
+        >
+          {!isOpen && <Menu size={24} />}
         </button>
       )}
 
@@ -76,62 +110,63 @@ export default function Sidebar() {
         <div
           className="fixed inset-0 bg-black opacity-50 z-40 md:hidden" // z-index between toggle and sidebar
           onClick={() => setIsOpen(false)}
+          aria-hidden="true"
         ></div>
       )}
 
       <aside
         className={`fixed top-0 left-0 h-screen bg-white border-r border-gray-200 z-50 transition-transform duration-300 ease-in-out
           ${isOpen ? 'translate-x-0' : '-translate-x-full'} /* Controls slide in/out */
-          ${isMobile ? 'w-64' : 'w-64 md:translate-x-0'} `} /* Mobile: w-64, Desktop: w-64 and always visible */
+          w-64`} /* Removed md:translate-x-0 from here */
       >
-        <div className="p-4">
+        <div className="p-4 flex flex-col h-full"> {/* Added flex-col and h-full for layout */}
           {/* Logo Section */}
-          <div className="mb-8 flex items-center">
+          <div className="mb-8 flex items-center justify-between"> {/* Added justify-between */}
             <Image
-              src="https://media-hosting.imagekit.io/ec92e4e35be64d63/navlogo.png?Expires=1840897655&Key-Pair-Id=K2ZIVPTIP2VGHC&Signature=l6NqfsMDqkEtJKGne9jQGByswyVWZVOrHU2GGaayrbu4NTBQuKV5FZ4c-II7yle67m~uWVboQmHUb3kogbqNjNUkwJpSK5md7ufqh-ru1VYWk88f8SjXjRfRFxxxMayQzi3Bnoc4iLtuaL25zHXMpKaZSnTPwgbykC9UK2ZVRvwMz6aUFc7eTfDXJoz1tITJ1C2SCfffvvc9Z~1g45cQd0Gl447yTrqqw~XEAl1ekj4Wrnf5sqq6dvFgYpdciK~QUYl8olW9UAea6ZKHRAw2W6sqM0cAjyzxDbHS4GrN7muT9zd5pvkPwbt~A50mkyWKN68FDikIyfwnrqp989YQyw__"
+              src="/logo.png"
               alt="Logo"
               width={160}
               height={40}
               className="object-contain"
             />
-            {/* Close button for mobile inside sidebar */}
-            {isMobile && (
+            {/* Close button inside sidebar (visible when sidebar is open) */}
+            {isOpen && ( // The close button inside the sidebar should always be visible when the sidebar is open
               <button
                 onClick={() => setIsOpen(false)}
-                className="ml-auto p-2 text-gray-500 hover:text-gray-700"
+                className="p-2 text-gray-500 hover:text-gray-700"
+                aria-label="Close sidebar"
               >
                 <X size={24} />
               </button>
             )}
           </div>
 
-          <nav className="space-y-1">
+          {/* Navigation - now scrollable if content overflows */}
+          <nav className="space-y-1 flex-1 overflow-y-auto pr-2"> {/* Added flex-1 and overflow-y-auto */}
             {menuItems.map((item) => {
               const isActive = pathname === item.href || (pathname?.startsWith(item.href + '/'));
 
+              const commonClasses = "flex items-center px-4 py-3 text-base rounded-md transition-colors group"; // Added group for hover effects
+              const activeClasses = "bg-blue-50 text-blue-700 font-medium";
+              const inactiveClasses = "text-gray-700 hover:bg-gray-100";
+
               return (
-                <Link key={item.title} href={item.href as any} onClick={handleNavLinkClick}> {/* Added onClick */}
-                  <div
-                    className={`flex items-center px-4 py-3 text-base rounded-md transition-colors ${
-                      isActive
-                        ? 'bg-blue-50 text-blue-700 font-medium'
-                        : 'text-gray-700 hover:bg-gray-100'
-                    }`}
-                  >
-                    <span className="mr-3">{item.icon}</span>
-                    <span>{item.title}</span>
-                  </div>
+                <Link key={item.title} href={item.href as any} onClick={handleNavLinkClick}
+                  className={`${commonClasses} ${isActive ? activeClasses : inactiveClasses}`}
+                >
+                  <span className={`mr-3 ${isActive ? 'text-blue-700' : 'text-gray-500 group-hover:text-blue-700'}`}>{item.icon}</span>
+                  <span>{item.title}</span>
                 </Link>
               );
             })}
           </nav>
-        </div>
 
-        {/* Logout Section */}
-        <div className="absolute bottom-0 w-full p-4 border-t border-gray-200">
-          <div className="flex items-center">
-            <LogOut size={18} className="mr-3 text-gray-700" />
-            <LogoutButton className="text-gray-700 w-fit text-left" />
+          {/* Logout Section - now sticky at the bottom */}
+          <div className="mt-auto p-4 border-t border-gray-200 sticky bottom-0 bg-white z-10"> {/* Added sticky, bottom-0, bg-white, z-10 */}
+            <div className="flex items-center">
+              <LogOut size={18} className="mr-3 text-gray-700" />
+              <LogoutButton className="text-gray-700 w-fit text-left" />
+            </div>
           </div>
         </div>
       </aside>

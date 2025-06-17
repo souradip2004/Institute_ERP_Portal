@@ -5,7 +5,7 @@ export function createApolloClient() {
   return new ApolloClient({
     ssrMode: typeof window === 'undefined', 
     link: new HttpLink({
-      uri: "https://commercial.aiclassroom.in/apollo", 
+      uri: "http://localhost:3000/apollo", 
       fetch,
     }),
     cache: new InMemoryCache(),

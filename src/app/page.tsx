@@ -58,7 +58,7 @@ export default function LandingPage() {
       <header className="bg-white shadow">
         <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
           <Image
-            src="https://media-hosting.imagekit.io/ec92e4e35be64d63/navlogo.png?Expires=1840897655&Key-Pair-Id=K2ZIVPTIP2VGHC&Signature=l6NqfsMDqkEtJKGne9jQGByswyVWZVOrHU2GGaayrbu4NTBQuKV5FZ4c-II7yle67m~uWVboQmHUb3kogbqNjNUkwJpSK5md7ufqh-ru1VYWk88f8SjXjRfRFxxxMayQzi3Bnoc4iLtuaL25zHXMpKaZSnTPwgbykC9UK2ZVRvwMz6aUFc7eTfDXJoz1tITJ1C2SCfffvvc9Z~1g45cQd0Gl447yTrqqw~XEAl1ekj4Wrnf5sqq6dvFgYpdciK~QUYl8olW9UAea6ZKHRAw2W6sqM0cAjyzxDbHS4GrN7muT9zd5pvkPwbt~A50mkyWKN68FDikIyfwnrqp989YQyw__"
+            src="/logo.png"
             alt="Logo"
             width={160}
             height={40}
@@ -120,7 +120,7 @@ export default function LandingPage() {
           </div>
           <div className="lg:w-1/2">
             <Image
-              src="https://media-hosting.imagekit.io/5e8f7d1729b0425e/mainscreen.png?Expires=1840897655&Key-Pair-Id=K2ZIVPTIP2VGHC&Signature=s5iukeyAhMutNy5ZnLyf3C3E4IE60hh-QhXim6DCPdjKNN7-gweDpmDN~NiD8mDglGPMDTNoQJHnUYFmRED9zw4zOEbvg6KVxkkY2IG214T3zWvmMXDTffghtpPfLIj6895-f70EkDLrhzuw~tr5E7uaZ1VXWrtz1nmPOyzj4aV90eB~lSQ2r4NB4aEfymRPFuxTxprxfBvENWrcPdWcTdx7Gmqr69yfRP32P3KxDAWhLOzMKT2OqwTbeMLNfdD7inPcB521HgN2q-idBaFeNSd1OgFfC8Ff8PHG0E-OyXsWjcRC4bO37fAPFCYGCtp1qP0Y4a3fgcCxOMf-tuUcJA__"
+              src="/mainscreen.png"
               alt="AI Classroom Illustration"
               width={500}
               height={500}
@@ -131,51 +131,74 @@ export default function LandingPage() {
       </section>
 
       {/* Features Carousel */}
-      <section className="bg-gray-50 py-20">
-        <div className="text-center mb-12 px-4">
-          <h2 className="text-4xl font-bold">
-            Experience the Ease of Teaching with <span className="text-purple-900">AI Classroom</span>
+  <section className="bg-gradient-to-b from-gray-50 to-white py-20 lg:py-24 overflow-hidden">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="text-center mb-16">
+          <h2 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-gray-900 leading-tight tracking-tight">
+            Experience the <span className="text-indigo-600">Ease of Teaching</span> with <br /> <span className="text-indigo-800">AI Classroom</span>
           </h2>
+          <p className="mt-4 text-lg text-gray-600 max-w-2xl mx-auto">
+            Revolutionize your teaching methods with our intuitive AI-powered platform designed to simplify your workflow and enhance student engagement.
+          </p>
         </div>
+
         <Swiper
           modules={[Navigation, Pagination, Autoplay, EffectCoverflow]}
-          spaceBetween={30}
+          spaceBetween={40} // Increased space between slides
           slidesPerView={1}
           centeredSlides
           loop
-          navigation
-          pagination={{ clickable: true }}
-          autoplay={{ delay: 3000 }}
+          navigation={{
+            nextEl: '.swiper-button-next-custom',
+            prevEl: '.swiper-button-prev-custom',
+          }}
+          pagination={{ clickable: true, el: '.swiper-pagination-custom' }}
+          autoplay={{ delay: 3500, disableOnInteraction: false }} // Slightly longer delay, don't stop on interaction
           effect="coverflow"
           coverflowEffect={{
             rotate: 0,
             stretch: 0,
             depth: 100,
             modifier: 1,
-            slideShadows: false,
+            slideShadows: false, // Keep shadows off for a cleaner look
           }}
           breakpoints={{
-            640: { slidesPerView: 2 },
-            1024: { slidesPerView: 3 },
+            640: { slidesPerView: 2, spaceBetween: 30 },
+            1024: { slidesPerView: 3, spaceBetween: 40 },
           }}
-          className="px-6"
+          className="relative pb-16 pt-8" // Added padding for pagination dots and custom arrows
         >
           {features.map((feature, index) => (
             <SwiperSlide key={index}>
-           <div className="bg-white/70 backdrop-blur-md border border-blue-100 rounded-2xl p-6 shadow-md hover:shadow-xl transition duration-300 min-h-[300px] flex flex-col items-center text-center">
-  <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4 overflow-hidden">
-    <img src={feature.icon} alt={feature.title} className="w-full h-full object-contain" />
-  </div>
-  <h3 className="text-lg font-semibold text-blue-700 mb-2">
-    {feature.title}
-  </h3>
-  <p className="text-gray-500 text-sm">{feature.description}</p>
-</div>
-
+              <div className="bg-white rounded-3xl p-8 shadow-lg hover:shadow-xl transition-all duration-500 ease-in-out transform hover:-translate-y-2 min-h-[320px] flex flex-col items-center text-center border border-gray-100">
+                <div className="w-20 h-20 bg-indigo-50 rounded-full flex items-center justify-center mb-6 shadow-md p-2">
+                  <img src={feature.icon} alt={feature.title} className="w-full h-full object-cover rounded-full" style={{ width: '100%', height: '100%' }} />
+                </div>
+                <h3 className="text-xl font-bold text-indigo-700 mb-3">
+                  {feature.title}
+                </h3>
+                <p className="text-gray-600 text-base leading-relaxed">{feature.description}</p>
+              </div>
             </SwiperSlide>
           ))}
+
+          {/* Custom Navigation Arrows */}
+          <div className="swiper-button-prev-custom absolute left-4 top-1/2 -translate-y-1/2 z-10 cursor-pointer bg-white rounded-full p-3 shadow-md hover:bg-gray-100 transition-colors duration-300 hidden md:block">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+            </svg>
+          </div>
+          <div className="swiper-button-next-custom absolute right-4 top-1/2 -translate-y-1/2 z-10 cursor-pointer bg-white rounded-full p-3 shadow-md hover:bg-gray-100 transition-colors duration-300 hidden md:block">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+            </svg>
+          </div>
+
+          {/* Custom Pagination Dots */}
+          <div className="swiper-pagination-custom mt-8 flex justify-center space-x-2 absolute bottom-4 left-0 right-0"></div>
         </Swiper>
-      </section>
+      </div>
+    </section>
 
       {/* Footer */}
       <footer className="bg-white border-t mt-12">
