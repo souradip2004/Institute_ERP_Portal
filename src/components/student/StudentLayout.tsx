@@ -65,7 +65,7 @@ export default function StudentLayout({ children }: StudentLayoutProps) {
 
         <div
           className={`flex-1 transition-all duration-300 ease-in-out ${
-            isSidebarOpen ? 'ml-64' : 'ml-0'
+            isSidebarOpen ? isMobileView?'ml-0':'ml-64' : 'ml-0'
           }`}
         >
           <main className="w-full p-6"> {/* Added p-6 for consistent padding */}

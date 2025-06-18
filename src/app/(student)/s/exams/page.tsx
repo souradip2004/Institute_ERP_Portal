@@ -38,6 +38,9 @@ interface Exam {
   classSection?: ClassSection;
   duration?: string;
   subject?: string;
+  createdAt?: string | Date; // Added for past exams
+  obtainedMarks?: string | number; // Added for past exams
+  classSectionId?: string; // Added to filter active exams
 }
 
 export default function ExamsPage() {
@@ -49,7 +52,7 @@ export default function ExamsPage() {
   const [selectedExam, setSelectedExam] = useState<Exam | null>(null);
   const [showExamModal, setShowExamModal] = useState(false);
   const [examInProgress, setExamInProgress] = useState(false);
-  const [classSection,setClassSections]=useState([]);
+  const [classSection,setClassSections]=useState<string[]>([]); // Explicitly type as string array
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [currentAnswer, setCurrentAnswer] = useState('');
   const [answers, setAnswers] = useState<{ [key: string]: string }>({});
@@ -83,14 +86,14 @@ export default function ExamsPage() {
               }
 const classes=await classdetails.json();
 const classenrollments=classes?.classEnrollments
-const classd=[]
+const classd: string[] = []; // Explicitly type as string array
 for(let i=0;i<classenrollments.length;i++){
   classd.push(classenrollments[i].classSectionId)
 }
 setClassSections(classd)
         setStudentData(userData);
         // Fetch exams
-        await fetchExams(userData.studentId || userData.id, undefined);
+        await fetchExams(userData.studentId || userData.id);
       } catch (error) {
         console.error("Error fetching user data:", error);
         setError("Failed to load user data. Please refresh the page.");
@@ -101,22 +104,12 @@ setClassSections(classd)
     fetchUserData();
   }, []);
 
-  const fetchExams = async (studentId: string, classSectionId?: string) => {
+  const fetchExams = async (studentId: string) => { // Removed classSectionId from here, as it's handled by classSection state
     try {
       setLoading(true);
 
-      let url = `/api/exams?studentId=${studentId}`;
-
-      // If classSectionId is provided, use the new API endpoint
-      if (classSectionId) {
-        url = `/api/exams/my-exams?classSectionId=${classSectionId}&studentID=${studentId}`;
-        console.log(`Fetching exams for class section: ${classSectionId}`);
-      } else {
-        console.warn('No classSectionId found, falling back to all exams');
-      }
-
-      // Fetch from the backend API
-      const response = await fetch(url);
+      // Fetch from the backend API, assuming the API handles filtering based on studentId and potentially classSection
+      const response = await fetch(`/api/exams?studentId=${studentId}`);
 
       if (!response.ok) {
         throw new Error('Failed to fetch exams');
@@ -158,6 +151,7 @@ setClassSections(classd)
           startTime: exam.startTime,
           status: exam.status,
           score: exam.score,
+          classSectionId: exam.classSection?.id || null, // Capture classSectionId
           // Keep original fields for debugging
           ...exam
         };
@@ -171,42 +165,31 @@ setClassSections(classd)
 
       // Filter exams by status to get active and past exams - accept more possible status values
       const active = mappedExams.filter((exam: any) =>
-        exam.status === 'UPCOMING' ||
-        exam.status === 'ONGOING' ||
-        exam.status === 'DRAFT' ||
-        exam.status === 'IN_PROGRESS' ||
-        exam.status === 'SCHEDULED'
+        ['UPCOMING', 'ONGOING', 'DRAFT', 'IN_PROGRESS', 'SCHEDULED'].includes(exam.status)
       );
 
-      const past = mappedExams.filter((exam: any) =>
-        exam.status === 'COMPLETED' ||
-        exam.status === 'CLOSED' ||
-        exam.status === 'GRADED' ||
-        exam.status === 'ARCHIVED' ||
-        exam.status === 'PENDING'
-      );
-      const passt=await fetch(
-        `/api/exam-submissions/student/${studentId}`
-        ,{
-          method:"GET",
+      // Fetch past exams from submissions
+      const pastResponse = await fetch(`/api/exam-submissions/student/${studentId}`, {
+          method: "GET",
           headers: {
-          'Content-Type': 'application/json',
-        },
-        }
-      )
-      if(passt.ok)
-      {
-        const pass2=await passt.json();
-        setPastExams(pass2)
+            'Content-Type': 'application/json',
+          },
+      });
+
+      if (pastResponse.ok) {
+        const pastSubmissions = await pastResponse.json();
+        setPastExams(pastSubmissions);
+      } else {
+        console.warn('Failed to fetch past exam submissions.');
+        setPastExams([]);
       }
 
       console.log('Active exams after filtering:', active);
-      console.log('Past exams after filtering:', past);
+      console.log('Past exams (from submissions):', pastExams);
       setActiveExams(active);
       setLoading(false);
     } catch (err) {
       console.error('Error fetching exams:', err);
-      // If error, set empty arrays instead of mock data
       setActiveExams([]);
       setPastExams([]);
       setLoading(false);
@@ -404,7 +387,7 @@ setClassSections(classd)
 
   if (error) {
     return (
-      <div className="p-8">
+      <div className="p-4 sm:p-8"> {/* Adjusted padding for mobile */}
         <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6" role="alert">
           <p className="font-bold">Error</p>
           <p>{error}</p>
@@ -413,247 +396,226 @@ setClassSections(classd)
     );
   }
 
-  return (
-    <div className="p-8">
-      <div className="mb-8">
-        <div className="flex items-center">
-          <h2 className="text-2xl font-semibold">My Exams</h2>
-          {debugMode && (
-            <button
-              onClick={() => setDebugMode(false)}
-              className="ml-auto text-sm text-indigo-600 hover:text-indigo-800"
-            >
-              Hide Debug
-            </button>
-          )}
-          {!debugMode && process.env.NODE_ENV === 'development' && (
-            <button
-              onClick={() => setDebugMode(true)}
-              className="ml-auto text-sm text-gray-500 hover:text-gray-700"
-            >
-              Debug
-            </button>
-          )}
-        </div>
+ return (
+  <div className="p-4 sm:p-6 min-w-0 w-full">
+    {/* Header */}
+    <div className="mb-8">
+      <div className="flex items-center flex-wrap gap-2">
+        <h2 className="text-2xl font-semibold">My Exams</h2>
+        {debugMode && (
+          <button
+            onClick={() => setDebugMode(false)}
+            className="ml-auto text-sm text-indigo-600 hover:text-indigo-800"
+          >
+            Hide Debug
+          </button>
+        )}
+        {!debugMode && process.env.NODE_ENV === 'development' && (
+          <button
+            onClick={() => setDebugMode(true)}
+            className="ml-auto text-sm text-gray-500 hover:text-gray-700"
+          >
+            Debug
+          </button>
+        )}
       </div>
+    </div>
 
-      {error && (
-        <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6" role="alert">
-          <p className="font-bold">Error</p>
-          <p>{error}</p>
-        </div>
-      )}
+    {/* Error Box */}
+    {error && (
+      <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded">
+        <p className="font-bold">Error</p>
+        <p>{error}</p>
+      </div>
+    )}
 
-      {debugMode && (
-        <div className="bg-white p-4 rounded-lg shadow mb-4 overflow-auto max-h-60">
-          <h3 className="font-semibold mb-2">Raw Exam Data:</h3>
-          <pre className="text-xs">{JSON.stringify(rawExamData, null, 2)}</pre>
-        </div>
-      )}
+    {/* Debug Mode */}
+    {debugMode && (
+      <div className="bg-white p-4 rounded-lg shadow mb-4 overflow-auto max-h-60 text-xs">
+        <h3 className="font-semibold mb-2">Raw Exam Data:</h3>
+        <pre>{JSON.stringify(rawExamData, null, 2)}</pre>
+      </div>
+    )}
 
-      {/* Active Exams */}
-      <section className="mb-8">
-        <h3 className="text-xl font-semibold mb-4">Active Exams</h3>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {activeExams
-            .filter(exam => classSection.includes(exam.classSectionId))
-            .map(exam => (
-            <div key={exam.id} className="bg-white rounded-lg shadow overflow-hidden border border-gray-100">
+    {/* Active Exams */}
+    <section className="mb-6">
+      <h3 className="text-xl font-semibold mb-4">Active Exams</h3>
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+        {activeExams
+          .filter(exam => exam.classSectionId && classSection.includes(exam.classSectionId))
+          .map(exam => (
+            <div key={exam.id} className="bg-white rounded-lg shadow border border-gray-100 flex flex-col">
               <div className="bg-indigo-50 p-4 border-b border-indigo-100">
-                <h4 className="font-semibold text-indigo-800">{exam.title}</h4>
-                {/* <p className="text-indigo-600 text-sm">{exam.subject || 'N/A'}</p> */}
+                <h4 className="font-semibold text-indigo-800 text-base md:text-lg break-words">
+                  <span className="block w-full min-w-0">{exam.title}</span>
+                </h4>
               </div>
-              <div className="p-4">
-                <div className="flex justify-between mb-2">
-                  <span className="text-gray-600 text-sm">Duration:</span>
-                  <span className="text-gray-800 font-medium">{exam.duration || 'N/A'}</span>
-                </div>
-                <div className="flex justify-between mb-4">
-                  <span className="text-gray-600 text-sm">Starts:</span>
-                  <span className="text-gray-800 font-medium">
-                    {new Date(exam.startTime).toLocaleString(undefined, {
-                      month: 'short',
-                      day: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit'
-                    })}
-                  </span>
+              <div className="p-4 flex-1 flex flex-col justify-between">
+                <div>
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-gray-600 text-sm">Duration:</span>
+                    <span className="text-gray-800 font-medium break-words">{exam.duration || 'N/A'}</span>
+                  </div>
+                  <div className="flex justify-between items-center mb-4">
+                    <span className="text-gray-600 text-sm">Starts:</span>
+                    <span className="text-gray-800 font-medium text-right break-words">
+                      {new Date(exam.startTime).toLocaleString(undefined, {
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </span>
+                  </div>
                 </div>
                 <button
                   onClick={() => startExam(exam)}
-                  className="w-full bg-indigo-600 text-white py-2 rounded-md hover:bg-indigo-700 transition-colors"
+                  className="w-full bg-indigo-600 text-white py-2 rounded-md hover:bg-indigo-700 transition-colors mt-2"
                 >
                   Start Exam
                 </button>
               </div>
             </div>
           ))}
-          {activeExams.length === 0 && (
-            <div className="col-span-full bg-white p-8 rounded-lg shadow-sm text-center">
-              <div className="text-gray-400 text-5xl mb-4">📝</div>
-              <h4 className="text-xl font-medium text-gray-700 mb-2">No Active Exams</h4>
-              <p className="text-gray-500">No upcoming or ongoing exams found at the moment.</p>
+        {activeExams.filter(exam => exam.classSectionId && classSection.includes(exam.classSectionId)).length === 0 && (
+          <div className="col-span-full bg-white p-8 rounded-lg shadow-sm text-center">
+            <div className="text-gray-400 text-5xl mb-4">📝</div>
+            <h4 className="text-xl font-medium text-gray-700 mb-2">No Active Exams</h4>
+            <p className="text-gray-500">No upcoming or ongoing exams found at the moment.</p>
+          </div>
+        )}
+      </div>
+    </section>
+
+    {/* Past Exams */}
+    <section>
+      <h3 className="text-xl font-semibold mb-4">Past Exams</h3>
+      <div className="bg-white rounded-lg shadow overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200 text-sm">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase">Exam Title</th>
+                <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase">Date Taken</th>
+                <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase">Score</th>
+                <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase">Status</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {pastExams.map(exam => (
+                <tr key={exam.id} className="hover:bg-gray-50">
+                  <td className="px-4 py-3 whitespace-nowrap">{exam.title || exam.exam.title}</td>
+                  <td className="px-4 py-3 whitespace-nowrap">
+                    {new Date(exam.examDate || exam.createdAt).toLocaleDateString(undefined, {
+                      year: 'numeric',
+                      month: 'short',
+                      day: 'numeric'
+                    })}
+                  </td>
+                  <td className="px-4 py-3 whitespace-nowrap text-indigo-700 font-semibold">
+                    {exam.score || exam.obtainedMarks}/100
+                  </td>
+                  <td className="px-4 py-3 whitespace-nowrap">
+                    <span className={`px-2 py-1 inline-flex text-xs font-semibold rounded-full ${
+                      exam.status === 'COMPLETED' || exam.status === 'GRADED'
+                        ? 'bg-green-100 text-green-800'
+                        : 'bg-gray-100 text-gray-800'
+                    }`}>
+                      {exam.status}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+              {pastExams.length === 0 && (
+                <tr>
+                  <td colSpan={4} className="px-4 py-10 text-center text-gray-500">
+                    No past exams found
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    {/* Modal */}
+    {showExamModal && selectedExam && (
+      <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-xl">
+          {!examCompleted ? (
+            <>
+              <div className="bg-indigo-600 text-white p-4 rounded-t-lg">
+                <div className="flex justify-between items-center flex-wrap gap-2">
+                  <h2 className="text-xl font-semibold">{selectedExam.title}</h2>
+                  <div className="text-lg font-mono">
+                    {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-6">
+                <div className="flex justify-between items-center mb-4 flex-wrap gap-2">
+                  <div className="text-sm text-gray-600">
+                    Question {currentQuestionIndex + 1} of {selectedExam.questions.length}
+                  </div>
+                  <div className="bg-indigo-100 px-3 py-1 rounded-full text-xs text-indigo-800 font-medium">
+                    {selectedExam.questions[currentQuestionIndex].marks} Points
+                  </div>
+                </div>
+
+                <div className="border border-gray-200 rounded-lg p-4 bg-gray-50 mb-4">
+                  <p className="text-gray-800 font-medium mb-6">
+                    {selectedExam.questions[currentQuestionIndex].questionText}
+                  </p>
+                  <textarea
+                    className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+                    rows={6}
+                    value={currentAnswer}
+                    onChange={(e) => setCurrentAnswer(e.target.value)}
+                    placeholder="Write your answer here..."
+                  />
+                </div>
+
+                <div className="flex justify-between mt-6 flex-wrap gap-2">
+                  <button
+                    onClick={() => setCurrentQuestionIndex(prev => Math.max(0, prev - 1))}
+                    disabled={currentQuestionIndex === 0}
+                    className="px-4 py-2 border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
+                  >
+                    Previous
+                  </button>
+                  <button
+                    onClick={submitAnswer}
+                    className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors"
+                  >
+                    {currentQuestionIndex === selectedExam.questions.length - 1 ? 'Submit Exam' : 'Next Question'}
+                  </button>
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="text-center p-10">
+              <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <h2 className="text-2xl font-bold text-gray-800 mb-4">Exam Completed!</h2>
+              <div className="text-5xl font-bold text-indigo-600 mb-6">{finalScore}/100</div>
+              <p className="text-gray-600 mb-8 max-w-md mx-auto">
+                Congratulations on completing your exam. Your answers have been submitted successfully.
+              </p>
+              <button
+                onClick={closeExam}
+                className="px-6 py-3 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors"
+              >
+                Return to Exams
+              </button>
             </div>
           )}
         </div>
-      </section>
-
-      {/* Past Exams */}
-      <section>
-        <h3 className="text-xl font-semibold mb-4">Past Exams</h3>
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead>
-                <tr className="bg-gray-50">
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Exam Title
-                  </th>
-                  {/* <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Subject
-                    </th> */}
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Date Taken
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Score
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {pastExams.map(exam => (
-                  <tr key={exam.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">{exam.title||exam.exam.title}</div>
-                    </td>
-                    {/* <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-700">{exam.subject || 'N/A'}</div>
-                    </td> */}
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-700">
-                     {new Date(exam.examDate || exam.createdAt).toLocaleDateString(undefined, {
-  year: 'numeric',
-  month: 'short',
-  day: 'numeric'
-})
-
-                        
-                        }
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-semibold text-indigo-700">
-                        {exam.score || exam.obtainedMarks}/100
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${exam.status === 'COMPLETED' || exam.status === 'GRADED'
-                        ? 'bg-green-100 text-green-800'
-                        : 'bg-gray-100 text-gray-800'
-                        }`}>
-                        {exam.status}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-                {pastExams.length === 0 && (
-                  <tr>
-                    <td colSpan={5} className="px-6 py-10 text-center text-gray-500">
-                      No past exams found
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </section>
-
-      {/* Exam Modal */}
-      {showExamModal && selectedExam && (
-        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-xl">
-            {!examCompleted ? (
-              <>
-                <div className="bg-indigo-600 text-white p-4 rounded-t-lg">
-                  <div className="flex justify-between items-center">
-                    <h2 className="text-xl font-semibold">{selectedExam.title}</h2>
-                    <div className="text-lg font-mono">
-                      {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
-                    </div>
-                  </div>
-                </div>
-
-                {selectedExam.questions && selectedExam.questions.length > 0 && (
-                  <div className="p-6">
-                    <div className="flex justify-between items-center mb-4">
-                      <div className="text-sm text-gray-600">
-                        Question {currentQuestionIndex + 1} of {selectedExam.questions.length}
-                      </div>
-                      <div className="bg-indigo-100 px-3 py-1 rounded-full text-xs text-indigo-800 font-medium">
-                        {selectedExam.questions[currentQuestionIndex].marks} Points
-                      </div>
-                    </div>
-
-                    <div className="border border-gray-200 rounded-lg p-6 bg-gray-50 mb-4">
-                      <p className="text-gray-800 font-medium mb-6">
-                        {selectedExam.questions[currentQuestionIndex].questionText}
-                      </p>
-                      <textarea
-                        className="w-full p-4 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
-                        rows={6}
-                        value={currentAnswer}
-                        onChange={(e) => setCurrentAnswer(e.target.value)}
-                        placeholder="Write your answer here..."
-                      />
-                    </div>
-
-                    <div className="flex justify-between mt-6">
-                      <button
-                        onClick={() => setCurrentQuestionIndex(prev => Math.max(0, prev - 1))}
-                        disabled={currentQuestionIndex === 0}
-                        className="px-6 py-2 border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
-                      >
-                        Previous
-                      </button>
-                      <button
-                        onClick={submitAnswer}
-                        className="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors"
-                      >
-                        {currentQuestionIndex === selectedExam.questions.length - 1 ? 'Submit Exam' : 'Next Question'}
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </>
-            ) : (
-              <div className="text-center p-10">
-                <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                </div>
-                <h2 className="text-2xl font-bold text-gray-800 mb-4">Exam Completed!</h2>
-                <div className="text-5xl font-bold text-indigo-600 mb-6">
-                  {finalScore}/100
-                </div>
-                <p className="text-gray-600 mb-8 max-w-md mx-auto">
-                  Congratulations on completing your exam. Your answers have been submitted successfully.
-                </p>
-                <button
-                  onClick={closeExam}
-                  className="px-6 py-3 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors"
-                >
-                  Return to Exams
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
+      </div>
+    )}
+  </div>
+)}

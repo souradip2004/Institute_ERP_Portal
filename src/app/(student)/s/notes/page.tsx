@@ -1,18 +1,17 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, Suspense } from 'react';
 import NotesLibrary from '@/components/notes/NotesLibrary';
 import { redirect } from 'next/navigation';
 import VideoPlayerModal from '@/components/notes/NotesViewer/modal';
 import Loader from '@/components/ui/Loader';
-
 
 export default function StudentNotesPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [studentData, setStudentData] = useState<any>(null);
     const [error, setError] = useState<string | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [modalContent, setModalContent] = useState<React.ReactNode | null>(null);
+    const [modalContent, setModal] = useState<React.ReactNode | null>(null);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -26,17 +25,17 @@ export default function StudentNotesPage() {
                 const user = JSON.parse(userData);
                 if (user.role !== 'STUDENT') {
                     setError('Access denied. Student account required.');
+                    setIsLoading(false);
                     return;
                 }
 
                 const response = await fetch(`/api/students/${user.studentId}?includeClassSection=true`);
-                if (!response.ok) throw Error('Failed to fetch student data');
+                if (!response.ok) throw new Error('Failed to fetch student data');
 
                 const studentData = await response.json();
                 setStudentData(studentData);
-            } catch (err) {
-                console.error('Error loading student data:', err);
-                setError('Failed to load student data');
+            } catch (err: any) {
+                setError(err.message || 'Failed to load student data');
             } finally {
                 setIsLoading(false);
             }
@@ -50,104 +49,105 @@ export default function StudentNotesPage() {
         noteId?: string;
         initialVideoData?: any;
     }) => {
-        const { pdfUrl, noteId, initialVideoData } = noteProps;
         const NotesViewer = React.lazy(() => import('@/components/notes/NotesViewer'));
-        setModalContent(
-            <div className="container mx-auto p-4 bg-gray-50">
-                <NotesViewer
-                    pdfUrl={pdfUrl}
-                    noteId={noteId}
-                    initialVideoData={initialVideoData}
-                />
-            </div>
+
+        setModal(
+            <Suspense fallback={<Loader size="medium" message="Loading note content..." />}>
+                <div className="p-4 sm:p-6 bg-white min-h-full max-h-[90vh] overflow-y-auto">
+                    <NotesViewer {...noteProps} />
+                </div>
+            </Suspense>
         );
         setIsModalOpen(true);
     };
 
     const closeModal = () => {
         setIsModalOpen(false);
-        setModalContent(null);
+        setModal(null);
     };
 
     if (isLoading) {
         return (
-
-            <div className="flex items-center justify-center min-h-[calc(100vh-64px)]">
-                <Loader size="large" />
+            <div className="flex items-center justify-center min-h-screen bg-gray-50 p-4">
+                <Loader size="large" message="Loading notes..." />
             </div>
-
         );
     }
 
     if (error) {
         return (
-
-            <div className="p-8">
-                <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6" role="alert">
-                    <p className="font-bold">Error</p>
-                    <p>{error}</p>
+            <div className="flex items-center justify-center min-h-screen p-4 bg-gray-50">
+                <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-md shadow w-full max-w-md text-sm sm:text-base">
+                    <strong className="block mb-2">Error!</strong>
+                    {error}
                 </div>
             </div>
-
         );
     }
 
     if (!studentData) {
         return (
-
-            <div className="p-8">
-                <div className="text-gray-500">Student data not found</div>
+            <div className="flex items-center justify-center min-h-screen p-4 bg-gray-50">
+                <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 rounded-md shadow w-full max-w-md text-sm sm:text-base">
+                    <strong className="block mb-2">Information</strong>
+                    Student data not found. Please try again later.
+                </div>
             </div>
-
         );
     }
 
-    if (!studentData.classEnrollments || studentData.classEnrollments.length === 0 ||
-        studentData.enrollmentStatus !== 'ACTIVE') {
+    if (
+        !studentData.classEnrollments ||
+        studentData.classEnrollments.length === 0 ||
+        studentData.enrollmentStatus !== 'ACTIVE'
+    ) {
         return (
-
-            <div className="p-8">
-                <div className="text-gray-500">No active class enrollment found</div>
+            <div className="flex items-center justify-center min-h-screen p-4 bg-gray-50">
+                <div className="bg-blue-100 border-l-4 border-blue-500 text-blue-700 p-4 rounded-md shadow w-full max-w-md text-sm sm:text-base">
+                    <strong className="block mb-2">No Active Enrollment</strong>
+                    You are not currently enrolled in any active classes. Please contact your administrator.
+                </div>
             </div>
-
         );
     }
 
     const currentEnrollment = studentData.classEnrollments[0];
-  
+
     if (!currentEnrollment.classSection) {
         return (
-
-            <div className="p-8">
-                <div className="text-gray-500">Class section data not found</div>
+            <div className="flex items-center justify-center min-h-screen p-4 bg-gray-50">
+                <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-md shadow w-full max-w-md text-sm sm:text-base">
+                    <strong className="block mb-2">Data Incomplete</strong>
+                    Class section data for your enrollment was not found. Please contact support.
+                </div>
             </div>
-
         );
     }
 
     return (
+   <div className="px-4 py-6 sm:px-6 sm:py-8 bg-gray-50 min-h-screen">
+    {/* Page Header */}
+    <div className="mb-4 sm:mb-6 max-w-screen-xl mx-auto"> {/* Added max-w and mx-auto */}
+        <p className="text-gray-500 text-xs sm:text-sm mb-1">Dashboard / Notes Library</p>
+        <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">Notes Library</h2>
+    </div>
 
-        <div className="p-8">
-            <div className="mb-8">
-                {/* <h1 className="text-gray-400 text-sm mb-1">Student Dashboard / Notes Library</h1> */}
-                {/* <h2 className="text-2xl font-semibold">Notes Library</h2> */}
-            </div>
-            <NotesLibrary
-                studentId={studentData.id}
-                studentName={studentData.user.name || ''}
-                classSectionId={currentEnrollment.classSectionId}
-                batchName={studentData.batch?.batchName || ''}
-                sectionName={currentEnrollment.classSection.sectionName || ''}
-                openNoteInModal={openNoteInModal}
-            />
-            <VideoPlayerModal
-                isOpen={isModalOpen}
-                onClose={closeModal}
-            >
-                {modalContent}
-            </VideoPlayerModal>
-        </div>
+    {/* NotesLibrary Component */}
+    <div className="max-w-screen-xl mx-auto"> {/* Added max-w and mx-auto */}
+        <NotesLibrary
+            studentId={studentData.id}
+            studentName={studentData.user.name || ''}
+            classSectionId={currentEnrollment.classSectionId}
+            batchName={studentData.batch?.batchName || ''}
+            sectionName={currentEnrollment.classSection.sectionName || ''}
+            openNoteInModal={openNoteInModal}
+        />
+    </div>
 
+    {/* VideoPlayerModal - typically handles its own centering/width */}
+    <VideoPlayerModal isOpen={isModalOpen} onClose={closeModal}>
+        {modalContent}
+    </VideoPlayerModal>
+</div>
     );
 }
-

@@ -25,6 +25,7 @@ const AddTeacherModal = ({ id, isOpen, onClose, onSuccess }: AddTeacherProps) =>
   const [isLoading, setIsLoading] = useState(false);
   const [showNewDepartment, setShowNewDepartment] = useState(false);
   const [isMultiple, setMultiple] = useState(false); // Changed name to isMultiple for clarity
+  const [isSubmitting, setIsSubmitting] = useState(false); // New state to manage submission specific loading
 
   const [teacherData, setTeacherData] = useState({
     name: "",
@@ -45,7 +46,7 @@ const AddTeacherModal = ({ id, isOpen, onClose, onSuccess }: AddTeacherProps) =>
 
   const fetchDepartments = async () => {
     try {
-      setIsLoading(true);
+      setIsLoading(true); // Loading for fetching departments
       const response = await fetch("/api/departments", {
         method: "GET",
         headers: {
@@ -64,13 +65,13 @@ const AddTeacherModal = ({ id, isOpen, onClose, onSuccess }: AddTeacherProps) =>
       console.error("Error fetching departments:", error);
       alert("Failed to load departments."); // User-friendly alert
     } finally {
-      setIsLoading(false);
+      setIsLoading(false); // End loading for fetching departments
     }
   };
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setIsLoading(true);
+    setIsSubmitting(true); // Start submission loading
 
     if (!isMultiple) {
       // Logic for adding a single teacher
@@ -122,8 +123,8 @@ const AddTeacherModal = ({ id, isOpen, onClose, onSuccess }: AddTeacherProps) =>
           body: JSON.stringify({
             teacherCode: teacherData.employeeCode,
             employmentStatus: "FULL_TIME",
-            userId: user.id, // Use userId instead of user: { connect: { id: user.id } } if your API expects direct ID
-            departmentId: departmentId, // Use departmentId instead of department: { connect: { id: departmentId } }
+            userId: user.id,
+            departmentId: departmentId,
           }),
         });
 
@@ -136,12 +137,13 @@ const AddTeacherModal = ({ id, isOpen, onClose, onSuccess }: AddTeacherProps) =>
         resetForm();
         onSuccess();
         onClose();
+        alert("Teacher added successfully!");
       } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
         alert(`Error adding teacher: ${errorMessage}`);
         console.error("Error creating single teacher:", error);
       } finally {
-        setIsLoading(false);
+        setIsSubmitting(false); // End submission loading
       }
     } else {
       // Logic for adding multiple teachers
@@ -150,12 +152,12 @@ const AddTeacherModal = ({ id, isOpen, onClose, onSuccess }: AddTeacherProps) =>
 
       if (emails.length === 0 || employeeCodes.length === 0) {
         alert("Please enter at least one email and employee code.");
-        setIsLoading(false);
+        setIsSubmitting(false);
         return;
       }
       if (emails.length !== employeeCodes.length) {
         alert("Number of emails and employee codes must match.");
-        setIsLoading(false);
+        setIsSubmitting(false);
         return;
       }
 
@@ -168,57 +170,72 @@ const AddTeacherModal = ({ id, isOpen, onClose, onSuccess }: AddTeacherProps) =>
           throw new Error("Selected department not found.");
         }
 
-        const teacherPromises = emails.map(async (email, index) => {
-          const randomPassword = Math.random().toString(36).slice(-8);
-          const teacherName = email.split("@")[0] || `Teacher_${index + 1}`; // Default name if email format is odd
+        // Use Promise.allSettled to allow some failures without stopping others
+        const results = await Promise.allSettled(
+          emails.map(async (email, index) => {
+            const randomPassword = Math.random().toString(36).slice(-8);
+            const teacherName = email.split("@")[0] || `Teacher_${index + 1}`; // Default name if email format is odd
 
-          // Create user
-          const userResponse = await fetch("/api/users", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              name: teacherName,
-              email,
-              password: randomPassword,
-              role: "TEACHER",
-              institutionId: id,
-              emailVerified: new Date(),
-            }),
-          });
+            // Create user
+            const userResponse = await fetch("/api/users", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                name: teacherName,
+                email,
+                password: randomPassword,
+                role: "TEACHER",
+                institutionId: id,
+                emailVerified: new Date(),
+              }),
+            });
 
-          if (!userResponse.ok) {
-            const errorData = await userResponse.json();
-            throw new Error(`Failed to create user ${email}: ${errorData.error || userResponse.statusText}`);
+            if (!userResponse.ok) {
+              const errorData = await userResponse.json();
+              throw new Error(`Failed to create user ${email}: ${errorData.error || userResponse.statusText}`);
+            }
+            const user = await userResponse.json();
+
+            // Send login details email (non-blocking)
+            fetch("/api/emails/logindetails", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ email, password: randomPassword }),
+            }).catch(emailError => console.warn(`Failed to send email to ${email}:`, emailError)); // Log email errors
+
+            // Create teacher
+            const teacherResponse = await fetch("/api/teachers", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                teacherCode: employeeCodes[index],
+                employmentStatus: "FULL_TIME",
+                userId: user.id,
+                departmentId: departmentId,
+              }),
+            });
+
+            if (!teacherResponse.ok) {
+              const errorText = await teacherResponse.text();
+              throw new Error(`Failed to create teacher for user ${email}: ${errorText}`);
+            }
+            return { user, teacher: await teacherResponse.json() }; // Return created data
+          })
+        );
+
+        const failedTeachers: string[] = [];
+        results.forEach((result, index) => {
+          if (result.status === 'rejected') {
+            failedTeachers.push(emails[index]);
+            console.error(`Failed to add teacher ${emails[index]}:`, result.reason);
           }
-          const user = await userResponse.json();
-
-          // Send login details email (non-blocking)
-          fetch("/api/emails/logindetails", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ email, password: randomPassword }),
-          }).catch(emailError => console.warn(`Failed to send email to ${email}:`, emailError)); // Log email errors
-
-          // Create teacher
-          const teacherResponse = await fetch("/api/teachers", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              teacherCode: employeeCodes[index],
-              employmentStatus: "FULL_TIME",
-              userId: user.id,
-              departmentId: departmentId,
-            }),
-          });
-
-          if (!teacherResponse.ok) {
-            const errorText = await teacherResponse.text();
-            throw new Error(`Failed to create teacher for user ${email}: ${errorText}`);
-          }
-          return teacherResponse.json();
         });
 
-        await Promise.all(teacherPromises);
+        if (failedTeachers.length > 0) {
+          alert(`Successfully added some teachers, but failed for: ${failedTeachers.join(", ")}. Check console for details.`);
+        } else {
+          alert("All teachers added successfully!");
+        }
 
         resetForm();
         onSuccess();
@@ -228,7 +245,7 @@ const AddTeacherModal = ({ id, isOpen, onClose, onSuccess }: AddTeacherProps) =>
         alert(`Error adding multiple teachers: ${errorMessage}`);
         console.error("Error creating multiple teachers:", error);
       } finally {
-        setIsLoading(false);
+        setIsSubmitting(false); // End submission loading
       }
     }
   };
@@ -240,7 +257,7 @@ const AddTeacherModal = ({ id, isOpen, onClose, onSuccess }: AddTeacherProps) =>
     }
 
     try {
-      setIsLoading(true);
+      setIsLoading(true); // Loading for department creation
       const randomCode = Math.floor(1000 + Math.random() * 9000).toString(); // Simple random code
 
       const response = await fetch("/api/departments", {
@@ -272,7 +289,7 @@ const AddTeacherModal = ({ id, isOpen, onClose, onSuccess }: AddTeacherProps) =>
       alert(`Error creating department: ${errorMessage}`);
       console.error("Error creating department:", error);
     } finally {
-      setIsLoading(false);
+      setIsLoading(false); // End loading for department creation
     }
   };
 
@@ -295,7 +312,7 @@ const AddTeacherModal = ({ id, isOpen, onClose, onSuccess }: AddTeacherProps) =>
 
   return (
     <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4">
-      <Card className="bg-white w-full max-w-md shadow-lg rounded-lg max-h-[90vh] flex flex-col"> {/* Added max-h and flex-col */}
+      <Card className="bg-white w-full max-w-md shadow-lg rounded-lg max-h-[90vh] flex flex-col">
         {/* Modal Header */}
         <div className="p-6 pb-4 border-b border-gray-200 flex justify-between items-center sticky top-0 bg-white z-10">
           <h2 className="text-xl font-bold text-gray-800">Add New Teacher</h2>
@@ -309,19 +326,20 @@ const AddTeacherModal = ({ id, isOpen, onClose, onSuccess }: AddTeacherProps) =>
         </div>
 
         {/* Modal Content (Scrollable Area) */}
-        <div className="flex-1 overflow-y-auto px-6 py-4"> {/* flex-1 ensures it takes available height, overflow-y-auto enables scrolling */}
-          {isLoading ? (
-            <Loader size="medium" message="Processing..." />
-          ) : (
-            <form onSubmit={handleSubmit}>
+        {/* The form tag should wrap the entire form content including the conditional loading */}
+        <form id="teacherForm" onSubmit={handleSubmit} className="flex-1 overflow-y-auto flex flex-col"> {/* Added id="teacherForm" and flex-col */}
+          <div className="p-6 py-4 flex-1"> {/* flex-1 to make this div take remaining space and handle its own overflow */}
+            {isLoading ? ( // This isLoading is for fetching departments or creating new department
+              <Loader size="medium" message="Loading departments..." />
+            ) : (
               <div className="space-y-4">
                 <Button
                   variant="outline"
                   className="w-full mb-4"
                   type="button" // Important: set type to "button" to prevent form submission
                   onClick={() => {
-                    setMultiple(!isMultiple);
                     resetForm(); // Reset form when switching mode
+                    setMultiple(!isMultiple);
                   }}
                 >
                   {isMultiple ? "Add Single Teacher" : "Add Multiple Teachers"}
@@ -425,13 +443,15 @@ const AddTeacherModal = ({ id, isOpen, onClose, onSuccess }: AddTeacherProps) =>
                           type="button"
                           onClick={createNewDepartment}
                           className="px-3 py-2 bg-purple-600 text-white text-sm font-medium rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors"
+                          disabled={isLoading} // Disable while creating department
                         >
-                          Create Department
+                          {isLoading ? "Creating..." : "Create Department"}
                         </button>
                         <button
                           type="button"
                           onClick={() => setShowNewDepartment(false)}
                           className="px-3 py-2 bg-gray-200 text-gray-800 text-sm font-medium rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors"
+                          disabled={isLoading} // Disable while creating department
                         >
                           Cancel
                         </button>
@@ -445,6 +465,7 @@ const AddTeacherModal = ({ id, isOpen, onClose, onSuccess }: AddTeacherProps) =>
                         value={teacherData.department}
                         onChange={(e) => setTeacherData({ ...teacherData, department: e.target.value })}
                         className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        disabled={isLoading} // Disable while loading departments
                       >
                         <option value="">Select Department</option>
                         {departmentData.map((department) => (
@@ -457,6 +478,7 @@ const AddTeacherModal = ({ id, isOpen, onClose, onSuccess }: AddTeacherProps) =>
                         type="button"
                         onClick={() => setShowNewDepartment(true)}
                         className="px-3 py-2 bg-gray-200 text-gray-800 text-sm font-medium rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors"
+                        disabled={isLoading} // Disable while loading departments
                       >
                         New
                       </button>
@@ -464,31 +486,32 @@ const AddTeacherModal = ({ id, isOpen, onClose, onSuccess }: AddTeacherProps) =>
                   )}
                 </div>
               </div>
-            </form> 
-          )}
-        </div>
+            )}
+          </div> {/* End of scrollable content area */}
 
-        {/* Modal Footer (Sticky) */}
-        <div className="p-6 pt-4 border-t border-gray-200 flex justify-end space-x-3 sticky bottom-0 bg-white z-10">
-          <button
-            type="button"
-            onClick={() => {
-              resetForm();
-              onClose();
-            }}
-            className="px-4 py-2 bg-white text-gray-700 text-sm font-medium border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            form="teacherForm" // Associate button with the form
-            className="px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors"
-            disabled={isLoading} // Disable button while loading
-          >
-            {isLoading ? "Adding..." : "Add Teacher"}
-          </button>
-        </div>
+          {/* Modal Footer (Sticky) */}
+          <div className="p-6 pt-4 border-t border-gray-200 flex justify-end space-x-3 sticky bottom-0 bg-white z-10">
+            <button
+              type="button"
+              onClick={() => {
+                resetForm();
+                onClose();
+              }}
+              className="px-4 py-2 bg-white text-gray-700 text-sm font-medium border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors"
+              disabled={isSubmitting} // Disable while submitting
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              form="teacherForm" // Associate button with the form's ID
+              className="px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors"
+              disabled={isSubmitting || isLoading} // Disable while submitting OR loading departments
+            >
+              {isSubmitting ? "Adding..." : "Add Teacher"}
+            </button>
+          </div>
+        </form>
       </Card>
     </div>
   );

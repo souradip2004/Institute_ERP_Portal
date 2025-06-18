@@ -48,7 +48,7 @@ interface RawAssignment {
   attachments: any[];
   maxPoints?: number;
   [key: string]: unknown;
-  classSection	:any;
+  classSection  :any;
 }
 
 export default function AssignmentsPage() {
@@ -60,6 +60,7 @@ export default function AssignmentsPage() {
   const [rawAssignmentData, setRawAssignmentData] = useState<RawAssignment[]>([]);
   const [debugMode, setDebugMode] = useState(false);
   const [classSections, setClassSections] = useState<any[]>([])
+
   useEffect(() => {
     const fetchUserData = async () => {
       try {
@@ -97,23 +98,23 @@ export default function AssignmentsPage() {
       }
 
       const userData = JSON.parse(userDataStr);
-      const classdetails=await fetch(`/api/students/${userData.studentId}`,{
+      const classdetails = await fetch(`/api/students/${userData.studentId}`, {
                 method:"GET",
- headers: {
-          'Content-Type': 'application/json',
-        },
+                headers: {
+                  'Content-Type': 'application/json',
+                },
               })
-              if(!classdetails.ok){
-                alert("no classes found")
-                return;
-              }
-const classes=await classdetails.json();
-const classenrollments=classes?.classEnrollments
-const classd=[]
-for(let i=0;i<classenrollments.length;i++){
-  classd.push(classenrollments[i].classSectionId)
-}
-setClassSections(classd)
+      if(!classdetails.ok){
+        alert("no classes found")
+        return;
+      }
+      const classes=await classdetails.json();
+      const classenrollments=classes?.classEnrollments
+      const classd=[]
+      for(let i=0;i<classenrollments.length;i++){
+        classd.push(classenrollments[i].classSectionId)
+      }
+      setClassSections(classd)
       const classSectionId = userData.classSectionId;
 
       if (!classSectionId) {
@@ -143,6 +144,7 @@ setClassSections(classd)
       handleAssignmentData(data, studentId);
     } catch (err) {
       console.error('Error fetching assignments:', err);
+      setError("Failed to fetch assignments."); // Set user-friendly error
       setOngoingAssignments([]);
       setCompletedAssignments([]);
       setLoading(false);
@@ -169,7 +171,12 @@ setClassSections(classd)
       let formattedDueDate = 'No due date';
       if (assignment.dueDate) {
         const date = new Date(assignment.dueDate);
-        formattedDueDate = `${date.getDate()}th ${date.toLocaleString('default', { month: 'long' })}, ${date.getFullYear()}`;
+        // Using toLocaleDateString with options for more robust formatting
+        formattedDueDate = date.toLocaleDateString('en-US', {
+          day: 'numeric',
+          month: 'short',
+          year: 'numeric'
+        });
       }
 
       // Find submission for this student
@@ -183,24 +190,20 @@ setClassSections(classd)
         title: assignment.title,
         dueDate: formattedDueDate,
         status: studentSubmission ? studentSubmission.status : 'PENDING',
-        submissions: assignment.submissions as unknown as AssignmentSubmission[], // Type assertion
+        submissions: studentSubmission ? [studentSubmission] as AssignmentSubmission[] : [], // Only include student's submission
         maxPoints: assignment.maxPoints,
         attachments:assignment?.attachments[0]?.fileUrl,
-        classSection:assignment?.classSection	
+        classSection:assignment?.classSection
       };
     });
 
     // Filter assignments into ongoing and completed
     const ongoing = processedAssignments.filter((assignment) =>
-      !assignment.submissions?.some((sub) =>
-        sub.studentId === studentId
-      )
+      !assignment.submissions?.some((sub) => sub.studentId === studentId && sub.status === 'GRADED') // Ongoing if not graded by this student
     );
 
     const completed = processedAssignments.filter((assignment) =>
-      assignment.submissions?.some((sub) =>
-        sub.studentId === studentId 
-      )
+      assignment.submissions?.some((sub) => sub.studentId === studentId && sub.status === 'GRADED') // Completed if graded by this student
     );
 
     console.log('Ongoing assignments:', ongoing);
@@ -228,65 +231,66 @@ setClassSections(classd)
       sub.studentId === (studentData?.studentId || studentData?.id)
     );
 
+    // If no submission or status is not GRADED, show Submit Now
     if (!studentSubmission || studentSubmission.status !== 'GRADED') {
       return (
-        <Button onClick={async()=>{
-          // Handle submission logic here
-           //static async submitAssignment(request: NextRequest): Promise<NextResponse> {
-             // try {
-               // const formData = await request.formData();
-                //const assignmentId = formData.get("assignmentId") as string;
-                //const file = formData.get("file") as File | null;
-                //const user=formData.get("user");
-                //if (!assignmentId) {
-                  //return NextResponse.json(
-                    //{ error: "Missing assignmentId" },
-                    //{ status: 400 }
-                  //);
-                //}
-                const fileInput = document.createElement('input');
-                fileInput.type = 'file';
-                fileInput.accept = 'application/pdf';
+        <Button
+          onClick={async () => {
+            const fileInput = document.createElement('input');
+            fileInput.type = 'file';
+            fileInput.accept = 'application/pdf'; // Restrict to PDF
 
-                fileInput.onchange = async (event) => {
-                  const file = (event.target as HTMLInputElement).files?.[0];
-                  if (!file) {
-                    console.error('No file selected');
-                    return;
-                  }
+            fileInput.onchange = async (event) => {
+              const file = (event.target as HTMLInputElement).files?.[0];
+              if (!file) {
+                console.error('No file selected');
+                alert('No file selected for submission.');
+                return;
+              }
 
-                  console.log(`Submitting assignment ${assignment.id} with file:`, file.name);
-                  const formData = new FormData();
-                  formData.append('assignmentId', assignment.id);
-                  formData.append('file', file);
-                  formData.append('user', localStorage.getItem('user') || '');
-                  try {
-                    const response = await fetch(`/api/assignments/submit`, {
-                      method: 'POST',
-                      body: formData,
-                    });
+              if (file.size > 5 * 1024 * 1024) { // Max 5MB
+                alert('File size exceeds 5MB limit.');
+                return;
+              }
 
-                    if (!response.ok) {
-                      throw new Error('Failed to submit assignment');
-                    }
+              console.log(`Submitting assignment ${assignment.id} with file:`, file.name);
+              const formData = new FormData();
+              formData.append('assignmentId', assignment.id);
+              formData.append('file', file);
+              formData.append('user', studentData?.studentId || studentData?.id || ''); // Use actual student ID
 
-                    alert('Assignment submitted successfully');
-                  } catch (error) {
-                    console.error('Error submitting assignment:', error);
-                  }
-                };
+              try {
+                const response = await fetch(`/api/assignments/submit`, {
+                  method: 'POST',
+                  body: formData,
+                });
 
-                fileInput.click();
-        }} className="text-white font-medium px-4 py-2 rounded-lg transition-colors duration-200 bg-blue-600 hover:bg-blue-700"
+                if (!response.ok) {
+                  const errorData = await response.json();
+                  throw new Error(errorData.error || 'Failed to submit assignment');
+                }
 
->
+                alert('Assignment submitted successfully');
+                // Re-fetch assignments to update UI
+                await fetchAssignments(studentData?.studentId || studentData?.id || '');
+              } catch (error: any) {
+                console.error('Error submitting assignment:', error);
+                alert(`Error submitting assignment: ${error.message}`);
+              }
+            };
+
+            fileInput.click();
+          }}
+          className="text-white font-medium px-4 py-2 rounded-lg transition-colors duration-200 bg-blue-600 hover:bg-blue-700 w-full md:w-auto"
+        >
           Submit Now
         </Button>
       );
     }
 
+    // If status is GRADED, show Edit (or potentially View Submission)
     return (
-      <Link href={`/s/assignments/edit/${assignment.id}` as any} className="text-purple-800 font-medium hover:text-purple-900">
+      <Link href={`/s/assignments/edit/${assignment.id}`} className="text-purple-800 font-medium hover:text-purple-900 block text-center md:inline-block">
         Edit
       </Link>
     );
@@ -297,15 +301,14 @@ setClassSections(classd)
       sub.studentId === (studentData?.studentId || studentData?.id)
     );
 
-    if (studentSubmission?.obtainedPoints !== undefined) {
-      return studentSubmission.obtainedPoints;
+    if (typeof studentSubmission?.obtainedPoints === 'number') {
+      if (typeof assignment.maxPoints === 'number') {
+        return `${studentSubmission.obtainedPoints}/${assignment.maxPoints}`;
+      }
+      return studentSubmission.obtainedPoints; // Just show obtained points if max not available
     }
 
-    if (typeof studentSubmission?.obtainedPoints === 'number' && assignment.maxPoints) {
-      return `${studentSubmission.obtainedPoints}/${assignment.maxPoints}`;
-    }
-
-    return '15'; // Default grade for display
+    return 'N/A'; // No grade yet or not submitted
   };
 
   const toggleDebugMode = () => {
@@ -314,173 +317,196 @@ setClassSections(classd)
 
   if (loading) {
     return (
-
       <div className="flex items-center justify-center min-h-[calc(100vh-64px)]">
         <Loader size="large" />
       </div>
-
     );
   }
 
   if (error) {
     return (
-
-      <div className="p-8">
+      <div className="p-4 sm:p-8"> {/* Adjusted padding for mobile */}
         <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6" role="alert">
           <p className="font-bold">Error</p>
           <p>{error}</p>
         </div>
       </div>
-
     );
   }
 
-  return (
+ return (
+  <div className="p-4 sm:p-8 overflow-x-auto">
+    <div className="mb-6 sm:mb-8 max-w-screen-xl mx-auto">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+        <h2 className="text-2xl font-semibold text-gray-800">Assignments</h2>
+        <button
+          onClick={toggleDebugMode}
+          className="text-sm text-gray-500 hover:text-gray-700 mt-2 sm:mt-0"
+        >
+          {/* {debugMode ? 'Hide Debug Info' : 'Show Debug Info'} */}
+        </button>
+      </div>
+    </div>
 
-    <div className="p-8">
-      <div className="mb-8">
-        {/* <h1 className="text-gray-400 text-sm mb-1">
-            <Link href="/s/dashboard" className="inline-flex items-center hover:text-gray-600">
-              <ArrowLeft className="h-4 w-4 mr-1" />
-              Student Dashboard
-            </Link>
-            <span className="mx-1">/</span>
-            Assignments
-          </h1> */}
-        <div className="flex items-center">
-          <h2 className="text-2xl font-semibold text-gray-800">Assignments</h2>
-          <button
-            onClick={toggleDebugMode}
-            className="ml-auto text-sm text-gray-500 hover:text-gray-700"
-          >
-            {/* {debugMode ? 'Hide Debug Info' : 'Show Debug Info'} */}
-          </button>
-        </div>
+    {debugMode && (
+      <div className="bg-white p-4 rounded-lg shadow-sm mb-4 overflow-auto max-h-60 max-w-screen-xl mx-auto">
+        <h3 className="font-semibold mb-2">Raw Assignment Data:</h3>
+        <pre className="text-xs break-words whitespace-pre-wrap">
+          {JSON.stringify(rawAssignmentData, null, 2)}
+        </pre>
+      </div>
+    )}
+
+    {/* Ongoing Assignments */}
+    <div className="mb-8 max-w-screen-xl mx-auto">
+      <div className="flex items-center mb-4">
+        <FileCheck className="h-5 w-5 text-purple-600 mr-2" />
+        <h3 className="text-xl font-semibold text-gray-800">Ongoing</h3>
       </div>
 
-      {debugMode && (
-        <div className="bg-white p-4 rounded-lg shadow-sm mb-4 overflow-auto max-h-60">
-          <h3 className="font-semibold mb-2">Raw Assignment Data:</h3>
-          <pre className="text-xs">{JSON.stringify(rawAssignmentData, null, 2)}</pre>
-        </div>
-      )}
-
-      {/* Ongoing Assignments Section */}
-      <div className="mb-8">
-        <div className="flex items-center mb-4">
-          <FileCheck className="h-5 w-5 text-purple-600 mr-2" />
-          <h3 className="text-xl font-semibold text-gray-800">Ongoing</h3>
-        </div>
-
-        {/* Ongoing Assignments Table */}
-        <div className="bg-white overflow-hidden shadow-sm rounded-lg">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead>
-              <tr>
-                <th scope="col" className="px-6 py-3 text-left text-sm font-semibold text-gray-600 bg-gray-50">Topic</th>
-                <th scope="col" className="px-6 py-3 text-left text-sm font-semibold text-gray-600 bg-gray-50">Due Date</th>
-                <th scope="col" className="px-6 py-3 text-left text-sm font-semibold text-gray-600 bg-gray-50">View</th>
-                <th scope="col" className="px-6 py-3 text-left text-sm font-semibold text-gray-600 bg-gray-50">Status</th>
-                <th scope="col" className="px-6 py-3 text-left text-sm font-semibold text-gray-600 bg-gray-50">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {ongoingAssignments.length > 0 ? (
-                ongoingAssignments.filter(assignment => classSections.includes(assignment.classSection.id)).map((assignment) => (
+      <div className="bg-white shadow-sm rounded-lg overflow-x-auto">
+        <table className="min-w-full divide-y divide-gray-200 text-sm">
+          <thead>
+            <tr>
+              <th className="px-4 py-3 text-left text-xs sm:text-sm font-semibold text-gray-600 bg-gray-50 min-w-[120px]">
+                Topic
+              </th>
+              <th className="px-4 py-3 text-left text-xs sm:text-sm font-semibold text-gray-600 bg-gray-50 min-w-[140px]">
+                Due Date
+              </th>
+              <th className="px-4 py-3 text-left text-xs sm:text-sm font-semibold text-gray-600 bg-gray-50 min-w-[100px]">
+                View
+              </th>
+              <th className="px-4 py-3 text-left text-xs sm:text-sm font-semibold text-gray-600 bg-gray-50 min-w-[100px]">
+                Status
+              </th>
+              <th className="px-4 py-3 text-left text-xs sm:text-sm font-semibold text-gray-600 bg-gray-50 min-w-[120px]">
+                Actions
+              </th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {ongoingAssignments.length > 0 ? (
+              ongoingAssignments
+                .filter(a => classSections.includes(a.classSection.id))
+                .map((assignment) => (
                   <tr key={assignment.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{assignment.title}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                    <td className="px-4 py-3 text-gray-700 break-words whitespace-normal">
+                      {assignment.title}
+                    </td>
+                    <td className="px-4 py-3 text-gray-700 whitespace-nowrap">
                       <div className="flex items-center">
-                        <Calendar className="h-4 w-4 text-gray-400 mr-2" />
+                        <Calendar className="h-4 w-4 text-gray-400 mr-1 sm:mr-2" />
                         {typeof assignment.dueDate === 'string'
                           ? assignment.dueDate
                           : assignment.dueDate instanceof Date
                             ? assignment.dueDate.toLocaleDateString()
-                            : 'No due date'}
+                            : 'N/A'}
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <Link href={assignment?.attachments?assignment?.attachments:""} className="text-blue-600 hover:text-blue-800 flex items-center">
-                        <Download className="h-4 w-4 mr-1" />
-                        Download
+                    <td className="px-4 py-3 whitespace-nowrap text-blue-600">
+                      <Link
+                        href={assignment?.attachments || ''}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center hover:text-blue-800"
+                      >
+                        <Download className="h-4 w-4 mr-1 sm:mr-2" />
+                        <span className="hidden sm:inline">Download</span>
                       </Link>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                    <td className="px-4 py-3 whitespace-nowrap">
                       <span className="px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800">
                         {getStatusDisplay(assignment)}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      {getActionButton(assignment)}
-                    </td>
+                    <td className="px-4 py-3">{getActionButton(assignment)}</td>
                   </tr>
                 ))
-              ) : (
-                <tr>
-                  <td colSpan={5} className="px-6 py-4 text-center text-sm text-gray-500">No ongoing assignments found</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Completed Assignments Section */}
-      <div>
-        <div className="flex items-center mb-4">
-          <ClipboardCheck className="h-5 w-5 text-green-600 mr-2" />
-          <h3 className="text-xl font-semibold text-gray-800">Completed</h3>
-        </div>
-
-        {/* Completed Assignments Table */}
-        <div className="bg-white overflow-hidden shadow-sm rounded-lg">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead>
+            ) : (
               <tr>
-                <th scope="col" className="px-6 py-3 text-left text-sm font-semibold text-gray-600 bg-gray-50">Topic</th>
-                <th scope="col" className="px-6 py-3 text-left text-sm font-semibold text-gray-600 bg-gray-50">Due Date</th>
-                <th scope="col" className="px-6 py-3 text-left text-sm font-semibold text-gray-600 bg-gray-50">Actions</th>
-                <th scope="col" className="px-6 py-3 text-left text-sm font-semibold text-gray-600 bg-gray-50">Grade</th>
+                <td colSpan={5} className="px-4 py-4 text-center text-sm text-gray-500">
+                  No ongoing assignments found
+                </td>
               </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {completedAssignments.length > 0 ? (
-                completedAssignments.map((assignment) => (
-                  <tr key={assignment.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{assignment.title}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                      <div className="flex items-center">
-                        <Calendar className="h-4 w-4 text-gray-400 mr-2" />
-                        {typeof assignment.dueDate === 'string'
-                          ? assignment.dueDate
-                          : assignment.dueDate instanceof Date
-                            ? assignment.dueDate.toLocaleDateString()
-                            : 'No due date'}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <Link href={assignment?.attachments?assignment?.attachments:""} className="text-blue-600 hover:text-blue-800 flex items-center">
-                        <Download className="h-4 w-4 mr-1" />
-                        Download
-                      </Link>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <span className="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">
-                        {getGrade(assignment)}
-                      </span>
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={4} className="px-6 py-4 text-center text-sm text-gray-500">No completed assignments found</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+            )}
+          </tbody>
+        </table>
       </div>
     </div>
 
-  );
+    {/* Completed Assignments */}
+    <div className="max-w-screen-xl mx-auto">
+      <div className="flex items-center mb-4">
+        <ClipboardCheck className="h-5 w-5 text-green-600 mr-2" />
+        <h3 className="text-xl font-semibold text-gray-800">Completed</h3>
+      </div>
+
+      <div className="bg-white overflow-hidden shadow-sm rounded-lg overflow-x-auto">
+        <table className="min-w-full divide-y divide-gray-200 text-sm">
+          <thead>
+            <tr>
+              <th className="px-4 py-3 text-left text-xs sm:text-sm font-semibold text-gray-600 bg-gray-50 min-w-[100px]">
+                Topic
+              </th>
+              <th className="px-4 py-3 text-left text-xs sm:text-sm font-semibold text-gray-600 bg-gray-50 min-w-[120px]">
+                Due Date
+              </th>
+              <th className="px-4 py-3 text-left text-xs sm:text-sm font-semibold text-gray-600 bg-gray-50 min-w-[100px]">
+                View
+              </th>
+              <th className="px-4 py-3 text-left text-xs sm:text-sm font-semibold text-gray-600 bg-gray-50 min-w-[100px]">
+                Grade
+              </th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {completedAssignments.length > 0 ? (
+              completedAssignments.map((assignment) => (
+                <tr key={assignment.id} className="hover:bg-gray-50">
+                  <td className="px-4 py-3 text-gray-700 break-words whitespace-normal">
+                    {assignment.title}
+                  </td>
+                  <td className="px-4 py-3 text-gray-700 whitespace-nowrap">
+                    <div className="flex items-center">
+                      <Calendar className="h-4 w-4 text-gray-400 mr-1 sm:mr-2" />
+                      {typeof assignment.dueDate === 'string'
+                        ? assignment.dueDate
+                        : assignment.dueDate instanceof Date
+                          ? assignment.dueDate.toLocaleDateString()
+                          : 'N/A'}
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 whitespace-nowrap text-blue-600">
+                    <Link
+                      href={assignment?.attachments || ''}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center hover:text-blue-800"
+                    >
+                      <Download className="h-4 w-4 mr-1 sm:mr-2" />
+                      <span className="hidden sm:inline">Download</span>
+                    </Link>
+                  </td>
+                  <td className="px-4 py-3 whitespace-nowrap">
+                    <span className="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">
+                      {getGrade(assignment)}
+                    </span>
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan={4} className="px-4 py-4 text-center text-sm text-gray-500">
+                  No completed assignments found
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+);
+
 }

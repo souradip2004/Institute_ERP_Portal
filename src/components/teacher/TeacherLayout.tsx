@@ -52,7 +52,7 @@ export default function TeacherLayout({ children }) {
 
       <main
         className={`flex-1 overflow-auto p-6 transition-all duration-300 ease-in-out
-          ${isMobileView ? (isSidebarOpen ? 'ml-64' : 'ml-0') : (isSidebarOpen ? 'ml-64' : 'ml-0')}` /* Dynamic margin-left */}
+          ${isMobileView ? 'ml-0' : (isSidebarOpen ? 'ml-64' : 'ml-0')}` /* Dynamic margin-left */}
       >
         {children}
       </main>

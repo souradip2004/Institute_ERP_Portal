@@ -172,14 +172,6 @@ const Navigator = ({ id, userId }: NavigatorProps) => {
         </button>
       )}
 
-      {/* Overlay for mobile when sidebar is open */}
-      {isMobileView && isSidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-50 z-50 md:hidden"
-          onClick={() => setIsSidebarOpen(false)}
-        ></div>
-      )}
-
       {/* Sidebar */}
       <aside
         className={`fixed top-0 left-0 h-full bg-white shadow-xl border-r border-gray-200 z-[55] transition-transform duration-300 ease-in-out
@@ -269,7 +261,7 @@ const Navigator = ({ id, userId }: NavigatorProps) => {
       {/* Main Content */}
       <main
         className={`flex-1 p-6 overflow-y-auto transition-all duration-300 ease-in-out
-          ${isSidebarOpen ? "ml-64" : "ml-0"}
+          ${!isMobileView && isSidebarOpen ? "ml-64" : "ml-0"}
           ${isMobileView && !isSidebarOpen ? "pl-4 pr-4 pt-16" : ""}
           ${isMobileView && isSidebarOpen ? "overflow-hidden max-h-screen" : ""}
         `}
