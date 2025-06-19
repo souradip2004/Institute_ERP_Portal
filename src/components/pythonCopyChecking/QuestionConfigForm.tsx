@@ -2,6 +2,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { marked } from 'marked';
 
 interface QuestionConfig {
   marks: number;
@@ -42,7 +43,7 @@ export function QuestionConfigForm({ parsedData, onSubmit }: QuestionConfigFormP
       try {
         const parsedQuestions = JSON.parse(parsedData.ANS_KEY_JSON_Data);
         setQuestions(parsedQuestions);
-        
+
         // Initialize configuration for each question
         const initialConfigs: Record<string, QuestionConfig> = {};
         Object.keys(parsedQuestions).forEach(qNum => {
@@ -73,16 +74,16 @@ export function QuestionConfigForm({ parsedData, onSubmit }: QuestionConfigFormP
 
   const handleFigureUpload = async (questionNumber: string, file: File) => {
     setUploadingFigure(prev => ({ ...prev, [questionNumber]: true }));
-    
+
     try {
       const formData = new FormData();
       formData.append('file', file);
-      
+
       const response = await fetch('/api/teachers/2323/answerSheet/uploadDiagram', {
         method: 'POST',
         body: formData
       });
-      
+
       const data = await response.json();
       if (data.success) {
         handleConfigChange(questionNumber, 'figureUrl', data.url);
@@ -96,7 +97,7 @@ export function QuestionConfigForm({ parsedData, onSubmit }: QuestionConfigFormP
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Create config1: [marks, difficulty, biasedMarks, threshold]
     const config1: Config1 = {};
     Object.entries(questionConfigs).forEach(([qNum, config]) => {
@@ -107,7 +108,7 @@ export function QuestionConfigForm({ parsedData, onSubmit }: QuestionConfigFormP
         config.thresholdMarks
       ];
     });
-    
+
     // Create config2: [marks, difficulty, biasedMarks, threshold, figBased_y/figBased_n]
     const config2: Config2 = {};
     Object.entries(questionConfigs).forEach(([qNum, config]) => {
@@ -119,7 +120,7 @@ export function QuestionConfigForm({ parsedData, onSubmit }: QuestionConfigFormP
         config.isFigureBased ? 'figBased_y' : 'figBased_n'
       ];
     });
-    
+
     // Create config3: { text: [[]], diagram: [[url]] }
     const config3: Config3 = {};
     Object.entries(questionConfigs).forEach(([qNum, config]) => {
@@ -128,115 +129,122 @@ export function QuestionConfigForm({ parsedData, onSubmit }: QuestionConfigFormP
         diagram: config.isFigureBased && config.figureUrl ? [[config.figureUrl]] : [[]]
       };
     });
-    
+
     onSubmit({ config1, config2, config3 });
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-8">
-      <div className="space-y-6">
-        {Object.entries(questions).map(([questionNumber, questionData]: [string, any]) => (
-          <div key={questionNumber} className="bg-white p-4 rounded-lg shadow">
-            <h3 className="font-bold text-lg mb-2">Answer {questionNumber}</h3>
-            <p className="mb-4">{questionData[0][0]}</p>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Marks
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.5"
-                  value={questionConfigs[questionNumber]?.marks || 1}
-                  onChange={(e) => handleConfigChange(
-                    questionNumber, 
-                    'marks', 
-                    parseFloat(e.target.value)
-                  )}
-                  className="w-full p-2 border rounded"
+    <form onSubmit={handleSubmit} className="flex flex-col h-full">
+      <div
+        className="flex-1 overflow-y-auto"
+        style={{ maxHeight: 500, minHeight: 300 }} // Fixed height, scrollable
+      >
+        {Object.entries(questions).map(([questionNumber, questionData]: [string, any], idx) => (
+          <div
+            key={questionNumber}
+            className="bg-white p-4 rounded-lg shadow mb-6 flex flex-col gap-2"
+            style={{ border: '1px solid #e5e7eb' }}
+          >
+            <div className="flex items-start gap-2">
+              <span className="font-bold text-lg mr-1" style={{ minWidth: 32 }}>{idx + 1})</span>
+              <div className="flex-1 text-base leading-relaxed">
+                <span
+                  dangerouslySetInnerHTML={{
+                    __html: marked.parse(questionData[0][0] || '') as string
+                  }}
                 />
               </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Difficulty
-                </label>
+            </div>
+            <div className="flex flex-wrap items-center gap-6 mt-2">
+              <div className="flex flex-col items-center">
+                <span className="font-semibold text-sm mb-1 underline">Total Marks</span>
+                <div className="flex items-center border rounded px-2 py-1">
+                  <button type="button" className="px-1" onClick={() => handleConfigChange(questionNumber, 'marks', Math.max(0, (questionConfigs[questionNumber]?.marks || 1) - 1))}>{'<'}</button>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.5"
+                    value={questionConfigs[questionNumber]?.marks || 1}
+                    onChange={(e) => handleConfigChange(
+                      questionNumber,
+                      'marks',
+                      parseFloat(e.target.value)
+                    )}
+                    className="w-12 text-center border-0 focus:ring-0 focus:outline-none bg-transparent"
+                  />
+                  <button type="button" className="px-1" onClick={() => handleConfigChange(questionNumber, 'marks', (questionConfigs[questionNumber]?.marks || 1) + 1)}>{'>'}</button>
+                </div>
+              </div>
+              <div className="flex flex-col items-center">
+                <span className="font-semibold text-sm mb-1 underline">Difficulty Level</span>
                 <select
                   value={questionConfigs[questionNumber]?.difficulty || 'medium'}
                   onChange={(e) => handleConfigChange(
-                    questionNumber, 
-                    'difficulty', 
+                    questionNumber,
+                    'difficulty',
                     e.target.value as 'easy' | 'medium' | 'hard'
                   )}
-                  className="w-full p-2 border rounded"
+                  className="border rounded px-2 py-1"
+                  style={{ minWidth: 80 }}
                 >
                   <option value="easy">Easy</option>
                   <option value="medium">Medium</option>
                   <option value="hard">Hard</option>
                 </select>
               </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Biased Marks
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.5"
-                  value={questionConfigs[questionNumber]?.biasedMarks || 1}
-                  onChange={(e) => handleConfigChange(
-                    questionNumber, 
-                    'biasedMarks', 
-                    parseFloat(e.target.value)
-                  )}
-                  className="w-full p-2 border rounded"
-                />
+              <div className="flex flex-col items-center">
+                <span className="font-semibold text-sm mb-1 underline">Bias Mark</span>
+                <div className="flex items-center border rounded px-2 py-1">
+                  <button type="button" className="px-1" onClick={() => handleConfigChange(questionNumber, 'biasedMarks', Math.max(0, (questionConfigs[questionNumber]?.biasedMarks || 1) - 1))}>{'<'}</button>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.5"
+                    value={questionConfigs[questionNumber]?.biasedMarks || 1}
+                    onChange={(e) => handleConfigChange(
+                      questionNumber,
+                      'biasedMarks',
+                      parseFloat(e.target.value)
+                    )}
+                    className="w-10 text-center border-0 focus:ring-0 focus:outline-none bg-transparent"
+                  />
+                  <button type="button" className="px-1" onClick={() => handleConfigChange(questionNumber, 'biasedMarks', (questionConfigs[questionNumber]?.biasedMarks || 1) + 1)}>{'>'}</button>
+                </div>
               </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Threshold Marks
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.1"
-                  max={questionConfigs[questionNumber]?.marks || 1}
-                  value={questionConfigs[questionNumber]?.thresholdMarks || 0.5}
-                  onChange={(e) => handleConfigChange(
-                    questionNumber, 
-                    'thresholdMarks', 
-                    parseFloat(e.target.value)
-                  )}
-                  className="w-full p-2 border rounded"
-                />
+              <div className="flex flex-col items-center">
+                <span className="font-semibold text-sm mb-1 underline">Threshold Marks</span>
+                <div className="flex items-center border rounded px-2 py-1">
+                  <button type="button" className="px-1" onClick={() => handleConfigChange(questionNumber, 'thresholdMarks', Math.max(0, (questionConfigs[questionNumber]?.thresholdMarks || 0.5) - 1))}>{'<'}</button>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.1"
+                    max={questionConfigs[questionNumber]?.marks || 1}
+                    value={questionConfigs[questionNumber]?.thresholdMarks || 0.5}
+                    onChange={(e) => handleConfigChange(
+                      questionNumber,
+                      'thresholdMarks',
+                      parseFloat(e.target.value)
+                    )}
+                    className="w-10 text-center border-0 focus:ring-0 focus:outline-none bg-transparent"
+                  />
+                  <button type="button" className="px-1" onClick={() => handleConfigChange(questionNumber, 'thresholdMarks', (questionConfigs[questionNumber]?.thresholdMarks || 0.5) + 1)}>{'>'}</button>
+                </div>
               </div>
-              
-              <div className="flex items-center">
+              <div className="flex items-center gap-2 mt-5">
                 <input
                   type="checkbox"
                   id={`figure-based-${questionNumber}`}
                   checked={questionConfigs[questionNumber]?.isFigureBased || false}
                   onChange={(e) => handleConfigChange(
-                    questionNumber, 
-                    'isFigureBased', 
+                    questionNumber,
+                    'isFigureBased',
                     e.target.checked
                   )}
-                  className="mr-2"
+                  className="mr-1"
                 />
-                <label htmlFor={`figure-based-${questionNumber}`} className="text-sm font-medium text-gray-700">
-                  Is Figure Based?
-                </label>
-              </div>
-              
-              {questionConfigs[questionNumber]?.isFigureBased && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Upload Figure
-                  </label>
+                <label htmlFor={`figure-based-${questionNumber}`} className="text-sm font-medium">Diagram Based?</label>
+                {questionConfigs[questionNumber]?.isFigureBased && (
                   <input
                     type="file"
                     accept="image/*"
@@ -245,23 +253,21 @@ export function QuestionConfigForm({ parsedData, onSubmit }: QuestionConfigFormP
                         handleFigureUpload(questionNumber, e.target.files[0]);
                       }
                     }}
-                    className="w-full p-2 border rounded"
+                    className="ml-2 border rounded px-2 py-1"
+                    style={{ minWidth: 120 }}
                     disabled={uploadingFigure[questionNumber]}
                   />
-                  {uploadingFigure[questionNumber] && <p className="text-sm text-blue-500 mt-1">Uploading...</p>}
-                  {questionConfigs[questionNumber]?.figureUrl && (
-                    <p className="text-sm text-green-500 mt-1">
-                      Figure uploaded successfully!
-                    </p>
-                  )}
-                </div>
-              )}
+                )}
+                {uploadingFigure[questionNumber] && <span className="text-xs text-blue-500 ml-2">Uploading...</span>}
+                {questionConfigs[questionNumber]?.figureUrl && (
+                  <span className="text-xs text-green-500 ml-2">Uploaded!</span>
+                )}
+              </div>
             </div>
           </div>
         ))}
       </div>
-      
-      <div className="flex justify-end">
+      <div className="flex justify-end mt-4">
         <button
           type="submit"
           className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
