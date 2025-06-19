@@ -1,10 +1,11 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { PDFUploadComponent } from '@/components/pythonCopyChecking/PDFUploadComponent.tsx';
 import { QuestionConfigForm } from '@/components/pythonCopyChecking/QuestionConfigForm';
 import hardcodedResponse from '@/lib/pythonCopyCheckingResponseHardCoded.json';
 import { METHODS } from 'node:http';
 import { set } from 'date-fns';
+import jsPDF from 'jspdf';
 
 export default function TeacherPage({ params }: { params: { id: string } }) {
   const [uploadedFileUrl, setUploadedFileUrl] = useState<string | null>(null);
@@ -12,10 +13,10 @@ export default function TeacherPage({ params }: { params: { id: string } }) {
   const [isParsing, setIsParsing] = useState(false);
   const [pythonResponse, setPythonResponse] = useState<any>(null);
   const [teacherId, setTeacherId] = useState<string | null>(null);
-  const [classIds, setClassIds] = useState<string[] | null>([]);
+  const [classIds, setClassIds] = useState<any[] | null>([]);
   const [classId, setClassId] = useState<string | null>(null);
   const [isConfigSaved, setIsConfigSaved] = useState(false);
-  const [studentIds, setStudentIds] = useState<string[] | null>([]);
+  const [studentIds, setStudentIds] = useState<any[] | null>([]);
   const [submittedFileUrl, setSubmittedFileUrl] = useState<string | null>(null);
   const [saveConfiguration, setSaveConfiguration] = useState(false);
   const [configData, setConfigData] = useState({
@@ -23,6 +24,9 @@ export default function TeacherPage({ params }: { params: { id: string } }) {
     config2: {},
     config3: {}
   });
+  // Add state to track selected files for each student
+  const [studentFiles, setStudentFiles] = useState<{ [studentId: string]: File[] }>({});
+
   useEffect(() => {
     // Get teacher ID and classId from localStorage if available
     if (typeof window !== 'undefined') {
@@ -177,8 +181,13 @@ export default function TeacherPage({ params }: { params: { id: string } }) {
   };
   const handleStudentFileUpload = async (file: File, studentId: string) => {
     try {
+      let fileToUpload = file;
+      // If the file is an image, convert to PDF
+      if (file.type.startsWith('image/')) {
+        fileToUpload = await imagesToPdf([file]);
+      }
       const formData = new FormData();
-      formData.append('file', file);
+      formData.append('file', fileToUpload);
       formData.append('examId', 'exam-123'); // Hardcoded for now
 
       const response = await fetch(`/api/students/4343/answerSheet/uploadAnswerSheet`, {
@@ -191,13 +200,13 @@ export default function TeacherPage({ params }: { params: { id: string } }) {
         console.log('data: ', data);
         setUploadedFileUrl(data?.studentAnswerSheetURL);
         setStudentIds((prevStudentIds) => {
+          if (!prevStudentIds) return prevStudentIds;
           return prevStudentIds.map((student) => {
             if (student.id === studentId) {
               return { ...student, marks: data?.totalMarks };
             }
             return student;
-          }
-          );
+          });
         });
       }
     }
@@ -208,10 +217,81 @@ export default function TeacherPage({ params }: { params: { id: string } }) {
     }
   }
 
+  // New: handle file selection for each student (multiple files)
+  const handleStudentFileSelect = (files: FileList | null, studentId: string) => {
+    if (!files) return;
+    setStudentFiles((prev) => ({
+      ...prev,
+      [studentId]: [...(prev[studentId] || []), ...Array.from(files)],
+    }));
+  };
+
+  // New: remove a file from a student's file list
+  const handleRemoveStudentFile = (studentId: string, fileIdx: number) => {
+    setStudentFiles((prev) => {
+      const updated = [...(prev[studentId] || [])];
+      updated.splice(fileIdx, 1);
+      return { ...prev, [studentId]: updated };
+    });
+  };
+
+  // New: upload all files for a student
+  const handleUploadStudentFiles = async (studentId: string) => {
+    const files = studentFiles[studentId];
+    if (!files || files.length === 0) return;
+    setIsUploading(true);
+    try {
+      // If all files are images, convert all to a single PDF
+      if (isAllImages(files)) {
+        const pdfFile = await imagesToPdf(files);
+        await handleStudentFileUpload(pdfFile, studentId);
+      } else {
+        for (const file of files) {
+          await handleStudentFileUpload(file, studentId);
+        }
+      }
+      // Clear files after upload
+      setStudentFiles((prev) => ({ ...prev, [studentId]: [] }));
+      alert('Files uploaded successfully!');
+    } catch (error) {
+      alert('Error uploading files.');
+    } finally {
+      setIsUploading(false);
+    }
+  };
   const handleConfigSubmit = (configData: any) => {
     setConfigData(configData);
     saveConfigurationAndAnswerKey(configData);
     setSaveConfiguration(false);
+  };
+
+  // Helper to check if all files are images
+  const isAllImages = (files: File[]) => files.length > 0 && files.every((file) => file.type.startsWith('image/'));
+
+  // Helper to convert images to PDF using jsPDF
+  const imagesToPdf = async (imageFiles: File[]): Promise<File> => {
+    const pdf = new jsPDF();
+    for (let i = 0; i < imageFiles.length; i++) {
+      const imgData = await new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (e) => resolve(e.target?.result as string);
+        reader.readAsDataURL(imageFiles[i]);
+      });
+      const img = new window.Image();
+      img.src = imgData;
+      await new Promise((res) => { img.onload = res; });
+      const width = pdf.internal.pageSize.getWidth();
+      const height = (img.height * width) / img.width;
+      if (i > 0) pdf.addPage();
+      // Detect image type from file
+      const fileType = imageFiles[i].type;
+      let format = 'JPEG';
+      if (fileType === 'image/png') format = 'PNG';
+      else if (fileType === 'image/webp') format = 'WEBP';
+      pdf.addImage(imgData, format, 0, 0, width, height);
+    }
+    const pdfBlob = pdf.output('blob');
+    return new File([pdfBlob], 'images.pdf', { type: 'application/pdf' });
   };
 
   return (
@@ -250,7 +330,7 @@ export default function TeacherPage({ params }: { params: { id: string } }) {
             onChange={(e) => { setClassId(e.target.value); setIsConfigSaved(!isConfigSaved); }}
           >
             <option value="" disabled selected>Select a class</option>
-            {classIds && classIds.map((classId) => (
+            {classIds && classIds.map((classId: any) => (
               <option key={classId.section.id} value={classId.section.id}>
                 {classId.section.name}
               </option>
@@ -310,7 +390,7 @@ export default function TeacherPage({ params }: { params: { id: string } }) {
                     </tr>
                   </thead>
                   <tbody>
-                    {studentIds.map((student) => (
+                    {studentIds.map((student: any) => (
                       <tr key={student.id} className="text-center">
                         <td className="p-2 border">{student.name}</td>
                         <td className="p-2 border">{student.rollNo}</td>
@@ -318,15 +398,38 @@ export default function TeacherPage({ params }: { params: { id: string } }) {
                         <td className="p-2 border">{student.status}</td>
                         <td className="p-2 border">{student?.marks ? student.marks : "Null"}</td>
                         <td className="p-2 border">
+                          {/* Multiple file input */}
                           <input
                             type="file"
-                            className="border p-1"
-                            onChange={(e) => {
-                              if (e.target.files && e.target.files[0]) {
-                                handleStudentFileUpload(e.target.files[0], student.id);
-                              }
-                            }}
+                            className="border p-1 mb-2"
+                            multiple
+                            onChange={(e) => handleStudentFileSelect(e.target.files, student.id)}
                           />
+                          {/* Scrollable grid of selected files */}
+                          {studentFiles[student.id] && studentFiles[student.id].length > 0 && (
+                            <div className="max-h-24 overflow-y-auto grid grid-cols-1 gap-1 mb-2 border rounded p-1 bg-gray-50">
+                              {studentFiles[student.id].map((file, idx) => (
+                                <div key={idx} className="flex items-center justify-between text-xs bg-white px-2 py-1 rounded shadow">
+                                  <span className="truncate max-w-[120px]">{file.name}</span>
+                                  <button
+                                    className="ml-2 text-red-500 hover:text-red-700 font-bold"
+                                    onClick={() => handleRemoveStudentFile(student.id, idx)}
+                                    title="Remove file"
+                                  >
+                                    ✖
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          {/* Upload button */}
+                          <button
+                            className="mt-1 px-2 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"
+                            disabled={isUploading || !(studentFiles[student.id] && studentFiles[student.id].length > 0)}
+                            onClick={() => handleUploadStudentFiles(student.id)}
+                          >
+                            Upload
+                          </button>
                         </td>
                       </tr>
                     ))}
