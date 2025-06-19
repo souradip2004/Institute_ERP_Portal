@@ -1,3 +1,4 @@
+
 import { auth } from "@/auth";
 import { LogoutButton } from "@/components/auth/logout-button";
 import Image from "next/image";
@@ -6,6 +7,7 @@ import DeleteInstitutionButton from "@/components/ui/deleteInstitutions";
 import Loader from "@/components/ui/Loader";
 import ActionDropdown from "@/components/admin/ActionDropdown";
 import { Suspense } from "react";
+import PopupCOins from "@/components/admin/PopupCoins"; // Assuming this is the correct path for the PopupCoins component
 import {
   Building2,
   Mail,
@@ -15,6 +17,8 @@ import {
   Shield
 } from "lucide-react";
 import Link from "next/link";
+import { cookies } from 'next/headers'; // <-- Import cookies from next/headers
+
 
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -45,6 +49,12 @@ export default async function DashboardPage() {
     });
     institutionData = await institutionRes.json();
   }
+  const cookieStore = await cookies();
+  const hasPopupBeenShown = cookieStore.get('institution_created_popup_shown')?.value === 'true';  // --- FIX ENDS HERE ---
+console.log("hasPopupBeenShown: " + hasPopupBeenShown);
+  // Popup should show if there's NO institution linked AND the popup hasn't been shown before
+  const shouldShowInstitutionPopup = !institutionData && !hasPopupBeenShown;
+
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-gray-100 dark:from-gray-900 dark:to-slate-950">
@@ -213,6 +223,11 @@ export default async function DashboardPage() {
                   <h3 className="text-xl font-semibold text-indigo-700 dark:text-indigo-400 mb-2">Create New Institution</h3>
                   <p className="text-sm text-indigo-600/80 dark:text-indigo-300/80">Set up your institution to start managing classes, teachers, and students.</p>
                 </div>
+                {shouldShowInstitutionPopup && (
+                  <div className="mb-6">
+                    <PopupCOins />
+                  </div>
+                )}
                 <CreateInstitutionForm userId={userId} email={email || ""} />
               </div>
             )}

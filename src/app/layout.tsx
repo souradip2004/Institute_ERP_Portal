@@ -17,9 +17,9 @@ export const metadata: Metadata = {
   title: "AI Classroom",
   description: "AI Classroom",
   icons: {
-    icon: "/logo.png",
-    shortcut: "/logo.png",
-    apple: "/logo.png",
+    icon: "/commerciallogo.ico",
+    shortcut: "/commerciallogo.ico",
+    apple: "/commerciallogo.ico",
   },
   openGraph: {
     title: "AI Classroom",
@@ -28,7 +28,7 @@ export const metadata: Metadata = {
     siteName: "AI Classroom",
     images: [
       {
-        url: "/logo.png",
+        url: "/commerciallogo.ico",
         width: 1200,
         height: 630,
       },
@@ -40,7 +40,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "AI Classroom",
     description: "AI Classroom",
-    images: ["/logo.png"],
+    images: ["/commerciallogo.ico"],
     creator: "@aiclassroom",
   },
   themeColor: "#ffffff",
@@ -50,7 +50,7 @@ export const metadata: Metadata = {
     title: "AI Classroom",
     startupImage: [
       {
-        url: "/logo.png",
+        url: "/commerciallogo.ico",
         media: "(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)",
       },
     ],
@@ -65,7 +65,6 @@ export default function RootLayout({
   return (
     <html lang="en">
        <head>
-        {/* Force desktop layout on mobile */}
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
