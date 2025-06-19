@@ -129,7 +129,7 @@ export default function StudentNotesPage() {
     }
 
     return (
-        <div className="px-4 py-6 sm:px-6 sm:py-8 bg-gray-50 min-h-screen">
+        <div className="px-4 py-6 sm:px-6 sm:py-8 bg-gray-50 min-w-[340px] max-w-[360px] sm:max-w-full  min-h-screen">
             {/* Page Header */}
             <div className="mb-4 sm:mb-6 max-w-screen-xl mx-auto"> {/* Added max-w and mx-auto */}
                 <p className="text-gray-500 text-xs sm:text-sm mb-1">Dashboard / Notes Library</p>

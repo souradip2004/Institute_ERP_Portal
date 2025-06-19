@@ -334,179 +334,180 @@ export default function AssignmentsPage() {
     );
   }
 
- return (
-  <div className="p-4 sm:p-8 overflow-x-auto">
-    <div className="mb-6 sm:mb-8 max-w-screen-xl mx-auto">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-        <h2 className="text-2xl font-semibold text-gray-800">Assignments</h2>
-        <button
-          onClick={toggleDebugMode}
-          className="text-sm text-gray-500 hover:text-gray-700 mt-2 sm:mt-0"
-        >
-          {/* {debugMode ? 'Hide Debug Info' : 'Show Debug Info'} */}
-        </button>
-      </div>
-    </div>
+  return (
+      <div className="p-4 sm:p-8 overflow-x-auto">
+        <div className="mb-6 sm:mb-8 max-w-screen-xl mx-auto">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+            <h2 className="text-2xl font-semibold text-gray-800">Assignments</h2>
+            <button
+                onClick={toggleDebugMode}
+                className="text-sm text-gray-500 hover:text-gray-700 mt-2 sm:mt-0"
+            >
+              {/* {debugMode ? 'Hide Debug Info' : 'Show Debug Info'} */}
+            </button>
+          </div>
+        </div>
 
-    {debugMode && (
-      <div className="bg-white p-4 rounded-lg shadow-sm mb-4 overflow-auto max-h-60 max-w-screen-xl mx-auto">
-        <h3 className="font-semibold mb-2">Raw Assignment Data:</h3>
-        <pre className="text-xs break-words whitespace-pre-wrap">
-          {JSON.stringify(rawAssignmentData, null, 2)}
-        </pre>
-      </div>
-    )}
+        {debugMode && (
+            <div className="bg-white p-4 rounded-lg shadow-sm mb-4 overflow-auto max-h-60 max-w-screen-xl mx-auto">
+              <h3 className="font-semibold mb-2">Raw Assignment Data:</h3>
+              <pre className="text-xs break-words whitespace-pre-wrap">
+         {JSON.stringify(rawAssignmentData, null, 2)}
+       </pre>
+            </div>
+        )}
 
-    {/* Ongoing Assignments */}
-    <div className="mb-8 max-w-screen-xl mx-auto">
-      <div className="flex items-center mb-4">
-        <FileCheck className="h-5 w-5 text-purple-600 mr-2" />
-        <h3 className="text-xl font-semibold text-gray-800">Ongoing</h3>
-      </div>
+        {/* Ongoing Assignments */}
+        <div className="mb-8 max-w-screen-xl mx-auto">
+          <div className="flex items-center mb-4">
+            <FileCheck className="h-5 w-5 text-purple-600 mr-2" />
+            <h3 className="text-xl font-semibold text-gray-800">Ongoing</h3>
+          </div>
 
-      <div className="bg-white shadow-sm rounded-lg overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200 text-sm">
-          <thead>
-            <tr>
-              <th className="px-4 py-3 text-left text-xs sm:text-sm font-semibold text-gray-600 bg-gray-50 min-w-[120px]">
-                Topic
-              </th>
-              <th className="px-4 py-3 text-left text-xs sm:text-sm font-semibold text-gray-600 bg-gray-50 min-w-[140px]">
-                Due Date
-              </th>
-              <th className="px-4 py-3 text-left text-xs sm:text-sm font-semibold text-gray-600 bg-gray-50 min-w-[100px]">
-                View
-              </th>
-              <th className="px-4 py-3 text-left text-xs sm:text-sm font-semibold text-gray-600 bg-gray-50 min-w-[100px]">
-                Status
-              </th>
-              <th className="px-4 py-3 text-left text-xs sm:text-sm font-semibold text-gray-600 bg-gray-50 min-w-[120px]">
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {ongoingAssignments.length > 0 ? (
-              ongoingAssignments
-                .filter(a => classSections.includes(a.classSection.id))
-                .map((assignment) => (
-                  <tr key={assignment.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 text-gray-700 break-words whitespace-normal">
-                      {assignment.title}
+          {/* --- Responsive table wrapper for Ongoing Assignments --- */}
+          <div className="bg-white shadow-sm rounded-lg overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200 text-sm ">
+              <thead>
+              <tr>
+                <th className="px-4 py-3 text-left text-xs sm:text-sm font-semibold text-gray-600 bg-gray-50 min-w-[120px]">
+                  Topic
+                </th>
+                <th className="px-4 py-3 text-left text-xs sm:text-sm font-semibold text-gray-600 bg-gray-50 min-w-[140px]">
+                  Due Date
+                </th>
+                <th className="px-4 py-3 text-left text-xs sm:text-sm font-semibold text-gray-600 bg-gray-50 min-w-[100px]">
+                  View
+                </th>
+                <th className="px-4 py-3 text-left text-xs sm:text-sm font-semibold text-gray-600 bg-gray-50 min-w-[100px]">
+                  Status
+                </th>
+                <th className="px-4 py-3 text-left text-xs sm:text-sm font-semibold text-gray-600 bg-gray-50 min-w-[120px]">
+                  Actions
+                </th>
+              </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+              {ongoingAssignments.length > 0 ? (
+                  ongoingAssignments
+                  .filter(a => classSections.includes(a.classSection.id))
+                  .map((assignment) => (
+                      <tr key={assignment.id} className="hover:bg-gray-50">
+                        <td className="px-4 py-3 text-gray-700 break-words whitespace-normal">
+                          {assignment.title}
+                        </td>
+                        <td className="px-4 py-3 text-gray-700 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <Calendar className="h-4 w-4 text-gray-400 mr-1 sm:mr-2" />
+                            {typeof assignment.dueDate === 'string'
+                                ? assignment.dueDate
+                                : assignment.dueDate instanceof Date
+                                    ? assignment.dueDate.toLocaleDateString()
+                                    : 'N/A'}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-blue-600">
+                          <Link
+                              href={assignment?.attachments || ''}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center hover:text-blue-800"
+                          >
+                            <Download className="h-4 w-4 mr-1 sm:mr-2" />
+                            <span className="hidden sm:inline">Download</span>
+                          </Link>
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap">
+                     <span className="px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800">
+                       {getStatusDisplay(assignment)}
+                     </span>
+                        </td>
+                        <td className="px-4 py-3">{getActionButton(assignment)}</td>
+                      </tr>
+                  ))
+              ) : (
+                  <tr>
+                    <td colSpan={5} className="px-4 py-4 text-center text-sm text-gray-500">
+                      No ongoing assignments found
                     </td>
-                    <td className="px-4 py-3 text-gray-700 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <Calendar className="h-4 w-4 text-gray-400 mr-1 sm:mr-2" />
-                        {typeof assignment.dueDate === 'string'
-                          ? assignment.dueDate
-                          : assignment.dueDate instanceof Date
-                            ? assignment.dueDate.toLocaleDateString()
-                            : 'N/A'}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-blue-600">
-                      <Link
-                        href={assignment?.attachments || ''}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center hover:text-blue-800"
-                      >
-                        <Download className="h-4 w-4 mr-1 sm:mr-2" />
-                        <span className="hidden sm:inline">Download</span>
-                      </Link>
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <span className="px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800">
-                        {getStatusDisplay(assignment)}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">{getActionButton(assignment)}</td>
                   </tr>
-                ))
-            ) : (
+              )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        Completed Assignments
+        <div className="max-w-screen-xl mx-auto">
+          <div className="flex items-center mb-4">
+            <ClipboardCheck className="h-5 w-5 text-green-600 mr-2" />
+            <h3 className="text-xl font-semibold text-gray-800">Completed</h3>
+          </div>
+
+          {/* --- Responsive table wrapper for Completed Assignments --- */}
+          <div className="bg-white overflow-hidden shadow-sm rounded-lg overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200 text-sm">
+              <thead>
               <tr>
-                <td colSpan={5} className="px-4 py-4 text-center text-sm text-gray-500">
-                  No ongoing assignments found
-                </td>
+                <th className="px-4 py-3 text-left text-xs sm:text-sm font-semibold text-gray-600 bg-gray-50 min-w-[100px]">
+                  Topic
+                </th>
+                <th className="px-4 py-3 text-left text-xs sm:text-sm font-semibold text-gray-600 bg-gray-50 min-w-[120px]">
+                  Due Date
+                </th>
+                <th className="px-4 py-3 text-left text-xs sm:text-sm font-semibold text-gray-600 bg-gray-50 min-w-[100px]">
+                  View
+                </th>
+                <th className="px-4 py-3 text-left text-xs sm:text-sm font-semibold text-gray-600 bg-gray-50 min-w-[100px]">
+                  Grade
+                </th>
               </tr>
-            )}
-          </tbody>
-        </table>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+              {completedAssignments.length > 0 ? (
+                  completedAssignments.map((assignment) => (
+                      <tr key={assignment.id} className="hover:bg-gray-50">
+                        <td className="px-4 py-3 text-gray-700 break-words whitespace-normal">
+                          {assignment.title}
+                        </td>
+                        <td className="px-4 py-3 text-gray-700 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <Calendar className="h-4 w-4 text-gray-400 mr-1 sm:mr-2" />
+                            {typeof assignment.dueDate === 'string'
+                                ? assignment.dueDate
+                                : assignment.dueDate instanceof Date
+                                    ? assignment.dueDate.toLocaleDateString()
+                                    : 'N/A'}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-blue-600">
+                          <Link
+                              href={assignment?.attachments || ''}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center hover:text-blue-800"
+                          >
+                            <Download className="h-4 w-4 mr-1 sm:mr-2" />
+                            <span className="hidden sm:inline">Download</span>
+                          </Link>
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap">
+                   <span className="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">
+                     {getGrade(assignment)}
+                   </span>
+                        </td>
+                      </tr>
+                  ))
+              ) : (
+                  <tr>
+                    <td colSpan={4} className="px-4 py-4 text-center text-sm text-gray-500">
+                      No completed assignments found
+                    </td>
+                  </tr>
+              )}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
-    </div>
-
-    {/* Completed Assignments */}
-    <div className="max-w-screen-xl mx-auto">
-      <div className="flex items-center mb-4">
-        <ClipboardCheck className="h-5 w-5 text-green-600 mr-2" />
-        <h3 className="text-xl font-semibold text-gray-800">Completed</h3>
-      </div>
-
-      <div className="bg-white overflow-hidden shadow-sm rounded-lg overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200 text-sm">
-          <thead>
-            <tr>
-              <th className="px-4 py-3 text-left text-xs sm:text-sm font-semibold text-gray-600 bg-gray-50 min-w-[100px]">
-                Topic
-              </th>
-              <th className="px-4 py-3 text-left text-xs sm:text-sm font-semibold text-gray-600 bg-gray-50 min-w-[120px]">
-                Due Date
-              </th>
-              <th className="px-4 py-3 text-left text-xs sm:text-sm font-semibold text-gray-600 bg-gray-50 min-w-[100px]">
-                View
-              </th>
-              <th className="px-4 py-3 text-left text-xs sm:text-sm font-semibold text-gray-600 bg-gray-50 min-w-[100px]">
-                Grade
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {completedAssignments.length > 0 ? (
-              completedAssignments.map((assignment) => (
-                <tr key={assignment.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 text-gray-700 break-words whitespace-normal">
-                    {assignment.title}
-                  </td>
-                  <td className="px-4 py-3 text-gray-700 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <Calendar className="h-4 w-4 text-gray-400 mr-1 sm:mr-2" />
-                      {typeof assignment.dueDate === 'string'
-                        ? assignment.dueDate
-                        : assignment.dueDate instanceof Date
-                          ? assignment.dueDate.toLocaleDateString()
-                          : 'N/A'}
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap text-blue-600">
-                    <Link
-                      href={assignment?.attachments || ''}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center hover:text-blue-800"
-                    >
-                      <Download className="h-4 w-4 mr-1 sm:mr-2" />
-                      <span className="hidden sm:inline">Download</span>
-                    </Link>
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap">
-                    <span className="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">
-                      {getGrade(assignment)}
-                    </span>
-                  </td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan={4} className="px-4 py-4 text-center text-sm text-gray-500">
-                  No completed assignments found
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-);
-
+  )
 }
