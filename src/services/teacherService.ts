@@ -1,6 +1,6 @@
 import prisma from '@/lib/prisma';
 import { teacherQueue } from '@/bullmq/queues/Teacher';
-import { json } from 'stream/consumers';
+// import { json } from 'stream/consumers';
 
 export class TeacherService {
 

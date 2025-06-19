@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
     //get user details from req
 
     const user = userId;
-    const newuser=await fetch(`https://commercial.aiclassroom.in/api/users/${userId.id}`, {
+    const newuser=await fetch(`http://localhost:3000/api/users/${userId.id}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',

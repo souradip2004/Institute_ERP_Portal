@@ -1,0 +1,12 @@
+ignoredBuiltDependencies:
+  - '@apollo/protobufjs'
+  - '@prisma/client'
+  - '@prisma/engines'
+  - '@tailwindcss/oxide'
+  - bcrypt
+  - core-js
+  - msgpackr-extract
+  - msw
+  - prisma
+  - sharp
+  - unrs-resolver
