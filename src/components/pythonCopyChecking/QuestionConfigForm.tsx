@@ -10,7 +10,7 @@ interface QuestionConfig {
   biasedMarks: number;
   thresholdMarks: number;
   isFigureBased: boolean;
-  figureUrl?: string;
+  figureUrls?: string[]; // Array of diagram URLs
 }
 
 interface Config1 {
@@ -52,7 +52,8 @@ export function QuestionConfigForm({ parsedData, onSubmit }: QuestionConfigFormP
             difficulty: 'medium',
             biasedMarks: 1,
             thresholdMarks: 0.5,
-            isFigureBased: false
+            isFigureBased: false,
+            figureUrls: []
           };
         });
         setQuestionConfigs(initialConfigs);
@@ -72,6 +73,7 @@ export function QuestionConfigForm({ parsedData, onSubmit }: QuestionConfigFormP
     }));
   };
 
+  // Handle multiple uploads
   const handleFigureUpload = async (questionNumber: string, file: File) => {
     setUploadingFigure(prev => ({ ...prev, [questionNumber]: true }));
 
@@ -86,13 +88,30 @@ export function QuestionConfigForm({ parsedData, onSubmit }: QuestionConfigFormP
 
       const data = await response.json();
       if (data.success) {
-        handleConfigChange(questionNumber, 'figureUrl', data.url);
+        setQuestionConfigs(prev => ({
+          ...prev,
+          [questionNumber]: {
+            ...prev[questionNumber],
+            figureUrls: [...(prev[questionNumber].figureUrls || []), data.url]
+          }
+        }));
       }
     } catch (error) {
       console.error('Error uploading figure:', error);
     } finally {
       setUploadingFigure(prev => ({ ...prev, [questionNumber]: false }));
     }
+  };
+
+  // Remove a diagram
+  const handleRemoveFigure = (questionNumber: string, url: string) => {
+    setQuestionConfigs(prev => ({
+      ...prev,
+      [questionNumber]: {
+        ...prev[questionNumber],
+        figureUrls: (prev[questionNumber].figureUrls || []).filter(u => u !== url)
+      }
+    }));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -126,7 +145,7 @@ export function QuestionConfigForm({ parsedData, onSubmit }: QuestionConfigFormP
     Object.entries(questionConfigs).forEach(([qNum, config]) => {
       config3[qNum] = {
         text: [[]],
-        diagram: config.isFigureBased && config.figureUrl ? [[config.figureUrl]] : [[]]
+        diagram: config.isFigureBased && config.figureUrls && config.figureUrls.length > 0 ? [config.figureUrls] : [[]]
       };
     });
 
@@ -259,10 +278,28 @@ export function QuestionConfigForm({ parsedData, onSubmit }: QuestionConfigFormP
                   />
                 )}
                 {uploadingFigure[questionNumber] && <span className="text-xs text-blue-500 ml-2">Uploading...</span>}
-                {questionConfigs[questionNumber]?.figureUrl && (
-                  <span className="text-xs text-green-500 ml-2">Uploaded!</span>
-                )}
               </div>
+              {/* Diagram thumbnails grid */}
+              {questionConfigs[questionNumber]?.isFigureBased && questionConfigs[questionNumber]?.figureUrls && questionConfigs[questionNumber].figureUrls.length > 0 && (
+                <div className="mt-2">
+                  <div className="font-semibold text-xs mb-1">Uploaded Diagrams:</div>
+                  <div className="grid grid-cols-3 gap-2 overflow-x-auto max-h-32 p-1 border rounded" style={{ display: 'grid', gridAutoFlow: 'row', gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))', overflowY: 'auto' }}>
+                    {questionConfigs[questionNumber].figureUrls.map((url, i) => (
+                      <div key={url} className="relative group border rounded bg-gray-50 flex flex-col items-center p-1">
+                        <img src={url} alt={`diagram-${i}`} className="w-16 h-16 object-contain rounded" />
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveFigure(questionNumber, url)}
+                          className="absolute top-0 right-0 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs opacity-80 hover:opacity-100"
+                          title="Remove"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         ))}
