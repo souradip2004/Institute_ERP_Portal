@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Ensure the PDF URL is from our S3 bucket or add the S3 bucket prefix if needed
-    const S3_BUCKET_URL = 'https://ideaverse-1.s3.eu-north-1.amazonaws.com/';
+    const S3_BUCKET_URL = 'https://aiclassroomin.s3.eu-north-1.amazonaws.com/';
     let fullPdfUrl = pdfUrl;
     
     // If the URL doesn't start with https:// or http://, assume it's a relative path

@@ -42,7 +42,54 @@
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
 }
+.glow-button {
+  position: relative;
+  color: white;
+  background: linear-gradient(90deg, #8e2de2, #4a00e0);
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  overflow: hidden;
+  z-index: 1;
+}
 
+.glow-button::before {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(45deg,
+      #ff00cc,
+      #333399,
+      #6600ff,
+      #ff00cc);
+  background-size: 400%;
+  animation: glowAnimation 5s linear infinite;
+  filter: blur(20px);
+  z-index: -1;
+}
+
+@keyframes glowAnimation {
+  0% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+
+.glow-button:hover {
+  transform: scale(1.05);
+  transition: transform 0.3s ease-in-out;
+}
 :root {
   --radius: 0.625rem;
   --background: oklch(1 0 0);

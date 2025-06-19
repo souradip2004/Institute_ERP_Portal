@@ -56,32 +56,35 @@ export async function POST(
     const modelJsonAnskey = teacherAnswerSheet.pythonParsedResponse;
     const studentJsonAns = studentAnswerJson;
     const configJson1 = teacherAnswerSheet.config1;
+    console.log(teacherAnswerSheet)
+    console.log(modelJsonAnskey)
+    console.log(studentJsonAns)
+    console.log(configJson1)
 
-    // Step 5: Initial checking with model key
-    // const checkingResponse = await checkAnswerWithModelKey(modelJsonAnskey, studentJsonAns, configJson1);
-    // console.log('step 5.1 ans check with model key python server response: ', checkingResponse);
+
+     const checkingResponse = await checkAnswerWithModelKey(modelJsonAnskey, studentJsonAns, configJson1);
+    console.log('step 5.1 ans check with model key python server response: ', checkingResponse);
 
     // // Extract the latest result
-    // let updatedScoresJson = JSON.stringify(checkingResponse.final_results_data?.[checkingResponse.final_results_data.length - 1]) || JSON.stringify(python_response_after_first_copy_check.final_results_data?.[0]);
-    // console.log('✅ Step 5 Complete: Initial answer checking completed');
+    let updatedScoresJson = JSON.stringify(checkingResponse.final_results_data?.[checkingResponse.final_results_data.length - 1]) || JSON.stringify(python_response_after_first_copy_check.final_results_data?.[0]);
+    console.log('✅ Step 5 Complete: Initial answer checking completed');
 
-    // console.log('Step 6: Performing enhanced checking with diagram support');
-    // const studentId = "test-uid-123";
-    // const configJson2 = teacherAnswerSheet.config2;
-    // const diagramDataJson = teacherAnswerSheet.config3;
-    // const diagramCheckingResponse = await checkAnswerWithDiagramSupport(
-    //   studentId,
-    //   filePublicUrl,
-    //   modelJsonAnskey,
-    //   diagramDataJson,
-    //   updatedScoresJson,
-    //   configJson2
-    // );
-    // console.log('✅ Step 6 Complete: Enhanced checking with diagram support completed');
+     console.log('Step 6: Performing enhanced checking with diagram support');
+    const studentId = "test-uid-123";
+    const configJson2 = teacherAnswerSheet.config2;
+    const diagramDataJson = teacherAnswerSheet.config3;
+    const diagramCheckingResponse = await checkAnswerWithDiagramSupport(
+     studentId,
+       filePublicUrl,
+       modelJsonAnskey,
+       diagramDataJson,
+        updatedScoresJson,
+       configJson2
+    );
+    console.log('✅ Step 6 Complete: Enhanced checking with diagram support completed');
+    console.log(diagramCheckingResponse)
 
-    // console.log('Step 7: Calculating total marks from grading response');
-
-    const totalMarks = calculateTotalMarks(python_last_result_response);
+    const totalMarks = calculateTotalMarks(diagramCheckingResponse);
     console.log(`✅ Step 7 Complete: Total marks calculated: ${totalMarks}`);
 
     console.log('Step 8: Saving student submission to database');
@@ -134,6 +137,7 @@ async function getTeacherAnswerSheet(examId: string) {
 
     if (teacherAnswerSheet) {
       console.log('✅ DB: Teacher answer sheet found successfully');
+      console.log(teacherAnswerSheet);
     } else {
       console.log('⚠️ DB: No teacher answer sheet found for exam ID:', examId);
     }
@@ -159,24 +163,41 @@ async function getTeacherAnswerSheet(examId: string) {
 function calculateTotalMarks(gradingResponse: any): number {
   console.log('🧮 CALCULATING: Extracting total marks from grading response');
   try {
-    let totalMarks = 0;
+    console.log('Grading Response:', gradingResponse);
     const finalResultJson = JSON.parse(gradingResponse.final_RESULT_JSON);
+    console.log('Final Result JSON:', finalResultJson);
+ let totalMarks = 0;
 
-    // Sum up all the updated scores from each question
-    for (const questionId in finalResultJson) {
-      if (finalResultJson[questionId]['Updated_Score (?/10)']) {
-        const score = parseFloat(finalResultJson[questionId]['Updated_Score (?/10)']);
+// Iterate over each question ID in the finalResultJson
+for (const questionId in finalResultJson) {
+  if (Object.prototype.hasOwnProperty.call(finalResultJson, questionId)) {
+    const questionData = finalResultJson[questionId];
+    if (questionData['Updated_Score (?/1)'] !== undefined) {
+      const score = parseFloat(questionData['Updated_Score (?/1)']);
+      if (!isNaN(score)) {
         totalMarks += score;
-        console.log(`➕ MARKS: Adding ${score} points for question ${questionId}`);
-      } else if (finalResultJson[questionId]['Updated_Score (?/6)']) {
-        // Handle alternative score format if present
-        const score = parseFloat(finalResultJson[questionId]['Updated_Score (?/6)']);
-        totalMarks += score;
-        console.log(`➕ MARKS: Adding ${score} points for question ${questionId}`);
+        console.log(`➕ MARKS: Adding ${score.toFixed(3)} points for question ${questionId} (from Updated_Score (?/1))`);
+      } else {
+        console.warn(`⚠️ WARNING: Could not parse score for question ${questionId} from 'Updated_Score (?/1)': ${questionData['Updated_Score (?/1)']}`);
       }
     }
-
-    console.log(`✅ CALCULATION: Total marks: ${totalMarks}`);
+    else if (questionData['Final Score (?/10)'] !== undefined) {
+      const score = parseFloat(questionData['Final Score (?/10)']);
+      if (!isNaN(score)) {
+        totalMarks += (score / 10); // Assuming Final Score (?/10) needs to be scaled to /1 for consistency
+        console.log(`➕ MARKS: Adding ${(score / 10).toFixed(3)} points for question ${questionId} (from Final Score (?/10) scaled)`);
+      } else {
+        console.warn(`⚠️ WARNING: Could not parse score for question ${questionId} from 'Final Score (?/10)': ${questionData['Final Score (?/10)']}`);
+      }
+    }
+    // Removed checks for 'Updated_Score (?/10)' and 'Updated_Score (?/6)'
+    // as they don't seem to exist in your sample data, but you can re-add
+    // them here if your data structure can genuinely contain them.
+    else {
+      console.warn(`⚠️ WARNING: No valid score found for question ${questionId}.`);
+    }
+  }
+}
     return totalMarks;
   } catch (error) {
     console.error('❌ ERROR calculating total marks:', error);

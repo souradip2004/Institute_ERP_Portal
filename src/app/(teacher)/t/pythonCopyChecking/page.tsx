@@ -90,6 +90,8 @@ export default function TeacherPage({ params }: { params: { id: string } }) {
       const data = await response.json();
       if (data.success) {
         setUploadedFileUrl(data.ansSheetS3URL);
+        console.log("file details")
+        console.log(data)
         // Now call the Python server to parse the PDF
         await parsePDFWithPython(data.ansSheetS3URL);
       }
@@ -112,8 +114,23 @@ export default function TeacherPage({ params }: { params: { id: string } }) {
       
       // This would be your actual Python server endpoint
       // For now, we'll simulate with a timeout and hardcoded data
-      setTimeout(() => {
-        setPythonResponse(hardcodedResponse);
+      setTimeout(async() => {
+const getPythonResponse = await fetch('https://anskey-segregate-from-pdfs-33f7051-v3.app.beam.cloud', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization':'Bearer ALXP7mhHyKz1MQATKH7CIQXK9VQBpvoNNuxPvLONWyPCfgemj18cz2T74r4drBpvOkf-3orOQT_6r-63mHPZAA=='
+        },
+        body:JSON.stringify({
+'file_url_list':["https://aiclassroomin.s3.eu-north-1.amazonaws.com/"+pdfUrl]
+        })
+      })
+      if(!getPythonResponse.ok){
+        alert("An unwanted error occured please try again")
+      }
+      const result=await getPythonResponse.json();
+      console.log(result)
+        setPythonResponse(result);
         setIsParsing(false);
         setSaveConfiguration(true)
       }, 2000);

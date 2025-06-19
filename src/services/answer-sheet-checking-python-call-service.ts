@@ -5,12 +5,12 @@ export async function segregateFromPdf(fileUrls: string[]) {
     console.log("🔄 Sending PDF URL(s) to AnsKey Segregate API...with fileURLs: " + fileUrls);
 
     const response = await axios.post(
-      'https://anskey-segregate-from-pdfs-e5c6c86-v1.app.beam.cloud' ,
+       'https://anskey-segregate-from-pdfs-33f7051-v3.app.beam.cloud' ,
       { file_url_list: fileUrls },
       {
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer cpxjIHGyDUggeCZSEgd7TSs_xuIaJLxQyplSlPcpEv35qftljIUmetr9Drtj_MUyC9PUSJLvV1vbjljWohB8Sw==',
+          'Authorization': 'Bearer ALXP7mhHyKz1MQATKH7CIQXK9VQBpvoNNuxPvLONWyPCfgemj18cz2T74r4drBpvOkf-3orOQT_6r-63mHPZAA==',
         }
       }
     );
@@ -56,13 +56,13 @@ export async function checkAnswerWithModelKey(
     console.log(JSON.parse(configJson1string))
     console.log('......................................................\n\n\n\n\n\n');
     const response = await fetch(
-      'https://answer-checking-4-89f26c7-v3.app.beam.cloud/',
+       'https://answer-checking-4-89f26c7-v4.app.beam.cloud',
       {
         method: 'POST',
         body: JSON.stringify({
-          model_json_anskey: modelJsonAnskey1,  
-          student_json_ans: studentJsonAns,    
-          config_json: configJson1string             
+          model_json_anskey: JSON.parse(modelJsonAnskey1),  
+          student_json_ans: JSON.parse(studentJsonAns),    
+          config_json: JSON.parse(configJson1string)             
         }),
         headers: {
           'Content-Type': 'application/json',
@@ -86,7 +86,7 @@ export async function checkAnswerWithModelKey(
     console.log('updatedScoreJson.....  :');
     console.log(updatedScoresJson)
     
-    return response.data;
+    return responseData;
   } catch (error: unknown) {
   if (axios.isAxiosError(error)) {
     console.error("❌ Axios Error during answer checking:", error.response?.data || error.message);
@@ -132,26 +132,30 @@ export async function checkAnswerWithDiagramSupport(
     console.log('......................................................\n\n\n\n\n\n');
     
 
-    const response = await axios.post(
-      'https://answer-and-diagram-checking-5-d324ec2-v3.app.beam.cloud/',
+    const response = await fetch(
+      'https://answer-and-diagram-checking-5-d324ec2-v5.app.beam.cloud/',
+    
       {
-        student_uid: studentUid,
-        student_ans_pdf_url: studentAnsPdfUrl,
-        ans_key_json: modelJsonAnskey1,
-        diagram_data_json: diagramDataJson1,
-        updated_scores_json: updatedScoresJson,
-        config_json: configJson1string2
-      },
-      {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer ALXP7mhHyKz1MQATKH7CIQXK9VQBpvoNNuxPvLONWyPCfgemj18cz2T74r4drBpvOkf-3orOQT_6r-63mHPZAA==',
-        }
-      }
+        },
+        body: JSON.stringify({
+        
+        student_uid: studentUid,
+        student_ans_pdf_url: studentAnsPdfUrl,
+        ans_key_json: JSON.parse(modelJsonAnskey1),
+        diagram_data_json: JSON.parse(diagramDataJson1),
+        updated_scores_json: JSON.parse(updatedScoresJson),
+        config_json: JSON.parse(configJson1string2)
+      
+      })}
+      
     );
-
-    console.log("✅ Answer + Diagram Checking Response:", response.data);
-    return response.data;
+    const responseData = await response.json();
+    console.log("✅ Answer + Diagram Checking Response:", responseData);
+    return responseData;
   } catch (error) {
     console.error("❌ Error during answer + diagram check:", error);
     throw error;

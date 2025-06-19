@@ -61,9 +61,7 @@ export default function TeachersList({ teachers, onViewTeacher }: TeachersListPr
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Email
                 </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Qual.
-                </th>
+
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Status
                 </th>
@@ -85,10 +83,7 @@ export default function TeachersList({ teachers, onViewTeacher }: TeachersListPr
                   <td className="px-6 py-4 text-sm text-gray-700 max-w-[150px] sm:max-w-none truncate sm:whitespace-normal">
                     {teacher.user.email}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                    {/* Consider abbreviating on mobile if needed, or rely on horizontal scroll */}
-                    {teacher.qualification}
-                  </td>
+                
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${STATUS_STYLES[teacher.employmentStatus]}`}>
                       {/* Shorten text for small screens */}

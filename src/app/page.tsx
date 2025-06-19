@@ -6,6 +6,18 @@ import Image from 'next/image';
 import { Menu, X } from 'lucide-react';
 import { Swiper, SwiperSlide } from "swiper/react";
 import {
+  Instagram,
+  Linkedin,
+  Twitter,
+  Youtube,
+  Facebook,
+  UserCircle,
+ UserPlus,
+  ChevronDown,
+  ChevronUp,
+} from "lucide-react";
+import FAQ from '@/components/ui/faq';
+import {
   Navigation,
   Pagination,
   Autoplay,
@@ -65,14 +77,41 @@ export default function LandingPage() {
             className="object-contain"
           />
           {/* Desktop Nav */}
-          <nav className="hidden md:flex gap-4">
-            <Link href="/login" className="text-sm bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium">
-              Login
-            </Link>
-            <Link href="/register" className="text-sm bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-md font-medium">
-              Register
-            </Link>
-          </nav>
+        <nav className="hidden md:flex items-center gap-6"> {/* Increased gap for better spacing */}
+    {/* Individual Button with Enhanced Tooltip */}
+    <div className="relative group inline-block">
+        <button
+            onClick={() => window.location.href = "https://aiclassroom.in/"}
+            className="glow-button px-6 py-2 rounded-lg text-base font-semibold cursor-pointer relative overflow-hidden transition-all duration-300 ease-in-out hover:scale-105"
+        >
+            Individual
+        </button>
+        <div
+            className="absolute top-[calc(100%+8px)] left-1/2 transform -translate-x-1/2 mt-2 px-3 py-1.5 bg-gray-800 text-white text-xs rounded-md shadow-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-all duration-300 ease-in-out pointer-events-none group-hover:scale-100 scale-95 origin-top"
+        >
+              For Individuals
+            <svg className="absolute text-gray-800 h-2 w-full left-0 top-[-7px]" x="0px" y="0px" viewBox="0 0 255 255" xmlSpace="preserve"><polygon className="fill-current" points="0,255 127.5,0 255,255"/></svg>
+        </div>
+    </div>
+
+    {/* Login Button with UserCircle Icon */}
+    <Link
+        href="/login"
+        className="flex items-center gap-2 text-base bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg font-semibold transition-all duration-200 ease-in-out hover:shadow-md hover:-translate-y-0.5"
+    >
+        <UserCircle size={20} className="text-white" /> {/* Keeping UserCircle for Login */}
+        Login
+    </Link>
+
+    {/* Register Button with UserPlus Icon */}
+    <Link
+        href="/register"
+        className="flex items-center gap-2 text-base bg-gray-200 hover:bg-gray-300 text-gray-800 px-5 py-2.5 rounded-lg font-semibold transition-all duration-200 ease-in-out hover:shadow-md hover:-translate-y-0.5"
+    >
+        <UserPlus size={20} className="text-gray-700" /> {/* Changed to UserPlus icon for Register */}
+        Register
+    </Link>
+</nav>
           {/* Mobile Menu Toggle */}
           <button onClick={() => setMobileMenuOpen(true)} className="md:hidden text-gray-700">
             <Menu size={28} />
@@ -81,25 +120,60 @@ export default function LandingPage() {
 
         {/* Mobile Side Drawer */}
         {mobileMenuOpen && (
-          <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex justify-end">
-            <div className="w-64 bg-white h-full shadow-xl p-6">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-lg font-semibold">Menu</h2>
-                <button onClick={() => setMobileMenuOpen(false)}>
-                  <X size={24} />
-                </button>
-              </div>
-              <div className="flex flex-col gap-4">
-                <Link href="/login" className="text-sm bg-blue-600 text-white px-4 py-2 rounded-md text-center" onClick={() => setMobileMenuOpen(false)}>
-                  Login
-                </Link>
-                <Link href="/register" className="text-sm bg-gray-200 text-gray-800 px-4 py-2 rounded-md text-center" onClick={() => setMobileMenuOpen(false)}>
-                  Register
-                </Link>
-              </div>
+  <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex justify-end">
+    <div className="w-64 bg-white h-full shadow-xl p-6">
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-lg font-semibold">Menu</h2>
+        <button onClick={() => setMobileMenuOpen(false)} aria-label="Close menu">
+          <X size={24} />
+        </button>
+      </div>
+      <div className="flex flex-col gap-4">
+        {/* Login Link - Now a flex container */}
+        <Link
+          href="/login"
+          className="flex items-center justify-center gap-2 text-base bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium transition-colors duration-200"
+          onClick={() => setMobileMenuOpen(false)}
+        >
+          <UserCircle size={20} className="text-white" />
+          Login
+        </Link>
+
+        {/* Register Link - Now a flex container */}
+        <Link
+          href="/register"
+          className="flex items-center justify-center gap-2 text-base bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-md font-medium transition-colors duration-200"
+          onClick={() => setMobileMenuOpen(false)}
+        >
+          <UserPlus size={20} className="text-gray-700" />
+          Register
+        </Link>
+
+        {/* Individual Button (Glow Button) - Centered */}
+        <div className="flex justify-center mt-2"> {/* Added margin-top for spacing from buttons above */}
+          <div className="relative group inline-block">
+            <button
+              onClick={() => {
+                window.location.href = "https://aiclassroom.in/";
+                setMobileMenuOpen(false); // Close menu on click
+              }}
+              // Applying similar styles as desktop for consistency
+              className="glow-button px-6 py-2 rounded-lg text-base font-semibold cursor-pointer relative overflow-hidden transition-all duration-300 ease-in-out"
+            >
+              Individual
+            </button>
+            <div
+              className="absolute top-[calc(100%+8px)] left-1/2 transform -translate-x-1/2 mt-2 px-3 py-1.5 bg-gray-800 text-white text-xs rounded-md shadow-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-all duration-300 ease-in-out pointer-events-none group-hover:scale-100 scale-95 origin-top"
+            >
+              For Individuals
+              <svg className="absolute text-gray-800 h-2 w-full left-0 top-[-7px]" x="0px" y="0px" viewBox="0 0 255 255" xmlSpace="preserve"><polygon className="fill-current" points="0,255 127.5,0 255,255"/></svg>
             </div>
           </div>
-        )}
+        </div>
+      </div>
+    </div>
+  </div>
+)}
       </header>
 
       {/* Hero Section */}
@@ -199,13 +273,113 @@ export default function LandingPage() {
         </Swiper>
       </div>
     </section>
-
+<FAQ/>
       {/* Footer */}
-      <footer className="bg-white border-t mt-12">
-        <div className="max-w-7xl mx-auto py-6 px-4 text-center text-sm text-gray-500">
-          &copy; 2025 AI Classroom. All rights reserved.
-        </div>
-      </footer>
+      <footer className="border-t bg-gray-100 pt-8">
+          <div className="flex flex-wrap justify-between mx-[10%] gap-8">
+            <div className="w-full md:w-auto">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="relative">
+                  <img
+                    src="/logo.png"
+                    alt="AI Classroom Logo"
+                    className="w-full h-[50px] hover:opacity-90 transition-opacity duration-200 cursor-pointer"
+                  />
+                </div>
+              </div>
+
+              <div className="text-sm text-gray-600 mb-4 max-w-[450px]">
+                AI Classroom is designed by RnPsoft Private Limited to cater all the needs of a classroom with the AI Effect.
+                 
+              </div>
+            </div>
+
+            <div className="w-full sm:w-auto">
+              <h3 className="font-medium mb-4">About Us</h3>
+              <ul className="space-y-2 text-sm text-gray-600">
+                <li
+                  className="hover:text-purple-700 cursor-pointer transition-colors duration-200"
+                  onClick={() => { window.location.href = "https://rnpsoft.com/our-team" }}
+                >
+                  Our Team
+                </li>
+                <li
+                  className="hover:text-purple-700 cursor-pointer transition-colors duration-200"
+                  onClick={() => { window.location.href = "https://rnpsoft.com/event" }}
+                >
+                 Events
+                </li>
+              </ul>
+            </div>
+
+            <div className="w-full sm:w-auto">
+              <h3 className="font-medium mb-4">Policies</h3>
+              <ul className="space-y-2 text-sm text-gray-600">
+                <li
+                  className="hover:text-purple-700 cursor-pointer transition-colors duration-200"
+                  onClick={() => { window.location.href = "https://aiclassroom.in/terms-guidelines" }}
+                >
+                 Terms and Conditions
+                </li>
+                <li
+                  className="hover:text-purple-700 cursor-pointer transition-colors duration-200"
+                  onClick={() => { window.location.href = "https://aiclassroom.in/privacy-guidelines" }}
+                >
+                  Privacy
+                </li>
+                <li
+                  className="hover:text-purple-700 cursor-pointer transition-colors duration-200"
+                  onClick={() => { window.location.href = "https://aiclassroom.in/refund-guidelines" }}
+                >
+                  Refund
+                </li>
+              </ul>
+            </div>
+
+            <div className="w-full sm:w-auto">
+              <h3 className="font-medium mb-4">Follow Us</h3>
+              <div className="mt-[15px] flex gap-2">
+                <Instagram
+                  className="h-5 w-5 hover:text-purple-700 cursor-pointer transition-colors duration-200"
+                  onClick={() => { window.location.href = "https://www.instagram.com/aiclassroom_v1/" }}
+                />
+                <Facebook
+                  className="h-5 w-5 hover:text-purple-700 cursor-pointer transition-colors duration-200"
+                  onClick={() => { window.location.href = "https://www.facebook.com/profile.php?id=61555927914160" }}
+                />
+                <Linkedin
+                  className="h-5 w-5 hover:text-purple-700 cursor-pointer transition-colors duration-200"
+                  onClick={() => { window.location.href = "https://www.linkedin.com/showcase/ai-classroom/" }}
+                />
+                <Youtube
+                  className="h-5 w-5 hover:text-purple-700 cursor-pointer transition-colors duration-200"
+                  onClick={() => { window.location.href = "https://www.youtube.com/@RnPsoft" }}
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap justify-between mx-[10%] mt-8">
+            <div className="w-full sm:w-auto">
+              <div
+                className="text-sm text-gray-600 mb-2 hover:text-purple-700 cursor-pointer transition-colors duration-200"
+                onClick={() => window.location.href = "mailto:team@rnpsoft.com"}
+              >
+                team@rnpsoft.com
+              </div>
+              <div
+                className="text-sm text-gray-600 mb-2 hover:text-purple-700 cursor-pointer transition-colors duration-200"
+                onClick={() => window.location.href = "tel:+919938512307"}
+              >
+                +91 9938512307
+              </div>
+            </div>
+
+            <div className="w-full sm:w-auto text-center text-xs text-gray-500 mt-8 pt-4">
+              © 2025 AI Classroom All rights reserved
+            </div>
+          </div>
+        </footer>
     </div>
   );
 }

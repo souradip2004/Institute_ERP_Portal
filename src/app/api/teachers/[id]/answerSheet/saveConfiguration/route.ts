@@ -39,12 +39,13 @@ export async function POST(
           pythonParsedResponse: [],
         },
       });
+      console.log('No existing answer sheet found, created new one:', answerSheet.id);
     }
 
     // Update the answer sheet with configurations and Python response
-    const updatedAnswerSheet = await prisma.teacherAnswerSheet.update({
+    const updatedAnswerSheet = await prisma.teacherAnswerSheet.updateMany({
       where: {
-        id: answerSheet.id,
+        examId: examId,
       },
       data: {
         config1: config1,
@@ -53,12 +54,13 @@ export async function POST(
         pythonParsedResponse: [pythonParsedResponse],
       },
     });
-      
-      console.log('answer sheet saved successfully: ', updatedAnswerSheet.id);
+      console.log(examId)
+      console.log(pythonParsedResponse)
+      console.log('answer sheet saved successfully: ', updatedAnswerSheet);
 
     return NextResponse.json({
       success: true,
-      id: updatedAnswerSheet.id,
+      id: updatedAnswerSheet,
     });
   } catch (error) {
     console.error('Error saving configuration:', error);
