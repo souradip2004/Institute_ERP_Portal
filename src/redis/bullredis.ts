@@ -1,8 +1,9 @@
 import Redis from 'ioredis';
 
 
-export const redis = new Redis('redis://localhost:6379',{
-    maxRetriesPerRequest: null, 
+export const redis = new Redis('103.180.212.159:7006',{
+    maxRetriesPerRequest: null,
+    password: '1234'
 });
 
 
