@@ -68,7 +68,7 @@ export default function StudentLayout({ children }: StudentLayoutProps) {
                         isSidebarOpen ? isMobileView?'ml-0':'ml-64' : 'ml-0'
                     }`}
                 >
-                    <main className="w-full p-6"> {/* Added p-6 for consistent padding */}
+                    <main className="w-screen md:w-full p-1 md:p-6"> {/* Added p-6 for consistent padding */}
                         {children}
                     </main>
                 </div>

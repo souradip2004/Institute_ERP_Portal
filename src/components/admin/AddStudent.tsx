@@ -311,8 +311,8 @@ const sendemail=await fetch("/api/emails/logindetails",{
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4">
-      <Card className="bg-white w-full max-w-md shadow-lg rounded-lg">
+    <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4 overflow-auto">
+      <Card className="bg-white w-full max-w-md shadow-lg rounded-lg overflow-y-auto border-red-500 border-2">
         <div className="p-6">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-xl font-bold text-gray-800">Add New Student</h2>
