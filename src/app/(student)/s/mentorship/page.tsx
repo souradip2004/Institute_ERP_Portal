@@ -145,7 +145,7 @@ const handleSendMessage = async () => {
     <div className="mentorship-container">
       <div className="progress-section">
         <div className="section-header">
-          <h2>
+          <h2 className={"mt-11 sm:mt-0"}>
             <span className="chart-icon">📊</span>
             Your Learning Progress
           </h2>

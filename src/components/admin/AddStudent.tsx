@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect, FormEvent } from "react";
-import { Card } from "@/components/ui/card";
+import {useState, useEffect, FormEvent} from "react";
+import {Card} from "@/components/ui/card";
 import Loader from "@/components/ui/Loader";
-import { Button } from "../ui/button";
+import {Button} from "../ui/button";
 
 interface Department {
   id: string;
@@ -33,7 +33,7 @@ interface AddStudentProps {
   onSuccess: () => void;
 }
 
-export default function AddStudentModal({ id, isOpen, onClose, onSuccess }: AddStudentProps) {
+export default function AddStudentModal({id, isOpen, onClose, onSuccess}: AddStudentProps) {
   const [classData, setClassData] = useState<ClassSection[]>([]);
   const [departmentData, setDepartmentData] = useState<Department[]>([]);
   const [batchData, setBatchData] = useState<Batch[]>([]);
@@ -132,7 +132,7 @@ export default function AddStudentModal({ id, isOpen, onClose, onSuccess }: AddS
       const randomCode = Math.floor(1000 + Math.random() * 9000).toString();
       const response = await fetch("/api/departments", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {"Content-Type": "application/json"},
         body: JSON.stringify({
           name: studentData.newDepartment,
           institutionId: id,
@@ -160,66 +160,66 @@ export default function AddStudentModal({ id, isOpen, onClose, onSuccess }: AddS
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if(!multiplestudent){
-    try {
-      setLoading(true);
-      setError(null);
-      const userResponse = await fetch("/api/users", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: studentData.rollNumber,
-          email: studentData.email,
-          password: studentData.password,
-          role: "STUDENT",
-          institutionId: id,
-          emailVerified: new Date(),
-        }),
-      });
-
-      if (!userResponse.ok) throw new Error("Failed to create user");
-      const userData = await userResponse.json();
-const sendemail=await fetch("/api/emails/logindetails",{
+    if (!multiplestudent) {
+      try {
+        setLoading(true);
+        setError(null);
+        const userResponse = await fetch("/api/users", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email:studentData.email,password:studentData.password}),
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({
+            name: studentData.rollNumber,
+            email: studentData.email,
+            password: studentData.password,
+            role: "STUDENT",
+            institutionId: id,
+            emailVerified: new Date(),
+          }),
+        });
+
+        if (!userResponse.ok) throw new Error("Failed to create user");
+        const userData = await userResponse.json();
+        const sendemail = await fetch("/api/emails/logindetails", {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({email: studentData.email, password: studentData.password}),
         });
         if (!sendemail.ok) {
           const data = await sendemail.json();
           console.log("Error sending welcome email:", data.error);
         }
-      const studentResponse = await fetch("/api/students", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: studentData.email,
-          password: studentData.password,
-          studentRoll: studentData.rollNumber,
-          user: { connect: { id: userData.id } },
-          department: { connect: { id: studentData.department } },
-          batch: { connect: { id: studentData.batch } },
-          classes: studentData.classes.length > 0
-            ? { connect: studentData.classes.map((id) => ({ id })) }
-            : undefined,
-          enrollmentStatus: "ACTIVE",
-          currentSemester: 1,
-          currentYear: 1,
-          institutionId: id
-        }),
-      });
+        const studentResponse = await fetch("/api/students", {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({
+            email: studentData.email,
+            password: studentData.password,
+            studentRoll: studentData.rollNumber,
+            user: {connect: {id: userData.id}},
+            department: {connect: {id: studentData.department}},
+            batch: {connect: {id: studentData.batch}},
+            classes: studentData.classes.length > 0
+              ? {connect: studentData.classes.map((id) => ({id}))}
+              : undefined,
+            enrollmentStatus: "ACTIVE",
+            currentSemester: 1,
+            currentYear: 1,
+            institutionId: id
+          }),
+        });
 
-      if (!studentResponse.ok) throw new Error("Failed to create student");
+        if (!studentResponse.ok) throw new Error("Failed to create student");
 
-      resetForm();
-      onSuccess();
-      onClose();
-    } catch (error: any) {
-      console.error("Error adding student:", error);
-      setError(error.message || "Failed to add student");
-    } finally {
-      setLoading(false);
-    }}
-    else{
+        resetForm();
+        onSuccess();
+        onClose();
+      } catch (error: any) {
+        console.error("Error adding student:", error);
+        setError(error.message || "Failed to add student");
+      } finally {
+        setLoading(false);
+      }
+    } else {
       const rollNumbers = studentData.rollNumber.split(",").map((roll) => roll.trim());
       const emails = studentData.email.split(",").map((email) => email.trim());
       if (rollNumbers.length !== emails.length) {
@@ -234,7 +234,7 @@ const sendemail=await fetch("/api/emails/logindetails",{
           const randomCode = Math.floor(1000 + Math.random() * 9000).toString();
           const userResponse = await fetch("/api/users", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {"Content-Type": "application/json"},
             body: JSON.stringify({
               name: rollNumbers[i],
               email: emails[i],
@@ -247,28 +247,28 @@ const sendemail=await fetch("/api/emails/logindetails",{
 
           if (!userResponse.ok) throw new Error("Failed to create user");
           const userData = await userResponse.json();
-          const sendemail=await fetch("/api/emails/logindetails",{
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email:emails[i],password:randomCode}),
-        });
-        if (!sendemail.ok) {
-          const data = await sendemail.json();
-          console.log("Error sending welcome email:", data.error);
-        }
+          const sendemail = await fetch("/api/emails/logindetails", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({email: emails[i], password: randomCode}),
+          });
+          if (!sendemail.ok) {
+            const data = await sendemail.json();
+            console.log("Error sending welcome email:", data.error);
+          }
           const studentResponse = await fetch("/api/students", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {"Content-Type": "application/json"},
             body: JSON.stringify({
               email: emails[i],
               password: studentData.password,
               studentRoll: rollNumbers[i],
-              user: { connect: { id: userData.id } },
-              department: { connect: { id: studentData.department } },
-              batch: { connect: { id: studentData.batch } },
+              user: {connect: {id: userData.id}},
+              department: {connect: {id: studentData.department}},
+              batch: {connect: {id: studentData.batch}},
               classes:
                 studentData.classes.length > 0
-                  ? { connect: studentData.classes.map((id) => ({ id })) }
+                  ? {connect: studentData.classes.map((id) => ({id}))}
                   : undefined,
               enrollmentStatus: "ACTIVE",
               currentSemester: 1,
@@ -283,12 +283,10 @@ const sendemail=await fetch("/api/emails/logindetails",{
         resetForm();
         onSuccess();
         onClose();
-      }
-      catch (error: any) {
+      } catch (error: any) {
         console.error("Error adding student:", error);
         setError(error.message || "Failed to add student");
-      }
-      finally {
+      } finally {
         setLoading(false);
       }
     }
@@ -311,79 +309,82 @@ const sendemail=await fetch("/api/emails/logindetails",{
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4 overflow-auto">
-      <Card className="bg-white w-full max-w-md shadow-lg rounded-lg overflow-y-auto border-red-500 border-2">
-        <div className="p-6">
+    <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4">
+      <Card className="bg-white w-full max-w-md shadow-lg rounded-lg max-h-[90vh] overflow-scroll"> {/* Added max-h and overflow-hidden here */}
+        <div className="p-6 flex flex-col h-full"> {/* Added flex flex-col h-full */}
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-xl font-bold text-gray-800">Add New Student</h2>
             <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                   stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/>
               </svg>
             </button>
           </div>
 
-          {loading && <Loader size="medium" message="Processing..." />}
+          {loading && <Loader size="medium" message="Processing..."/>}
 
           {!loading && (
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="flex flex-col flex-grow overflow-y-auto space-y-4 pr-2"> {/* Added flex-grow, overflow-y-auto and pr-2 for scrollbar */}
               <Button
-                  variant="outline"
-                  className="w-full mb-4"
-                  onClick={() => setMultiplestudent(!multiplestudent)}
-                >
-                  {multiplestudent ? "Add Single Student" : "Add Multiple Students"}
-                </Button>
+                variant="outline"
+                className="w-full mb-4"
+                onClick={() => setMultiplestudent(!multiplestudent)}
+              >
+                {multiplestudent ? "Add Single Student" : "Add Multiple Students"}
+              </Button>
               {/* Roll Number */}
               <div>
 
-                <label className="block text-sm font-medium text-gray-700 mb-1">Roll Number* {multiplestudent ? "(Seperated by commas)" : ""}</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Roll
+                  Number* {multiplestudent ? "(Seperated by commas)" : ""}</label>
                 <input
                   type="text"
                   required
                   value={studentData.rollNumber}
-                  onChange={(e) => setStudentData({ ...studentData, rollNumber: e.target.value })}
+                  onChange={(e) => setStudentData({...studentData, rollNumber: e.target.value})}
                   className="w-full p-2 border rounded-md"
                 />
               </div>
 
               {/* Email */}
               {!multiplestudent && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Email* </label>
-                <input
-                  type="email"
-                  required
-                  value={studentData.email}
-                  onChange={(e) => setStudentData({ ...studentData, email: e.target.value })}
-                  className="w-full p-2 border rounded-md"
-                />
-              </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Email* </label>
+                  <input
+                    type="email"
+                    required
+                    value={studentData.email}
+                    onChange={(e) => setStudentData({...studentData, email: e.target.value})}
+                    className="w-full p-2 border rounded-md"
+                  />
+                </div>
               )}
               {multiplestudent && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Email* {multiplestudent ? "(Seperated by commas)" : ""}</label>
+                  <label
+                    className="block text-sm font-medium text-gray-700 mb-1">Email* {multiplestudent ? "(Seperated by commas)" : ""}</label>
                   <input
                     type="text"
                     required
                     value={studentData.email}
-                    onChange={(e) => setStudentData({ ...studentData, email: e.target.value })}
+                    onChange={(e) => setStudentData({...studentData, email: e.target.value})}
                     className="w-full p-2 border rounded-md"
                   />
                 </div>
               )}
               {/* Password */}
               {!multiplestudent && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Password*</label>
-                <input
-                  type="password"
-                  required
-                  value={studentData.password}
-                  onChange={(e) => setStudentData({ ...studentData, password: e.target.value })}
-                  className="w-full p-2 border rounded-md"
-                />
-              </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Password*</label>
+                  <input
+                    type="password"
+                    required
+                    value={studentData.password}
+                    onChange={(e) => setStudentData({...studentData, password: e.target.value})}
+                    className="w-full p-2 border rounded-md"
+                  />
+                </div>
               )}
 
               {/* Department */}
@@ -395,14 +396,16 @@ const sendemail=await fetch("/api/emails/logindetails",{
                       type="text"
                       placeholder="New Department Name"
                       value={studentData.newDepartment}
-                      onChange={(e) => setStudentData({ ...studentData, newDepartment: e.target.value })}
+                      onChange={(e) => setStudentData({...studentData, newDepartment: e.target.value})}
                       className="w-full p-2 border rounded-md"
                     />
                     <div className="flex space-x-2">
-                      <button type="button" onClick={createNewDepartment} className="bg-purple-600 text-white px-3 py-2 rounded-md">
+                      <button type="button" onClick={createNewDepartment}
+                              className="bg-purple-600 text-white px-3 py-2 rounded-md">
                         Create Department
                       </button>
-                      <button type="button" onClick={() => setShowNewDepartment(false)} className="bg-gray-200 px-3 py-2 rounded-md">
+                      <button type="button" onClick={() => setShowNewDepartment(false)}
+                              className="bg-gray-200 px-3 py-2 rounded-md">
                         Cancel
                       </button>
                     </div>
@@ -412,7 +415,7 @@ const sendemail=await fetch("/api/emails/logindetails",{
                     <select
                       required
                       value={studentData.department}
-                      onChange={(e) => setStudentData({ ...studentData, department: e.target.value })}
+                      onChange={(e) => setStudentData({...studentData, department: e.target.value})}
                       className="w-full p-2 border rounded-md"
                     >
                       <option value="">Select Department</option>
@@ -420,7 +423,8 @@ const sendemail=await fetch("/api/emails/logindetails",{
                         <option key={d.id} value={d.id}>{d.name}</option>
                       ))}
                     </select>
-                    <button type="button" onClick={() => setShowNewDepartment(true)} className="bg-gray-200 px-3 py-2 rounded-md">
+                    <button type="button" onClick={() => setShowNewDepartment(true)}
+                            className="bg-gray-200 px-3 py-2 rounded-md">
                       New
                     </button>
                   </div>
@@ -434,7 +438,7 @@ const sendemail=await fetch("/api/emails/logindetails",{
                   <select
                     required
                     value={studentData.batch}
-                    onChange={(e) => setStudentData({ ...studentData, batch: e.target.value })}
+                    onChange={(e) => setStudentData({...studentData, batch: e.target.value})}
                     className="w-full p-2 border rounded-md"
                   >
                     <option value="">Select Batch</option>
@@ -448,27 +452,27 @@ const sendemail=await fetch("/api/emails/logindetails",{
               {/* Classes (multi-select) */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Classes</label>
-              <div className="border p-2 rounded-md max-h-40 overflow-y-auto">
-  {classData.map((c) => (
-    <label key={c.id} className="flex items-center space-x-2">
-      <input
-        type="checkbox"
-        value={c.id}
-        checked={studentData.classes.includes(c.id)}
-        onChange={(e) => {
-          const value = e.target.value;
-          setStudentData((prev) => ({
-            ...prev,
-            classes: e.target.checked
-              ? [...prev.classes, value]
-              : prev.classes.filter((id) => id !== value),
-          }));
-        }}
-      />
-      <span>{c.sectionName}</span>
-    </label>
-  ))}
-</div>
+                <div className="border p-2 rounded-md max-h-40 overflow-y-auto">
+                  {classData.map((c) => (
+                    <label key={c.id} className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        value={c.id}
+                        checked={studentData.classes.includes(c.id)}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          setStudentData((prev) => ({
+                            ...prev,
+                            classes: e.target.checked
+                              ? [...prev.classes, value]
+                              : prev.classes.filter((id) => id !== value),
+                          }));
+                        }}
+                      />
+                      <span>{c.sectionName}</span>
+                    </label>
+                  ))}
+                </div>
 
               </div>
 

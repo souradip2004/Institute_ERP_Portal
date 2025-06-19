@@ -338,7 +338,7 @@ export default function AssignmentsPage() {
       <div className="p-4 sm:p-8 overflow-x-auto">
         <div className="mb-6 sm:mb-8 max-w-screen-xl mx-auto">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-            <h2 className="text-2xl font-semibold text-gray-800">Assignments</h2>
+            <h2 className="relative left-14 sm:left-0 text-2xl font-semibold text-gray-800">Assignments</h2>
             <button
                 onClick={toggleDebugMode}
                 className="text-sm text-gray-500 hover:text-gray-700 mt-2 sm:mt-0"

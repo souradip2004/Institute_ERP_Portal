@@ -295,7 +295,7 @@ export default function Dashboard() {
 
   return (
     <div className="p-8">
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex justify-between items-center mb-4 mt-8 sm:mb-8 sm:mt-0" >
         <div>
           {/* <h1 className="text-gray-400 text-sm mb-1">Student Dashboard / My Classes</h1> */}
           <div className="flex flex-col">

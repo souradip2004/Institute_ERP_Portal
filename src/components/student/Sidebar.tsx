@@ -94,7 +94,7 @@ export default function Sidebar({ onSidebarToggle }: SidebarProps) {
       )}
 
       {/* Desktop Toggle Button (outside the sidebar) */}
-      {!isMobile && !isOpen && ( // Show on desktop regardless of isOpen state to allow opening
+      {!isMobile && !isOpen && (
         <button
           onClick={() => setIsOpen(!isOpen)}
           className={`fixed top-4 p-2 bg-blue-600 text-white rounded-md shadow-lg z-50 transition-all duration-300 ease-in-out

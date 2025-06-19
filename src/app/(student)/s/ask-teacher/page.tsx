@@ -276,7 +276,7 @@ setTeacherCode(classd)
   return (
 
     <div className="p-8">
-      <div className="mb-8">
+      <div className="mb-8 mt-8 sm:mt-0">
         {/* <h1 className="text-gray-400 text-sm mb-1">
             <Link href="/s/dashboard" className="inline-flex items-center hover:text-gray-600">
               Student Dashboard
