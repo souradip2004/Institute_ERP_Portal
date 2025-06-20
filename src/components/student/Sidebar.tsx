@@ -25,7 +25,20 @@ export default function Sidebar({ onSidebarToggle }: SidebarProps) {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(true); // Default to open for desktop, adjust based on initial screen size
   const [isMobile, setIsMobile] = useState(false); // State to track mobile view
-
+  const [institution,setImstitution]=useState(null);
+useEffect(()=>{
+  if(localStorage.getItem("user")){
+    const data=JSON.parse(localStorage.getItem("user"))?.institutionId;
+    const fetchInstitute=async()=>{
+      const institutionRes = await fetch(`http://localhost:3000/api/institutions/${data}`, {
+      cache: "no-store",
+    });
+    let institutionData = await institutionRes.json();
+    setImstitution(institutionData)
+    }
+    fetchInstitute();
+  }
+},[])
   // Memoize the callback to prevent unnecessary re-renders in parent
   const memoizedOnSidebarToggle = useCallback(
     (openStatus: boolean) => {
@@ -122,13 +135,16 @@ export default function Sidebar({ onSidebarToggle }: SidebarProps) {
         <div className="p-4 flex flex-col h-full"> {/* Added flex-col and h-full for layout */}
           {/* Logo Section */}
           <div className="mb-8 flex items-center justify-between"> {/* Added justify-between */}
-            <Image
-              src="/logo.png"
+ <Image
+              src={institution?.logoUrl?institution.logoUrl:"/logo.png"}
               alt="Logo"
-              width={160}
+              width={(institution&&institution.logoUrl)?40:160}
               height={40}
               className="object-contain"
             />
+             {(institution&&institution.logoUrl) && (
+                <span className="text-sm font-semibold text-gray-800 ml-2 whitespace-normal break-words w-full block leading-tight">{institution?.name}</span>
+            )}
             {/* Close button inside sidebar (visible when sidebar is open) */}
             {isOpen && ( // The close button inside the sidebar should always be visible when the sidebar is open
               <button

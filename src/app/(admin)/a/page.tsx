@@ -33,6 +33,7 @@ export default async function AdminPage() {
     });
     institutionData = await institutionRes.json();
   }
+  const institutielogo= institutionData?.logoUrl || null;
   console.log(userData)
   if (!institutionData) {
     return (
@@ -51,7 +52,7 @@ export default async function AdminPage() {
   return (
     // Removed the outer <div> with display: "flex"
     <>
-      <Sider id={id} userId={userId} />
+      <Sider id={id} userId={userId} logo={institutielogo} name={institutionData.name} />
     </>
   );
 }

@@ -28,9 +28,11 @@ import {
 interface NavigatorProps {
   id: string;
   userId: string;
+  logo: string | null; // Logo URL or null if not available
+  name:string
 }
 
-const Navigator = ({id, userId}: NavigatorProps) => {
+const Navigator = ({id, userId,logo,name}: NavigatorProps) => {
   const [activeComponent, setActiveComponent] = useState<string>("Dashboard");
   const [isSidebarOpen, setIsSidebarOpen] = useState(true); // Initial state: sidebar is open
   const [isMobileView, setIsMobileView] = useState(false); // State to track mobile view
@@ -183,12 +185,15 @@ const Navigator = ({id, userId}: NavigatorProps) => {
           {/* Logo */}
           <div className="flex items-center mb-8 justify-between">
             <Image
-              src="/logo.png"
+              src={logo?logo:"/logo.png"}
               alt="Logo"
-              width={160}
+              width={logo?40:160}
               height={40}
               className="object-contain"
             />
+            {logo && (
+              <span className="text-base font-semibold text-gray-800 ml-2 whitespace-normal break-words max-w-[8rem] leading-tight">{name}</span>
+            )}
             {/* Close button for mobile inside sidebar (or desktop if sidebar is open) */}
             {isSidebarOpen && (
               <button

@@ -7,10 +7,10 @@ import {
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 const s3Client = new S3Client({
-  region: process.env.AWS_REGION,
+  region: "eu-north-1",
   credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+    accessKeyId: "AKIAXFZ5FAAT747U6IN6",
+    secretAccessKey:"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",
   },
 });
 
@@ -22,12 +22,15 @@ export class S3Utils {
   ): Promise<string> {
     const key = `assignments/${Date.now()}_${fileName}`;
     const command = new PutObjectCommand({
-      Bucket: process.env.AWS_S3_BUCKET_NAME,
+      Bucket: "aiclassroomin",
       Key: key,
       Body: file,
       ContentType: contentType,
     });
+
 console.log('try to upload file on s3');
+console.log('key: ', key);
+console.log("region: ", process.env.AWS_REGION);
     const res = await s3Client.send(command);
     console.log('res: ', res);
     return key;
@@ -35,7 +38,7 @@ console.log('try to upload file on s3');
 
   static async getFileUrl(key: string): Promise<string> {
     const command = new GetObjectCommand({
-      Bucket: process.env.AWS_S3_BUCKET_NAME,
+      Bucket: "aiclassroomin",
       Key: key,
     });
 
@@ -43,12 +46,12 @@ console.log('try to upload file on s3');
   }
 
   static getPublicUrl(key: string): string {
-    return `https://${process.env.AWS_S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}`;
+    return `https://aiclassroomin.s3.eu-north-1.amazonaws.com/${key}`;
   }
 
   static async deleteFile(key: string): Promise<void> {
     const command = new DeleteObjectCommand({
-      Bucket: process.env.AWS_S3_BUCKET_NAME,
+      Bucket: "aiclassroomin",
       Key: key,
     });
 

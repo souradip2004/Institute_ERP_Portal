@@ -55,22 +55,35 @@ console.log("hasPopupBeenShown: " + hasPopupBeenShown);
   // Popup should show if there's NO institution linked AND the popup hasn't been shown before
   const shouldShowInstitutionPopup = !institutionData && !hasPopupBeenShown;
 
+if(institutionData){
+  console.log("Institution Data: ", institutionData);
+}
+const primaryBgClass = institutionData?.primaryColor
+  ? institutionData.primaryColor.startsWith('bg-') // Check if it already has "bg-"
+    ? institutionData.primaryColor // Use as is (e.g., "bg-red-500")
+    : institutionData.primaryColor.startsWith('#') // Is it a hex code?
+      ? `bg-[${institutionData.primaryColor}]` // Use Tailwind's arbitrary value syntax (e.g., "bg-[#FF0000]")
+      : `bg-${institutionData.primaryColor}` // Assume it's a Tailwind color name (e.g., "red-500" becomes "bg-red-500")
+  : "bg-white dark:bg-gray-800"; // Fallback to your original white/dark gray if no primaryColor
 
+console.log("Primary Background Class: ", primaryBgClass);
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-gray-100 dark:from-gray-900 dark:to-slate-950">
       <Suspense fallback={<Loader size="large" fullScreen message="Loading dashboard..." />}>
         <main className="container mx-auto px-4 py-8 max-w-6xl">
           {/* Profile Section */}
-          <div className="mb-8 flex flex-col sm:flex-row items-center sm:items-start gap-6 p-6 sm:p-8 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 transition-all hover:shadow-md">
+<div
+  className={`mb-8 flex flex-col sm:flex-row items-center sm:items-start gap-6 p-6 sm:p-8 ${primaryBgClass} rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 transition-all hover:shadow-md`}
+>
             <div className="relative">
               <div className="absolute -inset-1.5 bg-gradient-to-r from-violet-600 to-indigo-600 rounded-full blur-sm opacity-75"></div>
-              <div className="relative">
+              <div className="relative w-28 h-28">
                 <Image
-                  src={userData?.image || "/placeholder.png"}
+                  src={institutionData?.logoUrl ? institutionData.logoUrl : "/placeholder.png"}
                   alt={userData?.name || "Avatar"}
-                  className="w-28 h-28 rounded-full object-cover border-4 border-white dark:border-gray-800"
-                  width={112}
-                  height={112}
+                  className="rounded-full object-cover border-4 border-white dark:border-gray-800"
+                  fill
+                  style={{ objectFit: "cover" }}
                   priority
                 />
                 {userData?.role === "ADMIN" && (

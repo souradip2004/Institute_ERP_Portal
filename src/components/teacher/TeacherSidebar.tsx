@@ -15,6 +15,7 @@ import {
   Menu, // Added for the hamburger icon
   X // Added for the close icon
 } from 'lucide-react';
+
 import Image from 'next/image';
 
 interface TeacherSidebarProps {
@@ -28,7 +29,20 @@ export default function TeacherSidebar({ onSidebarToggle }: TeacherSidebarProps)
   const [classId, setClassId] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(true); // Changed: Default to OPEN for desktop initially
   const [isMobile, setIsMobile] = useState(false); // State to track mobile view
-
+  const [institution,setImstitution]=useState(null);
+useEffect(()=>{
+  if(localStorage.getItem("user")){
+    const data=JSON.parse(localStorage.getItem("user"))?.institutionId;
+    const fetchInstitute=async()=>{
+      const institutionRes = await fetch(`http://localhost:3000/api/institutions/${data}`, {
+      cache: "no-store",
+    });
+    let institutionData = await institutionRes.json();
+    setImstitution(institutionData)
+    }
+    fetchInstitute();
+  }
+},[])
   // Memoize the callback to prevent unnecessary re-renders in parent
   const memoizedOnSidebarToggle = useCallback(
     (openStatus: boolean) => {
@@ -153,12 +167,15 @@ export default function TeacherSidebar({ onSidebarToggle }: TeacherSidebarProps)
           {/* Logo and Close Button (always visible when sidebar is open) */}
           <div className="mb-8 flex items-center justify-between">
             <Image
-              src="/logo.png"
+              src={(institution&&institution.logoUrl)?institution.logoUrl:"/logo.png"}
               alt="Logo"
-              width={160}
+              width={institution?40:160}
               height={40}
               className="object-contain"
             />
+             {(institution&&institution.logoUrl) && (
+                <span className="text-sm font-semibold text-gray-800 ml-2 whitespace-normal break-words w-full block leading-tight">{institution?.name}</span>
+            )}
             {isOpen && ( // The close button inside the sidebar should always be visible when the sidebar is open
               <button
                 onClick={() => setIsOpen(false)}

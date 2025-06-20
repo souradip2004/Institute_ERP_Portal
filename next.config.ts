@@ -33,6 +33,11 @@ const nextConfig: NextConfig = {
         hostname: "media-hosting.imagekit.io", // <-- Add this
         pathname: "/**",
       },
+      {
+        protocol: "https",
+        hostname: "aiclassroomin.s3.eu-north-1.amazonaws.com",
+        pathname: "/**",
+      }
     ],
   },
   output: "standalone",

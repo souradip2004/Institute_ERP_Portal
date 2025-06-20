@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label as FormLabel } from "@/components/ui/label";
@@ -10,10 +10,15 @@ import {
   Mail,
   MapPin,
   Phone,
-  Globe
+  Globe,
+  Upload,
+  Palette,
+  XCircle // For cancel button
 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle, CheckCircle2 } from "lucide-react";
+import { HexColorPicker } from "react-colorful";
+import { S3Utils } from "@/utils/s3Utils";
 
 interface CreateInstitutionFormProps {
   userId: string;
@@ -31,6 +36,8 @@ interface FormData {
   email: string;
   website: string;
   userId: string;
+  logoUrl: string; // This will store the Cloudinary URL
+  primaryColor: string;
 }
 
 export default function CreateInstitutionForm({ userId, email }: CreateInstitutionFormProps) {
@@ -46,12 +53,51 @@ export default function CreateInstitutionForm({ userId, email }: CreateInstituti
       email: email || "",
       website: "",
       userId: userId,
+      logoUrl: "",
+      primaryColor: "#000000",
     },
   });
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [showColorPicker, setShowColorPicker] = useState(false);
+  const [selectedColor, setSelectedColor] = useState("#000000");
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+
+  const handleFileChange = async(e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setLogoFile(file);
+      
+      setLogoPreview(URL.createObjectURL(file));
+      form.clearErrors("logoUrl"); // Clear any previous errors related to logoUrl
+    } else {
+      setLogoFile(null);
+      setLogoPreview(null);
+    }
+  };
+
+  const uploadImageToCloudinary = useCallback(async (file: File): Promise<string> => {
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+
+      // Upload to S3
+      const key = await S3Utils.uploadFile(buffer, file.name, file.type);
+
+      // Get both URLs
+      const signedUrl = await S3Utils.getFileUrl(key);
+      const publicUrl = S3Utils.getPublicUrl(key);
+
+      console.log(publicUrl)
+      return publicUrl; // Return the public URL for the image
+    } catch (err) {
+      console.error("Cloudinary upload error:", err);
+      throw new Error("Image upload failed. Please try again.");
+    }
+  }, []);
 
   const handleSubmit = async (data: FormData) => {
     setLoading(true);
@@ -59,13 +105,25 @@ export default function CreateInstitutionForm({ userId, email }: CreateInstituti
     setSuccess(null);
 
     try {
-      console.log("Submitting Institution Data:", data);
+      let uploadedLogoUrl = data.logoUrl;
+
+      if (logoFile) {
+        uploadedLogoUrl = await uploadImageToCloudinary(logoFile);
+      }
+
+      const submissionData = {
+        ...data,
+        logoUrl: uploadedLogoUrl,
+        primaryColor: selectedColor,
+      };
+
+      console.log("Submitting Institution Data:", submissionData);
 
       // Step 1: Create Institution
       const res = await fetch("http://localhost:3000/api/institutions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify(submissionData),
       });
 
       if (!res.ok) throw new Error("Failed to create institution.");
@@ -95,6 +153,16 @@ export default function CreateInstitutionForm({ userId, email }: CreateInstituti
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleColorChange = (color: string) => {
+    setSelectedColor(color);
+    form.setValue("primaryColor", color);
+  };
+
+  const handleCancelColorPicker = () => {
+    setShowColorPicker(false);
+    setSelectedColor(form.getValues("primaryColor")); // Revert to the last saved color or default
   };
 
   return (
@@ -210,6 +278,69 @@ export default function CreateInstitutionForm({ userId, email }: CreateInstituti
                 className="w-full"
               />
             </div>
+          </div>
+
+          <div>
+            <FormLabel className="flex items-center gap-2 mb-2">
+              <Upload className="h-4 w-4 text-indigo-500" />
+              Institution Logo
+            </FormLabel>
+            <Input
+              type="file"
+              accept="image/*"
+              onChange={handleFileChange}
+              className="w-full"
+            />
+            {logoPreview && (
+              <div className="mt-4 flex items-center gap-4">
+                <img src={logoPreview} alt="Logo Preview" className="h-20 w-20 object-contain" />
+                <p className="text-sm text-gray-500">{logoFile?.name}</p>
+              </div>
+            )}
+            {form.formState.errors.logoUrl && (
+              <p className="text-sm text-red-500 mt-1">Please upload an institution logo.</p>
+            )}
+          </div>
+
+          <div>
+            <FormLabel className="flex items-center gap-2 mb-2">
+              <Palette className="h-4 w-4 text-indigo-500" />
+              Primary Color
+            </FormLabel>
+            <div className="flex items-center gap-3">
+              <Button
+                type="button"
+                onClick={() => setShowColorPicker(!showColorPicker)}
+                className="flex items-center gap-2 bg-gray-200 text-gray-800 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
+              >
+                <div
+                  className="w-5 h-5 rounded-full border border-gray-400"
+                  style={{ backgroundColor: selectedColor }}
+                ></div>
+                {showColorPicker ? "Hide Color Picker" : "Choose Primary Color"}
+              </Button>
+              {showColorPicker && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleCancelColorPicker}
+                  className="flex items-center gap-2 text-red-500 border-red-300 hover:bg-red-50 dark:border-red-700 dark:text-red-400 dark:hover:bg-red-900/20"
+                >
+                  <XCircle className="h-4 w-4" />
+                  Cancel
+                </Button>
+              )}
+            </div>
+            {showColorPicker && (
+              <div className="mt-4">
+                <HexColorPicker color={selectedColor} onChange={handleColorChange} />
+              </div>
+            )}
+            <Input
+              type="hidden"
+              {...form.register("primaryColor")}
+              value={selectedColor}
+            />
           </div>
         </div>
 
