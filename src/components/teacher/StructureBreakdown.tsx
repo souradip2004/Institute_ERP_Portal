@@ -456,7 +456,7 @@ const StructuredBreakdown: React.FC = () => {
                                                             whileTap={{ scale: 0.95 }}
                                                             onClick={() => {
                                                                 handelDataStorage(wbStrId || '', topic.topicId, videoDuration);
-                                                                router.push("/video-section");
+                                                                router.push("/t/smart-resources/video-section");
                                                             }}
                                                         >
                                                             {translator("Watch Now", "अभी देखें")}

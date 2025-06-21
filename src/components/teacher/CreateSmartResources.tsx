@@ -181,7 +181,7 @@ export default function CreateSmartResources() {
             localStorage.setItem("airf", JSON.stringify(dataToStore));
             localStorage.removeItem("premiumTopicId");
         }
-        router.push("/set-schedule");
+        router.push("/t/smart-resources/set-schedule");
     };
 
     const handleBack = () => {

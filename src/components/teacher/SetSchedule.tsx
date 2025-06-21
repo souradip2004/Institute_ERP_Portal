@@ -259,7 +259,7 @@ const SetSchedule = () => {
                 localStorage.removeItem('videoSectionChatMessages');
                 localStorage.setItem("dataToSend", JSON.stringify(dataToSend));
             }
-            router.push("/structured-breakdown");
+            router.push("/t/smart-resources/structure-breakdown");
         }
     };
 
@@ -329,7 +329,7 @@ const SetSchedule = () => {
                 };
                 localStorage.setItem("dataToSend", JSON.stringify(dataToSend));
             }
-            router.push("/structured-breakdown");
+            router.push("/t/smart-resources/structure-breakdown");
         }
     };
 
