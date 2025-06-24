@@ -1,15 +1,16 @@
 "use client";
-import { useState, useEffect } from "react";
-import { useAddClass } from "@/hooks/useAddClass";
+import { useState, useEffect, JSX } from "react";
+import { useAddClass } from "@/hooks/useAddClass"; // Assuming this hook can handle arrays for teachers and courses
 import { X } from "lucide-react";
 
 interface AddClassProps {
-  id: string;
-  userid: string;
+  id: string; // Institution ID
+  userid: string; // Current user ID (e.g., admin creating the class)
   isOpen: boolean;
   onClose: () => void;
 }
 
+// Interface definitions (remain the same)
 interface Department {
   id: string;
   name: string;
@@ -45,53 +46,66 @@ interface Semester {
   name: string;
   institutionId: string;
 }
-
-export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassProps) {
+const namedCourse = (id: string, courses: Course[]): string | undefined => {
+  const found = courses.find(course => course.id === id);
+  return found?.name;
+};
+export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassProps): JSX.Element | null {
+  // State for class section data
   const [classData, setClassData] = useState({
     sectionName: "",
     maxStudents: 60,
-    teacherId: "",
-    semester: "",
-    batch: "",
-    course: "",
-    department: "", // Stores the name of the selected department
+    semester: "", // Holds semester name for dropdown selection
+    batch: "",    // Holds batch name for dropdown selection
+    department: "", // Holds department name for dropdown selection
     institutionId: id,
   });
+
+  // States for selected IDs (arrays for multi-select)
+  const [selectedTeacherIds, setSelectedTeacherIds] = useState<string[]>([]);
+  // State to manage specific course assignments per teacher using checkboxes
+  const [teacherCourseAssignments, setTeacherCourseAssignments] = useState<Array<{ teacherId: string, courseIds: string[] }>>([]);
+
+  // States for fetched data and dropdown options
   const [teacherData, setTeacherData] = useState<Teacher[]>([]);
   const [semesterOptions, setSemesterOptions] = useState<string[]>([]);
   const [batchOptions, setBatchOptions] = useState<string[]>([]);
   const [batchData, setBatchData] = useState<Batch[]>([]);
   const [courseData, setCourseData] = useState<Course[]>([]);
-  const [toggler, setToggler] = useState(false); // Used to trigger re-fetches after adding new options
   const [semesterData, setSemesterData] = useState<Semester[]>([]);
   const [courseOptions, setCourseOptions] = useState<string[]>([]);
   const [departmentOptions, setDepartmentOptions] = useState<string[]>([]);
   const [allDepartments, setAllDepartments] = useState<Department[]>([]); // Stores full department objects
-  const [newOption, setNewOption] = useState("");
+
+  // States for "Add New" functionality
+  const [toggler, setToggler] = useState(false); // Used to trigger re-fetches after adding new options
+  const [newDepartmentName, setNewDepartmentName] = useState("");
+  const [newSemesterName, setNewSemesterName] = useState("");
+  const [newBatchName, setNewBatchName] = useState("");
+  const [newCourseName, setNewCourseName] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [courseCode, setCourseCode] = useState("");
   const [courseDescription, setCourseDescription] = useState("");
   const [courseCredits, setCourseCredits] = useState(0);
-
   const [showInput, setShowInput] = useState({ semester: false, batch: false, course: false, department: false });
 
-  // State to hold the ID of the currently selected department for filtering
+  // State to hold the ID of the currently selected department for filtering related data
   const [selectedDepartmentId, setSelectedDepartmentId] = useState<string | null>(null);
+
+  // --- Data Fetching Hooks ---
 
   // Fetch Departments
   useEffect(() => {
     fetch("http://localhost:3000/api/departments", {
       method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
     })
       .then((res) => res.json())
       .then((data) => {
         const filteredDepartments = data.filter((department: Department) => department.institutionId === id);
         setDepartmentOptions(filteredDepartments.map((department: Department) => department.name));
-        setAllDepartments(filteredDepartments); // Store full department objects
+        setAllDepartments(filteredDepartments);
       })
       .catch((error) => {
         console.error("Error fetching departments:", error);
@@ -102,9 +116,7 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
   useEffect(() => {
     fetch("http://localhost:3000/api/semesters", {
       method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
     })
       .then((res) => res.json())
       .then((data) => {
@@ -120,17 +132,15 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
   // Fetch Batches based on selectedDepartmentId
   useEffect(() => {
     if (!selectedDepartmentId) {
-      setBatchOptions([]); // Clear batch options if no department is selected
+      setBatchOptions([]);
       setBatchData([]);
-      setClassData(prev => ({ ...prev, batch: "" })); // Clear selected batch
+      setClassData(prev => ({ ...prev, batch: "" })); // Clear selected batch when department changes
       return;
     }
 
     fetch("http://localhost:3000/api/batches", {
       method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
     })
       .then((res) => res.json())
       .then((data) => {
@@ -147,9 +157,7 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
   useEffect(() => {
     fetch("http://localhost:3000/api/teachers", {
       method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
     })
       .then((res) => res.json())
       .then((data) => {
@@ -164,17 +172,14 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
   // Fetch Courses based on selectedDepartmentId
   useEffect(() => {
     if (!selectedDepartmentId) {
-      setCourseOptions([]); // Clear course options if no department is selected
+      setCourseOptions([]);
       setCourseData([]);
-      setClassData(prev => ({ ...prev, course: "" })); // Clear selected course
       return;
     }
 
     fetch("http://localhost:3000/api/courses", {
       method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
     })
       .then((res) => res.json())
       .then((data) => {
@@ -187,47 +192,83 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
       });
   }, [selectedDepartmentId, toggler]);
 
+  // --- Add Class Hook ---
   const { addClass, loading, error } = useAddClass();
 
+  // --- Form Submission Handler ---
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Ensure all required IDs are present before submitting
+    // Find IDs for submission based on selected names
     const departmentIdToSubmit = allDepartments.find((dept) => dept.name === classData.department)?.id;
     const batchIdToSubmit = batchData.find((batch) => batch.batchName === classData.batch)?.id;
-    const courseIdToSubmit = courseData.find((course) => course.name === classData.course)?.id;
     const semesterIdToSubmit = semesterData.find((semester) => semester.name === classData.semester)?.id;
 
-    if (!departmentIdToSubmit || !batchIdToSubmit || !courseIdToSubmit || !semesterIdToSubmit || !classData.teacherId) {
-      alert("Please ensure all required fields (Department, Batch, Course, Semester, Teacher) are selected.");
+    // Validate if any teacher has at least one course assigned
+    const hasAnyTeacherCourseAssignment = teacherCourseAssignments.some(assignment => assignment.courseIds.length > 0);
+
+    // Validation: Ensure all required fields are selected, and at least one teacher with assigned courses is chosen
+    if (
+      !departmentIdToSubmit ||
+      !batchIdToSubmit ||
+      !semesterIdToSubmit ||
+      !classData.sectionName.trim() ||
+      classData.maxStudents <= 0 ||
+      selectedTeacherIds.length === 0 || // Ensure at least one teacher is selected
+      !hasAnyTeacherCourseAssignment      // Ensure at least one teacher has assigned courses
+    ) {
+      alert("Please ensure all required fields (Section Name, Max Students, Department, Batch, Semester, at least one Teacher, and at least one Course assigned to a teacher) are selected/filled.");
       return;
     }
 
-    await addClass({
+    // Extract all unique course IDs from the assignments for the 'courseIds' payload if needed by backend
+    const allUniqueCourseIds = Array.from(new Set(teacherCourseAssignments.flatMap(assignment => assignment.courseIds)));
+
+    // NOTE: The 'useAddClass' hook and backend API must be updated to handle 'teacherCourseAssignments'
+    // or a similar structured payload if you want to capture specific teacher-course pairings.
+    // If your backend only expects flat 'teacherIds' and 'courseIds', the detailed assignment
+    // captured here will not be fully utilized unless you process it on the frontend before sending.
+   const promises = [];
+const motherclass=await fetch("/api/motherclass",{
+  method:"POST",
+  headers:{
+    "Content-Type":"application/json"
+  },
+  body:JSON.stringify({
+    "sectionName":classData.sectionName,
+    "institution":JSON.parse(localStorage.getItem("user")||"{}")?.institutionId
+  })
+})
+const motherres=await motherclass.json();
+for (let i = 0; i < teacherCourseAssignments.length; i++) {
+  const teacher = teacherCourseAssignments[i];
+  for (let j = 0; j < teacher.courseIds.length; j++) {
+    const courseId = teacher.courseIds[j];
+    const promise = addClass({
       batchId: batchIdToSubmit,
-      courseId: courseIdToSubmit,
-      departmentId: departmentIdToSubmit,
       semesterId: semesterIdToSubmit,
+      departmentId: departmentIdToSubmit,
       maxStudents: classData.maxStudents,
-      teacherId: classData.teacherId,
-      sectionName: classData.sectionName,
+      sectionName: classData.sectionName + ` - ${namedCourse(courseId,courseData)}`,
+      teacherId: teacher.teacherId,
+      courseId: courseId,
+      motherClassId:motherres.id
     });
+    promises.push(promise);
+  }
+}
 
-    if (!error) {
-      onClose();
-      window.location.reload();
-    }
-  };
-
-  // This function is simplified as API calls are now in the button onClick handlers
-  const handleAddNewOption = (type: string) => {
-    if (!newOption.trim()) return;
-    // Reset common new option states
-    setNewOption("");
-    setStartDate("");
-    setEndDate("");
-  };
-
+try {
+  await Promise.all(promises);
+  if (!error) {
+    onClose();
+    window.location.reload(); // only after all finish
+  }
+} catch (err) {
+  console.error("Error adding one or more classes:", err);
+}
+  }
+  // --- Dropdown Change Handlers ---
   const handleDropdownChange = (type: string, value: string) => {
     if (value === "add-new") {
       setShowInput({ ...showInput, [type]: true });
@@ -235,20 +276,49 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
       setClassData({ ...classData, [type]: value });
       setShowInput({ ...showInput, [type]: false });
 
-      // Special handling for Department to enable/disable other dropdowns
+      // Special handling for Department to filter other dropdowns
       if (type === "department") {
         const selectedDept = allDepartments.find((dept) => dept.name === value);
         setSelectedDepartmentId(selectedDept ? selectedDept.id : null);
-        // Clear batch and course selections when department changes
-        setClassData(prev => ({ ...prev, batch: "", course: "" }));
+        // Clear dependent selections when department changes
+        setClassData(prev => ({ ...prev, batch: "" }));
+        // Reset teacherCourseAssignments when department changes, as courses/teachers might change
+        setSelectedTeacherIds([]);
+        setTeacherCourseAssignments([]);
       }
     }
   };
 
+  // Handler for teacher checkboxes
+  const handleTeacherCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const teacherId = e.target.value;
+    if (e.target.checked) {
+      setSelectedTeacherIds(prev => [...prev, teacherId]);
+      setTeacherCourseAssignments(prev => [...prev, { teacherId, courseIds: [] }]); // Add new entry for selected teacher
+    } else {
+      setSelectedTeacherIds(prev => prev.filter(id => id !== teacherId));
+      setTeacherCourseAssignments(prev => prev.filter(assignment => assignment.teacherId !== teacherId)); // Remove assignment for deselected teacher
+    }
+  };
+
+  // Handler for course checkboxes for a specific teacher
+  const handleTeacherCourseAssignmentChange = (teacherId: string, courseId: string, isChecked: boolean) => {
+    setTeacherCourseAssignments(prevAssignments => {
+      return prevAssignments.map(assignment => {
+        if (assignment.teacherId === teacherId) {
+          const updatedCourseIds = isChecked
+            ? [...assignment.courseIds, courseId]
+            : assignment.courseIds.filter(id => id !== courseId);
+          return { ...assignment, courseIds: updatedCourseIds };
+        }
+        return assignment;
+      });
+    });
+  };
+
   // Determine disabled state for dropdowns based on previous selections
-  const isSectionNameAndMaxStudentsFilled = !!classData.sectionName && classData.maxStudents > 0;
-  const isDepartmentSelected = !!classData.department;
-  const isTeacherSelected = !!classData.teacherId;
+  const isSectionNameAndMaxStudentsFilled = !!classData.sectionName.trim() && classData.maxStudents > 0;
+  const isDepartmentSelected = !!classData.department && selectedDepartmentId !== null;
   const isSemesterSelected = !!classData.semester;
   const isBatchSelected = !!classData.batch;
 
@@ -268,8 +338,7 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          {/* Use space-y-6 for vertical spacing between each field group */}
-          
+
           {/* Section Name */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Section Name</label>
@@ -307,6 +376,7 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
               onChange={(e) => handleDropdownChange("department", e.target.value)}
               className="w-full p-2.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               required
+              disabled={!isSectionNameAndMaxStudentsFilled}
             >
               <option value="" disabled>Select Department</option>
               {departmentOptions.map((department, index) => (
@@ -319,28 +389,24 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
                 <input
                   type="text"
                   placeholder="Department Name"
-                  value={newOption}
-                  onChange={(e) => setNewOption(e.target.value)}
+                  value={newDepartmentName}
+                  onChange={(e) => setNewDepartmentName(e.target.value)}
                   className="w-full p-2.5 border border-gray-300 rounded-md mb-2"
+                  required
                 />
                 <button
                   type="button"
                   onClick={async () => {
-                    if (!newOption.trim()) return; // Prevent adding empty department
+                    if (!newDepartmentName.trim()) return;
                     await fetch("http://localhost:3000/api/departments", {
                       method: "POST",
-                      headers: {
-                        "Content-Type": "application/json",
-                      },
-                      body: JSON.stringify({
-                        name: newOption,
-                        institutionId: id,
-                      }),
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ name: newDepartmentName, institutionId: id }),
                     }).then((res) => {
                       if (res.ok) {
-                        setToggler(!toggler); // Trigger re-fetch for departments
+                        setToggler(!toggler);
                         setShowInput({ ...showInput, department: false });
-                        setNewOption(""); // Clear the input field
+                        setNewDepartmentName("");
                       } else {
                         alert("Error adding department");
                       }
@@ -354,38 +420,40 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
             )}
           </div>
 
-          {/* Teacher */}
+          {/* Teachers (Checkbox List) */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Teacher</label>
-            <p className="text-xs text-gray-500 mb-2">Assign a primary teacher for this class section.</p>
-            <select
-              value={classData.teacherId}
-              onChange={(e) => setClassData({ ...classData, teacherId: e.target.value })}
-              className="w-full p-2.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              required
-              // Enable only if Section Name and Max Students are filled AND Department is selected
-              disabled={!isSectionNameAndMaxStudentsFilled || !isDepartmentSelected}
-            >
-              <option value="" disabled>Select Teacher</option>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Select Teachers for this Class Section</label>
+            <p className="text-xs text-gray-500 mb-2">Choose all teachers who will teach in this class section.</p>
+            <div className={`border p-2 rounded-md h-32 overflow-y-auto ${!isDepartmentSelected ? 'bg-gray-100 text-gray-400' : 'bg-white'}`}>
               {teacherData.map((teacher) => (
-                <option key={teacher.id} value={teacher.id}>
-                  {teacher.user.name}
-                </option>
+                <label key={teacher.id} className={`flex items-center space-x-2 py-1 ${!isDepartmentSelected ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
+                  <input
+                    type="checkbox"
+                    value={teacher.id}
+                    checked={selectedTeacherIds.includes(teacher.id)}
+                    onChange={handleTeacherCheckboxChange}
+                    className="form-checkbox h-4 w-4 text-blue-600 rounded"
+                    disabled={!isDepartmentSelected}
+                  />
+                  <span>{teacher.user.name}</span>
+                </label>
               ))}
-            </select>
+            </div>
+            {selectedTeacherIds.length > 0 && (
+              <p className="text-xs text-gray-600 mt-1">Overall Selected Teachers: {selectedTeacherIds.map(id => teacherData.find(t => t.id === id)?.user.name).join(', ')}</p>
+            )}
           </div>
 
           {/* Semester */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Semester</label>
-            <p className="text-xs text-gray-500 mb-2">Choose the academic semester for this class.</p>
+            <p className="text-xs text-gray-500 mb-2">Choose the academic semester for this class. Requires Department selection.</p>
             <select
               value={classData.semester}
               onChange={(e) => handleDropdownChange("semester", e.target.value)}
               className="w-full p-2.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               required
-              // Enable only if Department and Teacher are selected
-              disabled={!isDepartmentSelected || !isTeacherSelected}
+              disabled={!isDepartmentSelected}
             >
               <option value="" disabled>Select Semester</option>
               {semesterOptions.map((semester, index) => (
@@ -398,9 +466,10 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
                 <input
                   type="text"
                   placeholder="Semester Name (e.g., Fall 2024)"
-                  value={newOption}
-                  onChange={(e) => setNewOption(e.target.value)}
+                  value={newSemesterName}
+                  onChange={(e) => setNewSemesterName(e.target.value)}
                   className="w-full p-2.5 border border-gray-300 rounded-md"
+                  required
                 />
                 <div className="grid grid-cols-2 gap-2">
                   <div>
@@ -410,6 +479,7 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
                       value={startDate}
                       onChange={(e) => setStartDate(e.target.value)}
                       className="w-full p-2.5 border border-gray-300 rounded-md"
+                      required
                     />
                   </div>
                   <div>
@@ -419,33 +489,26 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
                       value={endDate}
                       onChange={(e) => setEndDate(e.target.value)}
                       className="w-full p-2.5 border border-gray-300 rounded-md"
+                      required
                     />
                   </div>
                 </div>
                 <button
                   type="button"
                   onClick={async () => {
-                    if (!newOption.trim() || !startDate || !endDate) {
+                    if (!newSemesterName.trim() || !startDate || !endDate) {
                       alert("Please fill all fields for the new semester.");
                       return;
                     }
                     await fetch("http://localhost:3000/api/semesters", {
                       method: "POST",
-                      headers: {
-                        "Content-Type": "application/json",
-                      },
-                      body: JSON.stringify({
-                        name: newOption,
-                        startDate,
-                        endDate,
-                        institutionId: id,
-                        isCurrent: true,
-                      }),
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ name: newSemesterName, startDate, endDate, institutionId: id, isCurrent: true }),
                     }).then((res) => {
                       if (res.ok) {
-                        setToggler(!toggler); // Trigger re-fetch for semesters
+                        setToggler(!toggler);
                         setShowInput({ ...showInput, semester: false });
-                        setNewOption("");
+                        setNewSemesterName("");
                         setStartDate("");
                         setEndDate("");
                       } else {
@@ -464,14 +527,13 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
           {/* Batch */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Batch Year</label>
-            <p className="text-xs text-gray-500 mb-2">Select the student batch (e.g., 2025) for this class. Requires Department, Teacher, and Semester selections.</p>
+            <p className="text-xs text-gray-500 mb-2">Select the student batch (e.g., 2025) for this class. Requires Department and Semester selections.</p>
             <select
               value={classData.batch}
               onChange={(e) => handleDropdownChange("batch", e.target.value)}
               className="w-full p-2.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               required
-              // Enable only if Department, Teacher, and Semester are selected
-              disabled={!isDepartmentSelected || !isTeacherSelected || !isSemesterSelected}
+              disabled={!isDepartmentSelected || !isSemesterSelected}
             >
               <option value="" disabled>Select Batch</option>
               {batchOptions.map((batch, index) => (
@@ -483,36 +545,35 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
               <div className="mt-3 p-3 border border-gray-200 rounded-md bg-gray-50">
                 <input
                   type="text"
-                  placeholder="Batch Name 2025"
-                  value={newOption}
-                  onChange={(e) => setNewOption(e.target.value)}
+                  placeholder="Batch Name (e.g., 2025)"
+                  value={newBatchName}
+                  onChange={(e) => setNewBatchName(e.target.value)}
                   className="w-full p-2.5 border border-gray-300 rounded-md mb-2"
+                  required
                 />
                 <button
                   type="button"
                   onClick={() => {
-                    if (!newOption.trim()) return; // Prevent adding empty batch
+                    if (!newBatchName.trim()) return;
                     if (!selectedDepartmentId) {
                       alert("Please select a department first to add a batch.");
                       return;
                     }
                     fetch("http://localhost:3000/api/batches", {
                       method: "POST",
-                      headers: {
-                        "Content-Type": "application/json",
-                      },
+                      headers: { "Content-Type": "application/json" },
                       body: JSON.stringify({
-                        batchName: newOption,
+                        batchName: newBatchName,
                         institutionId: id,
-                        year: new Date().getFullYear(), // Or allow user to input year
-                        maxStudents: 60, // Default or allow user to input
+                        year: new Date().getFullYear(),
+                        maxStudents: 60,
                         departmentId: selectedDepartmentId,
                       }),
                     }).then((res) => {
                       if (res.ok) {
-                        setToggler(!toggler); // Trigger re-fetch for batches
+                        setToggler(!toggler);
                         setShowInput({ ...showInput, batch: false });
-                        setNewOption("");
+                        setNewBatchName("");
                       } else {
                         alert("Error adding batch");
                       }
@@ -526,99 +587,153 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
             )}
           </div>
 
-          {/* Course */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Course</label>
-            <p className="text-xs text-gray-500 mb-2">Select the academic course this class section is for. Requires Department and Batch selection.</p>
-            <select
-              value={classData.course}
-              onChange={(e) => handleDropdownChange("course", e.target.value)}
-              className="w-full p-2.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              required
-              // Enable only if Department and Batch are selected
-              disabled={!isDepartmentSelected || !isBatchSelected}
-            >
-              <option value="" disabled>Select Course</option>
-              {courseOptions.map((course, index) => (
-                <option key={index} value={course}>{course}</option>
-              ))}
-              <option value="add-new">Add New Course</option>
-            </select>
-            {showInput.course && (
-              <div className="mt-3 p-3 border border-gray-200 rounded-md bg-gray-50 space-y-2">
-                <input
-                  type="text"
-                  placeholder="Course Name (e.g., Introduction to Programming)"
-                  value={newOption}
-                  onChange={(e) => setNewOption(e.target.value)}
-                  className="w-full p-2.5 border border-gray-300 rounded-md"
-                />
-                <input
-                  type="text"
-                  placeholder="Course Code (e.g., CS101)"
-                  value={courseCode}
-                  onChange={(e) => setCourseCode(e.target.value)}
-                  className="w-full p-2.5 border border-gray-300 rounded-md"
-                />
-                <input
-                  type="text"
-                  placeholder="Course Description"
-                  value={courseDescription}
-                  onChange={(e) => setCourseDescription(e.target.value)}
-                  className="w-full p-2.5 border border-gray-300 rounded-md"
-                />
-                <input
-                  type="number"
-                  placeholder="Course Credits"
-                  value={courseCredits}
-                  onChange={(e) => setCourseCredits(Number(e.target.value))}
-                  className="w-full p-2.5 border border-gray-300 rounded-md"
-                />
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (!newOption.trim() || !courseCode.trim() || !courseDescription.trim() || courseCredits <= 0) {
-                      alert("Please fill all fields for the new course.");
-                      return;
+          {/* Individual Teacher-Course Assignments */}
+          {selectedTeacherIds.length > 0 && isDepartmentSelected && isBatchSelected && (
+            <div className="space-y-4 border p-4 rounded-md bg-gray-50">
+              <h3 className="text-lg font-semibold text-gray-800">Assign Courses to Teachers</h3>
+              <p className="text-xs text-gray-500 mb-2">For each selected teacher, choose the specific courses they will teach in this class section. This section is enabled after Department and Batch are selected.</p>
+              {selectedTeacherIds.map((teacherId) => {
+                const teacher = teacherData.find(t => t.id === teacherId);
+                const assignedCourseIds = teacherCourseAssignments.find(a => a.teacherId === teacherId)?.courseIds || [];
+
+                return (
+                  <div key={teacherId} className="border p-3 rounded-md bg-white">
+                    <h4 className="font-medium text-gray-700 mb-2">{teacher?.user.name || "Unknown Teacher"}</h4>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Courses for {teacher?.user.name}</label>
+                    <div className={`border p-2 rounded-md h-28 overflow-y-auto ${!isDepartmentSelected || !isBatchSelected ? 'bg-gray-100 text-gray-400' : 'bg-white'}`}>
+                      {courseData.map((course) => {
+                        // Check if this course is assigned to ANY OTHER teacher
+                        const isCourseAssignedToAnotherTeacher = teacherCourseAssignments.some(
+                          assignment => assignment.teacherId !== teacherId && assignment.courseIds.includes(course.id)
+                        );
+                        // Determine if the checkbox should be disabled
+                        const isDisabledCheckbox = (!isDepartmentSelected || !isBatchSelected) ||
+                                                 (isCourseAssignedToAnotherTeacher && !assignedCourseIds.includes(course.id));
+
+                        return (
+                          <label key={course.id} className={`flex items-center space-x-2 py-1 ${isDisabledCheckbox ? 'cursor-not-allowed text-gray-400' : 'cursor-pointer'}`}>
+                            <input
+                              type="checkbox"
+                              value={course.id}
+                              checked={assignedCourseIds.includes(course.id)}
+                              onChange={(e) => handleTeacherCourseAssignmentChange(
+                                teacherId,
+                                course.id,
+                                e.target.checked
+                              )}
+                              className="form-checkbox h-4 w-4 text-blue-600 rounded"
+                              disabled={isDisabledCheckbox} // Apply the calculated disabled state
+                            />
+                            <span>{course.name} ({course.department?.id ? allDepartments.find(d => d.id === course.department?.id)?.name : 'N/A'})</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                    {assignedCourseIds.length > 0 && (
+                      <p className="text-xs text-gray-600 mt-1">Assigned: {assignedCourseIds.map(id => courseData.find(c => c.id === id)?.name).join(', ')}</p>
+                    )}
+                  </div>
+                );
+              })}
+              {/* Global "Add New Course" button moved here for better visibility in relation to courses */}
+              <button
+                type="button"
+                onClick={() => setShowInput({ ...showInput, course: true })}
+                className="mt-4 w-full p-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+                disabled={!isDepartmentSelected || !isBatchSelected}
+              >
+                Add New Course
+              </button>
+            </div>
+          )}
+
+          {showInput.course && (
+            <div className="mt-3 p-3 border border-gray-200 rounded-md bg-gray-50 space-y-2">
+              <h4 className="text-md font-medium text-gray-700">Add New Course Details</h4>
+              <input
+                type="text"
+                placeholder="Course Name (e.g., Introduction to Programming)"
+                value={newCourseName}
+                onChange={(e) => setNewCourseName(e.target.value)}
+                className="w-full p-2.5 border border-gray-300 rounded-md"
+                required
+              />
+              <input
+                type="text"
+                placeholder="Course Code (e.g., CS101)"
+                value={courseCode}
+                onChange={(e) => setCourseCode(e.target.value)}
+                className="w-full p-2.5 border border-gray-300 rounded-md"
+                required
+              />
+              <input
+                type="text"
+                placeholder="Course Description"
+                value={courseDescription}
+                onChange={(e) => setCourseDescription(e.target.value)}
+                className="w-full p-2.5 border border-gray-300 rounded-md"
+                required
+              />
+              <input
+                type="number"
+                placeholder="Course Credits"
+                value={courseCredits}
+                onChange={(e) => setCourseCredits(Number(e.target.value))}
+                className="w-full p-2.5 border border-gray-300 rounded-md"
+                required
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  if (!newCourseName.trim() || !courseCode.trim() || !courseDescription.trim() || courseCredits <= 0) {
+                    alert("Please fill all fields for the new course.");
+                    return;
+                  }
+                  if (!selectedDepartmentId) {
+                    alert("Please select a department first to add a course.");
+                    return;
+                  }
+                  console.log({
+                      name: newCourseName,
+                      courseCode,
+                      description: courseDescription,
+                      creditHours: courseCredits,
+                      departmentId: selectedDepartmentId,
+                      courseType: "CORE", // Consider making this selectable
+                      createdById: userid
+                    })
+                  fetch("http://localhost:3000/api/courses", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      name: newCourseName,
+                      courseCode,
+                      description: courseDescription,
+                      creditHours: courseCredits,
+                      departmentId: selectedDepartmentId,
+                      courseType: "CORE", // Consider making this selectable
+                      createdById: userid
+                    }),
+                  }).then((res) => {
+                    if (res.ok) {
+                      setToggler(!toggler);
+                      setShowInput({ ...showInput, course: false });
+                      setNewCourseName("");
+                      setCourseCode("");
+                      setCourseDescription("");
+                      setCourseCredits(0);
+                    } else {
+                      alert("Error adding course");
                     }
-                    if (!selectedDepartmentId) {
-                      alert("Please select a department first to add a course.");
-                      return;
-                    }
-                    fetch("http://localhost:3000/api/courses", {
-                      method: "POST",
-                      headers: {
-                        "Content-Type": "application/json",
-                      },
-                      body: JSON.stringify({
-                        name: newOption,
-                        courseCode,
-                        description: courseDescription,
-                        creditHours: courseCredits,
-                        departmentId: selectedDepartmentId,
-                        courseType: "CORE", // Consider making this selectable
-                        createdById: classData.teacherId // Ensure teacherId is selected
-                      }),
-                    }).then((res) => {
-                      if (res.ok) {
-                        setToggler(!toggler); // Trigger re-fetch for courses
-                        setShowInput({ ...showInput, course: false });
-                        setNewOption("");
-                        setCourseCode("");
-                        setCourseDescription("");
-                        setCourseCredits(0);
-                      } else {
-                        alert("Error adding course");
-                      }
-                    });
-                  }}
-                  className="w-full p-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-                >
-                  Add Course
-                </button>
-              </div>
-            )}
-          </div>
+                  });
+                }}
+                className="w-full p-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+              >
+                Add Course
+              </button>
+            </div>
+          )}
+
 
           {error && (
             <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-md">

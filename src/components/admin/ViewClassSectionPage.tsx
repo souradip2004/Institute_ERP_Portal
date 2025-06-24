@@ -128,6 +128,7 @@ export default function ClassSectionsPage({ id }: ViewClassSectionPageProps) {
             return {
               id: section.id || '',
               sectionName: section.sectionName || 'Unnamed Section',
+              motherClassId	:section.motherClassId	,
               teacherId: section.teacherId || '',
               batchId: section.batchId || '',
               courseId: section.courseId || '',
