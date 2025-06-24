@@ -27,57 +27,7 @@ const StarToggle = ({ isStarred, onToggle, t }) => (
   </button>
 );
 
-const ConfirmDeleteModal = ({ isOpen, onClose, onConfirm, t }) => {
-  const [reason, setReason] = useState('');
-  if (!isOpen) return null;
-  const handleConfirm = () => {
-    onConfirm(reason);
-    setReason('');
-  };
-
-  const handleCancel = () => {
-    onClose();
-    setReason(''); // Reset reason after cancel
-  };
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-md">
-        <h2 className="text-xl font-bold text-red-600 mb-4 text-center">
-          {t('Confirm Delete ?', 'हटाने की पुष्टि करें ?')}
-        </h2>
-        <div className="mb-4">
-          <label htmlFor="deleteReason" className="block text-sm font-medium text-gray-700 mb-1">
-            {t('Type your Reason', 'अपना कारण टाइप करें')}
-          </label>
-          <textarea
-            id="deleteReason"
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-            placeholder={t('Enter Your Reason (Optional)', 'अपना कारण दर्ज करें (वैकल्पिक)')}
-            className="w-full p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 text-sm"
-            rows={3}
-          ></textarea>
-        </div>
-        <div className="flex justify-between mt-6">
-          <button
-            onClick={handleCancel}
-            className="px-4 py-2 bg-blue-500 text-white text-sm font-medium rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-          >
-            {t('Cancel', 'रद्द करें')}
-          </button>
-          <button
-            onClick={handleConfirm}
-            className="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
-          >
-            {t('Delete', 'हटाएं')}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const ResourceCard = ({ resource, onOpenDeleteModal, onStarToggle, t }) => {
+const ResourceCard = ({ resource, onStarToggle, t }) => {
   // const navigate = useNavigate();
 
   const router = useRouter();
@@ -147,7 +97,7 @@ const ResourceCard = ({ resource, onOpenDeleteModal, onStarToggle, t }) => {
     };
     localStorage.setItem("dataForBreakdown", JSON.stringify(dataForBreakdown));
     localStorage.setItem("wbStrId2", id);
-    router.push("/t/smart-resources/structure-breakdown");
+    router.push("/s/smart-resources/structure-breakdown");
     // navigate("/structured-breakdown");
   };
 
@@ -156,10 +106,7 @@ const ResourceCard = ({ resource, onOpenDeleteModal, onStarToggle, t }) => {
     e.stopPropagation();
     onStarToggle(id, !isStarred);
   };
-  const handleDeleteClick = (e) => {
-    e.stopPropagation();
-    onOpenDeleteModal(id);
-  };
+
   const translatedStatus = t(status, status?.toLowerCase() === 'completed' ? 'समाप्त' : status?.toLowerCase() === 'scheduled' ? 'निर्धारित' : status?.toLowerCase() === 'unscheduled' ? 'अनियोजित' : status);
   return (
     <div onClick={handleCardClick} className={finalCardClassName} style={cardStyle}
@@ -168,11 +115,11 @@ const ResourceCard = ({ resource, onOpenDeleteModal, onStarToggle, t }) => {
         <div className="flex justify-between items-start mb-3">
 					<span
             className={`px-2.5 py-0.5 text-xs font-semibold rounded-full ${statusBgColorClass} ${statusTextColorClass}`}>{translatedStatus}</span>
-          <div className="flex items-center space-x-2">
+          {/*<div className="flex items-center space-x-2">
             <button onClick={handleDeleteClick} className="text-gray-400 hover:text-red-500 focus:outline-none"
                     aria-label={t("Delete this resource", "इस संसाधन को हटाएँ")}><Trash2 size={18} /></button>
             <StarToggle isStarred={isStarred} onToggle={handleStarClick} t={t} />
-          </div>
+          </div>*/}
         </div>
         <h3 className="text-lg font-semibold text-gray-800 mb-1.5">{title}</h3>
         <p className="text-sm text-gray-500 leading-relaxed mb-4 line-clamp-3">{description}</p>
@@ -297,23 +244,6 @@ export function SmartResources() {
     }
   };
 
-  const handleConfirmDelete = async (reason) => {
-    if (!resourceToDeleteId) return;
-    try {
-      await axios.delete(`${process.env.NEXT_PUBLIC_BACKEND_1_SERVER_URL}/planner/deleteSchedule/${resourceToDeleteId}`);
-      setResources(prev => prev.filter(r => r.id !== resourceToDeleteId));
-    } catch (error) {
-      console.error('Error deleting resource:', error);
-    } finally {
-      setIsDeleteModalOpen(false);
-      setResourceToDeleteId(null);
-    }
-  };
-
-  const handleOpenDeleteModal = (id) => {
-    setResourceToDeleteId(id);
-    setIsDeleteModalOpen(true);
-  };
 
   const filteredResources = resources.filter(resource => {
     const matchesSearch =
@@ -357,13 +287,6 @@ export function SmartResources() {
   // ✅ START: LOGIC TO FILTER PREMIUM COURSES
   // Create a set of titles from the user's existing resources for efficient lookup.
   const existingResourceTitles = new Set(resources.map(r => r.title));
-
-  // Filter the premium courses to exclude any that have a title matching an existing resource.
- /* const filteredPremiumCourses = premiumCourses.filter(
-    course => !existingResourceTitles.has(course.scheduleTitle)
-  );*/
-  // ✅ END: LOGIC TO FILTER PREMIUM COURSES
-
 
   const handleFilterClick = (filter) => {
     setActiveFilter(filter);
@@ -443,14 +366,6 @@ export function SmartResources() {
           <h2
             className="text-2xl sm:text-3xl font-bold text-gray-800 mb-4 sm:mb-0">{t('My Resources', 'मेरे संसाधन')}</h2>
           <div className={"flex items-center space-x-1"}>
-            {/*<Link
-              href={"/t/smart-resources/create-resources"}
-              className="bg-[#2563EB] hover:bg-blue-700 text-white font-semibold py-2 px-4 sm:py-2.5 sm:px-5 rounded-lg flex items-center space-x-2 transition-colors self-start sm:self-auto h-full"
-              // onClick={() => navigate('/ai-resource-finder')}
-            >
-              <PlusCircle size={20} />
-              <span>{t('Create New', 'नया बनाएँ')}</span>
-            </Link>*/}
             <button onClick={() => handleFilterClick('Starred')}
                     className={`flex items-center space-x-1 px-3 py-2 rounded-lg transition-colors duration-200  sm:hidden h-full ${activeFilter === 'Starred' ? 'bg-indigo-500 text-white shadow' : 'hover:bg-gray-400'}`}>
               <Star size={20} fill={activeFilter === 'Starred' ? 'white' : 'none'} />
@@ -564,7 +479,6 @@ export function SmartResources() {
               <ResourceCard
                 key={resource.id}
                 resource={resource}
-                onOpenDeleteModal={handleOpenDeleteModal}
                 onStarToggle={handleStarToggle}
                 t={t}
               />
@@ -581,12 +495,6 @@ export function SmartResources() {
           </div>
         )}
       </main>
-      <ConfirmDeleteModal
-        isOpen={isDeleteModalOpen}
-        onClose={() => setIsDeleteModalOpen(false)}
-        onConfirm={handleConfirmDelete}
-        t={t}
-      />
     </div>
   );
 }

@@ -485,7 +485,7 @@ const StructuredBreakdown: React.FC = () => {
                               whileTap={{scale: 0.95}}
                               onClick={() => {
                                 handelDataStorage(wbStrId || '', topic.topicId, videoDuration);
-                                router.push("/t/smart-resources/video-section");
+                                router.push("/s/smart-resources/video-section");
                               }}
                             >
                               {translator("Watch Now", "अभी देखें")}
@@ -577,7 +577,7 @@ const StructuredBreakdown: React.FC = () => {
               className="bg-[#3C82F6] text-white rounded-lg px-4 sm:px-6 md:px-8 py-1 sm:py-2 text-base sm:text-lg md:text-xl"
               whileHover={{scale: 1.05, backgroundColor: '#2563EB'}}
               whileTap={{scale: 0.95}}
-              onClick={() => router.push("/t/smart-resources")}
+              onClick={() => router.push("/s/smart-resources")}
             >
               {translator("Go to Dashboard", "डैशबोर्ड पर जाएं")}
             </motion.button>

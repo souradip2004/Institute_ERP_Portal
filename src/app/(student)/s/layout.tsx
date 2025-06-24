@@ -9,7 +9,6 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         <title>Admin</title>
       </head>
         <StudentLayout>
-            
             {children}
         </StudentLayout>
         </>
