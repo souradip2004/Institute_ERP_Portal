@@ -1,5 +1,5 @@
 import React from 'react';
-import {SmartResources} from "@/components/teacher/SmartResources";
+import {SmartResources} from "@/components/student/SmartResources";
 
 function Page() {
   return (

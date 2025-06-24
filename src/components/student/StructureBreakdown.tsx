@@ -2,9 +2,8 @@ import React, {useState, useEffect, useRef} from 'react';
 import {motion} from 'framer-motion';
 import axios from 'axios';
 import {useRouter} from 'next/navigation';
-import {IoAddCircle, IoCheckmark} from "react-icons/io5";
+import {IoCheckmark} from "react-icons/io5";
 import {RiArrowGoBackFill} from "react-icons/ri";
-import {MdDelete} from "react-icons/md";
 
 // Types
 interface Topic {
@@ -32,17 +31,16 @@ interface Scores {
   [topicId: string]: Score;
 }
 
-interface ModalData {
-  dayIndex: number;
-  dayTopics: Topic[];
-}
-
 const StructuredBreakdown: React.FC = () => {
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const dayRefs = useRef<(HTMLDivElement | null)[]>([]);
 
+  const handleProceed = () => {
+    router.push("/mcq-quiz");
+  };
 
+  const [showAllDays, setShowAllDays] = useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [schedule, setSchedule] = useState<Topic[][]>([]);
@@ -56,21 +54,12 @@ const StructuredBreakdown: React.FC = () => {
   const [userVivaPreference, setUserVivaPreference] = useState<any>(null);
   const [initialPref, setInitialPref] = useState<{ topic: string; language: string }>({topic: '', language: ''});
 
-  // State for the "Add More" modal
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [modalData, setModalData] = useState<ModalData | null>(null);
-  const [newTopicName, setNewTopicName] = useState('');
-  const [afterTopicId, setAfterTopicId] = useState('');
-  const [isAddingTopic, setIsAddingTopic] = useState(false);
-
-
   const translator = (word1: string, word2: string) => {
     const lang = (typeof window !== 'undefined' && localStorage.getItem("lang")) || '';
     return lang.toLowerCase().includes("english") ? word1 : lang ? word2 : word1;
   };
 
   useEffect(() => {
-    setError(null)
     if (typeof window === 'undefined') return;
     const stored = localStorage.getItem('userVivaPreference');
     if (stored) {
@@ -96,6 +85,7 @@ const StructuredBreakdown: React.FC = () => {
     let response = null;
     const postData = async () => {
       let url = '';
+
       url = `${process.env.NEXT_PUBLIC_BACKEND_1_SERVER_URL}/planner/createStudyPlan`;
 
       const data = JSON.stringify(dataToSend);
@@ -116,6 +106,7 @@ const StructuredBreakdown: React.FC = () => {
           response = await axios.get(url2);
           console.log('GET response:', response);
         }
+
         setMainSchedule(response.data);
         setWbStrId(response.data.data._id);
         localStorage.setItem("dataForBreakdown", JSON.stringify({
@@ -148,7 +139,7 @@ const StructuredBreakdown: React.FC = () => {
       }
     };
     postData();
-  }, []);
+  }, [hasDate]);
 
   useEffect(() => {
     console.log('mainSchedule:', mainSchedule);
@@ -211,68 +202,42 @@ const StructuredBreakdown: React.FC = () => {
 
   const displayedDays = schedule;
 
-  const handleDeleteTopic = async (topicId: string) => {
+  const toggleMarkAsDone = (dayIndex: number, topicIndex: number) => {
+    const updatedSchedule = [...schedule];
+    updatedSchedule[dayIndex][topicIndex].completed = !updatedSchedule[dayIndex][topicIndex].completed;
+    setSchedule(updatedSchedule);
     try {
-
-      const response = await axios.delete(`${process.env.NEXT_PUBLIC_BACKEND_1_SERVER_URL}/planner/deleteTopic`, {
-        data : {
-          wbStrId,
-          topicId
-        }
+      const url = `https://api.aiclassroom.in/planner/update-completion/`;
+      axios.patch(url, {
+        wbStrId: wbStrId,
+        topicId: updatedSchedule[dayIndex][topicIndex]._id,
+        val: updatedSchedule[dayIndex][topicIndex].completed
       });
-
-      const updatedSchedule = response.data.data.workBreakdown;
-      setSchedule(updatedSchedule);
-      console.log("Topic Deleted successfully")
+      console.log('Toggled mark as done:', {dayIndex, topicIndex, updated: updatedSchedule[dayIndex][topicIndex]});
     } catch (error) {
-      console.error("Error in deleting topic", error);
-    }
-  }
-
-  const handleAddNewTopic = async () => {
-    if (!newTopicName || !modalData || !afterTopicId) {
-      alert("Please provide a topic name.");
-      return;
-    }
-    console.log("New topic name ", newTopicName)
-    // console.log("Model data ", modalData);
-    console.log("After topic id ", afterTopicId);
-    setIsAddingTopic(true);
-    setError(null);
-
-    try {
-      const userId = JSON.parse(localStorage.getItem("user"))?.teacherId ;
-      console.log("UserId ", userId)
-      // Assumes a backend endpoint exists to handle adding a new topic
-      const response = await axios.patch(`${process.env.NEXT_PUBLIC_BACKEND_1_SERVER_URL}/planner/updateStudyPlan`, {
-        userId,
-        wbStrId,
-        topicName: newTopicName,
-        afterTopicId
-      });
-
-      if (response.data && response.data.success) {
-        // Backend should return the fully updated schedule
-        const updatedSchedule = response.data.data.workBreakdown;
-        setSchedule(updatedSchedule);
-        console.log("Topic Added successfully");
-
-        // Close and reset modal state
-        setIsModalOpen(false);
-        setNewTopicName('');
-        setAfterTopicId('');
-        setModalData(null);
-      } else {
-        setError(response.data.message || "Failed to add new topic.");
-      }
-    } catch (err: any) {
-      setError(err?.response?.data?.message || "An error occurred while adding the topic.");
-      console.error("Error adding new topic", err);
-    } finally {
-      setIsAddingTopic(false);
+      console.error('Error toggling mark as done:', error);
     }
   };
 
+  const toggleMarkAsDone2 = async (
+    wbStrId: string,
+    topicId: string,
+    val: boolean,
+    dayIndex: number,
+    topicIndex: number
+  ) => {
+    const updatedSchedule = [...schedule];
+    updatedSchedule[dayIndex][topicIndex].completed = !updatedSchedule[dayIndex][topicIndex].completed;
+    setSchedule(updatedSchedule);
+    const requestBody = {wbStrId, topicId, val};
+    try {
+      const url = `${process.env.NEXT_PUBLIC_BACKEND_1_SERVER_URL}/planner/update-completion`;
+      await axios.patch(url, requestBody);
+      console.log('Toggled mark as done 2:', {wbStrId, topicId, val, dayIndex, topicIndex});
+    } catch (error) {
+      console.error('Error toggling mark as done 2:', error);
+    }
+  };
 
   const handleScoreChange = (topicId: string, section: keyof Score, score: number) => {
     setScores(prevScores => ({
@@ -379,7 +344,7 @@ const StructuredBreakdown: React.FC = () => {
   }
 
   return (
-    <div className="bg-[#F8FBFF] w-full flex flex-col items-center">
+    <div className="bg-[#F8FBFF] w-full px-4 py-8 md:p-6 lg:p-8 flex flex-col items-center">
       <div className="w-full max-w-[1304px] flex flex-col items-center">
         <div className="w-full flex flex-col gap-8">
           <div className="w-full flex flex-col md:flex-row justify-between items-start md:items-center gap-4 md:gap-0">
@@ -427,7 +392,7 @@ const StructuredBreakdown: React.FC = () => {
               >
                 {dayTopics.length > 0 && (
                   <div
-                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4 mb-4 border-b-4 border-[#b4b4b4] pb-4">
+                    className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mb-4 border-b-4 border-[#b4b4b4] pb-4">
                     <div className="flex items-center gap-4">
                       <h2
                         className="text-lg sm:text-xl font-medium"> {hasDate ? translator("Day", "दिन") : translator("Topic", "टॉपिक")} {dayTopics[0].dayNo}</h2>
@@ -439,23 +404,54 @@ const StructuredBreakdown: React.FC = () => {
                                                 }) : dayIndex + 1}
                                             </span>
                     </div>
-
-                    <button className={"flex flex-row items-center gap-2 group"} onClick={() => {
-                      setModalData({ dayIndex, dayTopics });
-                      // Set a default for the dropdown: add after the last topic
-                      if (dayTopics.length > 0) {
-                        setAfterTopicId(dayTopics[dayTopics.length - 1].topicId);
-                      }
-                      setIsModalOpen(true);
-                    }}>
-                      <IoAddCircle size={24} color="#4F46E5" className={"group-hover:scale-105 transition-all duration-100"}/>
-                      <span className={"text-[#4F46E5] text-lg group-hover:scale-105 transition-all duration-100"}>Add More </span>
-                    </button>
                   </div>
                 )}
                 {dayTopics.map((topic, topicIndex) => (
                   <div key={topic._id} className="flex flex-col gap-6 mb-6">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                      <div className="sm:ml-auto flex items-center gap-4 mt-2 sm:mt-0">
+                        <button
+                          className="flex bg-[#7763FF] hover:bg-[#6753E8] transition-colors duration-300 px-[12px] py-[6px] text-[#FFFFFF] rounded-[5px] items-center gap-2 mr-4"
+                          onClick={() => {
+                            const currentLang = (typeof window !== 'undefined' && localStorage.getItem("lang")) || 'English';
+                            localStorage.setItem("userVivaPreference", JSON.stringify({
+                              topic: topic.topicName || '',
+                              language: currentLang
+                            }));
+                            router.push("/viva");
+                          }}
+                        >
+                          {translator("Attend Viva", "विवाह भाग लें")} 🧑‍🏫
+                        </button>
+                        <span
+                          className="text-[#4B5563] text-sm sm:text-base">{translator("Mark as Done", "डॉन करें")}</span>
+                        <button
+                          onClick={() => toggleMarkAsDone2((typeof window !== 'undefined' ? localStorage.getItem("wbStrId2") || '' : ''), topic.topicId, !topic.completed, dayIndex, topicIndex)}
+                          className="relative w-10 h-6 flex items-center cursor-pointer"
+                          aria-label={topic.completed ? "Mark as not done" : "Mark as done"}
+                        >
+                          <div
+                            className={`w-10 h-6 rounded-full transition-colors duration-300 ${topic.completed ? 'bg-blue-500' : 'bg-[#D1D5DB]'}`}></div>
+                          <motion.div
+                            className="absolute h-6 w-6 bg-white border-4 border-[#E5E7EB] rounded-full"
+                            animate={{
+                              x: topic.completed ? 16 : 0,
+                            }}
+                            transition={{type: "spring", stiffness: 500, damping: 30}}
+                          ></motion.div>
+                        </button>
+                      </div>
+                    </div>
                     <div className="w-full bg-white p-4 sm:p-6 rounded-2xl flex flex-col gap-4"
+                         style={
+                           topic.deadlinePassed && topic.completed
+                             ? {boxShadow: '0 0 0 4px #b9fbc0 inset, 0 0 16px 2px #b9fbc0 inset'}
+                             : topic.deadlinePassed
+                               ? {boxShadow: '0 0 0 4px #ffb3b3 inset, 0 0 16px 2px #ffb3b3 inset'}
+                               : topic.completed
+                                 ? {boxShadow: '0 0 0 4px #b9fbc0 inset, 0 0 16px 2px #b9fbc0 inset'}
+                                 : undefined
+                         }
                     >
                       <div className="flex flex-col gap-4 sm:gap-8 sm:flex-row">
                         <motion.div
@@ -532,9 +528,43 @@ const StructuredBreakdown: React.FC = () => {
                             {translator("View Resources", "नोट्स देखें")}
                           </motion.button>
                         </motion.div>
-                        <button onClick={async () => await handleDeleteTopic(topic.topicId)}>
-                          <MdDelete size={24} color={"red"}/>
-                        </button>
+                        <motion.div
+                          className="flex-1 min-w-[250px] bg-[#E5F8FF] rounded-2xl p-4 px-6 sm:px-8 flex flex-col gap-4"
+                          whileHover={{scale: 1.02}}
+                          transition={{type: "spring", stiffness: 400, damping: 10}}
+                        >
+                          <div className="flex flex-col gap-2">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-4">
+                                <div className="w-6 h-6 rounded-full bg-[#DCFCE7] flex items-center justify-center">
+                                  <IoCheckmark/>
+                                </div>
+                                <span className="font-semibold text-lg sm:text-xl">{translator("Quiz", "क्विज")}</span>
+                              </div>
+                            </div>
+                            <div className="flex flex-col">
+                              <span
+                                className="text-base sm:text-lg">{translator("Practice Quiz", "अभ्यास क्विज़")}</span>
+                              <span
+                                className="text-[#AFAFAF] text-sm sm:text-base">{translator("AI Generated MCQs", "AI जनित बहुविकल्पीय प्रश्न")}</span>
+                            </div>
+                          </div>
+                          <motion.button
+                            onClick={() => {
+                              if (typeof window !== 'undefined') {
+                                localStorage.setItem('mcq_quiz_topic', topic.topicName);
+                                localStorage.setItem("topicId", topic.topicId);
+                              }
+                              handelDataStorage(wbStrId || '', topic.topicId, videoDuration);
+                              router.push("/mcq-quiz");
+                            }}
+                            className="text-[#22C55D] font-semibold text-base sm:text-lg"
+                            whileHover={{scale: 1.05}}
+                            whileTap={{scale: 0.95}}
+                          >
+                            {translator("Take Quiz", "क्विज़ दें")}
+                          </motion.button>
+                        </motion.div>
                       </div>
                     </div>
                   </div>
@@ -554,78 +584,6 @@ const StructuredBreakdown: React.FC = () => {
           </div>
         </div>
       </div>
-
-      {/* Add New Topic Modal */}
-      {isModalOpen && modalData && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
-          <motion.div
-            className="bg-white rounded-lg p-6 sm:p-8 shadow-xl w-full max-w-md"
-            initial={{scale: 0.9, opacity: 0}}
-            animate={{scale: 1, opacity: 1}}
-            exit={{scale: 0.9, opacity: 0}}
-          >
-            <h2 className="text-2xl font-bold mb-4 text-gray-800">Add New Topic</h2>
-            <p className="text-gray-600 mb-6">Enter a name for the new topic and select where to place it.</p>
-
-            <div className="flex flex-col gap-5">
-              <div>
-                <label htmlFor="newTopicName" className="block text-sm font-medium text-gray-700 mb-1">
-                  New Topic Name
-                </label>
-                <input
-                  id="newTopicName"
-                  type="text"
-                  value={newTopicName}
-                  onChange={(e) => setNewTopicName(e.target.value)}
-                  placeholder="e.g. L Hopital's Rule"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                />
-              </div>
-              <div>
-                <label htmlFor="afterTopic" className="block text-sm font-medium text-gray-700 mb-1">
-                  Add After
-                </label>
-                <select
-                  id="afterTopic"
-                  value={afterTopicId}
-                  onChange={(e) => setAfterTopicId(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white"
-                >
-                  {modalData.dayTopics.map(topic => (
-                    <option key={topic.topicId} value={topic.topicId}>
-                      {topic.topicName}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <div className="mt-8 flex justify-end gap-4">
-              <button
-                onClick={() => setIsModalOpen(false)}
-                className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 disabled:opacity-50 transition-colors"
-                disabled={isAddingTopic}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={async () => await handleAddNewTopic()}
-                className="px-4 py-2 bg-[#4F46E5] text-white rounded-md hover:bg-indigo-700 disabled:bg-indigo-400 flex items-center justify-center min-w-[110px] transition-colors"
-                disabled={isAddingTopic || !newTopicName.trim()}
-              >
-                {isAddingTopic ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    Adding...
-                  </>
-                ) : (
-                  "Add Topic"
-                )}
-              </button>
-            </div>
-          </motion.div>
-        </div>
-      )}
     </div>
   );
 };

@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 
 import Image from 'next/image';
+import {FaRegLightbulb} from "react-icons/fa";
 
 interface TeacherSidebarProps {
   onSidebarToggle: (isOpen: boolean) => void; // Callback to inform parent of sidebar state
@@ -122,6 +123,7 @@ useEffect(()=>{
     { name: 'Attendance', href: '/t/attendance', icon: <CalendarCheck2 size={18} />, onClick: handleNavLinkClick },
     { name: 'Classes', href: '/t/classes', icon: <Users2 size={18} />, onClick: handleNavLinkClick },
     { name: 'Copy checking', href: '/t/pythonCopyChecking', icon: <FileText size={18} />, onClick: handleNavLinkClick },
+    {name: 'Smart Resources',href:'/t/smart-resources',icon:<FaRegLightbulb size={18}/>,onClick:handleNavLinkClick},
   ];
 
   return (

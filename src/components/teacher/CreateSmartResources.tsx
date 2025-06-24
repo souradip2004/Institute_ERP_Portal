@@ -66,27 +66,31 @@ export default function CreateSmartResources() {
     const [purposeError, setPurposeError] = useState<string>('');
     const router = useRouter();
     const searchParams = useSearchParams();
-    const [user, setUser] = useState<any>(() => {
+    const [userId, setUserId] = useState<any>(() => {
         if (typeof window !== 'undefined') {
-            const data = localStorage.getItem('user-data');
-            return data ? JSON.parse(data) : null;
+            const data = localStorage.getItem('user');
+            return data ? JSON.parse(data)?.teacherId : null;
         }
         return null;
     });
+
+  /*  const [user, setUser] = useState<any>({
+        userId: "gdfgf7rdgrdgf7rejtgdffsd"
+    });*/
     const [noOfResources, setNoOfResources] = useState<number>(0);
 
     useEffect(() => {
         const loadNoOfResources = async () => {
             try {
-                const response = await axios.get(`${process.env.NEXT_PUBLIC_BACKEND_1_SERVER_URL}/planner/getAllSchedulesFromUser/${user?.userId}`);
+                const response = await axios.get(`${process.env.NEXT_PUBLIC_BACKEND_1_SERVER_URL}/planner/getAllSchedulesFromUser/${userId}`);
                 setNoOfResources(response.data?.data?.length);
                 console.log("No of resources fetched:", response.data.data.length);
             } catch (error) {
                 console.error("Error in AIResourceFinder useEffect:", error);
             }
         };
-        if (user?.userId) loadNoOfResources();
-    }, [user?.userId]);
+        if (userId) loadNoOfResources();
+    }, [userId]);
 
     // --- Conditions for disabling UI elements ---
     const isTabSectionDisabled = searchPrompt.trim().length > 0;

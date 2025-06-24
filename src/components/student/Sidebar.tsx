@@ -16,6 +16,7 @@ import {
   X // Added for the close icon
 } from 'lucide-react';
 import Image from 'next/image';
+import {FaRegLightbulb} from "react-icons/fa";
 
 interface SidebarProps {
   onSidebarToggle: (isOpen: boolean) => void; // Callback to inform parent of sidebar state
@@ -90,7 +91,8 @@ useEffect(()=>{
     { title: 'Exams and Reports', href: '/s/exams', icon: <FileText size={18} /> },
     { title: 'Mentorship', href: '/s/mentorship', icon: <Sparkles size={18} /> },
     { title: 'Report Card', href: '/s/report', icon: <BarChart3 size={18} /> },
-    { title: 'Ask Teacher', href: '/s/ask-teacher', icon: <MessageSquareQuoteIcon size={18} /> },
+    { title: 'Ask Teacher', href: '/s/ask-teacher', icon: <MessageSquareQuoteIcon size={18} />},
+    { title: 'Smart Resources', href: '/s/smart-resources', icon: <FaRegLightbulb size={18} />},
   ];
 
   return (

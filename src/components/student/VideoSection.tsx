@@ -31,7 +31,7 @@ const VideoSection = () => {
     const [userId, setUserId] = useState<any>(() => {
         if (typeof window !== 'undefined') {
             const data = localStorage.getItem('user');
-            return data ? JSON.parse(data).teacherId : null;
+            return data ? JSON.parse(data).studentId : null;
         }
         return null;
     });
