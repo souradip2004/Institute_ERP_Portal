@@ -9,23 +9,29 @@ import {
 } from 'lucide-react';
 import axios from 'axios';
 import { IoIosClose } from "react-icons/io";
-import { useNavigate } from 'react-router-dom';
+import { useRouter } from 'next/navigation';
 
 // Translator function for English/Hindi UI
-const translator = (word1, word2) =>
-    localStorage.getItem("lang") && localStorage.getItem("lang").toLowerCase().includes("english")
+const translator = (word1: string, word2: string) =>
+    typeof window !== 'undefined' && localStorage.getItem("lang") && localStorage.getItem("lang")!.toLowerCase().includes("english")
         ? word1
         : localStorage.getItem("lang")
             ? word2
             : word1;
 
+type PdfData = {
+    originalUrl: string;
+    blobUrl: string | null;
+    error?: string;
+};
+
 const NotesPdf = () => {
     const [isMobile, setIsMobile] = useState(false);
-    const navigate = useNavigate();
-    const [selectedPdf, setSelectedPdf] = useState(0);
-    const [pdfData, setPdfData] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+    const router = useRouter();
+    const [selectedPdf, setSelectedPdf] = useState<number>(0);
+    const [pdfData, setPdfData] = useState<PdfData[]>([]);
+    const [loading, setLoading] = useState<boolean>(true);
+    const [error, setError] = useState<string | null>(null);
 
     // Responsive detection
     useEffect(() => {
@@ -44,12 +50,13 @@ const NotesPdf = () => {
 
     // Fetch PDF data and then fetch blobs via proxy
     useEffect(() => {
-        let blobUrlsToRevoke = []; // Array to keep track of blob URLs created
+        let blobUrlsToRevoke: string[] = [];
 
         const fetchAndProcessPdfs = async () => {
-            const wbStrId = localStorage.getItem("wbStrId2");
-            const topicId = localStorage.getItem("topicId");
-            const listUrl = `${import.meta.env.VITE_BACKEND_1_SERVER_URL}/videoData/generatePdfLink/${wbStrId}/${topicId}`; // URL to get the list of PDF links
+            const wbStrId = typeof window !== 'undefined' ? localStorage.getItem("wbStrId2") : '';
+            const topicId = typeof window !== 'undefined' ? localStorage.getItem("topicId") : '';
+            console.log("wbStrId:", wbStrId, "topicId:", topicId);
+            const listUrl = `${process.env.NEXT_PUBLIC_BACKEND_1_SERVER_URL}/videoData/generatePdfLink/${wbStrId}/${topicId}`; // URL to get the list of PDF links
             const proxyUrlBase = 'https://api.aiclassroom.in/proxy-pdf?url='; // Base URL for the proxy
 
             console.log("PDF list API url:", listUrl);
@@ -61,7 +68,7 @@ const NotesPdf = () => {
                 const listResponse = await axios.get(listUrl);
                 console.log("Response from PDF list API:", listResponse);
 
-                const originalPdfLinks = listResponse.data.data.pdfLinks || [];
+                const originalPdfLinks: string[] = listResponse.data.data.pdfLinks || [];
 
                 if (originalPdfLinks.length > 0) {
                     const pdfPromises = originalPdfLinks.map(async (originalUrl) => {
@@ -122,7 +129,7 @@ const NotesPdf = () => {
 
     }, []); // Empty dependency array means this runs once on mount
 
-    const handlePdfSelect = (index) => {
+    const handlePdfSelect = (index: number) => {
         if (isMobile) {
             // For mobile, open PDF in new tab
             if (pdfData[index] && pdfData[index].originalUrl) {
@@ -139,7 +146,7 @@ const NotesPdf = () => {
         if (pdfData[selectedPdf]) {
             const pdfInfo = pdfData[selectedPdf];
             const link = document.createElement('a');
-            link.href = pdfInfo.originalUrl || pdfInfo.blobUrl; // Prefer original for cleaner filename if proxy provides generic one
+            link.href = pdfInfo.originalUrl || pdfInfo.blobUrl || ''; // Prefer original for cleaner filename if proxy provides generic one
             link.download = `PDF-${selectedPdf + 1}.pdf`; // You might want to extract filename from originalUrl if possible
             link.click();
         }
@@ -153,12 +160,10 @@ const NotesPdf = () => {
     };
 
     const handleAiSmartNotes = () => {
-        // Placeholder for AI Smart Notes functionality
-        //alert('AI Smart Notes feature coming soon!');
-        navigate("/ai-notes");
+        router.push("/ai-notes");
     };
 
-    const getPdfFileName = (index) => {
+    const getPdfFileName = (index: number) => {
         return `PDF - ${index + 1}`;
     };
 
@@ -171,7 +176,7 @@ const NotesPdf = () => {
                     <div>
                         <div className="flex flex-row justify-between items-center">
                             <button>
-                                <IoIosClose size={50} onClick={() => navigate('/structured-breakdown')} />
+                                <IoIosClose size={50} onClick={() => window.history.back()} />
                             </button>
                             <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent mb-2">
                                 My Resources
@@ -186,16 +191,6 @@ const NotesPdf = () => {
                         <span className="text-gray-500">Monday, June 16</span>
                     </div>
                 </div>
-
-                {/* Notes Section */}
-                {/* <div className="px-6 mb-4">
-                    <div className="flex items-center gap-4 p-3 rounded-xl bg-gray-50">
-                        <div className="text-gray-600">
-                            <FileText className="w-5 h-5" />
-                        </div>
-                        <span className="text-xl text-gray-700">Notes</span>
-                    </div>
-                </div> */}
 
                 {/* PDF List */}
                 <div className="flex-1 px-6 space-y-2">
@@ -284,7 +279,7 @@ const NotesPdf = () => {
                             </div>
                         ) : pdfData.length > 0 && pdfData[selectedPdf]?.blobUrl ? ( // Check if blobUrl exists for the selected PDF
                             <iframe
-                                src={pdfData[selectedPdf].blobUrl} // Use the blob URL here
+                                src={pdfData[selectedPdf].blobUrl || ''} // Use the blob URL here
                                 className="w-full h-full border-0"
                                 title={`PDF Viewer - ${getPdfFileName(selectedPdf)}`}
                                 onLoad={() => console.log('PDF loaded')}
