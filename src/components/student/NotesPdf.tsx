@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from 'react';
 import {
     Menu,
@@ -160,7 +161,7 @@ const NotesPdf = () => {
     };
 
     const handleAiSmartNotes = () => {
-        router.push("/t/smart-resources/ainotes");
+        router.push("/s/smart-resources/ainotes");
     };
 
     const getPdfFileName = (index: number) => {

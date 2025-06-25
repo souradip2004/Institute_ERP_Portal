@@ -268,7 +268,7 @@ const MCQQuiz: React.FC = () => {
             const response = await axios.patch(`${process.env.NEXT_PUBLIC_BACKEND_1_SERVER_URL}/videoData/getScore/`, submissionBody);
             if (response.data.success) {
                 localStorage.setItem('mcqReportData', JSON.stringify(response.data.data));
-                router.push('/quiz-report');
+                router.push('/s/smart-resources/quiz-report');
             } else {
                 alert(`Quiz submission failed: ${response.data.message || 'Unknown error'}`);
                 setIsSubmitting(false);
@@ -432,7 +432,7 @@ const MCQQuiz: React.FC = () => {
                             {/* Add a close button if needed */}
                             <button onClick={() => {
                                 // setShowPreferenceModal(false);
-                                router.push('/structured-breakdown');
+                                router.push('/s/smart-resources/structure-breakdown');
                             }} className="text-gray-500 hover:text-gray-700 text-2xl font-bold">&times;</button>
                         </div>
                     </div>
