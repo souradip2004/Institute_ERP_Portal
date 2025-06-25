@@ -60,6 +60,7 @@ const SetSchedule = () => {
   });
   const [selectedLanguage, setSelectedLanguage] = useState<string>('English');
   const [userId, setUserId] = useState<string | null>(null);
+  const [classes,setclasses]=useState([]);
   const router = useRouter();
   const [startDate, setStartDate] = useState<Date>(new Date());
   const [endDate, setEndDate] = useState<Date>(new Date());
@@ -188,6 +189,18 @@ const SetSchedule = () => {
       try {
         const parsedUserData = JSON.parse(storedUserData);
         setUserId(parsedUserData.teacherId);
+        async()=>{
+          const res=await fetch("/api/class-sections",{
+            method:"GET",
+            headers:{
+              "Content-Type":"application/json"
+            }
+          })
+          if(res.ok){
+            const response=await res.json();
+            setclasses(response.filter((c)=>c.teacherId==parsedUserData.teacherId))
+          }
+        }
       } catch (err) {
         console.error("Error parsing user data from localStorage", err);
       }
@@ -502,6 +515,14 @@ const SetSchedule = () => {
             {/* First Row: Hours + Select Days */}
             <div className="flex flex-col lg:flex-row gap-6 mt-2">
               <div className="w-full lg:w-1/2">
+
+            <h3
+                  className="text-base sm:text-lg font-medium text-[#1E1E2F] mb-3">{translator("Select Class Section", "आप किस समय पर शुरू करना चाहते हैं?")}</h3>
+                  {classes.map((c)=>{
+                    return(
+                      <><input type="checkbox" value={c.sectionName}></input></>
+                    )
+                  })}
                 <h3
                   className="text-base sm:text-lg font-medium text-[#1E1E2F] mb-3">{translator("At What Time You Prefer to Start ?", "आप किस समय पर शुरू करना चाहते हैं?")}</h3>
 

@@ -215,7 +215,7 @@ export function SmartResources() {
   const purposeDropdownRef = useRef(null);
   const sortDropdownRef = useRef(null);
 
-  const [lang] = useState(localStorage.getItem("lang") || 'english');
+  const [lang] = useState( 'english');
   const t = useCallback((word1, word2) => {
     return lang.toLowerCase().includes("english") ? word1 : (word2 || word1);
   }, [lang]);
@@ -242,7 +242,7 @@ export function SmartResources() {
           let status = 'Unscheduled';
           if (item.completedAll) status = 'Completed';
           else if (item.scheduled) status = 'Scheduled';
-
+          
           return {
             id: item._id || index.toString(),
             title: item.scheduleTitle || t('Untitled Resource', 'अनाम संसाधन'),
