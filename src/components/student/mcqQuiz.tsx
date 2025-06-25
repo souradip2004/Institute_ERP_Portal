@@ -321,17 +321,8 @@ const MCQQuiz: React.FC = () => {
             };
             const response = await axios.patch(`${process.env.NEXT_PUBLIC_BACKEND_1_SERVER_URL}/videoData/getScore/`, submissionBody);
             if (response.data.success) {
-                // Clear localStorage on successful submission
-                if (typeof window !== 'undefined') {
-                    localStorage.setItem('mcqReportData', JSON.stringify(response.data.data));
-                    localStorage.removeItem('mcq_quiz_answers');
-                    localStorage.removeItem('mcq_quiz_marked_for_review');
-                    localStorage.removeItem('mcq_quiz_current_question');
-                    localStorage.removeItem('mcq_quiz_start_time');
-                    localStorage.removeItem('mcq_quiz_duration_for_result');
-                    localStorage.removeItem('mcq_quiz_questions_count');
-                }
-                router.push('/quiz-report');
+                localStorage.setItem('mcqReportData', JSON.stringify(response.data.data));
+                router.push('/s/smart-resources/quiz-report');
             } else {
                 if (typeof window !== 'undefined') {
                     alert(`Quiz submission failed: ${response.data.message || 'Unknown error'}`);
@@ -484,7 +475,8 @@ const MCQQuiz: React.FC = () => {
                         <div className="flex justify-between items-center mb-6">
                             <h3 className="text-xl sm:text-2xl font-bold text-[#3A1078] font-poppins">{translator("Select Your Preference", "अपनी पसंद चुनें")}</h3>
                             <button onClick={() => {
-                                router.push('/structured-breakdown');
+                                // setShowPreferenceModal(false);
+                                router.push('/s/smart-resources/structure-breakdown');
                             }} className="text-gray-500 hover:text-gray-700 text-2xl font-bold">&times;</button>
                         </div>
                     </div>
@@ -683,8 +675,8 @@ const MCQQuiz: React.FC = () => {
                                             onClick={handleMarkForReview}
                                             className={`px-6 sm:px-8 py-2 sm:py-3 rounded-lg font-bold text-sm sm:text-base font-poppins transition-colors duration-300 shadow-md
                                             ${markedForReview.has(currentQuestionData.qNo)
-                                                ? 'bg-[#D4A017] text-white hover:bg-[#B8900F]' // Orange for unmark review
-                                                : 'bg-[#AE7A01] text-white hover:bg-[#8B6001]' // Darker orange for mark review
+                                                    ? 'bg-[#D4A017] text-white hover:bg-[#B8900F]' // Orange for unmark review
+                                                    : 'bg-[#AE7A01] text-white hover:bg-[#8B6001]' // Darker orange for mark review
                                                 }`}
                                         >
                                             {markedForReview.has(currentQuestionData.qNo) ? translator('Unmark Review', 'समीक्षा हटाएँ') : translator('Mark For Review', 'समीक्षा के लिए चिह्नित करें')}

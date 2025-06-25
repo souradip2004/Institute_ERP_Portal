@@ -522,7 +522,7 @@ const StructuredBreakdown: React.FC = () => {
                                 localStorage.setItem("ytLinkforNotes", topic.topicId);
                               }
                               handelDataStorage(wbStrId || '', topic.topicId, videoDuration);
-                              router.push("/notes-pdf");
+                              router.push("/s/smart-resources/notes-pdf");
                             }}
                           >
                             {translator("View Resources", "नोट्स देखें")}

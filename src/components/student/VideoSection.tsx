@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { IoMdClose } from 'react-icons/io';
 import { IoSend } from 'react-icons/io5';
@@ -7,6 +7,7 @@ import { RiChatDeleteFill } from 'react-icons/ri';
 import axios from 'axios';
 import { jsPDF } from 'jspdf';
 import { delay } from 'framer-motion';
+import { RiChatAiFill } from "react-icons/ri";
 
 interface LessonData {
     day: string;
@@ -498,6 +499,51 @@ const VideoSection = () => {
         }, 1000);
     };
 
+
+    // Ref for chat section (sidebar)
+    const chatSectionRef = useRef<HTMLDivElement | null>(null);
+    const [showChatButton, setShowChatButton] = useState(false);
+
+    // Show/hide chat button on mobile based on scroll position
+    useEffect(() => {
+        const isMobile = () => window.innerWidth <= 1024;
+        const checkChatSectionVisibility = () => {
+            if (!isMobile()) {
+                setShowChatButton(false);
+                return;
+            }
+            const chatSection = chatSectionRef.current;
+            if (!chatSection) return;
+            const chatRect = chatSection.getBoundingClientRect();
+            const windowHeight = window.innerHeight;
+            // Calculate how much of the chat section is visible
+            const visibleHeight = Math.min(windowHeight, chatRect.bottom) - Math.max(0, chatRect.top);
+            const totalHeight = chatRect.height;
+            const visibleRatio = Math.max(0, Math.min(visibleHeight / totalHeight, 1));
+            // Show button if less than 30% of chat section is visible
+            if (visibleRatio < 0.3) {
+                setShowChatButton(true);
+            } else {
+                setShowChatButton(false);
+            }
+        };
+        window.addEventListener('scroll', checkChatSectionVisibility);
+        window.addEventListener('resize', checkChatSectionVisibility);
+        setTimeout(checkChatSectionVisibility, 0);
+        return () => {
+            window.removeEventListener('scroll', checkChatSectionVisibility);
+            window.removeEventListener('resize', checkChatSectionVisibility);
+        };
+    }, []);
+
+    // Handler for chat button click
+    const handleChatButtonClick = () => {
+        setShowChatButton(false);
+        chatSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        // After scrolling, the button will stay hidden because the section will be in view
+    };
+
+
     if (isLoading) {
         return (
             <div className="min-h-screen bg-gray-50 p-6 flex flex-col items-center justify-center">
@@ -555,10 +601,10 @@ const VideoSection = () => {
                             </div>
                             <div className="flex items-center justify-center">
                                 <button className="p-2 hover:bg-gray-100 rounded-lg"
-                                    onClick={() => { router.push("/structured-breakdown") }}
+                                    onClick={() => { router.push("/s/smart-resources/structure-breakdown") }}
                                 >
                                     <button className="p-2 hover:bg-gray-100 rounded-lg"
-                                        onClick={() => { router.push("/structured-breakdown") }}
+                                        onClick={() => { router.push("/s/smart-resources/structure-breakdown") }}
                                     >
                                         <IoMdClose />
                                     </button>
@@ -708,7 +754,7 @@ const VideoSection = () => {
                     </div>
 
                     {/* Right Sidebar - Ask Your Doubts */}
-                    <div className="lg:col-span-1">
+                    <div className="lg:col-span-1" ref={chatSectionRef}>
                         <div className="bg-white rounded-xl shadow-md overflow-hidden h-[calc(100vh-8rem)] flex flex-col sticky top-6">
                             {/* Chat Header */}
                             <div className="flex justify-between items-center bg-gradient-to-r from-[#6BA0FF] to-[#755BFF] p-4 flex-shrink-0">
@@ -781,6 +827,18 @@ const VideoSection = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Floating Chat Button (Mobile Only) */}
+            {showChatButton && (
+                <button
+                    className="fixed bottom-6 right-6 z-50 bg-gradient-to-r from-[#6BA0FF] to-[#755BFF] text-white p-4 rounded-full shadow-lg md:hidden"
+                    style={{ boxShadow: '0 4px 16px rgba(107,160,255,0.25)' }}
+                    onClick={handleChatButtonClick}
+                    aria-label="Ask Your Doubts"
+                >
+                    <RiChatAiFill className="h-7 w-7" />
+                </button>
+            )}
         </div>
     );
 };
