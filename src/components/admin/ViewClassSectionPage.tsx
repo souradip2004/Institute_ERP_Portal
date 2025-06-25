@@ -132,6 +132,7 @@ export default function ClassSectionsPage({ id }: ViewClassSectionPageProps) {
               teacherId: section.teacherId || '',
               batchId: section.batchId || '',
               courseId: section.courseId || '',
+              isOptional:section.isOptional || false,
               semesterId: section.semesterId || '',
               maxStudents: section.maxStudents || 0,
               createdAt: section.createdAt || new Date().toISOString(),

@@ -24,6 +24,8 @@ interface ClassSection {
   id: string;
   sectionName: string;
   teacherId: string;
+  isOptional:boolean;
+  motherClassId:string;
 }
 
 interface AddStudentProps {
@@ -33,7 +35,7 @@ interface AddStudentProps {
   onSuccess: () => void;
 }
 
-export default function AddStudentModal({id, isOpen, onClose, onSuccess}: AddStudentProps) {
+export default function AddStudentModal({id, isOpen, onClose, onSuccess}: AddStudentProps){
   const [classData, setClassData] = useState<ClassSection[]>([]);
   const [departmentData, setDepartmentData] = useState<Department[]>([]);
   const [batchData, setBatchData] = useState<Batch[]>([]);
@@ -41,6 +43,24 @@ export default function AddStudentModal({id, isOpen, onClose, onSuccess}: AddStu
   const [error, setError] = useState<string | null>(null);
   const [showNewDepartment, setShowNewDepartment] = useState(false);
   const [multiplestudent, setMultiplestudent] = useState(false);
+ const [motherClasses, setMotherClasses] = useState([]);
+  const [selectedMotherClassId, setSelectedMotherClassId] = useState<string | null>(null);
+    useEffect(() => {
+      const fetchAndProcessMotherClasses = async () => {
+        try {
+          const user = localStorage.getItem("user");
+          const institutionId = user ? JSON.parse(user).institutionId : null;
+          if (!institutionId) return;
+  
+          const response = await fetch(`/api/institutions/${institutionId}/motherclass`);
+          const data = await response.json();
+           setMotherClasses(data);
+        }catch(error){
+          console.log(error)
+        }}
+        fetchAndProcessMotherClasses()
+      },[])
+  
   const [studentData, setStudentData] = useState({
     rollNumber: "",
     department: "",
@@ -49,7 +69,9 @@ export default function AddStudentModal({id, isOpen, onClose, onSuccess}: AddStu
     institutionid: id,
     newDepartment: "",
     batch: "",
+    name:"",
     classes: [] as string[],
+    motherclasses:[] as string[]
   });
 
   useEffect(() => {
@@ -168,7 +190,7 @@ export default function AddStudentModal({id, isOpen, onClose, onSuccess}: AddStu
           method: "POST",
           headers: {"Content-Type": "application/json"},
           body: JSON.stringify({
-            name: studentData.rollNumber,
+            name: studentData.name,
             email: studentData.email,
             password: studentData.password,
             role: "STUDENT",
@@ -188,6 +210,9 @@ export default function AddStudentModal({id, isOpen, onClose, onSuccess}: AddStu
           const data = await sendemail.json();
           console.log("Error sending welcome email:", data.error);
         }
+        let allclasses=[...studentData.classes,...(classData.filter((c)=>studentData.motherclasses.includes(c.motherClassId)&&!c.isOptional).map((d)=>d.id))]
+                  console.log(allclasses)
+
         const studentResponse = await fetch("/api/students", {
           method: "POST",
           headers: {"Content-Type": "application/json"},
@@ -198,8 +223,8 @@ export default function AddStudentModal({id, isOpen, onClose, onSuccess}: AddStu
             user: {connect: {id: userData.id}},
             department: {connect: {id: studentData.department}},
             batch: {connect: {id: studentData.batch}},
-            classes: studentData.classes.length > 0
-              ? {connect: studentData.classes.map((id) => ({id}))}
+            classes: allclasses.length > 0
+              ? {connect: allclasses.map((id) => ({id}))}
               : undefined,
             enrollmentStatus: "ACTIVE",
             currentSemester: 1,
@@ -222,6 +247,7 @@ export default function AddStudentModal({id, isOpen, onClose, onSuccess}: AddStu
     } else {
       const rollNumbers = studentData.rollNumber.split(",").map((roll) => roll.trim());
       const emails = studentData.email.split(",").map((email) => email.trim());
+      const names=studentData.name.split(",").map((name)=>name.trim());
       if (rollNumbers.length !== emails.length) {
         setError("Roll numbers and emails count do not match");
         return;
@@ -236,7 +262,7 @@ export default function AddStudentModal({id, isOpen, onClose, onSuccess}: AddStu
             method: "POST",
             headers: {"Content-Type": "application/json"},
             body: JSON.stringify({
-              name: rollNumbers[i],
+              name: names[i],
               email: emails[i],
               password: randomCode,
               role: "STUDENT",
@@ -256,6 +282,8 @@ export default function AddStudentModal({id, isOpen, onClose, onSuccess}: AddStu
             const data = await sendemail.json();
             console.log("Error sending welcome email:", data.error);
           }
+        let allclasses=[...studentData.classes,...(classData.filter((c)=>studentData.motherclasses.includes(c.motherClassId)&&!c.isOptional).map((d)=>d.id))]
+          console.log(allclasses)
           const studentResponse = await fetch("/api/students", {
             method: "POST",
             headers: {"Content-Type": "application/json"},
@@ -267,8 +295,8 @@ export default function AddStudentModal({id, isOpen, onClose, onSuccess}: AddStu
               department: {connect: {id: studentData.department}},
               batch: {connect: {id: studentData.batch}},
               classes:
-                studentData.classes.length > 0
-                  ? {connect: studentData.classes.map((id) => ({id}))}
+                allclasses.length > 0
+                  ? {connect: allclasses.map((id) => ({id}))}
                   : undefined,
               enrollmentStatus: "ACTIVE",
               currentSemester: 1,
@@ -297,10 +325,12 @@ export default function AddStudentModal({id, isOpen, onClose, onSuccess}: AddStu
       rollNumber: "",
       department: "",
       email: "",
+      name:"",
       password: "",
       institutionid: id,
       newDepartment: "",
       batch: "",
+      motherclasses:[],
       classes: [],
     });
     setShowNewDepartment(false);
@@ -346,7 +376,31 @@ export default function AddStudentModal({id, isOpen, onClose, onSuccess}: AddStu
                   className="w-full p-2 border rounded-md"
                 />
               </div>
-
+              {!multiplestudent && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Name* </label>
+                  <input
+                    type="text"
+                    required
+                    value={studentData.name}
+                    onChange={(e) => setStudentData({...studentData, name: e.target.value})}
+                    className="w-full p-2 border rounded-md"
+                  />
+                </div>
+              )}
+              {multiplestudent && (
+                <div>
+                  <label
+                    className="block text-sm font-medium text-gray-700 mb-1">Names* {multiplestudent ? "(Seperated by commas)" : ""}</label>
+                  <input
+                    type="text"
+                    required
+                    value={studentData.name}
+                    onChange={(e) => setStudentData({...studentData, name: e.target.value})}
+                    className="w-full p-2 border rounded-md"
+                  />
+                </div>
+              )}
               {/* Email */}
               {!multiplestudent && (
                 <div>
@@ -373,6 +427,7 @@ export default function AddStudentModal({id, isOpen, onClose, onSuccess}: AddStu
                   />
                 </div>
               )}
+              
               {/* Password */}
               {!multiplestudent && (
                 <div>
@@ -453,21 +508,47 @@ export default function AddStudentModal({id, isOpen, onClose, onSuccess}: AddStu
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Classes</label>
                 <div className="border p-2 rounded-md max-h-40 overflow-y-auto">
-                  {classData.map((c) => (
+                  {motherClasses.map((c) => (
                     <label key={c.id} className="flex items-center space-x-2">
                       <input
                         type="checkbox"
                         value={c.id}
-                        checked={studentData.classes.includes(c.id)}
+                        checked={studentData.motherclasses.includes(c.id)}
                         onChange={(e) => {
                           const value = e.target.value;
                           setStudentData((prev) => ({
                             ...prev,
-                            classes: e.target.checked
-                              ? [...prev.classes, value]
-                              : prev.classes.filter((id) => id !== value),
+                            motherclasses: e.target.checked
+                              ? [...prev.motherclasses, value]
+                              : prev.motherclasses.filter((id) => id !== value),
                           }));
                         }}
+                      />
+                      <span>{c.sectionName}</span>
+                    </label>
+                  ))}
+                </div>
+
+              </div>
+               {/* Classes (multi-select) */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Optional Classes</label>
+                <div className="border p-2 rounded-md max-h-40 overflow-y-auto">
+                    {classData.filter((c) => c.isOptional).map((c) => (
+                    <label key={c.id} className="flex items-center space-x-2">
+                      <input
+                      type="checkbox"
+                      value={c.id}
+                      checked={studentData.classes.includes(c.id)}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setStudentData((prev) => ({
+                        ...prev,
+                        classes: e.target.checked
+                          ? [...prev.classes, value]
+                          : prev.classes.filter((id) => id !== value),
+                        }));
+                      }}
                       />
                       <span>{c.sectionName}</span>
                     </label>

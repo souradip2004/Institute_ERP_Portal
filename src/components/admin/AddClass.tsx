@@ -46,10 +46,13 @@ interface Semester {
   name: string;
   institutionId: string;
 }
+
+// Helper function to get course name from ID
 const namedCourse = (id: string, courses: Course[]): string | undefined => {
   const found = courses.find(course => course.id === id);
   return found?.name;
 };
+
 export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassProps): JSX.Element | null {
   // State for class section data
   const [classData, setClassData] = useState({
@@ -64,7 +67,10 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
   // States for selected IDs (arrays for multi-select)
   const [selectedTeacherIds, setSelectedTeacherIds] = useState<string[]>([]);
   // State to manage specific course assignments per teacher using checkboxes
-  const [teacherCourseAssignments, setTeacherCourseAssignments] = useState<Array<{ teacherId: string, courseIds: string[] }>>([]);
+  // Updated: Each teacher's assignment now contains an array of course objects with isOptional flag
+  const [teacherCourseAssignments, setTeacherCourseAssignments] = useState<
+    Array<{ teacherId: string; courses: Array<{ courseId: string; isOptional: boolean }> }>
+  >([]);
 
   // States for fetched data and dropdown options
   const [teacherData, setTeacherData] = useState<Teacher[]>([]);
@@ -205,7 +211,7 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
     const semesterIdToSubmit = semesterData.find((semester) => semester.name === classData.semester)?.id;
 
     // Validate if any teacher has at least one course assigned
-    const hasAnyTeacherCourseAssignment = teacherCourseAssignments.some(assignment => assignment.courseIds.length > 0);
+    const hasAnyTeacherCourseAssignment = teacherCourseAssignments.some(assignment => assignment.courses.length > 0);
 
     // Validation: Ensure all required fields are selected, and at least one teacher with assigned courses is chosen
     if (
@@ -221,53 +227,75 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
       return;
     }
 
-    // Extract all unique course IDs from the assignments for the 'courseIds' payload if needed by backend
-    const allUniqueCourseIds = Array.from(new Set(teacherCourseAssignments.flatMap(assignment => assignment.courseIds)));
+    // Prepare the payload for `addClass`
+    // Flatten teacherCourseAssignments into an array of objects suitable for backend (e.g., a join table)
+    const flattenedAssignments = teacherCourseAssignments.flatMap(teacherAssignment =>
+      teacherAssignment.courses.map(course => ({
+        teacherId: teacherAssignment.teacherId,
+        courseId: course.courseId,
+        isOptional: course.isOptional,
+      }))
+    );
 
-    // NOTE: The 'useAddClass' hook and backend API must be updated to handle 'teacherCourseAssignments'
-    // or a similar structured payload if you want to capture specific teacher-course pairings.
-    // If your backend only expects flat 'teacherIds' and 'courseIds', the detailed assignment
-    // captured here will not be fully utilized unless you process it on the frontend before sending.
-   const promises = [];
-const motherclass=await fetch("/api/motherclass",{
-  method:"POST",
-  headers:{
-    "Content-Type":"application/json"
-  },
-  body:JSON.stringify({
-    "sectionName":classData.sectionName,
-    "institution":JSON.parse(localStorage.getItem("user")||"{}")?.institutionId
-  })
-})
-const motherres=await motherclass.json();
-for (let i = 0; i < teacherCourseAssignments.length; i++) {
-  const teacher = teacherCourseAssignments[i];
-  for (let j = 0; j < teacher.courseIds.length; j++) {
-    const courseId = teacher.courseIds[j];
-    const promise = addClass({
-      batchId: batchIdToSubmit,
-      semesterId: semesterIdToSubmit,
-      departmentId: departmentIdToSubmit,
-      maxStudents: classData.maxStudents,
-      sectionName: classData.sectionName + ` - ${namedCourse(courseId,courseData)}`,
-      teacherId: teacher.teacherId,
-      courseId: courseId,
-      motherClassId:motherres.id
-    });
-    promises.push(promise);
-  }
-}
+    // Extract all unique course IDs for the main class section
+    const allUniqueCourseIds = Array.from(new Set(flattenedAssignments.map(assignment => assignment.courseId)));
 
-try {
-  await Promise.all(promises);
-  if (!error) {
-    onClose();
-    window.location.reload(); // only after all finish
-  }
-} catch (err) {
-  console.error("Error adding one or more classes:", err);
-}
-  }
+    // Handle MotherClass creation
+    let motherClassIdToSubmit: string | undefined;
+    try {
+      const motherClassResponse = await fetch("http://localhost:3000/api/motherclass", { // Assuming this endpoint exists
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sectionName: classData.sectionName,
+          institution: JSON.parse(localStorage.getItem("user") || "{}")?.institutionId // Assuming user data in localStorage
+        })
+      });
+      if (motherClassResponse.ok) {
+        const motherRes = await motherClassResponse.json();
+        motherClassIdToSubmit = motherRes.id;
+      } else {
+        console.error("Failed to create MotherClass:", await motherClassResponse.text());
+        alert("Failed to create MotherClass. Please try again.");
+        return; // Stop submission if MotherClass creation fails
+      }
+    } catch (err) {
+      console.error("Error creating MotherClass:", err);
+      alert("Error creating MotherClass. Please check your network and try again.");
+      return; // Stop submission on error
+    }
+
+    const promises = [];
+    // Iterate through the teacherCourseAssignments to create separate ClassSection entries
+    for (const teacherAssignment of teacherCourseAssignments) {
+      for (const course of teacherAssignment.courses) {
+        const promise = addClass({
+          batchId: batchIdToSubmit,
+          semesterId: semesterIdToSubmit,
+          departmentId: departmentIdToSubmit,
+          maxStudents: classData.maxStudents,
+          sectionName: classData.sectionName + ` - ${namedCourse(course.courseId, courseData)}`, // Dynamic name for each section
+          teacherId: teacherAssignment.teacherId, // Assign specific teacher
+          courseId: course.courseId,             // Assign specific course
+          optional: course.isOptional,         // Pass optional status
+          motherClassId: motherClassIdToSubmit,  // Pass the created MotherClass ID
+        });
+        promises.push(promise);
+      }
+    }
+
+    try {
+      await Promise.all(promises);
+      if (!error) {
+        onClose();
+        window.location.reload(); // only after all finish
+      }
+    } catch (err) {
+      console.error("Error adding one or more classes:", err);
+      alert("An error occurred while creating one or more class sections.");
+    }
+  };
+
   // --- Dropdown Change Handlers ---
   const handleDropdownChange = (type: string, value: string) => {
     if (value === "add-new") {
@@ -294,22 +322,38 @@ try {
     const teacherId = e.target.value;
     if (e.target.checked) {
       setSelectedTeacherIds(prev => [...prev, teacherId]);
-      setTeacherCourseAssignments(prev => [...prev, { teacherId, courseIds: [] }]); // Add new entry for selected teacher
+      // Initialize with an empty 'courses' array
+      setTeacherCourseAssignments(prev => [...prev, { teacherId, courses: [] }]);
     } else {
       setSelectedTeacherIds(prev => prev.filter(id => id !== teacherId));
       setTeacherCourseAssignments(prev => prev.filter(assignment => assignment.teacherId !== teacherId)); // Remove assignment for deselected teacher
     }
   };
 
-  // Handler for course checkboxes for a specific teacher
-  const handleTeacherCourseAssignmentChange = (teacherId: string, courseId: string, isChecked: boolean) => {
+  // Handler for course selection checkboxes for a specific teacher
+  const handleCourseSelectionChange = (teacherId: string, courseId: string, isChecked: boolean) => {
     setTeacherCourseAssignments(prevAssignments => {
       return prevAssignments.map(assignment => {
         if (assignment.teacherId === teacherId) {
-          const updatedCourseIds = isChecked
-            ? [...assignment.courseIds, courseId]
-            : assignment.courseIds.filter(id => id !== courseId);
-          return { ...assignment, courseIds: updatedCourseIds };
+          const updatedCourses = isChecked
+            ? [...assignment.courses, { courseId, isOptional: false }] // Default to not optional
+            : assignment.courses.filter(c => c.courseId !== courseId);
+          return { ...assignment, courses: updatedCourses };
+        }
+        return assignment;
+      });
+    });
+  };
+
+  // Handler for the 'optional' checkbox for a specific course assigned to a specific teacher
+  const handleCourseOptionalToggle = (teacherId: string, courseId: string, isOptional: boolean) => {
+    setTeacherCourseAssignments(prevAssignments => {
+      return prevAssignments.map(assignment => {
+        if (assignment.teacherId === teacherId) {
+          const updatedCourses = assignment.courses.map(course =>
+            course.courseId === courseId ? { ...course, isOptional: isOptional } : course
+          );
+          return { ...assignment, courses: updatedCourses };
         }
         return assignment;
       });
@@ -594,7 +638,7 @@ try {
               <p className="text-xs text-gray-500 mb-2">For each selected teacher, choose the specific courses they will teach in this class section. This section is enabled after Department and Batch are selected.</p>
               {selectedTeacherIds.map((teacherId) => {
                 const teacher = teacherData.find(t => t.id === teacherId);
-                const assignedCourseIds = teacherCourseAssignments.find(a => a.teacherId === teacherId)?.courseIds || [];
+                const assignedCourses = teacherCourseAssignments.find(a => a.teacherId === teacherId)?.courses || [];
 
                 return (
                   <div key={teacherId} className="border p-3 rounded-md bg-white">
@@ -604,33 +648,57 @@ try {
                       {courseData.map((course) => {
                         // Check if this course is assigned to ANY OTHER teacher
                         const isCourseAssignedToAnotherTeacher = teacherCourseAssignments.some(
-                          assignment => assignment.teacherId !== teacherId && assignment.courseIds.includes(course.id)
+                          assignment => assignment.teacherId !== teacherId && assignment.courses.some(c => c.courseId === course.id)
                         );
-                        // Determine if the checkbox should be disabled
-                        const isDisabledCheckbox = (!isDepartmentSelected || !isBatchSelected) ||
-                                                 (isCourseAssignedToAnotherTeacher && !assignedCourseIds.includes(course.id));
+                        // Check if this course is already assigned to the current teacher
+                        const isCourseAssignedToCurrentTeacher = assignedCourses.some(c => c.courseId === course.id);
+
+                        // Determine if the main course selection checkbox should be disabled
+                        const isDisabledCourseSelection = (!isDepartmentSelected || !isBatchSelected) ||
+                                                          (isCourseAssignedToAnotherTeacher && !isCourseAssignedToCurrentTeacher);
+
+                        // Find the optional status for the current course by the current teacher
+                        const currentCourseOptionalStatus = assignedCourses.find(c => c.courseId === course.id)?.isOptional || false;
 
                         return (
-                          <label key={course.id} className={`flex items-center space-x-2 py-1 ${isDisabledCheckbox ? 'cursor-not-allowed text-gray-400' : 'cursor-pointer'}`}>
-                            <input
-                              type="checkbox"
-                              value={course.id}
-                              checked={assignedCourseIds.includes(course.id)}
-                              onChange={(e) => handleTeacherCourseAssignmentChange(
-                                teacherId,
-                                course.id,
-                                e.target.checked
-                              )}
-                              className="form-checkbox h-4 w-4 text-blue-600 rounded"
-                              disabled={isDisabledCheckbox} // Apply the calculated disabled state
-                            />
-                            <span>{course.name} ({course.department?.id ? allDepartments.find(d => d.id === course.department?.id)?.name : 'N/A'})</span>
-                          </label>
+                          <div key={course.id} className="flex items-center justify-between space-x-2 py-1">
+                            <label className={`flex items-center space-x-2 flex-grow ${isDisabledCourseSelection ? 'cursor-not-allowed text-gray-400' : 'cursor-pointer'}`}>
+                              <input
+                                type="checkbox"
+                                value={course.id}
+                                checked={isCourseAssignedToCurrentTeacher}
+                                onChange={(e) => handleCourseSelectionChange(
+                                  teacherId,
+                                  course.id,
+                                  e.target.checked
+                                )}
+                                className="form-checkbox h-4 w-4 text-blue-600 rounded"
+                                disabled={isDisabledCourseSelection} // Apply the calculated disabled state
+                              />
+                              <span>{course.name} ({course.department?.id ? allDepartments.find(d => d.id === course.department?.id)?.name : 'N/A'})</span>
+                            </label>
+
+                            {isCourseAssignedToCurrentTeacher && ( // Only show optional checkbox if course is selected
+                              <label className="flex items-center text-xs text-gray-600 cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={currentCourseOptionalStatus}
+                                  onChange={(e) => handleCourseOptionalToggle(
+                                    teacherId,
+                                    course.id,
+                                    e.target.checked
+                                  )}
+                                  className="form-checkbox h-3 w-3 text-purple-600 rounded mr-1"
+                                />
+                                Optional
+                              </label>
+                            )}
+                          </div>
                         );
                       })}
                     </div>
-                    {assignedCourseIds.length > 0 && (
-                      <p className="text-xs text-gray-600 mt-1">Assigned: {assignedCourseIds.map(id => courseData.find(c => c.id === id)?.name).join(', ')}</p>
+                    {assignedCourses.length > 0 && (
+                      <p className="text-xs text-gray-600 mt-1">Assigned: {assignedCourses.map(ac => `${courseData.find(c => c.id === ac.courseId)?.name}${ac.isOptional ? ' (Optional)' : ''}`).join(', ')}</p>
                     )}
                   </div>
                 );
@@ -700,7 +768,7 @@ try {
                       creditHours: courseCredits,
                       departmentId: selectedDepartmentId,
                       courseType: "CORE", // Consider making this selectable
-                      createdById: userid
+                      createdById: selectedTeacherIds[0]
                     })
                   fetch("http://localhost:3000/api/courses", {
                     method: "POST",
@@ -712,7 +780,7 @@ try {
                       creditHours: courseCredits,
                       departmentId: selectedDepartmentId,
                       courseType: "CORE", // Consider making this selectable
-                      createdById: userid
+                      createdById: selectedTeacherIds[0]
                     }),
                   }).then((res) => {
                     if (res.ok) {
