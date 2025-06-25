@@ -11,14 +11,17 @@ import axios from 'axios';
 import { IoIosClose } from "react-icons/io";
 import { useRouter } from 'next/navigation';
 
-// Translator function for English/Hindi UI
-const translator = (word1: string, word2: string) =>
-    typeof window !== 'undefined' && localStorage.getItem("lang") && localStorage.getItem("lang")!.toLowerCase().includes("english")
-        ? word1
-        : localStorage.getItem("lang")
-            ? word2
-            : word1;
-
+const translator = (word1:string, word2:string) => { // Removed type annotations for plain JS in React immersive
+    if (typeof window !== 'undefined') {
+        const lang = localStorage.getItem("lang");
+        if (lang && lang.toLowerCase().includes("english")) {
+            return word1;
+        } else if (lang) {
+            return word2;
+        }
+    }
+    return word1; // Default to word1 if window/localStorage is not available
+};
 type PdfData = {
     originalUrl: string;
     blobUrl: string | null;

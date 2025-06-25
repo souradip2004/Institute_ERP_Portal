@@ -1,9 +1,11 @@
-import React, { useState, useRef, useEffect } from 'react';
+"use client"
+import React, { useState, useRef, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import axios from 'axios';
 import { TbArrowBackUp } from "react-icons/tb";
 import { set } from 'date-fns';
 import type { ChangeEvent } from 'react';
+import { Loader } from 'lucide-react';
 
 // --- SVG Icon Components ---
 const SearchIcon = ({ className }: { className?: string }) => (
@@ -46,8 +48,14 @@ const translator = (word1: string, word2: string) =>
         : localStorage.getItem("lang")
             ? word2
             : word1;
-
-export default function CreateSmartResources() {
+export default function withSearchParams(){
+    return(
+        <Suspense>
+            <CreateSmartResources/>
+        </Suspense>
+    )
+}
+ function CreateSmartResources() {
     // Scroll to top on mount to fix scroll position issue
     useEffect(() => {
         window.scrollTo(0, 0);
@@ -199,6 +207,7 @@ export default function CreateSmartResources() {
 
     return (
         <div className="bg-slate-100">
+            <Suspense fallback={<Loader size="large" />}>
             <div className="w-full bg-purple-600 text-white p-6 shadow-lg"
                 style={{
                     background: 'linear-gradient(95.21deg, #A78BFA 0%, #818CF8 100%)',
@@ -418,6 +427,7 @@ export default function CreateSmartResources() {
                     </button>
                 </div>
             </div>
+            </Suspense>
         </div>
     );
 }

@@ -91,12 +91,11 @@ const ResourceCard = ({ resource, onStarToggle, t }) => {
   }
   const finalCardClassName = `${baseCardClassName} ${conditionalCardClassName}`;
   const handleCardClick = () => {
-    const dataForBreakdown = {
-      "wbStrId": id,
-      "shouldDoPostReq": false,
-    };
-    localStorage.setItem("dataForBreakdown", JSON.stringify(dataForBreakdown));
-    localStorage.setItem("wbStrId2", id);
+    // Only access localStorage on the client side
+    if (typeof window !== 'undefined'){
+      localStorage.setItem("dataForBreakdown", JSON.stringify({ "wbStrId": id, "shouldDoPostReq": false }));
+      localStorage.setItem("wbStrId2", id);
+    }
     router.push("/s/smart-resources/structure-breakdown");
     // navigate("/structured-breakdown");
   };
@@ -113,7 +112,7 @@ const ResourceCard = ({ resource, onStarToggle, t }) => {
             onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)}>
       <div>
         <div className="flex justify-between items-start mb-3">
-					<span
+          <span
             className={`px-2.5 py-0.5 text-xs font-semibold rounded-full ${statusBgColorClass} ${statusTextColorClass}`}>{translatedStatus}</span>
           {/*<div className="flex items-center space-x-2">
             <button onClick={handleDeleteClick} className="text-gray-400 hover:text-red-500 focus:outline-none"
@@ -151,7 +150,7 @@ export function SmartResources() {
   const [isPurposeDropdownOpen, setIsPurposeDropdownOpen] = useState(false);
   const [isSortDropdownOpen, setIsSortDropdownOpen] = useState(false);
 
-  // State for the delete modal
+  // State for the delete modal (not used in provided code, but kept for context)
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [resourceToDeleteId, setResourceToDeleteId] = useState(null);
 
@@ -160,7 +159,14 @@ export function SmartResources() {
   const purposeDropdownRef = useRef(null);
   const sortDropdownRef = useRef(null);
 
-  const [lang] = useState(localStorage.getItem("lang") || 'english');
+  // Initialize lang state in useEffect to ensure it runs client-side
+  const [lang, setLang] = useState('english');
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setLang(localStorage.getItem("lang") || 'english');
+    }
+  }, []);
+
   const t = useCallback((word1, word2) => {
     return lang.toLowerCase().includes("english") ? word1 : (word2 || word1);
   }, [lang]);
@@ -176,8 +182,12 @@ export function SmartResources() {
     setIsLoading(true);
     setError(null);
     try {
-      // const userId = "gdfgf7rdgrdgf7rejtgdffsd";
-      const userId = localStorage.getItem("user") && JSON.parse(localStorage.getItem("user"))?.studentId;
+      let userId = null;
+      // Access localStorage only on the client side
+      if (typeof window !== 'undefined' && localStorage.getItem("user")) {
+        userId = JSON.parse(localStorage.getItem("user"))?.studentId;
+      }
+
       if (!userId) {
         throw new Error("User not found. Please log in again.");
       }
@@ -498,4 +508,3 @@ export function SmartResources() {
     </div>
   );
 }
-
