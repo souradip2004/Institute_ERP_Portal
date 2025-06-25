@@ -137,6 +137,9 @@ importers:
       mongoose:
         specifier: ^8.15.0
         version: 8.16.0
+      mui:
+        specifier: ^0.0.1
+        version: 0.0.1
       next:
         specifier: 15.4.0-canary.86
         version: 15.4.0-canary.86(@babel/core@7.27.4)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
@@ -4210,6 +4213,9 @@ packages:
     peerDependenciesMeta:
       typescript:
         optional: true
+
+  mui@0.0.1:
+    resolution: {integrity: sha512-iB9zfxsJBcMkZ/SY6X+HGSPr4fftCZIQ76ZMH8iSMfVkidVzRtZlLW2gbWXUe+IMcj8JLv1p+dGKvPVlgtiocA==}
 
   mute-stream@2.0.0:
     resolution: {integrity: sha512-WWdIxpyjEn+FhQJQQv9aQAYlHoNVdzIzUySNV1gHUPDSdZJ3yZn7pAAbQcV7B56Mvu881q9FZV+0Vx2xC44VWA==}
@@ -10024,6 +10030,8 @@ snapshots:
       typescript: 5.8.3
     transitivePeerDependencies:
       - '@types/node'
+
+  mui@0.0.1: {}
 
   mute-stream@2.0.0: {}
 
