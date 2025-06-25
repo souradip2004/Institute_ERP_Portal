@@ -7,6 +7,7 @@ export interface ClassSection {
   optional:boolean;
   courseId: string;
   motherClassId: string;
+  isOptional:boolean;
   semesterId: string;
   teacherId: string;
   maxStudents: number;
@@ -257,7 +258,7 @@ export default function ClassSectionsList({ classSections, onViewClassSection }:
                               <span className="text-sm font-medium text-blue-600">CS</span>
                             </div>
                             <div className="ml-4">
-                              <div className="text-sm font-medium text-gray-900">{section.sectionName || 'Unnamed Section'}</div>
+                              <div className="text-sm font-medium text-gray-900">{section.sectionName + `${section.isOptional?" (Optional)":""}` || 'Unnamed Section'}</div>
                               <div className="text-sm text-gray-500">Max: {section.maxStudents || 'N/A'}</div>
                             </div>
                           </div>
