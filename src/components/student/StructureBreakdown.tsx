@@ -51,6 +51,10 @@ const StructuredBreakdown: React.FC = () => {
   const [hasDate, setHasDate] = useState(true);
   const [scrollToToday, setScrollToToday] = useState(false);
   const [scores, setScores] = useState<Scores>({});
+  const [studentId, setStudentId] = useState<string | null>(
+    JSON.parse(localStorage.getItem("user"))?.studentId
+  );
+
   const [userVivaPreference, setUserVivaPreference] = useState<any>(null);
   const [initialPref, setInitialPref] = useState<{ topic: string; language: string }>({ topic: '', language: '' });
 
@@ -99,10 +103,9 @@ const StructuredBreakdown: React.FC = () => {
           response = await axios.post(url, data, { headers });
           console.log('POST response:', response);
         } else {
-          const temp = localStorage.getItem("wbStrId2");
+          const wbStrId = localStorage.getItem("wbStrId2");
           console.log('Fetching planner ---');
-          // const temp = '68434fe1b34cf89924855deb';
-          const url2 = `${process.env.NEXT_PUBLIC_BACKEND_1_SERVER_URL}/planner/${temp}`;
+          const url2 = `${process.env.NEXT_PUBLIC_BACKEND_1_SERVER_URL}/planner/getStudentSchedule/${wbStrId}/${studentId}`;
           response = await axios.get(url2);
           console.log('GET response:', response);
         }
@@ -202,23 +205,6 @@ const StructuredBreakdown: React.FC = () => {
 
   const displayedDays = schedule;
 
-  const toggleMarkAsDone = (dayIndex: number, topicIndex: number) => {
-    const updatedSchedule = [...schedule];
-    updatedSchedule[dayIndex][topicIndex].completed = !updatedSchedule[dayIndex][topicIndex].completed;
-    setSchedule(updatedSchedule);
-    try {
-      const url = `https://api.aiclassroom.in/planner/update-completion/`;
-      axios.patch(url, {
-        wbStrId: wbStrId,
-        topicId: updatedSchedule[dayIndex][topicIndex]._id,
-        val: updatedSchedule[dayIndex][topicIndex].completed
-      });
-      console.log('Toggled mark as done:', { dayIndex, topicIndex, updated: updatedSchedule[dayIndex][topicIndex] });
-    } catch (error) {
-      console.error('Error toggling mark as done:', error);
-    }
-  };
-
   const toggleMarkAsDone2 = async (
     wbStrId: string,
     topicId: string,
@@ -229,7 +215,7 @@ const StructuredBreakdown: React.FC = () => {
     const updatedSchedule = [...schedule];
     updatedSchedule[dayIndex][topicIndex].completed = !updatedSchedule[dayIndex][topicIndex].completed;
     setSchedule(updatedSchedule);
-    const requestBody = { wbStrId, topicId, val };
+    const requestBody = { wbStrId, topicId, val, studentId };
     try {
       const url = `${process.env.NEXT_PUBLIC_BACKEND_1_SERVER_URL}/planner/update-completion`;
       await axios.patch(url, requestBody);
@@ -522,7 +508,7 @@ const StructuredBreakdown: React.FC = () => {
                                 localStorage.setItem("ytLinkforNotes", topic.topicId);
                               }
                               handelDataStorage(wbStrId || '', topic.topicId, videoDuration);
-                              router.push("/notes-pdf");
+                              router.push("/s/smart-resources/notes-pdf");
                             }}
                           >
                             {translator("View Resources", "नोट्स देखें")}
@@ -579,7 +565,7 @@ const StructuredBreakdown: React.FC = () => {
               whileTap={{ scale: 0.95 }}
               onClick={() => router.push("/s/smart-resources")}
             >
-              {translator("Go to Dashboard", "डैशबोर्ड पर जाएं")}
+              {translator("Resource Dashboard", "संसाधन डैशबोर्ड")}
             </motion.button>
           </div>
         </div>

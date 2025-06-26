@@ -191,8 +191,11 @@ export function SmartResources() {
       if (!userId) {
         throw new Error("User not found. Please log in again.");
       }
+
       const response = await axios.get(`${process.env.NEXT_PUBLIC_BACKEND_1_SERVER_URL}/planner/getAllSchedulesForStudents/${userId}`);
       if (response.data && response.data.success && Array.isArray(response.data.data)) {
+
+        console.log("Retrieved resources ", response.data.data)
         const transformedResources = response.data.data.map((item, index) => {
           let status = 'Unscheduled';
           if (item.completedAll) status = 'Completed';

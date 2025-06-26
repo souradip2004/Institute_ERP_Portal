@@ -56,9 +56,9 @@ export default function StudentLayout({ children }: StudentLayoutProps) {
 
     return (
         <>
-            <head>
+            <div>
                 <title>Student Dashboard</title> {/* Changed title to be more specific */}
-            </head>
+            </div>
             <div className="min-h-screen bg-gray-100 flex">
                 {/* Pass the handleSidebarToggle callback as a prop to Sidebar */}
                 <Sidebar onSidebarToggle={handleSidebarToggle} />
