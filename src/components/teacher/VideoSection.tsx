@@ -9,6 +9,19 @@ import { jsPDF } from 'jspdf';
 import { delay } from 'framer-motion';
 import { RiChatAiFill } from "react-icons/ri";
 
+import { MdDeleteForever } from "react-icons/md";
+import { IoMdAddCircle } from "react-icons/io";
+import {
+    Dialog,
+    DialogTrigger,
+    DialogContent,
+    DialogHeader,
+    DialogFooter,
+    DialogTitle,
+    DialogDescription,
+    DialogClose,
+} from "../ui/dialog";
+
 interface LessonData {
     day: string;
     date: string;
@@ -37,7 +50,7 @@ const VideoSection = () => {
         return null;
     });
     const router = useRouter();
-    const [activeTab, setActiveTab] = useState<'transcript' | 'resources'>('transcript');
+    const [activeTab, setActiveTab] = useState<'resources' | 'transcript'>('resources');
     const [isMarkedDone, setIsMarkedDone] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [isTranscriptLoading, setIsTranscriptLoading] = useState(false);
@@ -78,6 +91,10 @@ const VideoSection = () => {
     });
     const [newMessage, setNewMessage] = useState('');
     const [showInsufficientBalanceAlert, setShowInsufficientBalanceAlert] = useState(false);
+    const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+    const [showAddDialog, setShowAddDialog] = useState(false);
+    const [videoToDelete, setVideoToDelete] = useState<string | null>(null);
+    const [newVideoUrl, setNewVideoUrl] = useState("");
 
     const getDataFromLocalStorage = (wbStrId: string | null, topicId: string | null, videoDuration: string | null) => {
         setWbStrId(wbStrId);
@@ -244,6 +261,8 @@ const VideoSection = () => {
         }
     };
 
+    const [videoFetchTrigger, setVideoFetchTrigger] = useState(false);
+
     useEffect(() => {
         const fetchYoutubeData = async () => {
             setIsLoading(true);
@@ -289,12 +308,12 @@ const VideoSection = () => {
             }
         };
         fetchYoutubeData();
-    }, [wbStrId, topicId, videoDuration]);
+    }, [wbStrId, topicId, videoDuration, videoFetchTrigger]);
 
     useEffect(() => {
         const updateTranscript = async () => {
             if (!lessonData.videoUrl) return;
-            await fetchSummary();
+            // await fetchSummary();
         };
         updateTranscript();
     }, [lessonData.videoUrl]);
@@ -415,7 +434,7 @@ const VideoSection = () => {
                         Authorization: `Bearer ${process.env.NEXT_PUBLIC_OPENAI_API_KEY}`,
                     },
                     body: JSON.stringify({
-                        model: 'gpt-3.5-turbo',
+                        model: 'gpt-4o-mini',
                         messages: messagesForApi,
                         temperature: 0.7,
                     }),
@@ -499,8 +518,6 @@ const VideoSection = () => {
         }, 1000);
     };
 
-
-
     // Ref for chat section (sidebar)
     const chatSectionRef = useRef<HTMLDivElement | null>(null);
     const [showChatButton, setShowChatButton] = useState(false);
@@ -513,16 +530,17 @@ const VideoSection = () => {
                 setShowChatButton(false);
                 return;
             }
+            // Show button if scrolled to the very top
+            if (window.scrollY === 0) {
+                setShowChatButton(true);
+                return;
+            }
             const chatSection = chatSectionRef.current;
             if (!chatSection) return;
             const chatRect = chatSection.getBoundingClientRect();
             const windowHeight = window.innerHeight;
-            // Calculate how much of the chat section is visible
-            const visibleHeight = Math.min(windowHeight, chatRect.bottom) - Math.max(0, chatRect.top);
-            const totalHeight = chatRect.height;
-            const visibleRatio = Math.max(0, Math.min(visibleHeight / totalHeight, 1));
-            // Show button if less than 30% of chat section is visible
-            if (visibleRatio < 0.3) {
+            // If the chat section is completely out of view (above or below viewport), show the button
+            if (chatRect.bottom < 0 || chatRect.top > windowHeight) {
                 setShowChatButton(true);
             } else {
                 setShowChatButton(false);
@@ -544,7 +562,94 @@ const VideoSection = () => {
         // After scrolling, the button will stay hidden because the section will be in view
     };
 
+    // Handler to open delete dialog
+    const handleOpenDeleteDialog = (videoURL: string) => {
+        setVideoToDelete(videoURL);
+        setShowDeleteDialog(true);
+    };
+    // Handler to confirm delete
+    const handleConfirmDelete = async () => {
+        console.log('no of videos', videoList.length);
 
+        if (videoList.length > 1) {
+
+            if (videoToDelete !== null) {
+
+                console.log('videoToDelete', videoToDelete);
+                const data = {
+                    wbStrId: wbStrId,
+                    topicId: topicId,
+                    videoURL: videoToDelete
+                };
+                console.log('delete data', data);
+                try {
+                    const response = await axios.delete(`${process.env.NEXT_PUBLIC_BACKEND_1_SERVER_URL}/videoData/deleteVideo`, {
+                        data: data,
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    });
+
+                    console.log('response', response.data);
+                } catch (error) {
+                    console.error('Error deleting video:', error);
+                }
+
+                setVideoList((prev) => prev.filter((video) => video.videoURL !== videoToDelete));
+                // If the deleted video was the current, reset to first video
+                setCurrentVideoIndex((prev) =>
+                    videoToDelete === prev ? 0 : prev > videoToDelete ? prev - 1 : prev);
+            }
+        }
+        else {
+            console.log('cannot delete video');
+        }
+        setShowDeleteDialog(false);
+        setVideoToDelete(null);
+    };
+    // Handler to open add dialog
+    const handleOpenAddDialog = () => {
+        setShowAddDialog(true);
+        setNewVideoUrl("");
+    };
+
+
+
+    // Handler to add video
+    const handleAddVideo = async () => {
+        if (!newVideoUrl.trim()) return;
+
+        const data = {
+            wbStrId: wbStrId,
+            topicId: topicId,
+            videos: [newVideoUrl]
+        };
+        try {
+            const response = await axios.patch(`${process.env.NEXT_PUBLIC_BACKEND_1_SERVER_URL}/videoData/updateVideo`, data, {
+                headers: {
+                    'Content-Type': 'application/json'
+                    // Add other headers here if needed (e.g., Authorization)
+                }
+            });
+            console.log('response', response);
+        } catch (error) {
+            console.error('Error adding video:', error);
+        }
+
+        setVideoList((prev) => [
+            ...prev,
+            {
+                videoURL: newVideoUrl,
+                title: newVideoUrl,
+                description: '',
+            },
+        ]);
+
+        setVideoFetchTrigger(!videoFetchTrigger);
+
+        setShowAddDialog(false);
+        setNewVideoUrl("");
+    };
 
     if (isLoading) {
         return (
@@ -681,7 +786,7 @@ const VideoSection = () => {
                             <div className="border-t border-gray-200">
                                 {/* Tab Navigation */}
                                 <div className="flex border-b border-gray-200">
-                                    <button
+                                    {/* <button
                                         onClick={() => setActiveTab('transcript')}
                                         className={`px-6 py-3 text-sm font-medium ${activeTab === 'transcript'
                                             ? 'bg-gradient-to-r from-[#6BA0FF] to-[#755BFF] text-white rounded-t-lg'
@@ -689,7 +794,7 @@ const VideoSection = () => {
                                             }`}
                                     >
                                         {translator("Transcript", "पाठानेत्रावरील टेक्स्ट")}
-                                    </button>
+                                    </button> */}
                                     <button
                                         onClick={() => setActiveTab('resources')}
                                         className={`px-6 py-3 text-sm font-medium ${activeTab === 'resources'
@@ -742,12 +847,100 @@ const VideoSection = () => {
                               `}
                                                             onClick={() => handleVideoSwitch(index)}
                                                         >
-                                                            <span className="text-base font-semibold">{video.title}</span>
-                                                            <span className="text-sm text-gray-600 line-clamp-2">{video.description}</span>
+                                                            <div className='flex justify-between items-center gap-2'>
+                                                                <div>
+                                                                    <span className="text-base font-semibold">{video.title}</span>
+                                                                    <span className="text-sm text-gray-300 line-clamp-2">{video.description}</span>
+                                                                </div>
+                                                                <div>
+                                                                    <button
+                                                                        type="button"
+                                                                        className="hover:text-gray-900"
+                                                                        onClick={e => {
+                                                                            e.stopPropagation();
+                                                                            handleOpenDeleteDialog(video.videoURL);
+                                                                        }}
+                                                                    >
+                                                                        <MdDeleteForever className='h-6 w-6' />
+                                                                    </button>
+                                                                </div>
+                                                            </div>
                                                         </button>
                                                     </li>
                                                 ))}
                                             </ul>
+                                            <button
+                                                className='flex items-center gap-2 mt-2 text-blue-600 hover:text-blue-950'
+                                                type="button"
+                                                onClick={handleOpenAddDialog}
+                                            >
+                                                <IoMdAddCircle className='h-6 w-6' />
+                                                <span className='font-medium'>{translator("Add Video", "वीडियो जोड़ें")}</span>
+                                            </button>
+                                            {/* Delete Confirmation Dialog */}
+                                            <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+                                                <DialogContent>
+                                                    <DialogHeader>
+                                                        <DialogTitle>{translator("Delete Video", "वीडियो हटाएं")}</DialogTitle>
+                                                        <DialogDescription>
+                                                            {translator("Are you sure you want to delete this video? This action cannot be undone.", "क्या आप वाकई इस वीडियो को हटाना चाहते हैं? यह क्रिया पूर्ववत नहीं की जा सकती।")}
+                                                        </DialogDescription>
+                                                    </DialogHeader>
+                                                    <DialogFooter>
+                                                        <button
+                                                            className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
+                                                            onClick={() => setShowDeleteDialog(false)}
+                                                            type="button"
+                                                        >
+                                                            {translator("Cancel", "रद्द करें")}
+                                                        </button>
+                                                        <button
+                                                            className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+                                                            onClick={handleConfirmDelete}
+                                                            type="button"
+                                                        >
+                                                            {translator("Delete", "हटाएं")}
+                                                        </button>
+                                                    </DialogFooter>
+                                                </DialogContent>
+                                            </Dialog>
+                                            {/* Add Video Dialog */}
+                                            <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+                                                <DialogContent>
+                                                    <DialogHeader>
+                                                        <DialogTitle>{translator("Add New Video", "नया वीडियो जोड़ें")}</DialogTitle>
+                                                        <DialogDescription>
+                                                            {translator("Enter the video link.", "वीडियो लिंक दर्ज करें।")}
+                                                        </DialogDescription>
+                                                    </DialogHeader>
+                                                    <div className="flex flex-col gap-3">
+                                                        <input
+                                                            className="border rounded p-2"
+                                                            type="text"
+                                                            placeholder={translator("Video Link (URL)", "वीडियो लिंक (URL)")}
+                                                            value={newVideoUrl}
+                                                            onChange={e => setNewVideoUrl(e.target.value)}
+                                                        />
+                                                    </div>
+                                                    <DialogFooter>
+                                                        <button
+                                                            className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
+                                                            onClick={() => setShowAddDialog(false)}
+                                                            type="button"
+                                                        >
+                                                            {translator("Cancel", "रद्द करें")}
+                                                        </button>
+                                                        <button
+                                                            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                                                            onClick={handleAddVideo}
+                                                            type="button"
+                                                            disabled={!newVideoUrl.trim()}
+                                                        >
+                                                            {translator("Add Video", "वीडियो जोड़ें")}
+                                                        </button>
+                                                    </DialogFooter>
+                                                </DialogContent>
+                                            </Dialog>
                                         </div>
                                     )}
                                 </div>
@@ -831,18 +1024,20 @@ const VideoSection = () => {
             </div>
 
             {/* Floating Chat Button (Mobile Only) */}
-            {showChatButton && (
-                <button
-                    className="fixed bottom-6 right-6 z-50 bg-gradient-to-r from-[#6BA0FF] to-[#755BFF] text-white p-4 rounded-full shadow-lg md:hidden"
-                    style={{ boxShadow: '0 4px 16px rgba(107,160,255,0.25)' }}
-                    onClick={handleChatButtonClick}
-                    aria-label="Ask Your Doubts"
-                >
-                    <RiChatAiFill className="h-7 w-7" />
-                </button>
-            )}
+            {
+                showChatButton && (
+                    <button
+                        className="fixed bottom-6 right-6 z-50 bg-gradient-to-r from-[#6BA0FF] to-[#755BFF] text-white p-4 rounded-full shadow-lg md:hidden"
+                        style={{ boxShadow: '0 4px 16px rgba(107,160,255,0.25)' }}
+                        onClick={handleChatButtonClick}
+                        aria-label="Ask Your Doubts"
+                    >
+                        <RiChatAiFill className="h-7 w-7" />
+                    </button>
+                )
+            }
 
-        </div>
+        </div >
     );
 };
 

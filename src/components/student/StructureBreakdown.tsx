@@ -565,7 +565,7 @@ const StructuredBreakdown: React.FC = () => {
               whileTap={{ scale: 0.95 }}
               onClick={() => router.push("/s/smart-resources")}
             >
-              {translator("Go to Dashboard", "डैशबोर्ड पर जाएं")}
+              {translator("Resource Dashboard", "संसाधन डैशबोर्ड")}
             </motion.button>
           </div>
         </div>

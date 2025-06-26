@@ -86,6 +86,7 @@ const SetSchedule = () => {
   const [whatsappNotify, setWhatsappNotify] = useState<boolean>(true);
   const startDatePickerRef = useRef<HTMLDivElement>(null);
   const endDatePickerRef = useRef<HTMLDivElement>(null);
+  const [selectedSectionIds, setSelectedSectionIds] = useState<string[]>([]);
 
   // Initialize user and selectedLanguage from localStorage on client-side mount
   useEffect(() => {
@@ -108,13 +109,14 @@ const SetSchedule = () => {
               });
               if (res.ok) {
                 const response = await res.json();
-                setClasses(response.filter((c) => c.teacherId === parsedUserData.teacherId));
+                setClasses(response.filter((c: any) => c.teacherId === parsedUserData.teacherId));
               } else {
                 console.error("Failed to fetch classes:", res.status, res.statusText);
               }
             } catch (err) {
               console.error("Error fetching classes:", err);
             }
+
           };
           fetchClasses();
 
@@ -128,6 +130,12 @@ const SetSchedule = () => {
       }
     }
   }, []); // Empty dependency array means this runs once on mount
+
+
+  useEffect(() => {
+    console.log("classes", classes);
+    console.log("selectedSectionIds", selectedSectionIds);
+  }, [classes, selectedSectionIds]);
 
   // Day picker handler functions
   const handleStartDateSelect = (day: Date | undefined) => {
@@ -300,6 +308,7 @@ const SetSchedule = () => {
           "topicId": topicId,
           "userId": userId,
           "receiveReminder": whatsappNotify,
+          "section": selectedSectionIds,
           "planner": {
             "startDate": formattedStartDate,
             "noOfDays": daysCount,
@@ -322,6 +331,7 @@ const SetSchedule = () => {
         const dataToSend = {
           "userId": userId,
           "receiveReminder": whatsappNotify,
+          "section": selectedSectionIds,
           "planner": {
             "promptTopic": Airfdata.searchPrompt ? Airfdata.searchPrompt : Airfdata.specifications,
             "startDate": formattedStartDate,
@@ -512,13 +522,25 @@ const SetSchedule = () => {
 
                 <h3
                   className="text-base sm:text-lg font-medium text-[#1E1E2F] mb-3">{translator("Select Class Section", "आप किस समय पर शुरू करना चाहते हैं?")}</h3>
-                {classes.map((c: any) => { // Added type annotation for 'c'
+                {classes.map((c: any) => {
                   return (
-                    <div key={c.sectionName}> {/* Added key for list items */}
-                      <input type="checkbox" value={c.sectionName}></input>
-                      <label htmlFor={c.sectionName}>{c.sectionName}</label>
+                    <div key={c.id}> {/* Use c.id as key for uniqueness */}
+                      <input
+                        type="checkbox"
+                        id={`section-${c.id}`}
+                        value={c.id}
+                        checked={selectedSectionIds.includes(c.id)}
+                        onChange={e => {
+                          if (e.target.checked) {
+                            setSelectedSectionIds(prev => [...prev, c.id]);
+                          } else {
+                            setSelectedSectionIds(prev => prev.filter(id => id !== c.id));
+                          }
+                        }}
+                      />
+                      <label htmlFor={`section-${c.id}`}>{c.sectionName}</label>
                     </div>
-                  )
+                  );
                 })}
                 <h3
                   className="text-base sm:text-lg font-medium text-[#1E1E2F] mb-3">{translator("At What Time You Prefer to Start ?", "आप किस समय पर शुरू करना चाहते हैं?")}</h3>
@@ -605,7 +627,7 @@ const SetSchedule = () => {
                 < div className="flex flex-col lg:flex-row gap-6 mt-4">
                   <div className="flex flex-col space-x-2">
                     <label htmlFor="language-select"
-                           className="text-lg text-left mb-2 font-semibold text-gray-800">
+                      className="text-lg text-left mb-2 font-semibold text-gray-800">
                       {translator("Choose Your Preferred Language", "अपनी पसंदीदा भाषा चुनें")}{" "}
                       {/* <span className="text-gray-400 font-normal">
                                         {translator("(if any)", "(यदि कोई हो)")}
