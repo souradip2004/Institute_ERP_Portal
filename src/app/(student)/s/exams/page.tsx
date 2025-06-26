@@ -91,6 +91,7 @@ export default function ExamsPage() {
                     classd.push(classenrollments[i].classSectionId)
                 }
                 setClassSections(classd)
+                console.log(classd)
                 setStudentData(userData);
                 // Fetch exams
                 await fetchExams(userData.studentId || userData.id);
@@ -459,7 +460,7 @@ export default function ExamsPage() {
                                     <div className="flex justify-between items-center mb-4">
                                         <span className="text-gray-600 text-sm">Starts:</span>
                                         <span className="text-gray-800 font-medium text-right break-words">
-                      {new Date(exam.startTime).toLocaleString(undefined, {
+                      {new Date(exam.examDate).toLocaleString(undefined, {
                           month: 'short',
                           day: 'numeric',
                           hour: '2-digit',

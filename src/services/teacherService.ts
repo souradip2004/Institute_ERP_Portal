@@ -9,6 +9,7 @@ export class TeacherService {
     return prisma.teacher.findMany({
       include: {
         user: true,
+        department:true
       },
     });
   }

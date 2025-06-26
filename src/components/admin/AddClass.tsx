@@ -19,6 +19,7 @@ interface Department {
 
 interface Teacher {
   id: string;
+  departmentId:string;
   user: {
     name: string;
     institutionId: string;
@@ -169,6 +170,8 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
       .then((data) => {
         const filteredTeachers = data.filter((teacher: Teacher) => teacher.user.institutionId === id);
         setTeacherData(filteredTeachers);
+        console.log(teacherData)
+        
       })
       .catch((error) => {
         console.error("Error fetching teachers:", error);
@@ -426,7 +429,7 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
               {departmentOptions.map((department, index) => (
                 <option key={index} value={department}>{department}</option>
               ))}
-              <option value="add-new">Add New Department</option>
+          
             </select>
             {showInput.department && (
               <div className="mt-3 p-3 border border-gray-200 rounded-md bg-gray-50">
@@ -469,7 +472,7 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
             <label className="block text-sm font-medium text-gray-700 mb-1">Select Teachers for this Class Section</label>
             <p className="text-xs text-gray-500 mb-2">Choose all teachers who will teach in this class section.</p>
             <div className={`border p-2 rounded-md h-32 overflow-y-auto ${!isDepartmentSelected ? 'bg-gray-100 text-gray-400' : 'bg-white'}`}>
-              {teacherData.map((teacher) => (
+              {teacherData.filter((c)=>c.departmentId==classData.department).map((teacher) => (
                 <label key={teacher.id} className={`flex items-center space-x-2 py-1 ${!isDepartmentSelected ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
                   <input
                     type="checkbox"

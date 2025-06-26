@@ -134,6 +134,7 @@ export default function Dashboard() {
     try {
       const today = new Date().toISOString().split('T')[0];
       const response = await authenticatedFetch(`/api/attendance-sessions/today?studentId=${studentId}&date=${today}`);
+
       if (!response.ok) throw new Error('Failed to fetch today\'s classes');
 
       const data = await response.json();
@@ -357,6 +358,36 @@ export default function Dashboard() {
               No classes scheduled for today.
             </div>
           )}
+            {studentDetails?.classEnrollments && studentDetails.classEnrollments.length > 0 && (
+            <div className="col-span-full mt-8">
+              <h4 className="text-lg font-semibold mb-3">Your Sections</h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+              {studentDetails.classEnrollments.map((c) => {
+                const [section, subject] = c.classSection.sectionName.split("-");
+                return (
+                <div
+                  key={c.id}
+                  className="bg-white border border-indigo-200 rounded-xl px-6 py-4 shadow flex flex-col"
+                >
+                  <div className="flex items-center mb-2">
+                  <span className="inline-block bg-indigo-600 text-white rounded-full px-3 py-1 text-sm font-semibold mr-2">
+                    Class {section}
+                  </span>
+                  {subject && (
+                    <span className="inline-block bg-indigo-100 text-indigo-700 rounded-full px-3 py-1 text-sm font-medium">
+                    {subject}
+                    </span>
+                  )}
+                  </div>
+                  <div className="text-gray-500 text-sm">
+                  Enrollment ID: <span className="font-mono">{c.id}</span>
+                  </div>
+                </div>
+                );
+              })}
+              </div>
+            </div>
+            )}
         </div>
       </div>
     </div>

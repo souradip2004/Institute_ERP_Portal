@@ -34,10 +34,12 @@ export default  function TeacherCourseSectionForm() {
   const [classSections, setClassSections] = useState<ClassSection[]>([]);
   const [semesters, setSemesters] = useState<Semester[]>([]);
   const [adminId, setAdminId] = useState<string | null>(null);
-  
+  const [departments,setDepartmentData]=useState([]);
+  const [institutionId,setInstitutionId]=useState("");
   const [formData, setFormData] = useState({
     teacherId: '',
     courseId: '',
+    departmentId:"",
     classSectionId: '',
     semesterId: '',
     days: [] as number[],
@@ -54,6 +56,7 @@ export default  function TeacherCourseSectionForm() {
     console.log(storedUser);
     if (storedUser) {
       const parsedUser = JSON.parse(storedUser);
+      setInstitutionId(parsedUser.institutionId)
       setAdminId(parsedUser.id);
     }
   }, []);
@@ -64,13 +67,14 @@ export default  function TeacherCourseSectionForm() {
     const fetchData = async () => {
       setDataLoading(true);
       try {
-        const [teachersRes, coursesRes, classSectionsRes, semestersRes] = await Promise.all([
+        const [teachersRes, coursesRes, classSectionsRes, semestersRes,department] = await Promise.all([
           axios.get(`/api/admin/${adminId}/teacher-course-section?type=teachers`),
           axios.get(`/api/admin/${adminId}/teacher-course-section?type=courses`),
           axios.get(`/api/admin/${adminId}/teacher-course-section?type=class-sections`),
           axios.get(`/api/admin/${adminId}/semesters`),
+          axios.get(`/api/departments?institutionId=${institutionId}`)
         ]);
-
+        setDepartmentData(department.data);
         setTeachers(teachersRes.data);
         setCourses(coursesRes.data);
         setClassSections(classSectionsRes.data);
@@ -116,6 +120,7 @@ if (formData.endTime <= formData.startTime) {
       setFormData({
         teacherId: '',
         courseId: '',
+        departmentId:"",
         classSectionId: '',
         semesterId: '',
         days: [],
@@ -189,56 +194,95 @@ if (formData.endTime <= formData.startTime) {
         )}
         
         <form onSubmit={handleSubmit} className="grid gap-y-6 px-6 py-6">
-          <div className="grid gap-6 md:grid-cols-2">
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-gray-700">Teacher</label>
-              <div className="relative">
-                <select
-                  value={formData.teacherId}
-                  onChange={(e) => setFormData({ ...formData, teacherId: e.target.value })}
-                  className="w-full appearance-none rounded-lg border border-gray-300 bg-white px-4 py-2.5 pr-10 text-gray-700 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-300"
-                  required
-                >
-                  <option value="">Select Teacher</option>
-                  {teachers.map((teacher) => (
-                    <option key={teacher.id} value={teacher.id}>
-                      {teacher.user.name} ({teacher.teacherCode})
-                    </option>
-                  ))}
-                </select>
-                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
-                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
-                  </svg>
-                </div>
-              </div>
-            </div>
-            
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-gray-700">Course</label>
-              <div className="relative">
-                <select
-                  value={formData.courseId}
-                  onChange={(e) => setFormData({ ...formData, courseId: e.target.value })}
-                  className="w-full appearance-none rounded-lg border border-gray-300 bg-white px-4 py-2.5 pr-10 text-gray-700 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-300"
-                  required
-                >
-                  <option value="">Select Course</option>
-                  {courses.map((course) => (
-                    <option key={course.id} value={course.id}>
-                      {course.name} ({course.courseCode})
-                    </option>
-                  ))}
-                </select>
-                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
-                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
-                  </svg>
-                </div>
-              </div>
-            </div>
+              <div className="grid gap-6 md:grid-cols-2">
+      {/* Department Select */}
+      <div>
+        <label htmlFor="department-select" className="mb-1.5 block text-sm font-medium text-gray-700">Department</label>
+        <div className="relative">
+          <select
+            id="department-select" // Added ID for accessibility
+            value={formData.departmentId}
+            onChange={(e) => setFormData({ ...formData, departmentId: e.target.value })}
+            className="w-full appearance-none rounded-lg border border-gray-300 bg-white px-4 py-2.5 pr-10 text-gray-700 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-300"
+            required
+          >
+            <option value="">
+            </option>
+            {departments.map((department) => ( // Corrected variable name from 'teacher' to 'department'
+              <option key={department.id} value={department.id}>
+                {department.name}
+              </option>
+            ))}
+          </select>
+          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
+            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
+            </svg>
           </div>
-          
+        </div>
+      </div>
+
+      {/* Teacher Select */}
+      <div>
+        <label htmlFor="teacher-select" className="mb-1.5 block text-sm font-medium text-gray-700">bndar</label>
+        <div className="relative">
+          <select
+            id="teacher-select" // Added ID for accessibility
+            value={formData.teacherId}
+            onChange={(e) => setFormData({ ...formData, teacherId: e.target.value })}
+            className="w-full appearance-none rounded-lg border border-gray-300 bg-white px-4 py-2.5 pr-10 text-gray-700 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-300"
+            required
+            disabled={!formData.departmentId } // Disable if no department selected or loading
+          >
+            <option value="">
+              {false ? 'Loading Teachers...' :
+               !formData.departmentId ? 'Select Department first' : 'Select Teacher'}
+            </option>
+            {teachers.map((teacher) => (
+              <option key={teacher.id} value={teacher.id}>
+                {teacher.user.name} ({teacher.teacherCode})
+              </option>
+            ))}
+          </select>
+          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
+            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      {/* Course Select */}
+      <div>
+        <label htmlFor="course-select" className="mb-1.5 block text-sm font-medium text-gray-700">Course</label>
+        <div className="relative">
+          <select
+            id="course-select" // Added ID for accessibility
+            value={formData.courseId}
+            onChange={(e) => setFormData({ ...formData, courseId: e.target.value })}
+            className="w-full appearance-none rounded-lg border border-gray-300 bg-white px-4 py-2.5 pr-10 text-gray-700 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-300"
+            required
+            disabled={!formData.departmentId } // Disable if no department selected or loading
+          >
+            <option value="">
+              {false ? 'Loading Courses...' :
+               !formData.departmentId ? 'Select Department first' : 'Select Course'}
+            </option>
+            {courses.map((course) => (
+              <option key={course.id} value={course.id}>
+                {course.name} ({course.courseCode})
+              </option>
+            ))}
+          </select>
+          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
+            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </div>
+
           <div className="grid gap-6 md:grid-cols-2">
             <div>
               <label className="mb-1.5 block text-sm font-medium text-gray-700">Class Section</label>

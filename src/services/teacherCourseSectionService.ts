@@ -157,9 +157,11 @@ export async function getTeachers(adminId: string) {
     },
     select: {
       id: true,
+       departmentId: true,
       user: { select: { name: true } },
       teacherCode: true,
     },
+    
   });
   
   return teachers;
@@ -213,7 +215,7 @@ export async function getClassSections(adminId: string) {
       id: true,
       sectionName: true,
       batch: { select: { batchName: true } },
-      semester: { select: { name: true } },
+      semester: { select: { name: true,id:true } },
     },
   });
  

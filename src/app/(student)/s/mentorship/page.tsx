@@ -1,65 +1,83 @@
 "use client"
 
-import { useState,useEffect } from "react"
+import { useState, useEffect } from "react"
 import { MessageCircle, Mic, Send, Maximize2 } from "lucide-react"
 import "./mentorship.css" // Assuming you have a CSS file for styling
+
 const Mentorship = () => {
-  const [marks,setmarks]=useState('');
   const [activeTab, setActiveTab] = useState("Week")
   const [message, setMessage] = useState("")
-  const [loading, setLoading] = useState(false);
-  const [results,setresults]=useState([]);
-const [chatHistory, setChatHistory] = useState([
+  const [loading, setLoading] = useState(false)
+  const [results, setResults] = useState([])
+  const [chatHistory, setChatHistory] = useState([
     { role: "assistant", content: "Hi, I am your AI Mentor." },
   ])
   const timeTabs = ["Week", "Month", "All Time"]
-  useEffect(()=>{
-        if (localStorage.getItem("user")) {
-      const user = JSON.parse(localStorage.getItem("user"));
-      const findresults = async () => {
-        const result = await fetch(`/api/exam-submissions/student/${user.studentId}`, {
-          method: "GET",
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        })
-        if (result.ok) {
-          const result1 = await result.json();
-          const gradeFromMarks = (marks) => {
-            if (marks >= 90) return 'A+';
-            if (marks >= 80) return 'A';
-            if (marks >= 70) return 'B';
-            if (marks >= 60) return 'C';
-            if (marks >= 50) return 'D';
-            return 'F';
-          };
-        
 
-          const transformed = result1.map(entry => {
-            const title = entry.exam.title;
-            const total = entry.exam.totalMarks;
-            const obtained = entry.obtainedMarks;
-            const grade = gradeFromMarks(obtained);
-            const feedback = entry.feedback;
-            return [title, total, obtained, grade, feedback];
-          });
-          setresults(transformed);
-          setmarks(JSON.stringify(transformed))
-          setChatHistory([...chatHistory,{"role":"system","content":`You are live mentor for a student whose marks in exams are ${JSON.stringify(transformed)}`}])
+  useEffect(() => {
+    const fetchStudentResults = async () => {
+      if (localStorage.getItem("user")) {
+        const user = JSON.parse(localStorage.getItem("user"))
+        if (user.studentId) {
+          try {
+            const result = await fetch(`/api/exam-submissions/student/${user.studentId}`, {
+              method: "GET",
+              headers: {
+                "Content-Type": "application/json",
+              },
+            })
+
+            if (result.ok) {
+              const resultData = await result.json()
+
+              const gradeFromMarks = (marks: number): string => {
+                if (marks >= 90) return 'A+'
+                if (marks >= 80) return 'A'
+                if (marks >= 70) return 'B'
+                if (marks >= 60) return 'C'
+                if (marks >= 50) return 'D'
+                return 'F'
+              }
+
+              const transformedResults = resultData.map((entry: any) => {
+                const title = entry.exam.title
+                const total = entry.exam.totalMarks
+                const obtained = entry.obtainedMarks
+                const grade = gradeFromMarks(obtained)
+                const feedback = entry.feedback
+                return [title, total, obtained, grade, feedback]
+              })
+              setResults(transformedResults)
+
+              // Update chat history with system message only if not already present or data changes
+              setChatHistory((prevHistory) => {
+                const systemMessageContent = `You are a live mentor for a student whose marks in exams are ${JSON.stringify(transformedResults)}`
+                const isSystemMessagePresent = prevHistory.some(
+                  (msg) => msg.role === "system" && msg.content === systemMessageContent
+                )
+                if (!isSystemMessagePresent) {
+                  return [...prevHistory, { role: "system", content: systemMessageContent }]
+                }
+                return prevHistory
+              })
+            }
+          } catch (error) {
+            console.error("Failed to fetch student exam results:", error)
+          }
         }
       }
-          findresults()
-
     }
-        
-  },[])
+
+    fetchStudentResults()
+  }, []) // Empty dependency array to run only once on mount
+
   // Compute progressData from results
   const progressData = (() => {
     if (!results || results.length === 0) {
       return {
         completion: 0,
         subjects: [
-          { name: "Mathematics", status: "Strongest", score: 0 },
+          { name: "N/A", status: "Strongest", score: 0 },
           { name: "N/A", status: "Needs Work", score: 0 },
         ],
         subjectPerformance: [],
@@ -93,12 +111,15 @@ const [chatHistory, setChatHistory] = useState([
     const needsWork = sorted[sorted.length - 1] || { name: "N/A", avg: 0 }
 
     // Subject performance cards (limit to 3, assign colors)
-    const colors = ["blue", "purple", "red"]
+    const colors = ["#4070f4", "#a64bf4", "#f44b4b"] // Directly using hex codes for consistency
+    const backgroundColors = ["#e6f0ff", "#f0e6ff", "#ffe6e6"]
+
     const subjectPerformance = sorted.slice(0, 3).map((s, i) => ({
       name: s.name,
       type: "Performance",
       score: s.avg,
-      color: colors[i] || "blue",
+      color: colors[i] || colors[0], // Default to first color if out of bounds
+      backgroundColor: backgroundColors[i] || backgroundColors[0],
     }))
 
     return {
@@ -111,12 +132,7 @@ const [chatHistory, setChatHistory] = useState([
     }
   })()
 
-  const chatMessages = [
-    { id: 1, sender: "ai", text: "Hi, I am your ChatBot Mentor." },
-    { id: 2, sender: "user", text: "I need your assistance..." },
-  ]
-
-const handleSendMessage = async () => {
+  const handleSendMessage = async () => {
     if (!message.trim()) return
 
     const newHistory = [...chatHistory, { role: "user", content: message }]
@@ -132,14 +148,14 @@ const handleSendMessage = async () => {
       })
 
       const data = await res.json()
-      setChatHistory([...newHistory, { role: "assistant", content: data.reply }])
+      setChatHistory((prev) => [...prev, { role: "assistant", content: data.reply }])
     } catch (err) {
       console.error("Chat error:", err)
+      setChatHistory((prev) => [...prev, { role: "assistant", content: "Sorry, I couldn't process that. Please try again." }])
     } finally {
       setLoading(false)
     }
   }
-
 
   return (
     <div className="mentorship-container">
@@ -184,12 +200,12 @@ const handleSendMessage = async () => {
                 />
               </svg>
               <div className="progress-percentage">
-                <span>0%</span>
+                <span>{progressData.completion}%</span>
               </div>
             </div>
             <div className="progress-label">
-              <span className="progress-dot"></span>
-              <span>Completed 0%</span>
+              <span className="progress-dot" style={{ backgroundColor: '#4070f4' }}></span> {/* Use a consistent color */}
+              <span>Completed {progressData.completion}%</span>
             </div>
           </div>
         </div>
@@ -227,13 +243,16 @@ const handleSendMessage = async () => {
                 <div
                   className="subject-icon"
                   style={{
-                    backgroundColor:
-                      subject.color === "blue" ? "#e6f0ff" : subject.color === "purple" ? "#f0e6ff" : "#ffe6e6",
+                    backgroundColor: subject.backgroundColor,
                   }}
                 >
-                  {subject.name === "Mathematics" && "🧮"}
-                  {subject.name === "Science" && "🔬"}
-                  {subject.name === "Language Arts" && "📚"}
+                  {subject.name.toLowerCase().includes("math") && "🧮"}
+                  {subject.name.toLowerCase().includes("science") && "🔬"}
+                  {subject.name.toLowerCase().includes("language") && "📚"}
+                  {/* Add more conditions for other subjects or a default */}
+                  {!subject.name.toLowerCase().includes("math") &&
+                   !subject.name.toLowerCase().includes("science") &&
+                   !subject.name.toLowerCase().includes("language") && "📝"} {/* Default icon */}
                 </div>
                 <h4>{subject.name}</h4>
                 <div className="performance-meta">
@@ -241,7 +260,7 @@ const handleSendMessage = async () => {
                   <span
                     className="performance-score"
                     style={{
-                      color: subject.color === "blue" ? "#4070f4" : subject.color === "purple" ? "#a64bf4" : "#f44b4b",
+                      color: subject.color,
                     }}
                   >
                     {subject.score}%
@@ -252,8 +271,7 @@ const handleSendMessage = async () => {
                     className="performance-fill"
                     style={{
                       width: `${subject.score}%`,
-                      backgroundColor:
-                        subject.color === "blue" ? "#4070f4" : subject.color === "purple" ? "#a64bf4" : "#f44b4b",
+                      backgroundColor: subject.color,
                     }}
                   ></div>
                 </div>
@@ -263,7 +281,7 @@ const handleSendMessage = async () => {
         </div>
       </div>
 
-   <div className="chat-section">
+      <div className="chat-section">
         <div className="chat-header">
           <div className="chat-title">
             <MessageCircle size={18} />
@@ -277,12 +295,13 @@ const handleSendMessage = async () => {
 
         <div className="chat-messages">
           {chatHistory.map((msg, i) => {
-            if(msg.role==="system") return;
-            return(
-            <div key={i} className={`chat-message ${msg.role === "assistant" ? "ai-message" : "user-message"}`}>
-              <div className="message-bubble">{msg.content}</div>
-            </div>
-)})}
+            if (msg.role === "system") return null // Don't render system messages
+            return (
+              <div key={i} className={`chat-message ${msg.role === "assistant" ? "ai-message" : "user-message"}`}>
+                <div className="message-bubble">{msg.content}</div>
+              </div>
+            )
+          })}
           {loading && (
             <div className="chat-message ai-message">
               <div className="message-bubble">Typing...</div>

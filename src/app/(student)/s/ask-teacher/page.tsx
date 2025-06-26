@@ -292,7 +292,7 @@ setTeacherCode(classd)
           teachers.filter(teacher=>teacherCode.includes(teacher.teacherCode)).map((teacher) => (
             <div key={teacher.id} className="bg-white p-4 rounded-lg shadow-sm">
               <h3 className="text-lg font-medium mb-3 text-purple-700">
-                {teacher.department?.name || 'Teacher'}
+                {teacher.department?.name}
               </h3>
               <div
                 className="flex items-center p-2 hover:bg-gray-100 rounded-md cursor-pointer"

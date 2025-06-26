@@ -61,6 +61,23 @@ const SetSchedule = () => {
   const [daysCount, setDaysCount] = useState<number>(1);
   const [hoursCount, setHoursCount] = useState<number>(2); // This state seems unused in the current logic for hours/day.
   const [startTime, setStartTime] = useState<Dayjs>(dayjs());
+  const [selectedClassIds, setSelectedClassIds] = useState([]);
+
+  // Handler for checkbox changes
+  const handleCheckboxChange = (event) => {
+    const classId = event.target.value; // The value of the checkbox will be c.id
+    const isChecked = event.target.checked;
+
+    if (isChecked) {
+      // If checked, add the ID to the array
+      setSelectedClassIds((prevSelectedIds) => [...prevSelectedIds, classId]);
+    } else {
+      // If unchecked, remove the ID from the array
+      setSelectedClassIds((prevSelectedIds) =>
+        prevSelectedIds.filter((id) => id !== classId)
+      );
+    }
+  };
   const [selectedDays, setSelectedDays] = useState<Record<string, boolean>>({
     monday: false,
     tuesday: false,
@@ -321,6 +338,7 @@ const SetSchedule = () => {
 
         const dataToSend = {
           "userId": userId,
+          "section":selectedClassIds,
           "receiveReminder": whatsappNotify,
           "planner": {
             "promptTopic": Airfdata.searchPrompt ? Airfdata.searchPrompt : Airfdata.specifications,
@@ -514,10 +532,16 @@ const SetSchedule = () => {
                   className="text-base sm:text-lg font-medium text-[#1E1E2F] mb-3">{translator("Select Class Section", "आप किस समय पर शुरू करना चाहते हैं?")}</h3>
                 {classes.map((c: any) => { // Added type annotation for 'c'
                   return (
-                    <div key={c.sectionName}> {/* Added key for list items */}
-                      <input type="checkbox" value={c.sectionName}></input>
-                      <label htmlFor={c.sectionName}>{c.sectionName}</label>
-                    </div>
+                   <div key={c.id}> {/* Use c.id as the key if it's unique, otherwise c.sectionName */}
+          <input
+            type="checkbox"
+            id={`checkbox-${c.id}`} // Unique ID for the input for accessibility
+            value={c.id} // This is crucial: the value will be c.id
+            checked={selectedClassIds.includes(c.id)} // Control the checked state
+            onChange={handleCheckboxChange}
+          />
+          <label htmlFor={`checkbox-${c.id}`}>{c.sectionName}</label>
+        </div>
                   )
                 })}
                 <h3

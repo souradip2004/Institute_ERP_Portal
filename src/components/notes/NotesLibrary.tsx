@@ -248,35 +248,7 @@ const NotesLibrary: React.FC<NotesLibraryProps> = ({
                         {batchName} - Section {sectionName}
                     </p>
                 </div>
-                <div
-                    className="flex flex-col sm:flex-row items-center gap-2 w-full mt-4 sm:mt-0"> {/* Removed sm:w-auto from this flex container to allow it to take full width on mobile */}
-                    <div className="relative w-full sm:w-auto">
-                        <Button variant="outline" className="flex items-center gap-2 bg-white w-full">
-                            <Upload size={16}/>
-                            Upload Notes
-                        </Button>
-                        <input
-                            type="file"
-                            onChange={handleFileChange}
-                            className="absolute inset-0 opacity-0 cursor-pointer"
-                            accept=".pdf,.doc,.docx,.ppt,.pptx"
-                        />
-                    </div>
-                    <Select>
-                        <SelectTrigger
-                            className="w-full sm:w-[180px] bg-white max-w-xs"> {/* Added max-w-xs for very small screens */}
-                            <SelectValue placeholder="Choose Language"/>
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="english">English</SelectItem>
-                            <SelectItem value="hindi">Hindi</SelectItem>
-                            <SelectItem value="spanish">Spanish</SelectItem>
-                        </SelectContent>
-                    </Select>
-                    <Button variant="default" className="bg-purple-700 hover:bg-purple-800 w-full sm:w-auto">
-                        Convert
-                    </Button>
-                </div>
+               
             </div>
 
             {selectedSubject && (
