@@ -45,7 +45,7 @@ export async function sendWelcomeEmail(to: string) {
           Thank you for signing up—we’re thrilled to have you on board. Your account has been created successfully.
         </p>
 
-        <a href="http://localhost:3000/login"
+        <a href="http//localhost:3000/login"
            style="display:inline-block; background:#4f46e5; color:#ffffff; text-decoration:none; padding:12px 24px; border-radius:6px; font-size:16px;">
           Log in & explore
         </a>
@@ -94,7 +94,7 @@ export async function sendUserDetails(to: string,password:string) {
         </table>
 
         <p style="margin-top: 30px;">You can now log in and start exploring the features of Ai Classroom.</p>
-        <a href="http://localhost:3000/login" style="display: inline-block; margin-top: 20px; background-color: #4f46e5; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none;">Login Now</a>
+        <a href="http//localhost:3000/login" style="display: inline-block; margin-top: 20px; background-color: #4f46e5; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none;">Login Now</a>
 
         <p style="margin-top: 40px; font-size: 14px; color: #6b7280;">
           If you have any questions, feel free to <a href="mailto:support@aiclassroom.in" style="color: #4f46e5;">contact our support team</a>.

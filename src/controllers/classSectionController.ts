@@ -45,7 +45,7 @@ export class ClassSectionController {
    
 
       const data = await req.json();
-      const { sectionName, batchId, courseId, semesterId, maxStudents,teacherId } = data;
+      const { sectionName, batchId, courseId, semesterId, maxStudents,teacherId,motherClassId,optional } = data;
 
       if (!batchId || !courseId || !semesterId) {
         return NextResponse.json(
@@ -61,6 +61,8 @@ export class ClassSectionController {
         semesterId,
         teacherId,
         maxStudents,
+        motherClassId,
+        optional
       };
       const classSection = await classSectionService.createClassSection(
         createData

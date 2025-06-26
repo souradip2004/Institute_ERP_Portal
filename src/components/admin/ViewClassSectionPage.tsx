@@ -79,7 +79,7 @@ export default function ClassSectionsPage({ id }: ViewClassSectionPageProps) {
       setIsLoading(true);
       try {
         // Fetch teachers first
-        const teachersResponse = await fetch("http://localhost:3000/api/teachers", {
+        const teachersResponse = await fetch("http//localhost:3000/api/teachers", {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
@@ -128,9 +128,11 @@ export default function ClassSectionsPage({ id }: ViewClassSectionPageProps) {
             return {
               id: section.id || '',
               sectionName: section.sectionName || 'Unnamed Section',
+              motherClassId	:section.motherClassId	,
               teacherId: section.teacherId || '',
               batchId: section.batchId || '',
               courseId: section.courseId || '',
+              isOptional:section.isOptional || false,
               semesterId: section.semesterId || '',
               maxStudents: section.maxStudents || 0,
               createdAt: section.createdAt || new Date().toISOString(),

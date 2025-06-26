@@ -8,6 +8,8 @@ export interface CreateClassSectionDTO {
   semesterId: string;
   teacherId: string;
   maxStudents?: number;
+  motherClassId?:string;
+  optional?:boolean;
 }
 
 export interface UpdateClassSectionDTO {
@@ -57,6 +59,8 @@ export class ClassSectionService {
       courseId,
       semesterId,
       teacherId,
+      motherClassId,
+      optional,
       maxStudents = 0,
     } = data;
 
@@ -79,7 +83,9 @@ export class ClassSectionService {
         sectionName,
         batchId,
         semesterId,
+        motherClassId,
         teacherId,
+        isOptional:optional,
         maxStudents,
         createdAt: new Date(),
         updatedAt: new Date(),

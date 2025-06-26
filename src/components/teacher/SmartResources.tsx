@@ -1,5 +1,5 @@
 "use client"
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, {useState, useEffect, useRef, useCallback} from 'react';
 import {
   Search,
   Star,
@@ -12,22 +12,23 @@ import {
 } from 'lucide-react';
 
 import axios from 'axios';
-import { TbArrowBackUp } from "react-icons/tb";
+import {TbArrowBackUp} from "react-icons/tb";
 import Link from 'next/dist/client/link';
 import {useRouter} from "next/navigation";
+import {FaRegEdit} from "react-icons/fa";
 
 
-const StarToggle = ({ isStarred, onToggle, t }) => (
+const StarToggle = ({isStarred, onToggle, t}) => (
   <button
     onClick={onToggle}
     className="text-gray-400 hover:text-yellow-400 focus:outline-none"
     aria-label={isStarred ? t("Unstar this resource", "इस संसाधन को अनस्टार करें") : t("Star this resource", "इस संसाधन को स्टार करें")}
   >
-    <Star size={18} fill={isStarred ? "#F59E0B" : "none"} stroke={isStarred ? "#F59E0B" : "currentColor"} />
+    <Star size={18} fill={isStarred ? "#F59E0B" : "none"} stroke={isStarred ? "#F59E0B" : "currentColor"}/>
   </button>
 );
 
-const ConfirmDeleteModal = ({ isOpen, onClose, onConfirm, t }) => {
+const ConfirmDeleteModal = ({isOpen, onClose, onConfirm, t}) => {
   const [reason, setReason] = useState('');
   if (!isOpen) return null;
   const handleConfirm = () => {
@@ -77,12 +78,14 @@ const ConfirmDeleteModal = ({ isOpen, onClose, onConfirm, t }) => {
   );
 };
 
-const ResourceCard = ({ resource, onOpenDeleteModal, onStarToggle, t }) => {
+const ResourceCard = ({resource, onOpenEditModal, onOpenDeleteModal, onStarToggle, t}) => {
   // const navigate = useNavigate();
 
   const router = useRouter();
   const [isHovered, setIsHovered] = useState(false);
-  const { id, title, description, status, date, completedCount, totalCount, isStarred, isPremium } = resource;
+
+
+  const {id, title, description, status, date, completedCount, totalCount, isStarred, isPremium} = resource;
   let statusBgColorClass = 'bg-gray-100';
   let statusTextColorClass = 'text-gray-700';
   switch (status?.toLowerCase()) {
@@ -156,31 +159,93 @@ const ResourceCard = ({ resource, onOpenDeleteModal, onStarToggle, t }) => {
     e.stopPropagation();
     onStarToggle(id, !isStarred);
   };
+
   const handleDeleteClick = (e) => {
     e.stopPropagation();
     onOpenDeleteModal(id);
   };
+
+  const handleEditClick = (e) => {
+    e.stopPropagation();
+    onOpenEditModal(id);
+  }
   const translatedStatus = t(status, status?.toLowerCase() === 'completed' ? 'समाप्त' : status?.toLowerCase() === 'scheduled' ? 'निर्धारित' : status?.toLowerCase() === 'unscheduled' ? 'अनियोजित' : status);
   return (
     <div onClick={handleCardClick} className={finalCardClassName} style={cardStyle}
-            onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)}>
+         onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)}>
       <div>
         <div className="flex justify-between items-start mb-3">
 					<span
             className={`px-2.5 py-0.5 text-xs font-semibold rounded-full ${statusBgColorClass} ${statusTextColorClass}`}>{translatedStatus}</span>
           <div className="flex items-center space-x-2">
+            <button className='text-gray-400 hover:text-blue-500 focus:outline-none'
+                    onClick={(e) => handleEditClick(e)}>
+              <FaRegEdit/>
+            </button>
             <button onClick={handleDeleteClick} className="text-gray-400 hover:text-red-500 focus:outline-none"
-                    aria-label={t("Delete this resource", "इस संसाधन को हटाएँ")}><Trash2 size={18} /></button>
-            <StarToggle isStarred={isStarred} onToggle={handleStarClick} t={t} />
+                    aria-label={t("Delete this resource", "इस संसाधन को हटाएँ")}>
+              <Trash2 size={18}/>
+            </button>
+            <StarToggle isStarred={isStarred} onToggle={handleStarClick} t={t}/>
           </div>
         </div>
         <h3 className="text-lg font-semibold text-gray-800 mb-1.5">{title}</h3>
         <p className="text-sm text-gray-500 leading-relaxed mb-4 line-clamp-3">{description}</p>
       </div>
       <div className="flex justify-between items-center text-xs text-gray-500 pt-2 mt-auto">
-        <span className="flex items-center"><CalendarDays size={14} className="mr-1.5 text-gray-400" />{date}</span>
-        {(completedCount !== undefined && totalCount !== undefined) && (
-          <span>{`${completedCount}/${totalCount}`}</span>)}
+        <span className="flex items-center"><CalendarDays size={14} className="mr-1.5 text-gray-400"/>{date}</span>
+        {/*{(completedCount !== undefined && totalCount !== undefined) && (
+          <span>{`${completedCount}/${totalCount}`}</span>)}*/}
+      </div>
+    </div>
+  );
+};
+
+const ConfirmEditModal = ({isOpen, onClose, onConfirm, t}) => {
+  const [reason, setReason] = useState('');
+  if (!isOpen) return null;
+  const handleConfirm = () => {
+    onConfirm(reason);
+    setReason('');
+  };
+
+  const handleCancel = () => {
+    onClose();
+    setReason(''); // Reset reason after cancel
+  };
+  return (
+    <div className="fixed inset-0 bg-black/45 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-md">
+        <h2 className="text-xl font-bold text-blue-600 mb-4 text-center">
+          {t('Confirm Edit ?', 'संपादन की पुष्टि करें ?')}
+        </h2>
+        <div className="mb-4">
+          <label htmlFor="editReason" className="block text-sm font-medium text-gray-700 mb-1">
+            {t('Type your reason for editing', 'संपादन का कारण टाइप करें')}
+          </label>
+          <textarea
+            id="editReason"
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            placeholder={t('Enter your reason for editing (Optional)', 'संपादन का कारण दर्ज करें (वैकल्पिक)')}
+            className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
+            rows="3"
+          ></textarea>
+        </div>
+        <div className="flex justify-between mt-6">
+          <button
+            onClick={handleCancel}
+            className="px-4 py-2 bg-gray-400 text-white text-sm font-medium rounded-md hover:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2"
+          >
+            {t('Cancel', 'रद्द करें')}
+          </button>
+          <button
+            onClick={handleConfirm}
+            className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+          >
+            {t('Edit', 'संपादित करें')}
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -210,21 +275,26 @@ export function SmartResources() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [resourceToDeleteId, setResourceToDeleteId] = useState(null);
 
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [resourceToEditId, setResourceToEditId] = useState(null);
+
   // Refs for closing dropdowns on outside click
   const scheduleDropdownRef = useRef(null);
   const purposeDropdownRef = useRef(null);
   const sortDropdownRef = useRef(null);
 
-  const [lang] = useState(localStorage.getItem("lang") || 'english');
+  const router = useRouter();
+
+  const [lang] = useState('english');
   const t = useCallback((word1, word2) => {
     return lang.toLowerCase().includes("english") ? word1 : (word2 || word1);
   }, [lang]);
 
   const sortOptions = [
-    { value: 'date-desc', label: t('Date (Newest)', 'तिथि (नवीनतम)') },
-    { value: 'date-asc', label: t('Date (Oldest)', 'तिथि (पुरानी)') },
-    { value: 'title-asc', label: t('Title (A-Z)', 'शीर्षक (A-Z)') },
-    { value: 'title-desc', label: t('Title (Z-A)', 'शीर्षक (Z-A)') },
+    {value: 'date-desc', label: t('Date (Newest)', 'तिथि (नवीनतम)')},
+    {value: 'date-asc', label: t('Date (Oldest)', 'तिथि (पुरानी)')},
+    {value: 'title-asc', label: t('Title (A-Z)', 'शीर्षक (A-Z)')},
+    {value: 'title-desc', label: t('Title (Z-A)', 'शीर्षक (Z-A)')},
   ];
 
   const fetchResources = useCallback(async () => {
@@ -285,7 +355,7 @@ export function SmartResources() {
 
   const handleStarToggle = async (resourceId, newStarredStatus) => {
     const originalResources = [...resources];
-    const updatedResources = resources.map(r => r.id === resourceId ? { ...r, isStarred: newStarredStatus } : r);
+    const updatedResources = resources.map(r => r.id === resourceId ? {...r, isStarred: newStarredStatus} : r);
     setResources(updatedResources);
 
     try {
@@ -297,6 +367,14 @@ export function SmartResources() {
       console.error('Error updating starred status:', error);
       setResources(originalResources);
     }
+  };
+
+  const handleConfirmEdit = async (reason) => {
+    // TODO: Implement your edit logic here, e.g., open an edit form or send an API request
+    console.log('Edit confirmed for resource:', resourceToEditId, 'Reason:', reason);
+    setIsEditModalOpen(false);
+    router.push(`/t/smart-resources/change-schedule?resourceId=${resourceToEditId}`);
+
   };
 
   const handleConfirmDelete = async (reason) => {
@@ -356,15 +434,7 @@ export function SmartResources() {
     }
   });
 
-  // ✅ START: LOGIC TO FILTER PREMIUM COURSES
-  // Create a set of titles from the user's existing resources for efficient lookup.
   const existingResourceTitles = new Set(resources.map(r => r.title));
-
-  // Filter the premium courses to exclude any that have a title matching an existing resource.
- /* const filteredPremiumCourses = premiumCourses.filter(
-    course => !existingResourceTitles.has(course.scheduleTitle)
-  );*/
-  // ✅ END: LOGIC TO FILTER PREMIUM COURSES
 
 
   const handleFilterClick = (filter) => {
@@ -385,6 +455,11 @@ export function SmartResources() {
     setPurposeFilter(purpose);
     setScheduleTypeFilter(null);
     setIsPurposeDropdownOpen(false);
+  };
+
+  const handleOpenEditModal = (id) => {
+    setResourceToEditId(id);
+    setIsEditModalOpen(true);
   };
 
   const getActiveTabText = () => {
@@ -420,7 +495,7 @@ export function SmartResources() {
       <div className="flex bg-gray-50">
         <main className="flex-1 px-4 pb-4 pt-10 lg:pt-8 lg:px-8  flex items-center justify-center">
           <div className="text-center p-4">
-            <StickyNote size={48} className="mx-auto text-red-400 mb-4" />
+            <StickyNote size={48} className="mx-auto text-red-400 mb-4"/>
             <p className="text-red-600 text-lg font-medium">{error}</p>
             <button onClick={fetchResources}
                     className="mt-4 bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-lg transition-colors">
@@ -440,7 +515,7 @@ export function SmartResources() {
     <div className="flex  bg-gray-50">
       <main className="flex-1 px-4 pb-4 pt-10 lg:pt-8 lg:px-8 ">
         <button className='block absolute top-5 left-16 lg:hidden' onClick={() => window.location.href = '/'}>
-          <TbArrowBackUp className='w-10 h-10 text-gray-600' /></button>
+          <TbArrowBackUp className='w-10 h-10 text-gray-600'/></button>
         <header className="flex flex-row justify-between items-start sm:items-center mb-6 sm:mb-8">
           <h2
             className="text-2xl sm:text-3xl font-bold text-gray-800 mb-4 sm:mb-0">{t('My Resources', 'मेरे संसाधन')}</h2>
@@ -450,12 +525,12 @@ export function SmartResources() {
               className="bg-[#2563EB] hover:bg-blue-700 text-white font-semibold py-2 px-4 sm:py-2.5 sm:px-5 rounded-lg flex items-center space-x-2 transition-colors self-start sm:self-auto h-full"
               // onClick={() => navigate('/ai-resource-finder')}
             >
-              <PlusCircle size={20} />
+              <PlusCircle size={20}/>
               <span>{t('Create New', 'नया बनाएँ')}</span>
             </Link>
             <button onClick={() => handleFilterClick('Starred')}
                     className={`flex items-center space-x-1 px-3 py-2 rounded-lg transition-colors duration-200  sm:hidden h-full ${activeFilter === 'Starred' ? 'bg-indigo-500 text-white shadow' : 'hover:bg-gray-400'}`}>
-              <Star size={20} fill={activeFilter === 'Starred' ? 'white' : 'none'} />
+              <Star size={20} fill={activeFilter === 'Starred' ? 'white' : 'none'}/>
             </button>
           </div>
         </header>
@@ -473,7 +548,7 @@ export function SmartResources() {
                       className={`flex items-center space-x-1 px-2 py-1 rounded-lg transition-colors duration-200 ${activeFilter === 'Schedule Type' ? 'bg-indigo-500 text-white shadow' : 'hover:bg-gray-200'}`}>
                 <span>{t('Schedule Type', 'शेड्यूल प्रकार')}</span>
                 <ChevronDown size={16}
-                             className={`transition-transform ${isScheduleDropdownOpen ? 'rotate-180' : ''}`} />
+                             className={`transition-transform ${isScheduleDropdownOpen ? 'rotate-180' : ''}`}/>
               </button>
               {isScheduleDropdownOpen && (
                 <div className="absolute z-20 mt-2 w-40 bg-white rounded-md shadow-lg border border-gray-200">
@@ -495,7 +570,7 @@ export function SmartResources() {
               <button onClick={() => setIsPurposeDropdownOpen(o => !o)}
                       className={`flex items-center space-x-1 px-2 py-1 rounded-lg transition-colors duration-200 ${activeFilter === 'Purpose' ? 'bg-indigo-500 text-white shadow' : 'hover:bg-gray-200'}`}>
                 <span>{t('Purpose', 'उद्देश्य')}</span>
-                <ChevronDown size={16} className={`transition-transform ${isPurposeDropdownOpen ? 'rotate-180' : ''}`} />
+                <ChevronDown size={16} className={`transition-transform ${isPurposeDropdownOpen ? 'rotate-180' : ''}`}/>
               </button>
               {isPurposeDropdownOpen && (
                 <div className="absolute z-20 mt-2 w-40 bg-white rounded-md shadow-lg border border-gray-200">
@@ -515,7 +590,7 @@ export function SmartResources() {
 
             <button onClick={() => handleFilterClick('Starred')}
                     className={`hidden  sm:flex items-center space-x-1 px-3 py-2 rounded-lg transition-colors duration-200 ${activeFilter === 'Starred' ? 'bg-indigo-500 text-white shadow' : 'hover:bg-gray-200'}`}>
-              <Star size={16} fill={activeFilter === 'Starred' ? 'white' : 'none'} />
+              <Star size={16} fill={activeFilter === 'Starred' ? 'white' : 'none'}/>
               <span>{t('Starred', 'तारांकित')}</span>
             </button>
           </div>
@@ -524,14 +599,14 @@ export function SmartResources() {
             <div className="relative w-full sm:flex-1 lg:w-64">
               <input type="text" placeholder={t("Search resources...", "संसाधनों में खोजें...")}
                      className="pl-10 pr-4 py-2.5 w-full border border-gray-300 rounded-full text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-shadow shadow-sm"
-                     value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
-              <Search size={18} className="absolute left-3.5 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                     value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}/>
+              <Search size={18} className="absolute left-3.5 top-1/2 transform -translate-y-1/2 text-gray-400"/>
             </div>
             <div className="relative w-full sm:w-auto" ref={sortDropdownRef}>
               <button onClick={() => setIsSortDropdownOpen(o => !o)}
                       className="flex w-full sm:w-auto justify-center sm:justify-start items-center space-x-2 text-sm text-gray-700 font-medium border border-gray-300 px-4 py-2.5 rounded-full hover:bg-gray-100 transition-colors shadow-sm bg-white">
                 <span>{sortOptions.find(opt => opt.value === sortOption)?.label || t('Sort By', 'इसके अनुसार क्रमबद्ध करें')}</span>
-                <ChevronDown size={16} />
+                <ChevronDown size={16}/>
               </button>
               {isSortDropdownOpen && (
                 <div className="absolute z-10 mt-1 w-full bg-white rounded-md shadow-lg border border-gray-200">
@@ -566,6 +641,7 @@ export function SmartResources() {
               <ResourceCard
                 key={resource.id}
                 resource={resource}
+                onOpenEditModal={handleOpenEditModal}
                 onOpenDeleteModal={handleOpenDeleteModal}
                 onStarToggle={handleStarToggle}
                 t={t}
@@ -574,7 +650,7 @@ export function SmartResources() {
           </div>
         ) : (
           <div className="text-center py-16">
-            <StickyNote size={48} className="mx-auto text-gray-400 mb-4" />
+            <StickyNote size={48} className="mx-auto text-gray-400 mb-4"/>
             <p className="text-gray-600 text-lg font-medium">
               {t(`No resources found for "${getActiveTabText()}"`, `"${getActiveTabText()}" के लिए कोई संसाधन नहीं मिला।`)}
             </p>
@@ -587,6 +663,13 @@ export function SmartResources() {
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
         onConfirm={handleConfirmDelete}
+        t={t}
+      />
+
+      <ConfirmEditModal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        onConfirm={handleConfirmEdit}
         t={t}
       />
     </div>

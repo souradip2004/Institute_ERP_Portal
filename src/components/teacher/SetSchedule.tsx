@@ -1,16 +1,16 @@
 "use client";
-import {useState, useCallback, useEffect, useRef} from 'react';
-import {format, isValid, addDays, differenceInCalendarDays} from 'date-fns';
-import {DayPicker} from 'react-day-picker';
+import { useState, useCallback, useEffect, useRef } from 'react';
+import { format, isValid, addDays, differenceInCalendarDays } from 'date-fns';
+import { DayPicker } from 'react-day-picker';
 import 'react-day-picker/dist/style.css';
-import {TimePicker} from '@mui/x-date-pickers/TimePicker';
-import {LocalizationProvider} from '@mui/x-date-pickers/LocalizationProvider';
-import {AdapterDayjs} from '@mui/x-date-pickers/AdapterDayjs';
-import dayjs, {Dayjs} from 'dayjs';
+import { TimePicker } from '@mui/x-date-pickers/TimePicker';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import dayjs, { Dayjs } from 'dayjs';
 import axios from 'axios';
-import {useRouter} from 'next/navigation';
-import {TbArrowBackUp} from "react-icons/tb";
-import type {ChangeEvent} from 'react';
+import { useRouter } from 'next/navigation';
+import { TbArrowBackUp } from "react-icons/tb";
+import type { ChangeEvent } from 'react';
 
 // Custom styles for mobile date picker
 const mobilePickerStyles = `
@@ -51,21 +51,15 @@ const mobilePickerStyles = `
 `;
 
 const SetSchedule = () => {
-  const [user, setUser] = useState<any>(() => {
-    if (typeof window !== 'undefined') {
-      const data = localStorage.getItem('user-data');
-      return data ? JSON.parse(data) : null;
-    }
-    return null;
-  });
-
-  const [selectedLanguage, setSelectedLanguage] = useState<string>('English');
+  const [user, setUser] = useState<any>(null); // Initialize as null, set in useEffect
+  const [selectedLanguage, setSelectedLanguage] = useState<string>('English'); // Initialize with default
   const [userId, setUserId] = useState<string | null>(null);
+  const [classes, setClasses] = useState([]);
   const router = useRouter();
   const [startDate, setStartDate] = useState<Date>(new Date());
   const [endDate, setEndDate] = useState<Date>(new Date());
   const [daysCount, setDaysCount] = useState<number>(1);
-  const [hoursCount, setHoursCount] = useState<number>(2);
+  const [hoursCount, setHoursCount] = useState<number>(2); // This state seems unused in the current logic for hours/day.
   const [startTime, setStartTime] = useState<Dayjs>(dayjs());
   const [selectedDays, setSelectedDays] = useState<Record<string, boolean>>({
     monday: false,
@@ -76,6 +70,7 @@ const SetSchedule = () => {
     saturday: false,
     sunday: false
   });
+  // selectedSecondDays also seems unused in the provided logic.
   const [selectedSecondDays, setSelectedSecondDays] = useState<Record<string, boolean>>({
     monday: false,
     tuesday: false,
@@ -87,11 +82,52 @@ const SetSchedule = () => {
   });
   const [showStartDatePicker, setShowStartDatePicker] = useState<boolean>(false);
   const [showEndDatePicker, setShowEndDatePicker] = useState<boolean>(false);
-  const [csvFile, setCsvFile] = useState<File | null>(null);
+  const [csvFile, setCsvFile] = useState<File | null>(null); // This state seems unused in the provided logic.
   const [whatsappNotify, setWhatsappNotify] = useState<boolean>(true);
   const startDatePickerRef = useRef<HTMLDivElement>(null);
   const endDatePickerRef = useRef<HTMLDivElement>(null);
 
+  // Initialize user and selectedLanguage from localStorage on client-side mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const storedUserData = localStorage.getItem('user');
+      if (storedUserData) {
+        try {
+          const parsedUserData = JSON.parse(storedUserData);
+          setUser(parsedUserData);
+          setUserId(parsedUserData.teacherId);
+
+          // Fetch classes for the teacher
+          const fetchClasses = async () => {
+            try {
+              const res = await fetch("/api/class-sections", {
+                method: "GET",
+                headers: {
+                  "Content-Type": "application/json"
+                }
+              });
+              if (res.ok) {
+                const response = await res.json();
+                setClasses(response.filter((c) => c.teacherId === parsedUserData.teacherId));
+              } else {
+                console.error("Failed to fetch classes:", res.status, res.statusText);
+              }
+            } catch (err) {
+              console.error("Error fetching classes:", err);
+            }
+          };
+          fetchClasses();
+
+        } catch (err) {
+          console.error("Error parsing user data from localStorage", err);
+        }
+      }
+      const storedLang = localStorage.getItem('lang');
+      if (storedLang) {
+        setSelectedLanguage(storedLang.toLowerCase().includes('english') ? 'English' : 'Hindi');
+      }
+    }
+  }, []); // Empty dependency array means this runs once on mount
 
   // Day picker handler functions
   const handleStartDateSelect = (day: Date | undefined) => {
@@ -120,7 +156,6 @@ const SetSchedule = () => {
     setShowStartDatePicker(!showStartDatePicker);
     if (showEndDatePicker) setShowEndDatePicker(false);
   };
-
 
   const toggleEndDatePicker = () => {
     setShowEndDatePicker(!showEndDatePicker);
@@ -182,30 +217,6 @@ const SetSchedule = () => {
     }
   };
 
-
-  useEffect(() => {
-    const storedUserData = localStorage.getItem("user");
-    if (storedUserData) {
-      try {
-        const parsedUserData = JSON.parse(storedUserData);
-        setUserId(parsedUserData.teacherId);
-      } catch (err) {
-        console.error("Error parsing user data from localStorage", err);
-      }
-    }
-  }, []);
-
-  // useEffect(() => {
-  //     const data = JSON.parse(localStorage.getItem("airf"));
-  //     console.log(data);
-  //     console.log("searchPrompt from local storage", data.searchPrompt);
-  //     console.log("specifications from local storage", data.specifications);
-  //     console.log("language from local storage", data.language);
-  //     console.log("uploadedFileName from local storage", data.uploadedFileName);
-  //     console.log("manualEntryText from local storage", data.manualEntryText);
-
-  // }, []);
-
   // Click outside handler to close date pickers
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -224,7 +235,6 @@ const SetSchedule = () => {
       };
     }
   }, [showStartDatePicker, showEndDatePicker]);
-
 
   const handleSkip = () => {
     if (typeof window !== 'undefined') {
@@ -267,20 +277,25 @@ const SetSchedule = () => {
   const handleProceed = async () => {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('dataToSend');
+      const selectedDaysArray = Object.entries(selectedDays)
+        .filter(([_, isSelected]) => isSelected)
+        .map(([day]) => day);
+
+      // selectedSecondDaysArray seems unused, consider removing if not needed.
+      const selectedSecondDaysArray = Object.entries(selectedSecondDays)
+        .filter(([_, isSelected]) => isSelected)
+        .map(([day]) => day);
+
+      const combinedDateTime = new Date(startDate);
+      combinedDateTime.setHours(startTime.hour());
+      combinedDateTime.setMinutes(startTime.minute());
+      combinedDateTime.setSeconds(startTime.second());
+      // No need to set startDate state again here, it's already updated for the current render.
+      // setStartDate(combinedDateTime);
+      const formattedStartDate = combinedDateTime.toISOString();
+
       if (localStorage.getItem("premiumTopicId") !== null) {
         const topicId = localStorage.getItem("premiumTopicId");
-        const selectedDaysArray = Object.entries(selectedDays)
-        .filter(([_, isSelected]) => isSelected)
-        .map(([day]) => day);
-        const selectedSecondDaysArray = Object.entries(selectedSecondDays)
-        .filter(([_, isSelected]) => isSelected)
-        .map(([day]) => day);
-        const combinedDateTime = new Date(startDate);
-        combinedDateTime.setHours(startTime.hour());
-        combinedDateTime.setMinutes(startTime.minute());
-        combinedDateTime.setSeconds(startTime.second());
-        setStartDate(combinedDateTime);
-        const formattedStartDate = combinedDateTime.toISOString();
         const dataToSend = {
           "topicId": topicId,
           "userId": userId,
@@ -301,19 +316,9 @@ const SetSchedule = () => {
         };
         localStorage.setItem("dataForBreakdown", JSON.stringify(dataForBreakdown));
         localStorage.removeItem('videoSectionChatMessages');
-        const selectedDaysArray = Object.entries(selectedDays)
-        .filter(([_, isSelected]) => isSelected)
-        .map(([day]) => day);
-        const selectedSecondDaysArray = Object.entries(selectedSecondDays)
-        .filter(([_, isSelected]) => isSelected)
-        .map(([day]) => day);
+
         const Airfdata = JSON.parse(localStorage.getItem("airf") || '{}');
-        const combinedDateTime = new Date(startDate);
-        combinedDateTime.setHours(startTime.hour());
-        combinedDateTime.setMinutes(startTime.minute());
-        combinedDateTime.setSeconds(startTime.second());
-        setStartDate(combinedDateTime);
-        const formattedStartDate = combinedDateTime.toISOString();
+
         const dataToSend = {
           "userId": userId,
           "receiveReminder": whatsappNotify,
@@ -334,17 +339,18 @@ const SetSchedule = () => {
     }
   };
 
-  const translator = (word1: string, word2: string) =>
-    typeof window !== 'undefined' && localStorage.getItem("lang") && localStorage.getItem("lang")!.toLowerCase().includes("english")
-      ? word1
-      : localStorage.getItem("lang")
-        ? word2
-        : word1;
+  const translator = useCallback((word1: string, word2: string) => {
+    // Only access localStorage on the client side
+    if (typeof window !== 'undefined' && localStorage.getItem("lang")) {
+      return localStorage.getItem("lang")!.toLowerCase().includes("english") ? word1 : (word2 || word1);
+    }
+    return word1; // Default to English if localStorage or lang is not available
+  }, []); // No dependencies needed as it only checks window and localStorage once
 
   return (
     <div className="w-full min-h-screen bg-[#F9FAFC] flex items-center justify-center py-2 px-2 sm:py-6 sm:px-4">
       {/* Inject mobile-specific styles */}
-      <style dangerouslySetInnerHTML={{__html: mobilePickerStyles}}/>
+      <style dangerouslySetInnerHTML={{ __html: mobilePickerStyles }} />
       <div
         className="w-full max-w-[1200px] bg-white rounded-2xl shadow-lg overflow-hidden border pb-[100px] border-gray-100 relative"
       >
@@ -353,9 +359,9 @@ const SetSchedule = () => {
         <div className="bg-gradient-to-r from-[#A78BFA] to-[#818CF8] p-4 sm:p-6 text-white">
           <div className='flex gap-4 '>
             <button className=" text-white opacity-80 hover:opacity-100 z-10"
-                    onClick={() => router.back()}
+              onClick={() => router.back()}
             >
-              <TbArrowBackUp className="w-6 h-6"/>
+              <TbArrowBackUp className="w-6 h-6" />
             </button>
             <div>
               <h1
@@ -388,8 +394,8 @@ const SetSchedule = () => {
                     className="w-full py-2 px-3 border border-gray-300 rounded-lg text-sm sm:text-base focus:outline-none focus:ring-1 focus:ring-indigo-500 flex justify-between items-center">
                     <span>{startDate && isValid(startDate) ? format(startDate, 'yyyy-MM-dd') : 'Select Date'}</span>
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"
-                         viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-                         strokeLinecap="round" strokeLinejoin="round">
+                      viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                      strokeLinecap="round" strokeLinejoin="round">
                       <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
                       <line x1="16" y1="2" x2="16" y2="6"></line>
                       <line x1="8" y1="2" x2="8" y2="6"></line>
@@ -405,12 +411,12 @@ const SetSchedule = () => {
                         onSelect={handleStartDateSelect}
                         required={false}
                         className="p-2"
-                        disabled={[{before: new Date()}]}
+                        disabled={[{ before: new Date() }]}
                         styles={{
-                          root: {fontSize: '14px'},
-                          table: {width: '100%', maxWidth: '100%'},
-                          cell: {padding: '4px', textAlign: 'center'},
-                          day: {width: '32px', height: '32px', fontSize: '12px'}
+                          root: { fontSize: '14px' },
+                          table: { width: '100%', maxWidth: '100%' },
+                          cell: { padding: '4px', textAlign: 'center' },
+                          day: { width: '32px', height: '32px', fontSize: '12px' }
                         }}
                       />
                     </div>
@@ -467,8 +473,8 @@ const SetSchedule = () => {
                     className="w-full py-2 px-3 border border-gray-300 rounded-lg text-sm sm:text-base focus:outline-none focus:ring-1 focus:ring-indigo-500 flex justify-between items-center">
                     <span>{endDate && isValid(endDate) ? format(endDate, 'yyyy-MM-dd') : 'Select Date'}</span>
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"
-                         viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-                         strokeLinecap="round" strokeLinejoin="round">
+                      viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                      strokeLinecap="round" strokeLinejoin="round">
                       <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
                       <line x1="16" y1="2" x2="16" y2="6"></line>
                       <line x1="8" y1="2" x2="8" y2="6"></line>
@@ -484,12 +490,12 @@ const SetSchedule = () => {
                         onSelect={handleEndDateSelect}
                         required={false}
                         className="p-2"
-                        disabled={[{before: startDate}]}
+                        disabled={[{ before: startDate }]}
                         styles={{
-                          root: {fontSize: '14px'},
-                          table: {width: '100%', maxWidth: '100%'},
-                          cell: {padding: '4px', textAlign: 'center'},
-                          day: {width: '32px', height: '32px', fontSize: '12px'}
+                          root: { fontSize: '14px' },
+                          table: { width: '100%', maxWidth: '100%' },
+                          cell: { padding: '4px', textAlign: 'center' },
+                          day: { width: '32px', height: '32px', fontSize: '12px' }
                         }}
                       />
                     </div>
@@ -503,6 +509,17 @@ const SetSchedule = () => {
             {/* First Row: Hours + Select Days */}
             <div className="flex flex-col lg:flex-row gap-6 mt-2">
               <div className="w-full lg:w-1/2">
+
+                <h3
+                  className="text-base sm:text-lg font-medium text-[#1E1E2F] mb-3">{translator("Select Class Section", "आप किस समय पर शुरू करना चाहते हैं?")}</h3>
+                {classes.map((c: any) => { // Added type annotation for 'c'
+                  return (
+                    <div key={c.sectionName}> {/* Added key for list items */}
+                      <input type="checkbox" value={c.sectionName}></input>
+                      <label htmlFor={c.sectionName}>{c.sectionName}</label>
+                    </div>
+                  )
+                })}
                 <h3
                   className="text-base sm:text-lg font-medium text-[#1E1E2F] mb-3">{translator("At What Time You Prefer to Start ?", "आप किस समय पर शुरू करना चाहते हैं?")}</h3>
 
@@ -556,7 +573,7 @@ const SetSchedule = () => {
                         className="w-4 h-4 rounded border-2 accent-indigo-600 transition-transform duration-200 hover:scale-110"
                       />
                       <label htmlFor={`day-${day}`}
-                             className="capitalize text-xs sm:text-sm cursor-pointer">
+                        className="capitalize text-xs sm:text-sm cursor-pointer">
                         {translator(day,
                           day === "monday" ? "सोमवार" :
                             day === "tuesday" ? "मंगलवार" :
@@ -576,14 +593,14 @@ const SetSchedule = () => {
 
             {/* want to get notified on whatsapp */}
             <div>
-              <label style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <input type="checkbox" name="whatsappNotify" checked={whatsappNotify}
-                       onChange={() => setWhatsappNotify(!whatsappNotify)}/>
+                  onChange={() => setWhatsappNotify(!whatsappNotify)} />
                 Notify me on WhatsApp
               </label>
             </div>
 
-            {localStorage.getItem("premiumTopicId") !== null &&
+            {typeof window !== 'undefined' && localStorage.getItem("premiumTopicId") !== null &&
               (
                 < div className="flex flex-col lg:flex-row gap-6 mt-4">
                   <div className="flex flex-col space-x-2">
@@ -724,4 +741,3 @@ const SetSchedule = () => {
 };
 
 export default SetSchedule;
-

@@ -10,6 +10,8 @@ interface Class {
   teacherId: string;
   createdAt?: string;
   departmentId?: string;
+  motherClassId?:string;
+  optional?:boolean
 }
 
 export function useAddClass() {
