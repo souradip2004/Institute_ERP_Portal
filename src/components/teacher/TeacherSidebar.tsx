@@ -35,7 +35,7 @@ useEffect(()=>{
   if(localStorage.getItem("user")){
     const data=JSON.parse(localStorage.getItem("user"))?.institutionId;
     const fetchInstitute=async()=>{
-      const institutionRes = await fetch(`http//localhost:3000/api/institutions/${data}`, {
+      const institutionRes = await fetch(`http://localhost:3000/api/institutions/${data}`, {
       cache: "no-store",
     });
     let institutionData = await institutionRes.json();
