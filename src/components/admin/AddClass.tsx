@@ -168,9 +168,11 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
     })
       .then((res) => res.json())
       .then((data) => {
+        console.log(data)
+        console.log(id)
         const filteredTeachers = data.filter((teacher: Teacher) => teacher.user.institutionId === id);
         setTeacherData(filteredTeachers);
-        console.log(teacherData)
+        console.log("here are filtered Teachers",filteredTeachers)
         
       })
       .catch((error) => {
@@ -472,7 +474,9 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
             <label className="block text-sm font-medium text-gray-700 mb-1">Select Teachers for this Class Section</label>
             <p className="text-xs text-gray-500 mb-2">Choose all teachers who will teach in this class section.</p>
             <div className={`border p-2 rounded-md h-32 overflow-y-auto ${!isDepartmentSelected ? 'bg-gray-100 text-gray-400' : 'bg-white'}`}>
-              {teacherData.filter((c)=>c.departmentId==classData.department).map((teacher) => (
+              {teacherData.filter((c)=>{
+                    const departmentIdToSubmit = allDepartments.find((dept) => dept.name === classData.department)?.id;
+              return  c.departmentId==departmentIdToSubmit}).map((teacher) => (
                 <label key={teacher.id} className={`flex items-center space-x-2 py-1 ${!isDepartmentSelected ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
                   <input
                     type="checkbox"
