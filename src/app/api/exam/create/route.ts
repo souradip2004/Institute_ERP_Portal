@@ -148,13 +148,13 @@ export async function POST(req: NextRequest) {
       data: questions.map((q: any) => ({
         examId: exam.id,
         questionText: q.question,
-        questionType: "MCQ", // Assuming all are MCQs now, or you can make this dynamic
+        questionType: q.questionType, // Assuming all are MCQs now, or you can make this dynamic
         correctAnswer: Array.isArray(q.answer) ? q.answer : [q.answer],
         marks: 1, // Default marks, can be dynamic if needed
         difficultyLevel: "MEDIUM", // Default difficulty, can be dynamic if needed
         createdById: teacher.id,
         options: q.options || [], // Store options for MCQs
-      })),
+      }))
     });
 
     return NextResponse.json({ success: true, examId: exam.id });
