@@ -1,15 +1,20 @@
+// pages/teacher/exams.tsx (frontend page)
+
 "use client";
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { format } from "date-fns";
 import Loader from '@/components/ui/Loader';
-import { Calendar, Clock, CheckCheck, X, FileText, BookOpen, GraduationCap, XCircle } from 'lucide-react';
+import { Calendar, Clock, CheckCheck, X, FileText, BookOpen, GraduationCap, XCircle, PlusCircle } from 'lucide-react';
 import { forceLogout as logoutAndRedirect } from "@/lib/logout-utils";
 
+// Updated Question Interface
 interface Question {
   question: string;
   answer: string | string[] | null;
+  options?: string[]; // Options are still part of the interface as manual entry can be MCQ
   isSelected: boolean;
+  questionType: 'MCQ' | 'LONG_ANSWER'; // Added questionType
 }
 
 interface TeacherClassSection {
@@ -78,7 +83,7 @@ interface Exam {
   questions: Array<{
     id: string;
     questionText: string;
-    questionType?: string;
+    questionType?: string; // This will now correctly reflect 'MCQ' or 'LONG_ANSWER'
     marks: number;
     options?: string[];
     correctAnswer?: string[];
@@ -115,7 +120,8 @@ export default function ExamsPage({ params }: ExamsPageProps) {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [numQuestions, setNumQuestions] = useState<string>("2");
-  const [questionMode,setQuestionmode]=useState(false)
+  const [questionMode, setQuestionmode] = useState(false) // false for AI, true for Manual
+
   // New states for additional exam fields
   const [classSections, setClassSections] = useState<TeacherClassSection[]>([]);
   const [selectedClassSection, setSelectedClassSection] = useState("");
@@ -132,115 +138,114 @@ export default function ExamsPage({ params }: ExamsPageProps) {
 
   const [selectedExam, setSelectedExam] = useState<Exam | null>(null);
   const [loadingExamDetails, setLoadingExamDetails] = useState(false);
-  const [creditsData,setcreditsData]=useState(null)
-  useEffect(()=>{
-    if(localStorage.getItem("user")){
-      const getData=async()=>{
-      const now = new Date();
-      const month = now.getMonth() + 1; // getMonth() is zero-based
-      const year = now.getFullYear();
-   const result= await fetch(`/api/credits/${JSON.parse(localStorage.getItem("user")).institutionId}?month=${month}&year=${year}`,{
-      method:"GET",
-      headers:{
-        "Content-Type":"application/json"
-      }
-    })
-    if(result.ok){
-      const res=await result.json();
-      setcreditsData(res);
-      console.log(res);
-    }
-    else{
-      alert("error in fetcginf")
-    }
-    
-    
-        }
-        getData();
-      }
-  },[])
-   const updateCoins=async(QuestionCount:Number)=>{
-    const now = new Date();
-      const month = now.getMonth() + 1; // getMonth() is zero-based
-      const year = now.getFullYear();
-      console.log("Current Credit Balance",creditsData)
+  const [creditsData, setcreditsData] = useState<any>(null)
 
-    const result=await fetch(`/api/credits/${JSON.parse(localStorage.getItem("user")).institutionId}?month=${month}&year=${year}`,{
-      method:"POST",
-            headers:{
-        "Content-Type":"application/json"
+  useEffect(() => {
+    if (localStorage.getItem("user")) {
+      const getData = async () => {
+        const now = new Date();
+        const month = now.getMonth() + 1; // getMonth() is zero-based
+        const year = now.getFullYear();
+        const result = await fetch(`/api/credits/${JSON.parse(localStorage.getItem("user")!).institutionId}?month=${month}&year=${year}`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json"
+          }
+        })
+        if (result.ok) {
+          const res = await result.json();
+          setcreditsData(res);
+          console.log(res);
+        }
+        else {
+          alert("Error in fetching credits data");
+        }
+      }
+      getData();
+    }
+  }, [])
+
+  const updateCoins = async (QuestionCount: Number) => {
+    const now = new Date();
+    const month = now.getMonth() + 1; // getMonth() is zero-based
+    const year = now.getFullYear();
+    console.log("Current Credit Balance", creditsData)
+
+    const result = await fetch(`/api/credits/${JSON.parse(localStorage.getItem("user")!).institutionId}?month=${month}&year=${year}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
       },
-      body:JSON.stringify({
+      body: JSON.stringify({
         questionPaperCreditsBalance: creditsData ? Number(creditsData?.questionPaperCreditsBalance) + (questionMode ? 0.5 * Number(QuestionCount) : Number(QuestionCount)) : 0,
         total: creditsData ? Number(creditsData?.total) + (questionMode ? 0.5 * Number(QuestionCount) : Number(QuestionCount)) : 0
       })
 
     })
-    if(result.ok){
-      const res=await result.json();
-    }else{
+    if (result.ok) {
+      const res = await result.json();
+    } else {
+      // Handle error updating credits
     }
   }
+
   // Force logout and redirect to login
   const forceLogout = () => {
     const errorMessage = 'Your session was invalid. Please log in again.';
     // Use the utility function with a custom error message and delay
     logoutAndRedirect(errorMessage, 2000);
   };
-const uploadFileToS3 = async (file: File) => {
-  try {
-    const formData = new FormData();
-    formData.append('pdf', file);
 
-    // Create a custom XMLHttpRequest to track upload progress
-    return new Promise<{
-      url: string;
-      fileName: string;
-      fileType: string;
-      fileSize: number;
-    }>((resolve, reject) => {
-      const xhr = new XMLHttpRequest();
+  const uploadFileToS3 = async (file: File) => {
+    try {
+      const formData = new FormData();
+      formData.append('pdf', file);
 
-      xhr.upload.addEventListener('progress', (event) => {
-        if (event.lengthComputable) {
-          const percentComplete = Math.round((event.loaded / event.total) * 100);
-          // You can update a progress bar here if needed
-        }
-      });
+      // Create a custom XMLHttpRequest to track upload progress
+      return new Promise<{
+        url: string;
+        fileName: string;
+        fileType: string;
+        fileSize: number;
+      }>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
 
-      xhr.onreadystatechange = function () {
-        if (xhr.readyState === 4) {
-          if (xhr.status === 200) {
-            const response = JSON.parse(xhr.responseText);
-            if (response.success) {
-              resolve({
-                url: response.url,
-                fileName: response.fileName,
-                fileType: response.fileType,
-                fileSize: response.fileSize
-              });
-            } else {
-              reject(new Error(response.message || 'Upload failed'));
-            }
-          } else {
-            reject(new Error(`Upload failed with status: ${xhr.status}`));
+        xhr.upload.addEventListener('progress', (event) => {
+          if (event.lengthComputable) {
+            const percentComplete = Math.round((event.loaded / event.total) * 100);
+            // You can update a progress bar here if needed
           }
-        }
-      };
+        });
 
-      xhr.open('POST', '/api/upload/pdf', true);
-      xhr.send(formData);
-    });
-  } catch (error) {
-    console.error("Error uploading file to S3:", error);
-    throw error;
-  }
-};
+        xhr.onreadystatechange = function () {
+          if (xhr.readyState === 4) {
+            if (xhr.status === 200) {
+              const response = JSON.parse(xhr.responseText);
+              if (response.success) {
+                resolve({
+                  url: response.url,
+                  fileName: response.fileName,
+                  fileType: response.fileType,
+                  fileSize: response.fileSize
+                });
+              } else {
+                reject(new Error(response.message || 'Upload failed'));
+              }
+            } else {
+              reject(new Error(`Upload failed with status: ${xhr.status}`));
+            }
+          }
+        };
 
-// Example usage:
-// const file = ... // get a File object from an <input type="file" />
-// const result = await uploadFileToS3(file);
-// const fileUrl = result.url;
+        xhr.open('POST', '/api/upload/pdf', true);
+        xhr.send(formData);
+      });
+    } catch (error) {
+      console.error("Error uploading file to S3:", error);
+      throw error;
+    }
+  };
+
   // Check if user is authenticated as a teacher
   const checkAuthStatus = async () => {
     try {
@@ -414,9 +419,12 @@ const uploadFileToS3 = async (file: File) => {
       });
 
       if (response.data.questions) {
-        const extractedQuestions = response.data.questions.map((q: Question) => ({
+        const extractedQuestions = response.data.questions.map((q: any) => ({
           ...q,
+          // For AI generated long answers, options are not relevant, so we ensure it's empty
+          options: [],
           isSelected: false,
+          questionType: 'LONG_ANSWER', // AI generated questions are now explicitly LONG_ANSWER
         }));
         setQuestions(extractedQuestions);
         setTotalMarks(extractedQuestions.length.toString());
@@ -434,12 +442,36 @@ const uploadFileToS3 = async (file: File) => {
   const handleCreateExam = async () => {
     const selectedQuestions = questions
       .filter((q) => q.isSelected)
-      .map(({ question, answer }) => ({ question, answer }));
+      .map(({ question, answer, options, questionType }) => ({ question, answer, options, questionType })); // Include questionType
 
     if (selectedQuestions.length === 0) {
       setError("Please select at least one question");
       return;
     }
+
+    // Validation for question-specific fields
+    for (const q of selectedQuestions) {
+        if (!q.question.trim()) {
+            setError("All selected questions must have text.");
+            return;
+        }
+        if (!q.answer || (Array.isArray(q.answer) && q.answer.length === 0) || (typeof q.answer === 'string' && !q.answer.trim())) {
+            setError(`Question "${q.question}" must have an answer.`);
+            return;
+        }
+        if (q.questionType === 'MCQ') {
+            if (!q.options || q.options.length < 2 || q.options.some(opt => !opt.trim())) {
+                setError(`MCQ question "${q.question}" must have at least two non-empty options.`);
+                return;
+            }
+            // For MCQ, ensure the answer is one of the options (case-insensitive and trim)
+            if (typeof q.answer === 'string' && !q.options.map(opt => opt.trim().toLowerCase()).includes(q.answer.trim().toLowerCase())) {
+                setError(`MCQ question "${q.question}"'s answer must be one of the provided options.`);
+                return;
+            }
+        }
+    }
+
 
     if (!examTitle.trim()) {
       setError("Please enter an exam title");
@@ -475,9 +507,9 @@ const uploadFileToS3 = async (file: File) => {
       setLoading(true);
       updateCoins(questions.length)
       const response = await axios.post(
-        "/api/exam/create",
+        "/api/exam/create", // Ensure this path is correct based on your API route file
         {
-          userId:JSON.parse(localStorage.getItem('user')),
+          userId: JSON.parse(localStorage.getItem('user')!),
           title: examTitle,
           questions: selectedQuestions,
           classSectionId: selectedClassSection,
@@ -525,10 +557,67 @@ const uploadFileToS3 = async (file: File) => {
     );
   };
 
+  const handleOptionChange = (qIndex: number, oIndex: number, value: string) => {
+    setQuestions(prevQuestions => {
+      const newQuestions = [...prevQuestions];
+      if (newQuestions[qIndex].options) {
+        newQuestions[qIndex].options![oIndex] = value;
+      }
+      return newQuestions;
+    });
+  };
+
+  const handleAddOption = (qIndex: number) => {
+    setQuestions(prevQuestions => {
+      const newQuestions = [...prevQuestions];
+      if (!newQuestions[qIndex].options) {
+        newQuestions[qIndex].options = [];
+      }
+      newQuestions[qIndex].options!.push('');
+      return newQuestions;
+    });
+  };
+
+  const handleRemoveOption = (qIndex: number, oIndex: number) => {
+    setQuestions(prevQuestions => {
+      const newQuestions = [...prevQuestions];
+      if (newQuestions[qIndex].options) {
+        newQuestions[qIndex].options!.splice(oIndex, 1);
+      }
+      return newQuestions;
+    });
+  };
+
+  const handleQuestionTypeChange = (qIndex: number, type: 'MCQ' | 'LONG_ANSWER') => {
+    setQuestions(prevQuestions => {
+      const newQuestions = [...prevQuestions];
+      newQuestions[qIndex].questionType = type;
+      // Clear options if switching to LONG_ANSWER, or initialize for MCQ if needed
+      if (type === 'LONG_ANSWER') {
+        newQuestions[qIndex].options = []; // Clear options for long answer
+        if (Array.isArray(newQuestions[qIndex].answer)) {
+            newQuestions[qIndex].answer = ''; // Long answer expects a single string answer
+        }
+      } else {
+        // Ensure options array exists and has some initial empty options for MCQ
+        if (!newQuestions[qIndex].options || newQuestions[qIndex].options.length === 0) {
+            newQuestions[qIndex].options = ['', '', '', ''];
+        }
+        // If current answer is array (e.g., from a past long answer type that allowed multiple lines),
+        // convert to string or clear it for MCQ.
+        if (Array.isArray(newQuestions[qIndex].answer)) {
+            newQuestions[qIndex].answer = newQuestions[qIndex].answer[0] || ''; // Take first element or empty
+        }
+      }
+      return newQuestions;
+    });
+  };
+
+
   const fetchExamDetails = async (examId: string) => {
     try {
       setLoadingExamDetails(true);
-      const response = await axios.get(`/api/exam/${examId}/${JSON.parse(localStorage.getItem('user')).id}`, {
+      const response = await axios.get(`/api/exam/${examId}/${JSON.parse(localStorage.getItem('user')!).id}`, {
         withCredentials: true,
       });
       setSelectedExam(response.data.exam);
@@ -591,12 +680,16 @@ const uploadFileToS3 = async (file: File) => {
       {activeTab === 'create' ? (
         // Create Exam Form
         <div className="bg-white shadow-md rounded-lg overflow-visible">
-          
+
           <div className="p-6 border-b border-gray-200">
             <div className="flex justify-end mb-4">
               <button
                 type="button"
-                onClick={() => setQuestionmode(!questionMode)}
+                onClick={() => {
+                  setQuestionmode(!questionMode);
+                  setQuestions([]); // Clear questions when switching mode for a clean slate
+                  setPdfUrl(''); // Clear PDF URL as well
+                }}
                 className={`inline-flex items-center px-4 py-2 rounded-md font-medium transition-colors shadow-sm border
                   ${!questionMode
                     ? "bg-indigo-600 text-white hover:bg-indigo-700 border-indigo-600"
@@ -738,71 +831,83 @@ const uploadFileToS3 = async (file: File) => {
                   />
                 </div>
               </div>
-             
+
               {!questionMode && (
-              <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                <h3 className="font-medium text-gray-700 mb-3">Question Generator</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Upload PDF
-                    </label>
-                    <input
-                      type="file"
-                      accept="application/pdf"
-                      onChange={async (e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          try {
-                            setLoading(true);
-                            setError("");
-                            const result = await uploadFileToS3(file);
-                            setPdfUrl(result.url);
-                          } catch (err: any) {
-                            setError("Failed to upload PDF. Please try again.");
-                          } finally {
-                            setLoading(false);
+                <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                  <h3 className="font-medium text-gray-700 mb-3">Question Generator (AI)</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Upload PDF
+                      </label>
+                      <input
+                        type="file"
+                        accept="application/pdf"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            try {
+                              setLoading(true);
+                              setError("");
+                              const result = await uploadFileToS3(file);
+                              setPdfUrl(result.url);
+                            } catch (err: any) {
+                              setError("Failed to upload PDF. Please try again.");
+                            } finally {
+                              setLoading(false);
+                            }
                           }
-                        }
-                      }}
-                      className="w-full px-4 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors bg-white"
-                    />
+                        }}
+                        className="w-full px-4 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors bg-white"
+                      />
 
-                    {pdfUrl && (
-                      <div className="mt-2 text-xs text-green-700 break-all">
-                        Uploaded: <a href={pdfUrl} target="_blank" rel="noopener noreferrer" className="underline">{pdfUrl}</a>
-                      </div>
-                    )}
+                      {pdfUrl && (
+                        <div className="mt-2 text-xs text-green-700 break-all">
+                          Uploaded: <a href={pdfUrl} target="_blank" rel="noopener noreferrer" className="underline">{pdfUrl}</a>
+                        </div>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Number of Questions (Long Answer)
+                      </label>
+                      <input
+                        type="number"
+                        value={numQuestions}
+                        onChange={(e) => setNumQuestions(e.target.value)}
+                        className="w-full px-4 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors"
+                      />
+                    </div>
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Number of Questions
-                    </label>
-                    <input
-                      type="number"
-                      value={numQuestions}
-                      onChange={(e) => setNumQuestions(e.target.value)}
-                      className="w-full px-4 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors"
-                    />
-                  </div>
+                  <button
+                    onClick={extractQuestions}
+                    disabled={loading}
+                    className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 transition-colors"
+                  >
+                    {loading ? <Loader size="small" /> : "Extract Long Answer Questions from PDF"}
+                  </button>
                 </div>
-
-                <button
-                  onClick={extractQuestions}
-                  disabled={loading}
-                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 transition-colors"
-                >
-                  {loading ? <Loader size="small" /> : "Extract Questions from PDF"}
-                </button>
-              </div>
               )}
-              {questionMode &&(
+              {questionMode && (
                 <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
                   <h3 className="font-medium text-gray-700 mb-3">Manual Question Entry</h3>
                   <div className="space-y-4">
                     {questions.map((q, idx) => (
-                      <div key={idx} className="flex flex-col md:flex-row gap-2 items-start md:items-center">
+                      <div key={idx} className="bg-white p-4 rounded-md shadow-sm border border-gray-200">
+                        <div className="flex justify-between items-center mb-3">
+                          <label className="block text-sm font-medium text-gray-700">
+                            Question {idx + 1}
+                          </label>
+                          <button
+                            type="button"
+                            className="text-red-500 hover:text-red-700"
+                            onClick={() => setQuestions(questions.filter((_, i) => i !== idx))}
+                          >
+                            <X className="h-5 w-5" />
+                          </button>
+                        </div>
                         <input
                           type="text"
                           value={q.question}
@@ -811,27 +916,88 @@ const uploadFileToS3 = async (file: File) => {
                             updated[idx].question = e.target.value;
                             setQuestions(updated);
                           }}
-                          className="flex-1 px-3 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors"
-                          placeholder={`Question ${idx + 1}`}
+                          className="w-full px-3 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors mb-3"
+                          placeholder={`Enter Question ${idx + 1}`}
                         />
-                        <input
-                          type="text"
-                          value={typeof q.answer === "string" ? q.answer : ""}
-                          onChange={e => {
-                            const updated = [...questions];
-                            updated[idx].answer = e.target.value;
-                            setQuestions(updated);
-                          }}
-                          className="flex-1 px-3 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors"
-                          placeholder="Answer"
-                        />
-                        <button
-                          type="button"
-                          className="text-red-500 hover:text-red-700 px-2 py-1"
-                          onClick={() => setQuestions(questions.filter((_, i) => i !== idx))}
-                        >
-                          <X className="h-5 w-5" />
-                        </button>
+
+                        {/* Question Type Selector */}
+                        <div className="mb-3">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Question Type
+                            </label>
+                            <select
+                                value={q.questionType}
+                                onChange={e => handleQuestionTypeChange(idx, e.target.value as 'MCQ' | 'LONG_ANSWER')}
+                                className="w-full px-3 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors"
+                            >
+                                <option value="MCQ">MCQ (Multiple Choice)</option>
+                                <option value="LONG_ANSWER">Long Answer</option>
+                            </select>
+                        </div>
+
+                        {/* Options for MCQ - conditionally rendered */}
+                        {q.questionType === 'MCQ' && (
+                          <div className="space-y-2 mb-3">
+                            <label className="block text-sm font-medium text-gray-700">Options:</label>
+                            {q.options?.map((option, oIndex) => (
+                              <div key={oIndex} className="flex items-center gap-2">
+                                <input
+                                  type="text"
+                                  value={option}
+                                  onChange={e => handleOptionChange(idx, oIndex, e.target.value)}
+                                  className="flex-1 px-3 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors"
+                                  placeholder={`Option ${oIndex + 1}`}
+                                />
+                                <button
+                                  type="button"
+                                  className="text-red-500 hover:text-red-700"
+                                  onClick={() => handleRemoveOption(idx, oIndex)}
+                                >
+                                  <X className="h-5 w-5" />
+                                </button>
+                              </div>
+                            ))}
+                            <button
+                              type="button"
+                              onClick={() => handleAddOption(idx)}
+                              className="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                            >
+                              <PlusCircle className="h-4 w-4 mr-2" /> Add Option
+                            </button>
+                          </div>
+                        )}
+
+                        {/* Correct Answer */}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Correct Answer
+                          </label>
+                          {q.questionType === 'MCQ' ? (
+                            <input
+                              type="text"
+                              value={typeof q.answer === "string" ? q.answer : ""}
+                              onChange={e => {
+                                const updated = [...questions];
+                                updated[idx].answer = e.target.value;
+                                setQuestions(updated);
+                              }}
+                              className="w-full px-3 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors"
+                              placeholder="Enter correct answer (must match an option)"
+                            />
+                          ) : (
+                            <textarea
+                              value={typeof q.answer === "string" ? q.answer : ""}
+                              onChange={e => {
+                                const updated = [...questions];
+                                updated[idx].answer = e.target.value;
+                                setQuestions(updated);
+                              }}
+                              rows={3}
+                              className="w-full px-3 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors"
+                              placeholder="Enter detailed expected answer"
+                            ></textarea>
+                          )}
+                        </div>
                       </div>
                     ))}
                     <button
@@ -840,11 +1006,11 @@ const uploadFileToS3 = async (file: File) => {
                       onClick={() =>
                         setQuestions([
                           ...questions,
-                          { question: "", answer: "", isSelected: true }
+                          { question: "", answer: "", options: ['', '', '', ''], isSelected: true, questionType: 'LONG_ANSWER' } // Default new question to LONG_ANSWER
                         ])
                       }
                     >
-                      Add Question
+                      Add New Question
                     </button>
                   </div>
                 </div>
@@ -855,7 +1021,7 @@ const uploadFileToS3 = async (file: File) => {
                   <div className="p-4 bg-purple-50 border-b border-gray-200">
                     <div className="flex items-center justify-between">
                       <h3 className="font-semibold text-purple-800">
-                        Generated Questions ({questions.filter(q => q.isSelected).length}/{questions.length} selected)
+                        {questionMode ? "Manual Entry Questions" : "Generated Questions"} ({questions.filter(q => q.isSelected).length}/{questions.length} selected)
                       </h3>
                       <button
                         className="text-xs text-purple-700 hover:text-purple-900"
@@ -880,6 +1046,18 @@ const uploadFileToS3 = async (file: File) => {
                           />
                           <div>
                             <p className="font-medium text-gray-800">Q{index + 1}: {q.question}</p>
+                            <p className="text-sm text-gray-500 italic">Type: {q.questionType.replace('_', ' ')}</p> {/* Display type */}
+
+                            {q.questionType === 'MCQ' && q.options && q.options.length > 0 && (
+                              <div className="text-sm text-gray-600 mt-1 pl-4">
+                                <span className="font-medium">Options: </span>
+                                <ul className="list-disc pl-5 mt-1 space-y-1">
+                                  {q.options.map((option, i) => (
+                                    <li key={i}>{option}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
                             <div className="text-sm text-gray-600 mt-1 pl-4">
                               <span className="font-medium">Answer: </span>
                               {q.answer ? (
@@ -890,11 +1068,7 @@ const uploadFileToS3 = async (file: File) => {
                                     ))}
                                   </ul>
                                 ) : typeof q.answer === "string" ? (
-                                  <div className="pl-2 border-l-2 border-gray-300 mt-1">
-                                    {q.answer.split(". ").map((option, i) => (
-                                      <p key={i} className="mb-1">{option}</p>
-                                    ))}
-                                  </div>
+                                  <p className="pl-2 border-l-2 border-gray-300 mt-1">{q.answer}</p>
                                 ) : (
                                   <span className="italic">No answer available</span>
                                 )
@@ -1100,8 +1274,10 @@ const uploadFileToS3 = async (file: File) => {
                         </span>
                       </div>
                       <p className="text-gray-700 mb-3">{question.questionText}</p>
+                      <p className="text-sm text-gray-500 italic">Type: {question.questionType?.replace('_', ' ')}</p> {/* Display type */}
 
-                      {question.options && question.options.length > 0 && (
+
+                      {question.questionType === 'MCQ' && question.options && question.options.length > 0 && (
                         <div className="mt-2">
                           <p className="text-sm font-medium text-gray-700 mb-1">Options:</p>
                           <ul className="space-y-1 ml-5 list-disc">
