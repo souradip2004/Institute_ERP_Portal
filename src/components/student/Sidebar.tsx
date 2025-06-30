@@ -1,8 +1,8 @@
 'use client';
-import {useState, useEffect, useCallback} from 'react'; // Added useCallback
+import { useState, useEffect, useCallback } from 'react'; // Added useCallback
 import Link from 'next/link';
-import {usePathname} from 'next/navigation';
-import {LogoutButton} from '@/components/auth/logout-button';
+import { usePathname } from 'next/navigation';
+import { LogoutButton } from '@/components/auth/logout-button';
 import {
   LayoutDashboard,
   NotebookText,
@@ -16,17 +16,18 @@ import {
   X // Added for the close icon
 } from 'lucide-react';
 import Image from 'next/image';
-import {FaRegLightbulb} from "react-icons/fa";
+import { FaRegLightbulb } from "react-icons/fa";
 
 interface SidebarProps {
   onSidebarToggle: (isOpen: boolean) => void; // Callback to inform parent of sidebar state
 }
 
-export default function Sidebar({onSidebarToggle}: SidebarProps) {
+export default function Sidebar({ onSidebarToggle }: SidebarProps) {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(true); // Default to open for desktop, adjust based on initial screen size
   const [isMobile, setIsMobile] = useState(false); // State to track mobile view
   const [institution, setImstitution] = useState(null);
+  const [color, setColor] = useState<string>("");
   useEffect(() => {
     if (localStorage.getItem("user")) {
       const data = JSON.parse(localStorage.getItem("user"))?.institutionId;
@@ -36,6 +37,7 @@ export default function Sidebar({onSidebarToggle}: SidebarProps) {
         });
         let institutionData = await institutionRes.json();
         setImstitution(institutionData)
+        setColor(institutionData.primaryColor)
       }
       fetchInstitute();
     }
@@ -85,14 +87,14 @@ export default function Sidebar({onSidebarToggle}: SidebarProps) {
   };
 
   const menuItems = [
-    {title: 'My Classes', href: '/s/dashboard', icon: <LayoutDashboard size={18}/>},
-    {title: 'Notes Library', href: '/s/notes', icon: <NotebookText size={18}/>},
-    {title: 'Assignments', href: '/s/assignments', icon: <BookOpenCheck size={18}/>},
-    {title: 'Exams and Reports', href: '/s/exams', icon: <FileText size={18}/>},
-    {title: 'Mentorship', href: '/s/mentorship', icon: <Sparkles size={18}/>},
-    {title: 'Report Card', href: '/s/report', icon: <BarChart3 size={18}/>},
-    {title: 'Ask Teacher', href: '/s/ask-teacher', icon: <MessageSquareQuoteIcon size={18}/>},
-    {title: 'Smart Resources', href: '/s/smart-resources', icon: <FaRegLightbulb size={18}/>},
+    { title: 'My Classes', href: '/s/dashboard', icon: <LayoutDashboard size={18} /> },
+    { title: 'Notes Library', href: '/s/notes', icon: <NotebookText size={18} /> },
+    { title: 'Assignments', href: '/s/assignments', icon: <BookOpenCheck size={18} /> },
+    { title: 'Exams and Reports', href: '/s/exams', icon: <FileText size={18} /> },
+    { title: 'Mentorship', href: '/s/mentorship', icon: <Sparkles size={18} /> },
+    { title: 'Report Card', href: '/s/report', icon: <BarChart3 size={18} /> },
+    { title: 'Ask Teacher', href: '/s/ask-teacher', icon: <MessageSquareQuoteIcon size={18} /> },
+    { title: 'Smart Resources', href: '/s/smart-resources', icon: <FaRegLightbulb size={18} /> },
   ];
 
   return (
@@ -104,7 +106,7 @@ export default function Sidebar({onSidebarToggle}: SidebarProps) {
           className="fixed top-4 left-4 z-50 p-2 bg-blue-600 text-white rounded-md md:hidden" // md:hidden hides it on desktop
           aria-label={isOpen ? "Close sidebar" : "Open sidebar"}
         >
-          {isOpen ? <X size={24}/> : <Menu size={24}/>}
+          {isOpen ? <X size={24} /> : <Menu size={24} />}
         </button>
       )}
 
@@ -116,7 +118,7 @@ export default function Sidebar({onSidebarToggle}: SidebarProps) {
             ${isOpen ? 'left-68' : 'left-4'}`} /* Adjust left position based on sidebar state */
           aria-label={isOpen ? "Collapse sidebar" : "Expand sidebar"}
         >
-          {!isOpen && <Menu size={24}/>}
+          {!isOpen && <Menu size={24} />}
         </button>
       )}
 
@@ -155,7 +157,7 @@ export default function Sidebar({onSidebarToggle}: SidebarProps) {
                 className="p-2 text-gray-500 hover:text-gray-700"
                 aria-label="Close sidebar"
               >
-                <X size={24}/>
+                <X size={24} />
               </button>
             )}
           </div>
@@ -166,12 +168,12 @@ export default function Sidebar({onSidebarToggle}: SidebarProps) {
               const isActive = pathname === item.href || (pathname?.startsWith(item.href + '/'));
 
               const commonClasses = "flex items-center px-4 py-3 text-base rounded-md transition-colors group"; // Added group for hover effects
-              const activeClasses = "bg-blue-50 text-blue-700 font-medium";
+              const activeClasses = `bg-[${color}] text-white font-medium`;
               const inactiveClasses = "text-gray-700 hover:bg-gray-100";
 
               return (
                 <Link key={item.title} href={item.href as any} onClick={handleNavLinkClick}
-                      className={`${commonClasses} ${isActive ? activeClasses : inactiveClasses}`}
+                  className={`${commonClasses} ${isActive ? activeClasses : inactiveClasses}`}
                 >
                   <span
                     className={`mr-3 ${isActive ? 'text-blue-700' : 'text-gray-500 group-hover:text-blue-700'}`}>{item.icon}</span>
@@ -185,8 +187,8 @@ export default function Sidebar({onSidebarToggle}: SidebarProps) {
           <div
             className="mt-auto p-4 border-t border-gray-200 sticky bottom-0 bg-white z-10"> {/* Added sticky, bottom-0, bg-white, z-10 */}
             <div className="flex items-center">
-              <LogOut size={18} className="mr-3 text-gray-700"/>
-              <LogoutButton className="text-gray-700 w-fit text-left"/>
+              <LogOut size={18} className="mr-3 text-gray-700" />
+              <LogoutButton className="text-gray-700 w-fit text-left" />
             </div>
           </div>
         </div>
