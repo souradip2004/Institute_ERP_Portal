@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 
 import Image from 'next/image';
-import {FaRegLightbulb} from "react-icons/fa";
+import { FaRegLightbulb } from "react-icons/fa";
 
 interface TeacherSidebarProps {
   onSidebarToggle: (isOpen: boolean) => void; // Callback to inform parent of sidebar state
@@ -30,20 +30,25 @@ export default function TeacherSidebar({ onSidebarToggle }: TeacherSidebarProps)
   const [classId, setClassId] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(true); // Changed: Default to OPEN for desktop initially
   const [isMobile, setIsMobile] = useState(false); // State to track mobile view
-  const [institution,setImstitution]=useState(null);
-useEffect(()=>{
-  if(localStorage.getItem("user")){
-    const data=JSON.parse(localStorage.getItem("user"))?.institutionId;
-    const fetchInstitute=async()=>{
-      const institutionRes = await fetch(`http://localhost:3000/api/institutions/${data}`, {
-      cache: "no-store",
-    });
-    let institutionData = await institutionRes.json();
-    setImstitution(institutionData)
+  const [institution, setImstitution] = useState(null);
+  const [color, setColor] = useState<string>("");
+
+  useEffect(() => {
+    if (localStorage.getItem("user")) {
+      const data = JSON.parse(localStorage.getItem("user"))?.institutionId;
+      const fetchInstitute = async () => {
+        const institutionRes = await fetch(`http://localhost:3000/api/institutions/${data}`, {
+          cache: "no-store",
+        });
+        let institutionData = await institutionRes.json();
+        setImstitution(institutionData)
+        setColor(institutionData.primaryColor);
+        console.log('color--- ', color);
+      }
+      fetchInstitute();
+
     }
-    fetchInstitute();
-  }
-},[])
+  }, [])
   // Memoize the callback to prevent unnecessary re-renders in parent
   const memoizedOnSidebarToggle = useCallback(
     (openStatus: boolean) => {
@@ -123,7 +128,7 @@ useEffect(()=>{
     { name: 'Attendance', href: '/t/attendance', icon: <CalendarCheck2 size={18} />, onClick: handleNavLinkClick },
     { name: 'Classes', href: '/t/classes', icon: <Users2 size={18} />, onClick: handleNavLinkClick },
     { name: 'Copy checking', href: '/t/pythonCopyChecking', icon: <FileText size={18} />, onClick: handleNavLinkClick },
-    {name: 'Smart Resources',href:'/t/smart-resources',icon:<FaRegLightbulb size={18}/>,onClick:handleNavLinkClick},
+    { name: 'Smart Resources', href: '/t/smart-resources', icon: <FaRegLightbulb size={18} />, onClick: handleNavLinkClick },
   ];
 
   return (
@@ -169,14 +174,14 @@ useEffect(()=>{
           {/* Logo and Close Button (always visible when sidebar is open) */}
           <div className="mb-8 flex items-center justify-between">
             <Image
-              src={(institution&&institution.logoUrl)?institution.logoUrl:"/logo.png"}
+              src={(institution && institution.logoUrl) ? institution.logoUrl : "/logo.png"}
               alt="Logo"
-              width={institution?40:160}
+              width={institution ? 40 : 160}
               height={40}
               className="object-contain"
             />
-             {(institution&&institution.logoUrl) && (
-                <span className="text-sm font-semibold text-gray-800 ml-2 whitespace-normal break-words w-full block leading-tight">{institution?.name}</span>
+            {(institution && institution.logoUrl) && (
+              <span className="text-sm font-semibold text-gray-800 ml-2 whitespace-normal break-words w-full block leading-tight">{institution?.name}</span>
             )}
             {isOpen && ( // The close button inside the sidebar should always be visible when the sidebar is open
               <button
@@ -197,18 +202,26 @@ useEffect(()=>{
 
               let isActive = false;
               if (isAssignments) {
-                isActive = pathname.includes('/assignments');
+                isActive = !!pathname?.includes('/assignments');
               } else if (isNotes) {
-                isActive = pathname.includes('/notes');
+                isActive = !!pathname?.includes('/notes');
               } else if (item.name === 'Classes') {
-                isActive = pathname === '/t/classes' ||
-                  (pathname.startsWith('/t/classes/') && !pathname.includes('/assignments') && !pathname.includes('/notes'));
+                // Only active if on the classes list or a class detail page, but not on subpages like /exams, /assignments, /notes
+                isActive =
+                  pathname === '/t/classes' ||
+                  (!!pathname &&
+                    /^\/t\/classes\/[^/]+$/.test(pathname) &&
+                    !pathname.includes('/exams') &&
+                    !pathname.includes('/assignments') &&
+                    !pathname.includes('/notes'));
+              } else if (item.name === 'Exams') {
+                isActive = !!pathname?.includes('/exams');
               } else {
-                isActive = pathname.startsWith(item.href);
+                isActive = !!pathname?.startsWith(item.href);
               }
 
               const commonClasses = "flex items-center px-4 py-3 text-base rounded-md transition-colors group";
-              const activeClasses = "bg-blue-50 text-blue-700 font-medium";
+              const activeClasses = `bg-[${color}] text-white font-medium`;
               const inactiveClasses = "text-gray-700 hover:bg-gray-100";
 
               return (

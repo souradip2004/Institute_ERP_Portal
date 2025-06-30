@@ -40,7 +40,7 @@ const Navigator = ({ id, userId, logo, name, primaryColor }: NavigatorProps) => 
   const [showOrientationPopup, setShowOrientationPopup] = useState(false); // State for the popup
   const hasShownPopup = useRef(false); // Ref to track if popup has been shown in current session
   const pathname = usePathname();
-  const [color, setColor] = useState<string>("");
+  const [color, setColor] = useState<string>(primaryColor);
 
   useEffect(() => {
     // Client-side execution check
