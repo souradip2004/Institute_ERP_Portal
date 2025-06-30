@@ -634,6 +634,7 @@ model Credit {
   copyCheckingCreditsBalance  Int         @default(0) @map("copy_checking_credits_balance")
   attendanceCreditsBalance    Int         @default(0) @map("attendance_credits_balance")
   assignmentCreditsBalane     Int         @default(0) @map("assignment_credits_balance")
+  schedulerCreditBalance      Int         @default(0) @map("scheduler_credits_balance")
   total                       Int         @default(500)
   lastUpdated                 DateTime    @map("last_updated")
   month                       Int?        @map("month") // 1-12
