@@ -1,5 +1,5 @@
 "use client";
-import {useState, useEffect, useRef} from "react";
+import { useState, useEffect, useRef } from "react";
 import AddClass from "./AddClass";
 import ViewTeachers from "./ViewTeachersComponent";
 import AddStudent from "./AddStudent";
@@ -7,7 +7,7 @@ import StudentDetail from "./ViewStudentPage";
 import ViewClassSectionPage from "./ViewClassSectionPage";
 import AddTeacher from "@/components/admin/AddTeachers";
 import Link from "next/link";
-import {usePathname} from "next/navigation";
+import { usePathname } from "next/navigation";
 import Image from "next/image";
 import CostManagementPage from "./CostManagement";
 import CreateAttendance from "./CreateAttendance";
@@ -29,16 +29,18 @@ interface NavigatorProps {
   id: string;
   userId: string;
   logo: string | null; // Logo URL or null if not available
-  name:string
+  name: string
+  primaryColor: string
 }
 
-const Navigator = ({id, userId,logo,name}: NavigatorProps) => {
+const Navigator = ({ id, userId, logo, name, primaryColor }: NavigatorProps) => {
   const [activeComponent, setActiveComponent] = useState<string>("Dashboard");
   const [isSidebarOpen, setIsSidebarOpen] = useState(true); // Initial state: sidebar is open
   const [isMobileView, setIsMobileView] = useState(false); // State to track mobile view
   const [showOrientationPopup, setShowOrientationPopup] = useState(false); // State for the popup
   const hasShownPopup = useRef(false); // Ref to track if popup has been shown in current session
   const pathname = usePathname();
+  const [color, setColor] = useState<string>("");
 
   useEffect(() => {
     // Client-side execution check
@@ -70,6 +72,12 @@ const Navigator = ({id, userId,logo,name}: NavigatorProps) => {
       window.addEventListener("resize", handleResize);
       return () => window.removeEventListener("resize", handleResize);
     }
+
+  }, []);
+
+  useEffect(() => {
+    console.log('primaryColor--- ', primaryColor);
+    setColor(primaryColor);
   }, []);
 
   const renderComponent = () => {
@@ -77,34 +85,34 @@ const Navigator = ({id, userId,logo,name}: NavigatorProps) => {
       case "Dashboard":
         return (
           <div className="space-y-6">
-            <AddTeacher id={id}/>
-            <ViewTeachers id={id}/>
+            <AddTeacher id={id} />
+            <ViewTeachers id={id} />
           </div>
         );
       case "Student":
         return (
           <div className="space-y-6">
-            <AddStudent id={id}/>
-            <StudentDetail id={id}/>
+            <AddStudent id={id} />
+            <StudentDetail id={id} />
           </div>
         );
       case "Teacher": // Renamed to "Class Management" in navItems
         return (
           <div className="space-y-6">
-            <AddClass id={id} userid={userId}/>
-            <ViewClassSectionPage id={id}/>
+            <AddClass id={id} userid={userId} />
+            <ViewClassSectionPage id={id} />
           </div>
         );
       case "CostManagement":
         return (
           <div className="space-y-6">
-            <CostManagementPage id={id}/>
+            <CostManagementPage id={id} />
           </div>
         );
       case "Attendance":
         return (
           <div className="space-y-6">
-            <CreateAttendance/>
+            <CreateAttendance />
           </div>
         );
       default:
@@ -127,27 +135,27 @@ const Navigator = ({id, userId,logo,name}: NavigatorProps) => {
     {
       name: "Teacher Management",
       component: "Dashboard",
-      icon: <Users2 size={18}/>,
+      icon: <Users2 size={18} />,
     },
     {
       name: "Class Management",
       component: "Teacher",
-      icon: <BookOpenCheck size={18}/>,
+      icon: <BookOpenCheck size={18} />,
     },
     {
       name: "Student Management",
       component: "Student",
-      icon: <GraduationCap size={18}/>,
+      icon: <GraduationCap size={18} />,
     },
     {
       name: "Attendance Management",
       component: "Attendance",
-      icon: <CalendarCheck2 size={18}/>,
+      icon: <CalendarCheck2 size={18} />,
     },
     {
       name: "Cost Management",
       component: "CostManagement",
-      icon: <Bell size={18}/>,
+      icon: <Bell size={18} />,
     },
   ];
 
@@ -159,7 +167,7 @@ const Navigator = ({id, userId,logo,name}: NavigatorProps) => {
           onClick={() => setIsSidebarOpen(true)} // Open sidebar
           className="fixed top-4 left-4 z-[60] p-2 bg-blue-600 text-white rounded-md md:hidden shadow-lg"
         >
-          <Menu size={24}/>
+          <Menu size={24} />
         </button>
       )}
 
@@ -167,11 +175,10 @@ const Navigator = ({id, userId,logo,name}: NavigatorProps) => {
       {!isMobileView && !isSidebarOpen && (
         <button
           onClick={() => setIsSidebarOpen(!isSidebarOpen)} // Toggle sidebar
-          className={`fixed top-4 z-[60] p-2 bg-blue-600 text-white rounded-md shadow-lg transition-all duration-300 ease-in-out ${
-            isSidebarOpen ? "left-68" : "left-4" // Position based on sidebar state
-          }`}
+          className={`fixed top-4 z-[60] p-2 bg-blue-600 text-white rounded-md shadow-lg transition-all duration-300 ease-in-out ${isSidebarOpen ? "left-68" : "left-4" // Position based on sidebar state
+            }`}
         >
-          {!isSidebarOpen && <Menu size={24}/>}
+          {!isSidebarOpen && <Menu size={24} />}
         </button>
       )}
 
@@ -185,9 +192,9 @@ const Navigator = ({id, userId,logo,name}: NavigatorProps) => {
           {/* Logo */}
           <div className="flex items-center mb-8 justify-between">
             <Image
-              src={logo?logo:"/logo.png"}
+              src={logo ? logo : "/logo.png"}
               alt="Logo"
-              width={logo?40:160}
+              width={logo ? 40 : 160}
               height={40}
               className="object-contain"
             />
@@ -200,7 +207,7 @@ const Navigator = ({id, userId,logo,name}: NavigatorProps) => {
                 onClick={() => setIsSidebarOpen(false)}
                 className="p-2 text-gray-500 hover:text-gray-700 transition-colors duration-200 " // Only show on mobile within sidebar
               >
-                <X size={24}/>
+                <X size={24} />
               </button>
             )}
           </div>
@@ -215,7 +222,7 @@ const Navigator = ({id, userId,logo,name}: NavigatorProps) => {
               const commonClasses =
                 "flex items-center px-4 py-2 rounded-lg transition-all duration-300 text-sm font-medium group"; // Added group for hover effects
               const activeClasses =
-                "bg-gradient-to-r from-blue-600 to-indigo-700 text-white shadow-md"; // Darker gradient, shadow
+                `bg-[${color}] text-white shadow-md`; // Darker gradient, shadow
               const inactiveClasses =
                 "text-gray-700 hover:bg-gray-100 hover:text-blue-600"; // Lighter hover
 
@@ -224,16 +231,14 @@ const Navigator = ({id, userId,logo,name}: NavigatorProps) => {
                   key={item.name}
                   href={item.href}
                   onClick={handleNavLinkClick}
-                  className={`${commonClasses} ${
-                    isActive ? activeClasses : inactiveClasses
-                  }`}
+                  className={`${commonClasses} ${isActive ? activeClasses : inactiveClasses
+                    }`}
                 >
                   <span
-                    className={`mr-3 ${
-                      isActive
-                        ? "text-white"
-                        : "text-gray-500 group-hover:text-blue-600"
-                    }`}
+                    className={`mr-3 ${isActive
+                      ? "text-white"
+                      : "text-gray-500 group-hover:text-blue-600"
+                      }`}
                   >
                     {item.icon}
                   </span>
@@ -243,16 +248,14 @@ const Navigator = ({id, userId,logo,name}: NavigatorProps) => {
                 <button
                   key={item.name}
                   onClick={() => handleNavLinkClick(item.component)}
-                  className={`${commonClasses} ${
-                    isActive ? activeClasses : inactiveClasses
-                  } w-full text-left`}
+                  className={`${commonClasses} ${isActive ? activeClasses : inactiveClasses
+                    } w-full text-left`}
                 >
                   <span
-                    className={`mr-3 ${
-                      isActive
-                        ? "text-white"
-                        : "text-gray-500 group-hover:text-blue-600"
-                    }`}
+                    className={`mr-3 ${isActive
+                      ? "text-white"
+                      : "text-gray-500 group-hover:text-blue-600"
+                      }`}
                   >
                     {item.icon}
                   </span>
@@ -265,12 +268,12 @@ const Navigator = ({id, userId,logo,name}: NavigatorProps) => {
 
         <div className="mb-8 p-3 ">
           <Link href={"/a/dashboard"}
-                className={`flex items-center w-full px-4 py-2.5 rounded-lg transition-colors duration-100 
+            className={`flex items-center w-full px-4 py-2.5 rounded-lg transition-colors duration-100 
                 text-gray-500 bg-gray-100 hover:bg-gray-200 
             }`}
           >
             <span className="flex items-center justify-center w-6 h-6">
-               <User size={20}/>
+              <User size={20} />
             </span>
             <span className="ml-4 font-medium">My Profile</span>
 
@@ -300,13 +303,13 @@ const Navigator = ({id, userId,logo,name}: NavigatorProps) => {
               className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 transition-colors"
               aria-label="Close message"
             >
-              <X size={24}/>
+              <X size={24} />
             </button>
 
             <div className="mb-6">
               <div
                 className="bg-gradient-to-r from-blue-100 to-indigo-100 p-4 rounded-full inline-flex justify-center items-center mb-4 shadow-md">
-                <RotateCw size={36} className="text-blue-600"/>
+                <RotateCw size={36} className="text-blue-600" />
               </div>
               <h3 className="text-2xl font-bold text-gray-800 mb-2">
                 Optimal Viewing Experience
@@ -322,12 +325,12 @@ const Navigator = ({id, userId,logo,name}: NavigatorProps) => {
 
             <div className="flex justify-center items-center space-x-4 text-gray-500 text-sm">
               <div className="flex flex-col items-center">
-                <RotateCw size={24} className="mb-1 text-gray-400"/>
+                <RotateCw size={24} className="mb-1 text-gray-400" />
                 <span>Landscape</span>
               </div>
               <span>/</span>
               <div className="flex flex-col items-center">
-                <Monitor size={24} className="mb-1 text-gray-400"/>
+                <Monitor size={24} className="mb-1 text-gray-400" />
                 <span>Desktop View</span>
               </div>
             </div>
