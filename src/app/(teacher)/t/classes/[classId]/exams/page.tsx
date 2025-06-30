@@ -1,12 +1,13 @@
 // pages/teacher/exams.tsx (frontend page)
 
 "use client";
-import React, { useState, useEffect } from "react";
+import React, {useState, useEffect} from "react";
 import axios from "axios";
-import { format } from "date-fns";
+import {v4 as uuidV4} from "uuid";
+import {format} from "date-fns";
 import Loader from '@/components/ui/Loader';
-import { Calendar, Clock, CheckCheck, X, FileText, BookOpen, GraduationCap, XCircle, PlusCircle } from 'lucide-react';
-import { forceLogout as logoutAndRedirect } from "@/lib/logout-utils";
+import {Calendar, Clock, CheckCheck, X, FileText, BookOpen, GraduationCap, XCircle, PlusCircle} from 'lucide-react';
+import {forceLogout as logoutAndRedirect} from "@/lib/logout-utils";
 
 // Updated Question Interface
 interface Question {
@@ -108,7 +109,12 @@ interface ExamsPageProps {
   };
 }
 
-export default function ExamsPage({ params }: ExamsPageProps) {
+interface AiQuestionType {
+  pgNo: number;
+  questionType: "MCQ" | "LONG_ANSWER";
+}
+
+export default function ExamsPage({params}: ExamsPageProps) {
   const resolvedParams = React.use(params as any) as { classId: string };
   // Tab state
   const [activeTab, setActiveTab] = useState<'view' | 'create'>('view');
@@ -138,7 +144,9 @@ export default function ExamsPage({ params }: ExamsPageProps) {
 
   const [selectedExam, setSelectedExam] = useState<Exam | null>(null);
   const [loadingExamDetails, setLoadingExamDetails] = useState(false);
-  const [creditsData, setcreditsData] = useState<any>(null)
+  const [creditsData, setcreditsData] = useState<any>(null);
+
+  const [aiQuestionType, setAiQuestionType] = useState<Array<AiQuestionType>>([]);
 
   useEffect(() => {
     if (localStorage.getItem("user")) {
@@ -156,8 +164,7 @@ export default function ExamsPage({ params }: ExamsPageProps) {
           const res = await result.json();
           setcreditsData(res);
           console.log(res);
-        }
-        else {
+        } else {
           alert("Error in fetching credits data");
         }
       }
@@ -440,9 +447,8 @@ export default function ExamsPage({ params }: ExamsPageProps) {
   };
 
   const handleCreateExam = async () => {
-    const selectedQuestions = questions
-      .filter((q) => q.isSelected)
-      .map(({ question, answer, options, questionType }) => ({ question, answer, options, questionType })); // Include questionType
+    const selectedQuestions = questions.filter((q) => q.isSelected)
+    .map(({question, answer, options, questionType}) => ({question, answer, options, questionType})); // Include questionType
 
     if (selectedQuestions.length === 0) {
       setError("Please select at least one question");
@@ -451,25 +457,27 @@ export default function ExamsPage({ params }: ExamsPageProps) {
 
     // Validation for question-specific fields
     for (const q of selectedQuestions) {
-        if (!q.question.trim()) {
-            setError("All selected questions must have text.");
-            return;
+      if (!q.question.trim()) {
+        setError("All selected questions must have text.");
+        return;
+      }
+
+      if (!q.answer || (Array.isArray(q.answer) && q.answer.length === 0) || (typeof q.answer === 'string' && !q.answer.trim())) {
+        setError(`Question "${q.question}" must have an answer.`);
+        return;
+      }
+
+      if (q.questionType === 'MCQ') {
+        if (!q.options || q.options.length < 2 || q.options.some(opt => !opt.trim())) {
+          setError(`MCQ question "${q.question}" must have at least two non-empty options.`);
+          return;
         }
-        if (!q.answer || (Array.isArray(q.answer) && q.answer.length === 0) || (typeof q.answer === 'string' && !q.answer.trim())) {
-            setError(`Question "${q.question}" must have an answer.`);
-            return;
+        // For MCQ, ensure the answer is one of the options (case-insensitive and trim)
+        if (typeof q.answer === 'string' && !q.options.map(opt => opt.trim().toLowerCase()).includes(q.answer.trim().toLowerCase())) {
+          setError(`MCQ question "${q.question}"'s answer must be one of the provided options.`);
+          return;
         }
-        if (q.questionType === 'MCQ') {
-            if (!q.options || q.options.length < 2 || q.options.some(opt => !opt.trim())) {
-                setError(`MCQ question "${q.question}" must have at least two non-empty options.`);
-                return;
-            }
-            // For MCQ, ensure the answer is one of the options (case-insensitive and trim)
-            if (typeof q.answer === 'string' && !q.options.map(opt => opt.trim().toLowerCase()).includes(q.answer.trim().toLowerCase())) {
-                setError(`MCQ question "${q.question}"'s answer must be one of the provided options.`);
-                return;
-            }
-        }
+      }
     }
 
 
@@ -549,10 +557,214 @@ export default function ExamsPage({ params }: ExamsPageProps) {
     }
   };
 
+  const mapApiResponseToQuestions = (response: any): Question[] => {
+    const mappedQuestions: Question[] = [];
+    const questionCount = response.question_count;
+
+    if (!questionCount || typeof questionCount !== 'number' || questionCount <= 0) {
+      return [];
+    }
+
+    const firstQuestionData = response['q_1'];
+    const questionType: 'MCQ' | 'LONG_ANSWER' =
+      firstQuestionData && Array.isArray(firstQuestionData.options) && firstQuestionData.options.length > 0
+        ? 'MCQ'
+        : 'LONG_ANSWER';
+
+    for (let i = 1; i <= questionCount; i++) {
+      const key = `q_${i}`;
+      const rawQuestion = response[key];
+
+      // Skip if a question for a given index is missing in the response
+      if (!rawQuestion) {
+        continue;
+      }
+
+      let newQuestion: Question;
+
+      if (questionType === 'MCQ') {
+        const correctLetter = rawQuestion.correct.trim().toLowerCase();
+        let correctAnswerText = '';
+        if (correctLetter === 'a') {
+          correctAnswerText = rawQuestion.options[0].split(' ')[1];
+        } else if (correctLetter === 'b') {
+          correctAnswerText = rawQuestion.options[1].split(' ')[1];
+        } else if (correctLetter === 'c') {
+          correctAnswerText = rawQuestion.options[2].split(' ')[1];
+        } else if (correctLetter === 'd') {
+          correctAnswerText = rawQuestion.options[3].split(' ')[1];
+        }
+
+        newQuestion = {
+          question: rawQuestion.title,
+          options: rawQuestion.options,
+          answer: correctAnswerText, // The full option string is the answer
+          isSelected: true, // Default initial state
+          questionType: 'MCQ',
+        };
+      } else {
+        newQuestion = {
+          question: rawQuestion.title,
+          options: [],
+          answer: rawQuestion.correct,
+          isSelected: true,
+          questionType: 'LONG_ANSWER',
+        };
+      }
+      mappedQuestions.push(newQuestion);
+    }
+
+    return mappedQuestions;
+  };
+
+  const handleCreateAiExam = async () => {
+    try {
+
+      if (Number(numQuestions) < 1) {
+        setError("Please select a number of questions greater than 1");
+      }
+
+      setLoading(true);
+
+      const mcqQuestions = aiQuestionType.filter(q => q.questionType === 'MCQ');
+
+      const longQuestions = aiQuestionType.filter(q => q.questionType === "LONG_ANSWER");
+
+      const splitRes = await axios.post(`https://py.aiclassroom.in/process/`,
+        {
+          "file_url": pdfUrl,
+          "file_uid": uuidV4()
+        }
+      );
+
+      const splitImages = splitRes.data["Pdf_Pages_Data"];
+
+      let mcqPages = [];
+      let longPages = [];
+
+      for (let i = 0; i < splitImages.length; i++) {
+        if (mcqQuestions.length > 0) {
+          if (mcqQuestions.find(item => item.pgNo === (i + 1))) {
+            mcqPages.push(splitImages[i]);
+          }
+        }
+
+        if (longQuestions.length > 0) {
+          if (longQuestions.find(item => item.pgNo === (i + 1))) {
+            longPages.push(splitImages[i]);
+          }
+        }
+      }
+
+      let generateMcqQuestions = null;
+      let allQuestions: Array<Question> = [];
+      if (mcqQuestions.length > 0) {
+        generateMcqQuestions = await axios.post(`https://question-generation-2-5c1d46f-v3.app.beam.cloud`, {
+          img_url_list: mcqPages,
+          no_of_questions: parseInt(numQuestions),
+          uid: uuidV4(),
+          type_and_question_level: `Medium Level MCQ questions`
+        })
+
+        allQuestions = mapApiResponseToQuestions(generateMcqQuestions.data);
+      }
+
+
+      let generateLongQuestions = null;
+
+      if(longPages.length > 0){
+        generateLongQuestions = await axios.post(`https://question-generation-2-5c1d46f-v3.app.beam.cloud`, {
+          img_url_list: longPages,
+          no_of_questions: parseInt(numQuestions),
+          uid: uuidV4(),
+          type_and_question_level: `Long Answer questions`
+        });
+
+        allQuestions = [...allQuestions, ...mapApiResponseToQuestions(generateLongQuestions.data)];
+      }
+
+
+      setQuestions(allQuestions);
+
+      if (!examTitle.trim()) {
+        setError("Please enter an exam title");
+        return;
+      }
+
+      if (!selectedClassSection) {
+        setError("Please select a class section");
+        return;
+      }
+
+      if (!examDate || !startTime || !endTime) {
+        setError("Please set exam date and time");
+        return;
+      }
+
+      if (!durationMinutes || parseInt(durationMinutes) < 1) {
+        setError("Please set a valid duration");
+        return;
+      }
+
+      if (!totalMarks || parseInt(totalMarks) < 1) {
+        setError("Please set valid total marks");
+        return;
+      }
+
+      if (!passingMarks || parseInt(passingMarks) < 1) {
+        setError("Please set valid passing marks");
+        return;
+      }
+
+      // updateCoins(questions.length)
+      const response = await axios.post(
+        "/api/exam/create", // Ensure this path is correct based on your API route file
+        {
+          userId: JSON.parse(localStorage.getItem('user')!),
+          title: examTitle,
+          questions: questions,
+          classSectionId: selectedClassSection,
+          durationMinutes: parseInt(durationMinutes),
+          totalMarks: parseInt(totalMarks),
+          passingMarks: parseInt(passingMarks),
+          examDate,
+          startTime: `${examDate}T${startTime}`,
+          endTime: `${examDate}T${endTime}`,
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+          withCredentials: true,
+        }
+      );
+
+      if (response.data.success) {
+        // Reset form and fetch updated exams
+        setExamTitle("");
+        setQuestions([]);
+        setPdfUrl("");
+        setDurationMinutes("60");
+        setTotalMarks("");
+        setPassingMarks("");
+        setNumQuestions("2");
+        setError("");
+        setActiveTab('view');
+        fetchExams();
+      }
+
+    } catch (err: any) {
+      console.error("Error creating exam:", err);
+      setError(err.response?.data?.error || "Failed to create exam");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   const toggleQuestionSelection = (index: number) => {
     setQuestions(
       questions.map((q, i) =>
-        i === index ? { ...q, isSelected: !q.isSelected } : q
+        i === index ? {...q, isSelected: !q.isSelected} : q
       )
     );
   };
@@ -596,17 +808,17 @@ export default function ExamsPage({ params }: ExamsPageProps) {
       if (type === 'LONG_ANSWER') {
         newQuestions[qIndex].options = []; // Clear options for long answer
         if (Array.isArray(newQuestions[qIndex].answer)) {
-            newQuestions[qIndex].answer = ''; // Long answer expects a single string answer
+          newQuestions[qIndex].answer = ''; // Long answer expects a single string answer
         }
       } else {
         // Ensure options array exists and has some initial empty options for MCQ
         if (!newQuestions[qIndex].options || newQuestions[qIndex].options.length === 0) {
-            newQuestions[qIndex].options = ['', '', '', ''];
+          newQuestions[qIndex].options = ['', '', '', ''];
         }
         // If current answer is array (e.g., from a past long answer type that allowed multiple lines),
         // convert to string or clear it for MCQ.
         if (Array.isArray(newQuestions[qIndex].answer)) {
-            newQuestions[qIndex].answer = newQuestions[qIndex].answer[0] || ''; // Take first element or empty
+          newQuestions[qIndex].answer = newQuestions[qIndex].answer[0] || ''; // Take first element or empty
         }
       }
       return newQuestions;
@@ -646,10 +858,10 @@ export default function ExamsPage({ params }: ExamsPageProps) {
             className={`px-4 py-2 rounded-md font-medium transition-colors ${activeTab === 'view'
               ? 'bg-purple-100 text-purple-700'
               : 'text-gray-600 hover:bg-gray-100'
-              }`}
+            }`}
           >
             <span className="flex items-center gap-2">
-              <BookOpen className="h-5 w-5" />
+              <BookOpen className="h-5 w-5"/>
               View Exams
             </span>
           </button>
@@ -658,10 +870,10 @@ export default function ExamsPage({ params }: ExamsPageProps) {
             className={`px-4 py-2 rounded-md font-medium transition-colors ${activeTab === 'create'
               ? 'bg-purple-100 text-purple-700'
               : 'text-gray-600 hover:bg-gray-100'
-              }`}
+            }`}
           >
             <span className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
+              <FileText className="h-5 w-5"/>
               Create Exam
             </span>
           </button>
@@ -671,7 +883,7 @@ export default function ExamsPage({ params }: ExamsPageProps) {
       {error && (
         <div className="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded-md shadow-sm">
           <div className="flex items-start">
-            <X className="h-5 w-5 mr-2 mt-0.5" />
+            <X className="h-5 w-5 mr-2 mt-0.5"/>
             <p>{error}</p>
           </div>
         </div>
@@ -692,9 +904,9 @@ export default function ExamsPage({ params }: ExamsPageProps) {
                 }}
                 className={`inline-flex items-center px-4 py-2 rounded-md font-medium transition-colors shadow-sm border
                   ${!questionMode
-                    ? "bg-indigo-600 text-white hover:bg-indigo-700 border-indigo-600"
-                    : "bg-white text-indigo-700 hover:bg-indigo-50 border-indigo-300"
-                  }`}
+                  ? "bg-indigo-600 text-white hover:bg-indigo-700 border-indigo-600"
+                  : "bg-white text-indigo-700 hover:bg-indigo-50 border-indigo-300"
+                }`}
               >
                 {!questionMode ? "Switch to Manual Entry" : "Switch to AI Generator"}
               </button>
@@ -742,7 +954,7 @@ export default function ExamsPage({ params }: ExamsPageProps) {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     <span className="flex items-center gap-1">
-                      <Clock className="h-4 w-4" />
+                      <Clock className="h-4 w-4"/>
                       Duration (minutes)
                     </span>
                   </label>
@@ -757,7 +969,7 @@ export default function ExamsPage({ params }: ExamsPageProps) {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     <span className="flex items-center gap-1">
-                      <GraduationCap className="h-4 w-4" />
+                      <GraduationCap className="h-4 w-4"/>
                       Total Marks
                     </span>
                   </label>
@@ -772,7 +984,7 @@ export default function ExamsPage({ params }: ExamsPageProps) {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     <span className="flex items-center gap-1">
-                      <CheckCheck className="h-4 w-4" />
+                      <CheckCheck className="h-4 w-4"/>
                       Passing Marks
                     </span>
                   </label>
@@ -789,7 +1001,7 @@ export default function ExamsPage({ params }: ExamsPageProps) {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     <span className="flex items-center gap-1">
-                      <Calendar className="h-4 w-4" />
+                      <Calendar className="h-4 w-4"/>
                       Exam Date
                     </span>
                   </label>
@@ -804,7 +1016,7 @@ export default function ExamsPage({ params }: ExamsPageProps) {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     <span className="flex items-center gap-1">
-                      <Clock className="h-4 w-4" />
+                      <Clock className="h-4 w-4"/>
                       Start Time
                     </span>
                   </label>
@@ -819,7 +1031,7 @@ export default function ExamsPage({ params }: ExamsPageProps) {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     <span className="flex items-center gap-1">
-                      <Clock className="h-4 w-4" />
+                      <Clock className="h-4 w-4"/>
                       End Time
                     </span>
                   </label>
@@ -863,7 +1075,8 @@ export default function ExamsPage({ params }: ExamsPageProps) {
 
                       {pdfUrl && (
                         <div className="mt-2 text-xs text-green-700 break-all">
-                          Uploaded: <a href={pdfUrl} target="_blank" rel="noopener noreferrer" className="underline">{pdfUrl}</a>
+                          Uploaded: <a href={pdfUrl} target="_blank" rel="noopener noreferrer"
+                                       className="underline">{pdfUrl}</a>
                         </div>
                       )}
                     </div>
@@ -886,7 +1099,7 @@ export default function ExamsPage({ params }: ExamsPageProps) {
                     disabled={loading}
                     className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 transition-colors"
                   >
-                    {loading ? <Loader size="small" /> : "Extract Long Answer Questions from PDF"}
+                    {loading ? <Loader size="small"/> : "Extract Long Answer Questions from PDF"}
                   </button>
                 </div>
               )}
@@ -905,7 +1118,7 @@ export default function ExamsPage({ params }: ExamsPageProps) {
                             className="text-red-500 hover:text-red-700"
                             onClick={() => setQuestions(questions.filter((_, i) => i !== idx))}
                           >
-                            <X className="h-5 w-5" />
+                            <X className="h-5 w-5"/>
                           </button>
                         </div>
                         <input
@@ -922,17 +1135,17 @@ export default function ExamsPage({ params }: ExamsPageProps) {
 
                         {/* Question Type Selector */}
                         <div className="mb-3">
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Question Type
-                            </label>
-                            <select
-                                value={q.questionType}
-                                onChange={e => handleQuestionTypeChange(idx, e.target.value as 'MCQ' | 'LONG_ANSWER')}
-                                className="w-full px-3 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors"
-                            >
-                                <option value="MCQ">MCQ (Multiple Choice)</option>
-                                <option value="LONG_ANSWER">Long Answer</option>
-                            </select>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Question Type
+                          </label>
+                          <select
+                            value={q.questionType}
+                            onChange={e => handleQuestionTypeChange(idx, e.target.value as 'MCQ' | 'LONG_ANSWER')}
+                            className="w-full px-3 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors"
+                          >
+                            <option value="MCQ">MCQ (Multiple Choice)</option>
+                            <option value="LONG_ANSWER">Long Answer</option>
+                          </select>
                         </div>
 
                         {/* Options for MCQ - conditionally rendered */}
@@ -953,7 +1166,7 @@ export default function ExamsPage({ params }: ExamsPageProps) {
                                   className="text-red-500 hover:text-red-700"
                                   onClick={() => handleRemoveOption(idx, oIndex)}
                                 >
-                                  <X className="h-5 w-5" />
+                                  <X className="h-5 w-5"/>
                                 </button>
                               </div>
                             ))}
@@ -962,7 +1175,7 @@ export default function ExamsPage({ params }: ExamsPageProps) {
                               onClick={() => handleAddOption(idx)}
                               className="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                             >
-                              <PlusCircle className="h-4 w-4 mr-2" /> Add Option
+                              <PlusCircle className="h-4 w-4 mr-2"/> Add Option
                             </button>
                           </div>
                         )}
@@ -1006,7 +1219,13 @@ export default function ExamsPage({ params }: ExamsPageProps) {
                       onClick={() =>
                         setQuestions([
                           ...questions,
-                          { question: "", answer: "", options: ['', '', '', ''], isSelected: true, questionType: 'LONG_ANSWER' } // Default new question to LONG_ANSWER
+                          {
+                            question: "",
+                            answer: "",
+                            options: ['', '', '', ''],
+                            isSelected: true,
+                            questionType: 'LONG_ANSWER'
+                          } // Default new question to LONG_ANSWER
                         ])
                       }
                     >
@@ -1025,7 +1244,7 @@ export default function ExamsPage({ params }: ExamsPageProps) {
                       </h3>
                       <button
                         className="text-xs text-purple-700 hover:text-purple-900"
-                        onClick={() => setQuestions(questions.map(q => ({ ...q, isSelected: true })))}
+                        onClick={() => setQuestions(questions.map(q => ({...q, isSelected: true})))}
                       >
                         Select All
                       </button>
@@ -1046,7 +1265,8 @@ export default function ExamsPage({ params }: ExamsPageProps) {
                           />
                           <div>
                             <p className="font-medium text-gray-800">Q{index + 1}: {q.question}</p>
-                            <p className="text-sm text-gray-500 italic">Type: {q.questionType.replace('_', ' ')}</p> {/* Display type */}
+                            <p
+                              className="text-sm text-gray-500 italic">Type: {q.questionType.replace('_', ' ')}</p> {/* Display type */}
 
                             {q.questionType === 'MCQ' && q.options && q.options.length > 0 && (
                               <div className="text-sm text-gray-600 mt-1 pl-4">
@@ -1088,11 +1308,11 @@ export default function ExamsPage({ params }: ExamsPageProps) {
 
           <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
             <button
-              onClick={handleCreateExam}
+              onClick={questionMode ? handleCreateExam : handleCreateAiExam}
               disabled={loading}
               className="w-full sm:w-auto bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-6 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 disabled:opacity-50 transition-colors flex items-center justify-center"
             >
-              {loading ? <Loader size="small" /> : "Create Exam"}
+              {loading ? <Loader size="small"/> : "Create Exam"}
             </button>
           </div>
         </div>
@@ -1101,11 +1321,11 @@ export default function ExamsPage({ params }: ExamsPageProps) {
         <div>
           {loadingExams ? (
             <div className="flex items-center justify-center h-64">
-              <Loader size="large" message="Loading exams..." />
+              <Loader size="large" message="Loading exams..."/>
             </div>
           ) : exams.length === 0 ? (
             <div className="bg-white rounded-lg shadow-md p-8 text-center">
-              <FileText className="h-16 w-16 mx-auto text-gray-400 mb-4" />
+              <FileText className="h-16 w-16 mx-auto text-gray-400 mb-4"/>
               <h3 className="text-xl font-medium text-gray-700 mb-2">No exams created yet</h3>
               <p className="text-gray-500 mb-6">Start by creating your first exam for this class</p>
               <button
@@ -1133,7 +1353,7 @@ export default function ExamsPage({ params }: ExamsPageProps) {
                             : exam.status === "COMPLETED"
                               ? "bg-blue-100 text-blue-800"
                               : "bg-gray-100 text-gray-800"
-                          }`}
+                        }`}
                       >
                         {exam.status}
                       </span>
@@ -1141,7 +1361,7 @@ export default function ExamsPage({ params }: ExamsPageProps) {
 
                     <div className="space-y-3">
                       <div className="flex items-center text-gray-600">
-                        <GraduationCap className="h-5 w-5 mr-2 text-gray-500" />
+                        <GraduationCap className="h-5 w-5 mr-2 text-gray-500"/>
                         <span>
                           {exam.classSection.batch.name} | {exam.classSection.semester.name}
                         </span>
@@ -1149,12 +1369,12 @@ export default function ExamsPage({ params }: ExamsPageProps) {
 
                       <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
                         <div className="flex items-center text-gray-600">
-                          <Clock className="h-4 w-4 mr-1 text-gray-500" />
+                          <Clock className="h-4 w-4 mr-1 text-gray-500"/>
                           <span>{exam.durationMinutes} minutes</span>
                         </div>
 
                         <div className="flex items-center text-gray-600">
-                          <FileText className="h-4 w-4 mr-1 text-gray-500" />
+                          <FileText className="h-4 w-4 mr-1 text-gray-500"/>
                           <span>{exam.questions.length} questions</span>
                         </div>
 
@@ -1171,12 +1391,12 @@ export default function ExamsPage({ params }: ExamsPageProps) {
 
                       <div className="pt-2 border-t border-gray-100">
                         <div className="flex items-center text-gray-600">
-                          <Calendar className="h-4 w-4 mr-1 text-gray-500" />
+                          <Calendar className="h-4 w-4 mr-1 text-gray-500"/>
                           <span>{format(new Date(exam.examDate), "PPP")}</span>
                         </div>
 
                         <div className="flex items-center text-gray-600 mt-1">
-                          <Clock className="h-4 w-4 mr-1 text-gray-500" />
+                          <Clock className="h-4 w-4 mr-1 text-gray-500"/>
                           <span>
                             {format(new Date(exam.startTime), "p")} - {format(new Date(exam.endTime), "p")}
                           </span>
@@ -1214,7 +1434,7 @@ export default function ExamsPage({ params }: ExamsPageProps) {
                 onClick={closeExamDetails}
                 className="text-gray-500 hover:text-gray-700"
               >
-                <XCircle className="h-6 w-6" />
+                <XCircle className="h-6 w-6"/>
               </button>
             </div>
 
@@ -1222,17 +1442,17 @@ export default function ExamsPage({ params }: ExamsPageProps) {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <div className="flex items-center text-gray-600 mb-2">
-                    <GraduationCap className="h-5 w-5 mr-2 text-gray-500" />
+                    <GraduationCap className="h-5 w-5 mr-2 text-gray-500"/>
                     <span>
                       {selectedExam.classSection.batch.name} | {selectedExam.classSection.semester.name}
                     </span>
                   </div>
                   <div className="flex items-center text-gray-600 mb-2">
-                    <Calendar className="h-4 w-4 mr-1 text-gray-500" />
+                    <Calendar className="h-4 w-4 mr-1 text-gray-500"/>
                     <span>{format(new Date(selectedExam.examDate), "PPP")}</span>
                   </div>
                   <div className="flex items-center text-gray-600">
-                    <Clock className="h-4 w-4 mr-1 text-gray-500" />
+                    <Clock className="h-4 w-4 mr-1 text-gray-500"/>
                     <span>
                       {format(new Date(selectedExam.startTime), "p")} - {format(new Date(selectedExam.endTime), "p")}
                     </span>
@@ -1240,7 +1460,7 @@ export default function ExamsPage({ params }: ExamsPageProps) {
                 </div>
                 <div>
                   <div className="flex items-center text-gray-600 mb-2">
-                    <Clock className="h-4 w-4 mr-1 text-gray-500" />
+                    <Clock className="h-4 w-4 mr-1 text-gray-500"/>
                     <span>{selectedExam.durationMinutes} minutes</span>
                   </div>
                   <div className="flex items-center text-gray-600 mb-2">
@@ -1258,11 +1478,12 @@ export default function ExamsPage({ params }: ExamsPageProps) {
             <div className="flex-1 overflow-y-auto p-6">
               {loadingExamDetails ? (
                 <div className="flex items-center justify-center h-64">
-                  <Loader size="medium" message="Loading exam details..." />
+                  <Loader size="medium" message="Loading exam details..."/>
                 </div>
               ) : (
                 <div className="space-y-6">
-                  <h3 className="text-xl font-semibold text-gray-800">Exam Questions ({selectedExam.questions.length})</h3>
+                  <h3 className="text-xl font-semibold text-gray-800">Exam Questions
+                    ({selectedExam.questions.length})</h3>
 
                   {selectedExam.questions.map((question, index) => (
                     <div key={question.id} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
@@ -1274,7 +1495,8 @@ export default function ExamsPage({ params }: ExamsPageProps) {
                         </span>
                       </div>
                       <p className="text-gray-700 mb-3">{question.questionText}</p>
-                      <p className="text-sm text-gray-500 italic">Type: {question.questionType?.replace('_', ' ')}</p> {/* Display type */}
+                      <p
+                        className="text-sm text-gray-500 italic">Type: {question.questionType?.replace('_', ' ')}</p> {/* Display type */}
 
 
                       {question.questionType === 'MCQ' && question.options && question.options.length > 0 && (

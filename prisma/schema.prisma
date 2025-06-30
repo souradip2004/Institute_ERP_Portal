@@ -290,12 +290,14 @@ model Semester {
 
   @@map("semesters")
 }
+
 model MotherClass {
-  id                            String                         @id @default(cuid())
-  institutionId                 String?                         @map("institution_id")
-  sectionName                   String                         @map("section_name")
-  classSections                 ClassSection[]
+  id            String         @id @default(cuid())
+  institutionId String?        @map("institution_id")
+  sectionName   String         @map("section_name")
+  classSections ClassSection[]
 }
+
 model ClassSection {
   id                            String                         @id @default(cuid())
   sectionName                   String                         @map("section_name")
@@ -321,11 +323,13 @@ model ClassSection {
   studentEnrollments            StudentClassEnrollment[]
   studentMetrics                StudentPerformanceMetric[]
   teacherCourseSectionRelations TeacherCourseSectionRelation[]
-  isOptional                    Boolean?                 @default(false)
-  motherClassId                 String?                  @map("mother_class_id") // Foreign key to MotherClass
-  motherClass                   MotherClass?             @relation(fields: [motherClassId], references: [id])
+  isOptional                    Boolean?                       @default(false)
+  motherClassId                 String?                        @map("mother_class_id") // Foreign key to MotherClass
+  motherClass                   MotherClass?                   @relation(fields: [motherClassId], references: [id])
+
   @@map("class_sections")
 }
+
 model StudentClassEnrollment {
   id               String                @id @default(cuid())
   studentId        String                @map("student_id")
