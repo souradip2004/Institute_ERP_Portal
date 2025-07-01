@@ -1,6 +1,6 @@
 import mongoose, { Schema, model, models } from 'mongoose';
 
-const MONGODB_URI = "mongodb+srv://Techie:Techie@cluster0.5asxa.mongodb.net/ABIV";
+const MONGODB_URI = "mongodb+srv://Techie:Techie@cluster0.5asxa.mongodb.net/aiclassroom";
 
 if (!MONGODB_URI) {
     throw new Error('Please define the MONGODB_URI environment variable');
