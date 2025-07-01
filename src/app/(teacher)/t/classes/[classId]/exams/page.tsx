@@ -1,5 +1,4 @@
 // pages/teacher/exams.tsx (frontend page)
-
 "use client";
 import React, {useState, useEffect} from "react";
 import axios from "axios";
@@ -16,6 +15,11 @@ interface Question {
   options?: string[]; // Options are still part of the interface as manual entry can be MCQ
   isSelected: boolean;
   questionType: 'MCQ' | 'LONG_ANSWER'; // Added questionType
+}
+
+interface AiQuestionType {
+  pgNo: number;
+  questionType: "MCQ" | "LONG_ANSWER";
 }
 
 interface TeacherClassSection {
@@ -109,11 +113,6 @@ interface ExamsPageProps {
   };
 }
 
-interface AiQuestionType {
-  pgNo: number;
-  questionType: "MCQ" | "LONG_ANSWER";
-}
-
 export default function ExamsPage({params}: ExamsPageProps) {
   const resolvedParams = React.use(params as any) as { classId: string };
   // Tab state
@@ -125,7 +124,8 @@ export default function ExamsPage({params}: ExamsPageProps) {
   const [pdfUrl, setPdfUrl] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [numQuestions, setNumQuestions] = useState<string>("2");
+  const [numLongQuestions, setNumLongQuestions] = useState<string>("1");
+  const [numMCQQuestions, setNumMCQQuestions] = useState<string>("1");
   const [questionMode, setQuestionmode] = useState(false) // false for AI, true for Manual
 
   // New states for additional exam fields
@@ -146,7 +146,15 @@ export default function ExamsPage({params}: ExamsPageProps) {
   const [loadingExamDetails, setLoadingExamDetails] = useState(false);
   const [creditsData, setcreditsData] = useState<any>(null);
 
+  const [difficulty, setDifficulty] = useState<'Easy' | 'Medium' | 'Hard'>("Medium");
+
   const [aiQuestionType, setAiQuestionType] = useState<Array<AiQuestionType>>([]);
+  const [pdfPageImages, setPdfPageImages] = useState<string[]>([]);
+  const [isProcessingPdf, setIsProcessingPdf] = useState(false);
+
+  useEffect(() => {
+    console.log("aiQuestionType: ", aiQuestionType);
+  }, [aiQuestionType]);
 
   useEffect(() => {
     if (localStorage.getItem("user")) {
@@ -168,7 +176,7 @@ export default function ExamsPage({params}: ExamsPageProps) {
           alert("Error in fetching credits data");
         }
       }
-      getData();
+      // getData();
     }
   }, [])
 
@@ -251,6 +259,48 @@ export default function ExamsPage({params}: ExamsPageProps) {
       console.error("Error uploading file to S3:", error);
       throw error;
     }
+  };
+
+  const processPdfForPreview = async (fileUrl: string) => {
+    try {
+      setIsProcessingPdf(true);
+      setError("");
+
+      const splitRes = await axios.post(`https://py.aiclassroom.in/process/`, {
+        "file_url": fileUrl,
+        "file_uid": uuidV4()
+      });
+
+      const pageImages = splitRes.data["Pdf_Pages_Data"];
+      if (!pageImages || pageImages.length === 0) {
+        setError("Could not process the PDF or the PDF is empty.");
+        setPdfUrl(""); // Reset URL if processing fails
+        return;
+      }
+
+      setPdfPageImages(pageImages);
+      // Initialize aiQuestionType with a default for each page
+      setAiQuestionType(pageImages.map((_: any, index: number) => ({
+        pgNo: index + 1,
+        questionType: 'MCQ' // Default to MCQ
+      })));
+
+    } catch (err) {
+      console.error("Error processing PDF:", err);
+      setError("Failed to process PDF for preview. Please try another file.");
+      setPdfUrl(""); // Clear the URL if processing fails
+    } finally {
+      setIsProcessingPdf(false);
+    }
+  };
+
+  // --- NEW FUNCTION to handle question type changes ---
+  const handleAiQuestionTypeChange = (pageIndex: number, type: 'MCQ' | 'LONG_ANSWER') => {
+    setAiQuestionType(prev =>
+      prev.map((item, index) =>
+        index === pageIndex ? {...item, questionType: type} : item
+      )
+    );
   };
 
   // Check if user is authenticated as a teacher
@@ -420,7 +470,7 @@ export default function ExamsPage({params}: ExamsPageProps) {
       setLoading(true);
       const response = await axios.post("/api/extract-questions", {
         pdfUrl,
-        numQuestions: parseInt(numQuestions) || 2
+        numQuestions: parseInt(numLongQuestions) || 2
       }, {
         withCredentials: true
       });
@@ -428,7 +478,6 @@ export default function ExamsPage({params}: ExamsPageProps) {
       if (response.data.questions) {
         const extractedQuestions = response.data.questions.map((q: any) => ({
           ...q,
-          // For AI generated long answers, options are not relevant, so we ensure it's empty
           options: [],
           isSelected: false,
           questionType: 'LONG_ANSWER', // AI generated questions are now explicitly LONG_ANSWER
@@ -513,7 +562,7 @@ export default function ExamsPage({params}: ExamsPageProps) {
 
     try {
       setLoading(true);
-      updateCoins(questions.length)
+      // updateCoins(questions.length)
       const response = await axios.post(
         "/api/exam/create", // Ensure this path is correct based on your API route file
         {
@@ -525,6 +574,8 @@ export default function ExamsPage({params}: ExamsPageProps) {
           totalMarks: parseInt(totalMarks),
           passingMarks: parseInt(passingMarks),
           examDate,
+          isAiGenerated: false,
+          difficultyLevel: difficulty,
           startTime: `${examDate}T${startTime}`,
           endTime: `${examDate}T${endTime}`,
         },
@@ -544,7 +595,7 @@ export default function ExamsPage({params}: ExamsPageProps) {
         setDurationMinutes("60");
         setTotalMarks("");
         setPassingMarks("");
-        setNumQuestions("2");
+        setNumLongQuestions("2");
         setError("");
         setActiveTab('view');
         fetchExams();
@@ -585,14 +636,13 @@ export default function ExamsPage({params}: ExamsPageProps) {
       if (questionType === 'MCQ') {
         const correctLetter = rawQuestion.correct.trim().toLowerCase();
         let correctAnswerText = '';
-        if (correctLetter === 'a') {
-          correctAnswerText = rawQuestion.options[0].split(' ')[1];
-        } else if (correctLetter === 'b') {
-          correctAnswerText = rawQuestion.options[1].split(' ')[1];
-        } else if (correctLetter === 'c') {
-          correctAnswerText = rawQuestion.options[2].split(' ')[1];
-        } else if (correctLetter === 'd') {
-          correctAnswerText = rawQuestion.options[3].split(' ')[1];
+
+        const index = correctLetter.charCodeAt(0) - 97;
+        const optionText = rawQuestion.options[index];
+        correctAnswerText = optionText.substring(optionText.indexOf(' ') + 1);
+
+        if (!correctAnswerText) {
+          setError(`Invalid correct answer for question ${i}: ${rawQuestion.correct}`);
         }
 
         newQuestion = {
@@ -617,137 +667,130 @@ export default function ExamsPage({params}: ExamsPageProps) {
     return mappedQuestions;
   };
 
+  // --- MODIFIED handleCreateAiExam function ---
   const handleCreateAiExam = async () => {
     try {
-
-      if (Number(numQuestions) < 1) {
-        setError("Please select a number of questions greater than 1");
+      // All previous validations remain
+      if (Number(numLongQuestions) < 1) {
+        setError("Please select a number of long questions at least of 1");
+        return;
       }
 
-      setLoading(true);
-
-      const mcqQuestions = aiQuestionType.filter(q => q.questionType === 'MCQ');
-
-      const longQuestions = aiQuestionType.filter(q => q.questionType === "LONG_ANSWER");
-
-      const splitRes = await axios.post(`https://py.aiclassroom.in/process/`,
-        {
-          "file_url": pdfUrl,
-          "file_uid": uuidV4()
-        }
-      );
-
-      const splitImages = splitRes.data["Pdf_Pages_Data"];
-
-      let mcqPages = [];
-      let longPages = [];
-
-      for (let i = 0; i < splitImages.length; i++) {
-        if (mcqQuestions.length > 0) {
-          if (mcqQuestions.find(item => item.pgNo === (i + 1))) {
-            mcqPages.push(splitImages[i]);
-          }
-        }
-
-        if (longQuestions.length > 0) {
-          if (longQuestions.find(item => item.pgNo === (i + 1))) {
-            longPages.push(splitImages[i]);
-          }
-        }
+      if(Number(numMCQQuestions) < 1){
+        setError("Please select a number of MCQ questions at least of 1");
+        return;
       }
-
-      let generateMcqQuestions = null;
-      let allQuestions: Array<Question> = [];
-      if (mcqQuestions.length > 0) {
-        generateMcqQuestions = await axios.post(`https://question-generation-2-5c1d46f-v3.app.beam.cloud`, {
-          img_url_list: mcqPages,
-          no_of_questions: parseInt(numQuestions),
-          uid: uuidV4(),
-          type_and_question_level: `Medium Level MCQ questions`
-        })
-
-        allQuestions = mapApiResponseToQuestions(generateMcqQuestions.data);
-      }
-
-
-      let generateLongQuestions = null;
-
-      if(longPages.length > 0){
-        generateLongQuestions = await axios.post(`https://question-generation-2-5c1d46f-v3.app.beam.cloud`, {
-          img_url_list: longPages,
-          no_of_questions: parseInt(numQuestions),
-          uid: uuidV4(),
-          type_and_question_level: `Long Answer questions`
-        });
-
-        allQuestions = [...allQuestions, ...mapApiResponseToQuestions(generateLongQuestions.data)];
-      }
-
-
-      setQuestions(allQuestions);
-
       if (!examTitle.trim()) {
         setError("Please enter an exam title");
         return;
       }
-
       if (!selectedClassSection) {
         setError("Please select a class section");
         return;
       }
-
       if (!examDate || !startTime || !endTime) {
         setError("Please set exam date and time");
         return;
       }
-
       if (!durationMinutes || parseInt(durationMinutes) < 1) {
         setError("Please set a valid duration");
         return;
       }
-
       if (!totalMarks || parseInt(totalMarks) < 1) {
         setError("Please set valid total marks");
         return;
       }
-
       if (!passingMarks || parseInt(passingMarks) < 1) {
         setError("Please set valid passing marks");
         return;
       }
 
-      // updateCoins(questions.length)
-      const response = await axios.post(
-        "/api/exam/create", // Ensure this path is correct based on your API route file
-        {
+      // New validation for PDF and question type setup
+      if (!pdfUrl || aiQuestionType.length === 0) {
+        setError("Please upload a PDF and wait for it to be processed before creating the exam.");
+        return;
+      }
+
+      setLoading(true);
+
+      // Filter pages based on user selection from aiQuestionType state
+      const mcqPagesConfig = aiQuestionType.filter(q => q.questionType === 'MCQ');
+      const longPagesConfig = aiQuestionType.filter(q => q.questionType === "LONG_ANSWER");
+
+      // Get the actual image URLs for each type from the pdfPageImages state
+      const mcqPageImages = mcqPagesConfig.map(config => pdfPageImages[config.pgNo - 1]);
+      const longPageImages = longPagesConfig.map(config => pdfPageImages[config.pgNo - 1]);
+
+      let allQuestions: Array<Question> = [];
+
+      // Generate MCQ questions if pages were selected for it
+      if (mcqPageImages.length > 0) {
+        const generateMcqQuestions = await axios.post(`https://question-generation-2-5c1d46f-v3.app.beam.cloud`, {
+          img_url_list: mcqPageImages,
+          no_of_questions: parseInt(numLongQuestions),
+          uid: uuidV4(),
+          type_and_question_level: `${difficulty} Level MCQ questions`
+        }, {
+          headers: {
+            Authorization: `Bearer ALXP7mhHyKz1MQATKH7CIQXK9VQBpvoNNuxPvLONWyPCfgemj18cz2T74r4drBpvOkf-3orOQT_6r-63mHPZAA==`
+          },
+        });
+        allQuestions = [...allQuestions, ...mapApiResponseToQuestions(generateMcqQuestions.data)];
+      }
+
+      // Generate Long Answer questions if pages were selected for it
+      if (longPageImages.length > 0) {
+        const generateLongQuestions = await axios.post(`https://question-generation-2-5c1d46f-v3.app.beam.cloud`, {
+          img_url_list: longPageImages,
+          no_of_questions: parseInt(numMCQQuestions),
+          uid: uuidV4(),
+          type_and_question_level: `${difficulty} Level Long Answer questions`
+        }, {
+          headers: {
+            Authorization: `Bearer ALXP7mhHyKz1MQATKH7CIQXK9VQBpvoNNuxPvLONWyPCfgemj18cz2T74r4drBpvOkf-3orOQT_6r-63mHPZAA==`
+          },
+        });
+
+        console.log("Long questions ", generateLongQuestions.data);
+        allQuestions = [...allQuestions, ...mapApiResponseToQuestions(generateLongQuestions.data)];
+      }
+
+      if (allQuestions.length === 0) {
+        setError("No questions could be generated. This might be due to the content of the PDF or the page selections. Please review and try again.");
+        setLoading(false);
+        return;
+      }
+      console.log("All questions ", allQuestions);
+
+      // Use the generated questions directly in the API call
+      setQuestions(allQuestions);
+
+      const response = await axios.post("/api/exam/create", {
           userId: JSON.parse(localStorage.getItem('user')!),
           title: examTitle,
-          questions: questions,
+          questions: allQuestions, // Use the locally generated list, not the state variable
           classSectionId: selectedClassSection,
           durationMinutes: parseInt(durationMinutes),
           totalMarks: parseInt(totalMarks),
           passingMarks: parseInt(passingMarks),
           examDate,
+          difficultyLevel: difficulty,
+          isAiGenerated: true,
           startTime: `${examDate}T${startTime}`,
           endTime: `${examDate}T${endTime}`,
-        },
-        {
-          headers: {
-            "Content-Type": "application/json",
-          },
-          withCredentials: true,
-        }
-      );
+        });
 
       if (response.data.success) {
         // Reset form and fetch updated exams
         setExamTitle("");
         setQuestions([]);
         setPdfUrl("");
+        setPdfPageImages([]);      // Reset new state
+        setAiQuestionType([]);   // Reset new state
         setDurationMinutes("60");
         setTotalMarks("");
         setPassingMarks("");
-        setNumQuestions("2");
+        setNumLongQuestions("2");
         setError("");
         setActiveTab('view');
         fetchExams();
@@ -760,6 +803,7 @@ export default function ExamsPage({params}: ExamsPageProps) {
       setLoading(false);
     }
   }
+
 
   const toggleQuestionSelection = (index: number) => {
     setQuestions(
@@ -1045,9 +1089,36 @@ export default function ExamsPage({params}: ExamsPageProps) {
               </div>
 
               {!questionMode && (
-                <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                <div className="bg-gray-50 p-4 rounded-lg border h-fit border-gray-200">
                   <h3 className="font-medium text-gray-700 mb-3">Question Generator (AI)</h3>
+                  {/* The main grid container now correctly holds three child divs for a 3-column layout */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+
+                    {/* Column 2: Number of Questions */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Number of Questions (Long Answer)
+                      </label>
+                      <input
+                        type="number"
+                        value={numLongQuestions}
+                        onChange={(e) => setNumLongQuestions(e.target.value)}
+                        className="w-full px-4 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Number of MCQ Questions
+                      </label>
+                      <input
+                        type="number"
+                        value={numMCQQuestions}
+                        onChange={(e) => setNumMCQQuestions(e.target.value)}
+                        className="w-full px-4 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors"
+                      />
+                    </div>
+
+                    {/* Column 1: Upload PDF */}
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Upload PDF
@@ -1055,15 +1126,19 @@ export default function ExamsPage({params}: ExamsPageProps) {
                       <input
                         type="file"
                         accept="application/pdf"
+                        // --- MODIFIED onChange Handler ---
                         onChange={async (e) => {
                           const file = e.target.files?.[0];
                           if (file) {
                             try {
-                              setLoading(true);
+                              setLoading(true); // Shows general loading for upload
                               setError("");
+                              setPdfPageImages([]); // Reset previous PDF states
+                              setAiQuestionType([]);
                               const result = await uploadFileToS3(file);
-                              setPdfUrl(result.url);
-                            } catch (err: any) {
+                              setPdfUrl(result.url); // Set URL
+                              await processPdfForPreview(result.url); // Immediately process it
+                            } catch (err) {
                               setError("Failed to upload PDF. Please try again.");
                             } finally {
                               setLoading(false);
@@ -1075,34 +1150,100 @@ export default function ExamsPage({params}: ExamsPageProps) {
 
                       {pdfUrl && (
                         <div className="mt-2 text-xs text-green-700 break-all">
-                          Uploaded: <a href={pdfUrl} target="_blank" rel="noopener noreferrer"
-                                       className="underline">{pdfUrl}</a>
+                          Uploaded:{" "}
+                          <a
+                            href={pdfUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="underline"
+                          >
+                            {pdfUrl}
+                          </a>
                         </div>
                       )}
                     </div>
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Number of Questions (Long Answer)
+                        Choose Difficulty Level
                       </label>
-                      <input
-                        type="number"
-                        value={numQuestions}
-                        onChange={(e) => setNumQuestions(e.target.value)}
-                        className="w-full px-4 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors"
-                      />
+                      {/* The input has been changed to a select dropdown */}
+                      <select
+                        value={difficulty}
+                        onChange={(e) => setDifficulty(e.target.value as 'Easy' | 'Medium' | 'Hard')}
+                        className="w-full px-4 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors bg-white"
+                      >
+                        <option value="Easy">Easy</option>
+                        <option value="Medium">Medium</option>
+                        <option value="Hard">Hard</option>
+                      </select>
                     </div>
+                    {/* --- MODIFICATION END --- */}
                   </div>
 
-                  <button
+
+                  {/* --- NEW UI: PDF Preview and Page Configuration --- */}
+                  {isProcessingPdf && (
+                    <div className="text-center p-4 my-4 bg-white rounded-lg border">
+                      <Loader size="medium"/>
+                      <p className="mt-2 text-gray-600 animate-pulse">Processing your PDF, please wait...</p>
+                    </div>
+                  )}
+
+                  {pdfPageImages.length > 0 && (
+                    <div className="mt-6 border-t pt-6">
+                      <h3 className="text-lg font-semibold text-gray-800 mb-4 text-center">PDF Preview & Page
+                        Configuration</h3>
+                      <div className="grid grid-cols-12 gap-6 min-h-[500px] max-h-[80vh]">
+                        <div
+                          className="col-span-12 md:col-span-7 lg:col-span-8 bg-white p-4 border rounded-lg max-h-[75vh] shadow-inner overflow-y-scroll">
+                          <div className="space-y-4">
+                            {pdfPageImages.map((imgSrc, index) => (
+                              <div key={index} id={`page-preview-${index + 1}`} className="border rounded-lg p-2">
+                                <img src={imgSrc} alt={`Page ${index + 1}`} className="w-full h-auto rounded shadow"/>
+                                <p className="text-center text-sm font-medium text-gray-600 mt-2">Page {index + 1}</p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                        <div
+                          className="col-span-12 md:col-span-5 lg:col-span-4 bg-white p-4 border rounded-lg shadow-inner overflow-y-auto">
+                          <div className="space-y-3">
+                            <h4 className="font-semibold text-gray-700 mb-2">Question Type per Page</h4>
+                            {aiQuestionType.map((item, index) => (
+                              <div key={index}
+                                   className="p-3 bg-gray-100 rounded-lg flex items-center justify-between gap-4">
+                                <label className="font-medium text-gray-700 whitespace-nowrap">Page {item.pgNo}</label>
+                                <select
+                                  value={item.questionType}
+                                  onChange={(e) => handleAiQuestionTypeChange(index, e.target.value as 'MCQ' | 'LONG_ANSWER')}
+                                  className="w-full px-3 py-1.5 rounded-md border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors bg-white text-sm"
+                                >
+                                  <option value="MCQ">MCQ</option>
+                                  <option value="LONG_ANSWER">Long Answer</option>
+                                </select>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/*<button
                     onClick={extractQuestions}
                     disabled={loading}
                     className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 transition-colors"
                   >
-                    {loading ? <Loader size="small"/> : "Extract Long Answer Questions from PDF"}
-                  </button>
+                    {loading ? (
+                      <Loader size="small" />
+                    ) : (
+                      "Extract Long Answer Questions from PDF"
+                    )}
+                  </button>*/}
                 </div>
               )}
+
               {questionMode && (
                 <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
                   <h3 className="font-medium text-gray-700 mb-3">Manual Question Entry</h3>
@@ -1306,7 +1447,43 @@ export default function ExamsPage({params}: ExamsPageProps) {
             </div>
           </div>
 
-          <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
+          <div className="p-6 bg-gray-50 border-t border-gray-200">
+            <div className="flex justify-start">
+              {!questionMode ? (
+                <button
+                  onClick={handleCreateAiExam}
+                  disabled={loading || isProcessingPdf || !pdfUrl || pdfPageImages.length === 0}
+                  className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center shadow-lg"
+                >
+                  {loading ? (
+                    <>
+                      {/* SVG Spinner */}
+                      <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg"
+                           fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
+                                strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor"
+                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      {/* Text */}
+                      <span>Creating Exam...</span>
+                    </>
+                  ) : (
+                    "Generate Questions & Create Exam"
+                  )}
+                </button>
+              ) : (
+                <button
+                  onClick={handleCreateExam}
+                  disabled={loading}
+                  className="w-full sm:w-auto bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-6 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 disabled:opacity-50 transition-colors flex items-center justify-center"
+                >
+                  {loading ? <Loader size="small"/> : "Create Exam"}
+                </button>
+              )}
+            </div>
+          </div>
+          {/*<div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
             <button
               onClick={questionMode ? handleCreateExam : handleCreateAiExam}
               disabled={loading}
@@ -1314,7 +1491,7 @@ export default function ExamsPage({params}: ExamsPageProps) {
             >
               {loading ? <Loader size="small"/> : "Create Exam"}
             </button>
-          </div>
+          </div>*/}
         </div>
       ) : (
         // Exam List
