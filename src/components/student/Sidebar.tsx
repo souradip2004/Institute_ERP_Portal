@@ -32,7 +32,7 @@ export default function Sidebar({ onSidebarToggle }: SidebarProps) {
     if (localStorage.getItem("user")) {
       const data = JSON.parse(localStorage.getItem("user"))?.institutionId;
       const fetchInstitute = async () => {
-        const institutionRes = await fetch(`https://commercial.aiclassroom.in/api/institutions/${data}`, {
+        const institutionRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/institutions/${data}`, {
           cache: "no-store",
         });
         let institutionData = await institutionRes.json();
@@ -42,6 +42,17 @@ export default function Sidebar({ onSidebarToggle }: SidebarProps) {
       fetchInstitute();
     }
   }, [])
+
+  useEffect(() => {
+    console.log('color--- ', color);
+    localStorage.setItem('primaryColor', color);
+    const temp = localStorage.getItem('primaryColor');
+    console.log('temp--- ', temp);
+    if (temp) {
+      setColor(temp);
+    }
+  }, [color]);
+
   // Memoize the callback to prevent unnecessary re-renders in parent
   const memoizedOnSidebarToggle = useCallback(
     (openStatus: boolean) => {
@@ -174,6 +185,7 @@ export default function Sidebar({ onSidebarToggle }: SidebarProps) {
               return (
                 <Link key={item.title} href={item.href as any} onClick={handleNavLinkClick}
                   className={`${commonClasses} ${isActive ? activeClasses : inactiveClasses}`}
+                  style={isActive ? { backgroundColor: color } : undefined}
                 >
                   <span
                     className={`mr-3 ${isActive ? 'text-blue-700' : 'text-gray-500 group-hover:text-blue-700'}`}>{item.icon}</span>

@@ -66,11 +66,11 @@ export default function CreateInstitutionForm({ userId, email }: CreateInstituti
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
 
-  const handleFileChange = async(e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       setLogoFile(file);
-      
+
       setLogoPreview(URL.createObjectURL(file));
       form.clearErrors("logoUrl"); // Clear any previous errors related to logoUrl
     } else {
@@ -120,7 +120,7 @@ export default function CreateInstitutionForm({ userId, email }: CreateInstituti
       console.log("Submitting Institution Data:", submissionData);
 
       // Step 1: Create Institution
-      const res = await fetch("https://commercial.aiclassroom.in/api/institutions", {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/institutions`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(submissionData),
@@ -132,7 +132,7 @@ export default function CreateInstitutionForm({ userId, email }: CreateInstituti
 
       if (!institution.id) throw new Error("Institution ID is missing from the response.");
 
-      const updateUserRes = await fetch(`https://commercial.aiclassroom.in/api/users/${userId}`, {
+      const updateUserRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/${userId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ institutionId: institution.id }),

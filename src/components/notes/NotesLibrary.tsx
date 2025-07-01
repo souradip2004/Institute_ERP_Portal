@@ -1,6 +1,6 @@
 'use client';
 
-import React, {useState, useEffect} from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     Tabs,
     TabsContent,
@@ -28,9 +28,9 @@ import {
     CardHeader,
     CardTitle
 } from '@/components/ui/card';
-import {Button} from '@/components/ui/button';
-import {Input} from '@/components/ui/input';
-import {Label} from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
     Download,
     Search,
@@ -44,7 +44,7 @@ import {
 } from 'lucide-react';
 import VideoPlayerModal from '@/components/notes/NotesViewer/modal';
 import NotesViewer from './NotesViewer/index';
-import {getLocalVideoData, hasLocalVideoData, storeVideoDataLocally} from './NotesViewer/utils';
+import { getLocalVideoData, hasLocalVideoData, storeVideoDataLocally } from './NotesViewer/utils';
 
 interface NotesLibraryProps {
     studentId: string;
@@ -144,7 +144,7 @@ const NotesLibrary: React.FC<NotesLibraryProps> = ({
 
     const checkNoteVideoData = async (noteId: string) => {
         try {
-            const response = await fetch(`/api/notes/${noteId}/video-data`, {method: 'HEAD'});
+            const response = await fetch(`/api/notes/${noteId}/video-data`, { method: 'HEAD' });
             if (response.ok) {
                 const dataResponse = await fetch(`/api/notes/${noteId}/video-data`);
                 if (dataResponse.ok) {
@@ -197,7 +197,7 @@ const NotesLibrary: React.FC<NotesLibraryProps> = ({
 
     const formatDate = (dateString: string) => {
         const date = new Date(dateString);
-        return `${date.getDate()}${getOrdinalSuffix(date.getDate())} ${date.toLocaleString('default', {month: 'long'})}, ${date.getFullYear()}`;
+        return `${date.getDate()}${getOrdinalSuffix(date.getDate())} ${date.toLocaleString('default', { month: 'long' })}, ${date.getFullYear()}`;
     };
 
     const getOrdinalSuffix = (day: number) => {
@@ -244,11 +244,11 @@ const NotesLibrary: React.FC<NotesLibraryProps> = ({
                 <div>
                     <h1 className="text-2xl font-bold text-gray-800">{studentName}</h1>
                     <p className="text-gray-500 flex items-center gap-2">
-                        <GraduationCap size={16}/>
+                        <GraduationCap size={16} />
                         {batchName} - Section {sectionName}
                     </p>
                 </div>
-               
+
             </div>
 
             {selectedSubject && (
@@ -259,8 +259,8 @@ const NotesLibrary: React.FC<NotesLibraryProps> = ({
                             {selectedSubject !== 'all' && (
                                 <span
                                     className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold border border-input bg-background mr-2">
-                {selectedSubject}
-              </span>
+                                    {selectedSubject}
+                                </span>
                             )}
                             {selectedSubject === 'all' ? 'All Notes' : 'Subject Materials'}
                         </h2>
@@ -269,7 +269,7 @@ const NotesLibrary: React.FC<NotesLibraryProps> = ({
                             <form onSubmit={handleSearch} className="flex items-center gap-2 w-full sm:w-auto">
                                 <div className="relative flex-grow">
                                     <Search size={16}
-                                            className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"/>
+                                        className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                                     <Input
                                         placeholder="Search notes"
                                         value={searchQuery}
@@ -278,13 +278,13 @@ const NotesLibrary: React.FC<NotesLibraryProps> = ({
                                     />
                                 </div>
                                 <Button type="submit" variant="ghost" size="icon"
-                                        className="hover:bg-gray-100 hidden sm:block">
-                                    <Search size={18}/>
+                                    className="hover:bg-gray-100 hidden sm:block">
+                                    <Search size={18} />
                                 </Button>
                             </form>
                             <Select>
                                 <SelectTrigger className="w-full sm:w-[120px]">
-                                    <SelectValue placeholder="Sort By"/>
+                                    <SelectValue placeholder="Sort By" />
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="newest">Newest</SelectItem>
@@ -293,7 +293,7 @@ const NotesLibrary: React.FC<NotesLibraryProps> = ({
                                 </SelectContent>
                             </Select>
                             <Button variant="ghost" size="icon" className="hover:bg-gray-100 w-full sm:w-auto">
-                                <SlidersHorizontal size={18}/>
+                                <SlidersHorizontal size={18} />
                             </Button>
                         </div>
                     </div>
@@ -302,11 +302,11 @@ const NotesLibrary: React.FC<NotesLibraryProps> = ({
                         <TabsList
                             className="flex flex-wrap gap-2"> {/* flex-wrap already present, good for mobile tabs */}
                             <TabsTrigger value="notes" className="flex items-center gap-1">
-                                <Book size={14}/>
+                                <Book size={14} />
                                 Notes
                             </TabsTrigger>
                             <TabsTrigger value="video" className="flex items-center gap-1">
-                                <Video size={14}/>
+                                <Video size={14} />
                                 Videos
                             </TabsTrigger>
                         </TabsList>
@@ -331,10 +331,10 @@ const NotesLibrary: React.FC<NotesLibraryProps> = ({
                                         {loading ? (
                                             <TableRow>
                                                 <TableCell colSpan={4}
-                                                           className="text-center py-8 px-2"> {/* Reduced padding */}
+                                                    className="text-center py-8 px-2"> {/* Reduced padding */}
                                                     <div className="flex justify-center">
                                                         <div
-                                                            className="inline-block animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-gray-900 mb-2"/>
+                                                            className="inline-block animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-gray-900 mb-2" />
                                                     </div>
                                                     <p className="text-sm text-gray-500">Loading notes...</p>
                                                 </TableCell>
@@ -342,93 +342,93 @@ const NotesLibrary: React.FC<NotesLibraryProps> = ({
                                         ) : notes.length === 0 ? (
                                             <TableRow>
                                                 <TableCell colSpan={4}
-                                                           className="text-center py-8 px-2"> {/* Reduced padding */}
+                                                    className="text-center py-8 px-2"> {/* Reduced padding */}
                                                     <p className="text-gray-500">No notes found for this subject.</p>
                                                 </TableCell>
                                             </TableRow>
                                         ) : (
                                             notes
-                                            .filter(note => selectedSubject === 'all' || !selectedSubject || note.subjectName === selectedSubject)
-                                            .map(note => (
-                                                <TableRow key={note.id} className="hover:bg-gray-50">
-                                                    {/* Added break-words and max-w- attribute to content cells */}
-                                                    <TableCell
-                                                        className="font-medium pr-2 break-words max-w-[120px]">{note.title}</TableCell>
-                                                    <TableCell
-                                                        className="pr-2 break-words max-w-[100px]">{note.subjectName || '-'}</TableCell>
-                                                    <TableCell
-                                                        className="pr-2 whitespace-nowrap">{formatDate(note.createdAt)}</TableCell>
-                                                    {/* Actions cell: now uses flexbox with wrapping and smaller gap */}
-                                                    <TableCell
-                                                        className="text-right flex flex-wrap justify-end gap-1 px-2 py-2"> {/* Added flex-wrap, justify-end, gap-1, adjusted px/py */}
-                                                        {hasLocalVideoData(note.id) && (
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="icon"
-                                                                onClick={() => handleViewVideo(note.id)}
-                                                                className="text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 flex-shrink-0"
-                                                                title="Watch as video"
-                                                            >
-                                                                <Video size={18}/>
-                                                            </Button>
-                                                        )}
-                                                        {note.attachments.length > 0 && (
-                                                            <>
+                                                .filter(note => selectedSubject === 'all' || !selectedSubject || note.subjectName === selectedSubject)
+                                                .map(note => (
+                                                    <TableRow key={note.id} className="hover:bg-gray-50">
+                                                        {/* Added break-words and max-w- attribute to content cells */}
+                                                        <TableCell
+                                                            className="font-medium pr-2 break-words max-w-[120px]">{note.title}</TableCell>
+                                                        <TableCell
+                                                            className="pr-2 break-words max-w-[100px]">{note.subjectName || '-'}</TableCell>
+                                                        <TableCell
+                                                            className="pr-2 whitespace-nowrap">{formatDate(note.createdAt)}</TableCell>
+                                                        {/* Actions cell: now uses flexbox with wrapping and smaller gap */}
+                                                        <TableCell
+                                                            className="text-right flex flex-wrap justify-end gap-1 px-2 py-2"> {/* Added flex-wrap, justify-end, gap-1, adjusted px/py */}
+                                                            {hasLocalVideoData(note.id) && (
                                                                 <Button
                                                                     variant="ghost"
                                                                     size="icon"
-                                                                    onClick={() =>
-                                                                        handleDownload(
-                                                                            note.attachments[0].fileUrl,
-                                                                            note.attachments[0].fileName
-                                                                        )
-                                                                    }
-                                                                    className="text-blue-600 hover:text-blue-800 hover:bg-blue-50 flex-shrink-0"
-                                                                    title="Download"
+                                                                    onClick={() => handleViewVideo(note.id)}
+                                                                    className="text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 flex-shrink-0"
+                                                                    title="Watch as video"
                                                                 >
-                                                                    <Download size={18}/>
-                                                                </Button>
-                                                                <Button
-                                                                    variant="ghost"
-                                                                    size="icon"
-                                                                    onClick={async () => {
-                                                                        const randomCode = Math.floor(100000 + Math.random() * 900000);
-                                                                        const response = await fetch("/api/connector", {
-                                                                            method: "POST",
-                                                                            headers: {"Content-Type": "application/json"},
-                                                                            body: JSON.stringify({
-                                                                                id: randomCode,
-                                                                                link: note.attachments[0].fileUrl
-                                                                            })
-                                                                        });
-                                                                        if (response.ok) {
-                                                                            window.open(`https://commercial.aiclassroom.in/share?id=${randomCode}`, '_blank');
-                                                                        }
-                                                                    }}
-                                                                    className="h-8 w-8 rounded-full hover:bg-yellow-50 hover:text-yellow-700 flex-shrink-0"
-                                                                    title="Share video link"
-                                                                >
-                                                                    <Film size={16}/>
-                                                                </Button>
-                                                            </>
-                                                        )}
-                                                        {note.attachments.length > 0 &&
-                                                            note.attachments[0].fileType.includes('pdf') && (
-                                                                <Button
-                                                                    variant="ghost"
-                                                                    size="icon"
-                                                                    className="text-green-600 hover:text-green-800 hover:bg-green-50 flex-shrink-0"
-                                                                    onClick={() =>
-                                                                        window.open(note.attachments[0].fileUrl, '_blank')
-                                                                    }
-                                                                    title="View PDF"
-                                                                >
-                                                                    <Eye size={18}/>
+                                                                    <Video size={18} />
                                                                 </Button>
                                                             )}
-                                                    </TableCell>
-                                                </TableRow>
-                                            ))
+                                                            {note.attachments.length > 0 && (
+                                                                <>
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        size="icon"
+                                                                        onClick={() =>
+                                                                            handleDownload(
+                                                                                note.attachments[0].fileUrl,
+                                                                                note.attachments[0].fileName
+                                                                            )
+                                                                        }
+                                                                        className="text-blue-600 hover:text-blue-800 hover:bg-blue-50 flex-shrink-0"
+                                                                        title="Download"
+                                                                    >
+                                                                        <Download size={18} />
+                                                                    </Button>
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        size="icon"
+                                                                        onClick={async () => {
+                                                                            const randomCode = Math.floor(100000 + Math.random() * 900000);
+                                                                            const response = await fetch("/api/connector", {
+                                                                                method: "POST",
+                                                                                headers: { "Content-Type": "application/json" },
+                                                                                body: JSON.stringify({
+                                                                                    id: randomCode,
+                                                                                    link: note.attachments[0].fileUrl
+                                                                                })
+                                                                            });
+                                                                            if (response.ok) {
+                                                                                window.open(`${process.env.NEXT_PUBLIC_API_URL}/share?id=${randomCode}`, '_blank');
+                                                                            }
+                                                                        }}
+                                                                        className="h-8 w-8 rounded-full hover:bg-yellow-50 hover:text-yellow-700 flex-shrink-0"
+                                                                        title="Share video link"
+                                                                    >
+                                                                        <Film size={16} />
+                                                                    </Button>
+                                                                </>
+                                                            )}
+                                                            {note.attachments.length > 0 &&
+                                                                note.attachments[0].fileType.includes('pdf') && (
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        size="icon"
+                                                                        className="text-green-600 hover:text-green-800 hover:bg-green-50 flex-shrink-0"
+                                                                        onClick={() =>
+                                                                            window.open(note.attachments[0].fileUrl, '_blank')
+                                                                        }
+                                                                        title="View PDF"
+                                                                    >
+                                                                        <Eye size={18} />
+                                                                    </Button>
+                                                                )}
+                                                        </TableCell>
+                                                    </TableRow>
+                                                ))
                                         )}
                                     </TableBody>
                                 </Table>
@@ -437,7 +437,7 @@ const NotesLibrary: React.FC<NotesLibraryProps> = ({
 
                         <TabsContent value="video" className="mt-4">
                             <div className="rounded-md border p-6 text-center bg-gray-50">
-                                <Video size={40} className="mx-auto text-gray-400 mb-2"/>
+                                <Video size={40} className="mx-auto text-gray-400 mb-2" />
                                 <p className="text-gray-500">Video content will be displayed here</p>
                             </div>
                         </TabsContent>
@@ -450,8 +450,8 @@ const NotesLibrary: React.FC<NotesLibraryProps> = ({
                     className="bg-red-100 text-red-800 p-4 rounded-md mt-4 border border-red-200 flex items-center gap-2">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                         <path fillRule="evenodd"
-                              d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
-                              clipRule="evenodd"/>
+                            d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                            clipRule="evenodd" />
                     </svg>
                     {error}
                 </div>

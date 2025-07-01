@@ -23,8 +23,14 @@
         },
         "url": {
           "raw": "{{baseUrl}}/api/upload/pdf",
-          "host": ["{{baseUrl}}"],
-          "path": ["api", "upload", "pdf"]
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "upload",
+            "pdf"
+          ]
         },
         "description": "Upload a PDF file to S3 and get back the URL"
       },
@@ -46,8 +52,13 @@
         },
         "url": {
           "raw": "{{baseUrl}}/api/notes",
-          "host": ["{{baseUrl}}"],
-          "path": ["api", "notes"]
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "notes"
+          ]
         },
         "description": "Create a new note with an attachment"
       },
@@ -69,8 +80,15 @@
         },
         "url": {
           "raw": "{{baseUrl}}/api/notes/{{noteId}}/process-video-data",
-          "host": ["{{baseUrl}}"],
-          "path": ["api", "notes", "{{noteId}}", "process-video-data"]
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "notes",
+            "{{noteId}}",
+            "process-video-data"
+          ]
         },
         "description": "Process a PDF to generate video data in the background"
       },
@@ -92,8 +110,15 @@
         },
         "url": {
           "raw": "{{baseUrl}}/api/notes/{{noteId}}/video-data",
-          "host": ["{{baseUrl}}"],
-          "path": ["api", "notes", "{{noteId}}", "video-data"]
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "notes",
+            "{{noteId}}",
+            "video-data"
+          ]
         },
         "description": "Update video data for a note"
       },
@@ -106,8 +131,15 @@
         "header": [],
         "url": {
           "raw": "{{baseUrl}}/api/notes/{{noteId}}/video-data",
-          "host": ["{{baseUrl}}"],
-          "path": ["api", "notes", "{{noteId}}", "video-data"]
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "notes",
+            "{{noteId}}",
+            "video-data"
+          ]
         },
         "description": "Get video data for a note"
       },
@@ -120,8 +152,15 @@
         "header": [],
         "url": {
           "raw": "{{baseUrl}}/api/notes/{{noteId}}/video-data",
-          "host": ["{{baseUrl}}"],
-          "path": ["api", "notes", "{{noteId}}", "video-data"]
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "notes",
+            "{{noteId}}",
+            "video-data"
+          ]
         },
         "description": "Check if video data exists for a note"
       },
@@ -131,7 +170,7 @@
   "variable": [
     {
       "key": "baseUrl",
-      "value": "https://commercial.aiclassroom.in"
+      "value": "http://localhost:3000"
     },
     {
       "key": "noteId",

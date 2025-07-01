@@ -11,6 +11,7 @@ import { usePathname } from "next/navigation";
 import Image from "next/image";
 import CostManagementPage from "./CostManagement";
 import CreateAttendance from "./CreateAttendance";
+import axios from "axios";
 // Lucide Icons
 import {
   BookOpenCheck,
@@ -41,6 +42,15 @@ const Navigator = ({ id, userId, logo, name, primaryColor }: NavigatorProps) => 
   const hasShownPopup = useRef(false); // Ref to track if popup has been shown in current session
   const pathname = usePathname();
   const [color, setColor] = useState<string>(primaryColor);
+
+  useEffect(() => {
+    localStorage.setItem('primaryColor', primaryColor);
+    const temp = localStorage.getItem('primaryColor');
+    console.log('temp--- ', temp);
+    if (temp) {
+      setColor(temp);
+    }
+  },);
 
   useEffect(() => {
     // Client-side execution check
@@ -76,9 +86,10 @@ const Navigator = ({ id, userId, logo, name, primaryColor }: NavigatorProps) => 
   }, []);
 
   useEffect(() => {
-    console.log('primaryColor--- ', primaryColor);
-    setColor(primaryColor);
-  }, []);
+    setColor(`bg-[${primaryColor}]`);
+    console.log('Color--- ', color);
+  }, [primaryColor]);
+
 
   const renderComponent = () => {
     switch (activeComponent) {
@@ -222,7 +233,7 @@ const Navigator = ({ id, userId, logo, name, primaryColor }: NavigatorProps) => 
               const commonClasses =
                 "flex items-center px-4 py-2 rounded-lg transition-all duration-300 text-sm font-medium group"; // Added group for hover effects
               const activeClasses =
-                `bg-[${color}] text-white shadow-md`; // Darker gradient, shadow
+                `bg-blue-600 text-white shadow-md`; // Darker gradient, shadow
               const inactiveClasses =
                 "text-gray-700 hover:bg-gray-100 hover:text-blue-600"; // Lighter hover
 
@@ -231,8 +242,9 @@ const Navigator = ({ id, userId, logo, name, primaryColor }: NavigatorProps) => 
                   key={item.name}
                   href={item.href}
                   onClick={handleNavLinkClick}
-                  className={`${commonClasses} ${isActive ? activeClasses : inactiveClasses
+                  className={`${commonClasses} ${isActive ? `bg-[${color}] text-white shadow-md` : inactiveClasses
                     }`}
+                  style={isActive ? { backgroundColor: color } : undefined}
                 >
                   <span
                     className={`mr-3 ${isActive
@@ -248,8 +260,9 @@ const Navigator = ({ id, userId, logo, name, primaryColor }: NavigatorProps) => 
                 <button
                   key={item.name}
                   onClick={() => handleNavLinkClick(item.component)}
-                  className={`${commonClasses} ${isActive ? activeClasses : inactiveClasses
+                  className={`${commonClasses} ${isActive ? `bg-[${color}] text-white shadow-md` : inactiveClasses
                     } w-full text-left`}
+                  style={isActive ? { backgroundColor: color } : undefined}
                 >
                   <span
                     className={`mr-3 ${isActive
@@ -275,7 +288,7 @@ const Navigator = ({ id, userId, logo, name, primaryColor }: NavigatorProps) => 
             <span className="flex items-center justify-center w-6 h-6">
               <User size={20} />
             </span>
-            <span className="ml-4 font-medium">My Profile</span>
+            <span className={`ml-4 font-medium`}>My Profile</span>
 
           </Link>
         </div>

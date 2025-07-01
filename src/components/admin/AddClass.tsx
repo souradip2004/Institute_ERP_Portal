@@ -19,7 +19,7 @@ interface Department {
 
 interface Teacher {
   id: string;
-  departmentId:string;
+  departmentId: string;
   user: {
     name: string;
     institutionId: string;
@@ -104,7 +104,7 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
 
   // Fetch Departments
   useEffect(() => {
-    fetch("https://commercial.aiclassroom.in/api/departments", {
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/departments`, {
       method: "GET",
       headers: { "Content-Type": "application/json" },
     })
@@ -121,7 +121,7 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
 
   // Fetch Semesters
   useEffect(() => {
-    fetch("https://commercial.aiclassroom.in/api/semesters", {
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/semesters`, {
       method: "GET",
       headers: { "Content-Type": "application/json" },
     })
@@ -145,7 +145,7 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
       return;
     }
 
-    fetch("https://commercial.aiclassroom.in/api/batches", {
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/batches`, {
       method: "GET",
       headers: { "Content-Type": "application/json" },
     })
@@ -162,7 +162,7 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
 
   // Fetch Teachers
   useEffect(() => {
-    fetch("https://commercial.aiclassroom.in/api/teachers", {
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/teachers`, {
       method: "GET",
       headers: { "Content-Type": "application/json" },
     })
@@ -172,8 +172,8 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
         console.log(id)
         const filteredTeachers = data.filter((teacher: Teacher) => teacher.user.institutionId === id);
         setTeacherData(filteredTeachers);
-        console.log("here are filtered Teachers",filteredTeachers)
-        
+        console.log("here are filtered Teachers", filteredTeachers)
+
       })
       .catch((error) => {
         console.error("Error fetching teachers:", error);
@@ -188,7 +188,7 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
       return;
     }
 
-    fetch("https://commercial.aiclassroom.in/api/courses", {
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/courses`, {
       method: "GET",
       headers: { "Content-Type": "application/json" },
     })
@@ -248,7 +248,7 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
     // Handle MotherClass creation
     let motherClassIdToSubmit: string | undefined;
     try {
-      const motherClassResponse = await fetch("https://commercial.aiclassroom.in/api/motherclass", { // Assuming this endpoint exists
+      const motherClassResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/motherclass`, { // Assuming this endpoint exists
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -431,7 +431,7 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
               {departmentOptions.map((department, index) => (
                 <option key={index} value={department}>{department}</option>
               ))}
-          
+
             </select>
             {showInput.department && (
               <div className="mt-3 p-3 border border-gray-200 rounded-md bg-gray-50">
@@ -447,7 +447,7 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
                   type="button"
                   onClick={async () => {
                     if (!newDepartmentName.trim()) return;
-                    await fetch("https://commercial.aiclassroom.in/api/departments", {
+                    await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/departments`, {
                       method: "POST",
                       headers: { "Content-Type": "application/json" },
                       body: JSON.stringify({ name: newDepartmentName, institutionId: id }),
@@ -474,9 +474,10 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
             <label className="block text-sm font-medium text-gray-700 mb-1">Select Teachers for this Class Section</label>
             <p className="text-xs text-gray-500 mb-2">Choose all teachers who will teach in this class section.</p>
             <div className={`border p-2 rounded-md h-32 overflow-y-auto ${!isDepartmentSelected ? 'bg-gray-100 text-gray-400' : 'bg-white'}`}>
-              {teacherData.filter((c)=>{
-                    const departmentIdToSubmit = allDepartments.find((dept) => dept.name === classData.department)?.id;
-              return  c.departmentId==departmentIdToSubmit}).map((teacher) => (
+              {teacherData.filter((c) => {
+                const departmentIdToSubmit = allDepartments.find((dept) => dept.name === classData.department)?.id;
+                return c.departmentId == departmentIdToSubmit
+              }).map((teacher) => (
                 <label key={teacher.id} className={`flex items-center space-x-2 py-1 ${!isDepartmentSelected ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
                   <input
                     type="checkbox"
@@ -551,7 +552,7 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
                       alert("Please fill all fields for the new semester.");
                       return;
                     }
-                    await fetch("https://commercial.aiclassroom.in/api/semesters", {
+                    await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/semesters`, {
                       method: "POST",
                       headers: { "Content-Type": "application/json" },
                       body: JSON.stringify({ name: newSemesterName, startDate, endDate, institutionId: id, isCurrent: true }),
@@ -610,7 +611,7 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
                       alert("Please select a department first to add a batch.");
                       return;
                     }
-                    fetch("https://commercial.aiclassroom.in/api/batches", {
+                    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/batches`, {
                       method: "POST",
                       headers: { "Content-Type": "application/json" },
                       body: JSON.stringify({
@@ -662,7 +663,7 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
 
                         // Determine if the main course selection checkbox should be disabled
                         const isDisabledCourseSelection = (!isDepartmentSelected || !isBatchSelected) ||
-                                                          (isCourseAssignedToAnotherTeacher && !isCourseAssignedToCurrentTeacher);
+                          (isCourseAssignedToAnotherTeacher && !isCourseAssignedToCurrentTeacher);
 
                         // Find the optional status for the current course by the current teacher
                         const currentCourseOptionalStatus = assignedCourses.find(c => c.courseId === course.id)?.isOptional || false;
@@ -769,15 +770,15 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
                     return;
                   }
                   console.log({
-                      name: newCourseName,
-                      courseCode,
-                      description: courseDescription,
-                      creditHours: courseCredits,
-                      departmentId: selectedDepartmentId,
-                      courseType: "CORE", // Consider making this selectable
-                      createdById: selectedTeacherIds[0]
-                    })
-                  fetch("https://commercial.aiclassroom.in/api/courses", {
+                    name: newCourseName,
+                    courseCode,
+                    description: courseDescription,
+                    creditHours: courseCredits,
+                    departmentId: selectedDepartmentId,
+                    courseType: "CORE", // Consider making this selectable
+                    createdById: selectedTeacherIds[0]
+                  })
+                  fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/courses`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({

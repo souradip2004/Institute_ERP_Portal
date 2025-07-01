@@ -37,44 +37,45 @@ export default async function DashboardPage() {
   }
 
   // Fetch user details
-  const userRes = await fetch(`https://commercial.aiclassroom.in/api/users/${userId}`, { cache: "no-store" });
+  const userRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/${userId}`, { cache: "no-store" });
   const userData = await userRes.json();
 
   let institutionData = null;
 
   // Fetch institution details if institutionId exists
   if (userData?.institutionId) {
-    const institutionRes = await fetch(`https://commercial.aiclassroom.in/api/institutions/${userData.institutionId}`, {
+    const institutionRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/institutions/${userData.institutionId}`, {
       cache: "no-store",
     });
     institutionData = await institutionRes.json();
   }
   const cookieStore = await cookies();
   const hasPopupBeenShown = cookieStore.get('institution_created_popup_shown')?.value === 'true';  // --- FIX ENDS HERE ---
-console.log("hasPopupBeenShown: " + hasPopupBeenShown);
+  console.log("hasPopupBeenShown: " + hasPopupBeenShown);
   // Popup should show if there's NO institution linked AND the popup hasn't been shown before
   const shouldShowInstitutionPopup = !institutionData && !hasPopupBeenShown;
 
-if(institutionData){
-  console.log("Institution Data: ", institutionData);
-}
-const primaryBgClass = institutionData?.primaryColor
-  ? institutionData.primaryColor.startsWith('bg-') // Check if it already has "bg-"
-    ? institutionData.primaryColor // Use as is (e.g., "bg-red-500")
-    : institutionData.primaryColor.startsWith('#') // Is it a hex code?
-      ? `bg-[${institutionData.primaryColor}]` // Use Tailwind's arbitrary value syntax (e.g., "bg-[#FF0000]")
-      : `bg-${institutionData.primaryColor}` // Assume it's a Tailwind color name (e.g., "red-500" becomes "bg-red-500")
-  : "bg-white dark:bg-gray-800"; // Fallback to your original white/dark gray if no primaryColor
+  if (institutionData) {
+    console.log("Institution Data: ", institutionData);
+  }
+  const primaryBgClass = institutionData?.primaryColor
+    ? institutionData.primaryColor.startsWith('bg-') // Check if it already has "bg-"
+      ? institutionData.primaryColor // Use as is (e.g., "bg-red-500")
+      : institutionData.primaryColor.startsWith('#') // Is it a hex code?
+        ? `bg-[${institutionData.primaryColor}]` // Use Tailwind's arbitrary value syntax (e.g., "bg-[#FF0000]")
+        : `bg-${institutionData.primaryColor}` // Assume it's a Tailwind color name (e.g., "red-500" becomes "bg-red-500")
+    : "bg-white dark:bg-gray-800"; // Fallback to your original white/dark gray if no primaryColor
 
-console.log("Primary Background Class: ", primaryBgClass);
+  console.log("Primary Background Class: ", primaryBgClass);
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-gray-100 dark:from-gray-900 dark:to-slate-950">
       <Suspense fallback={<Loader size="large" fullScreen message="Loading dashboard..." />}>
         <main className="container mx-auto px-4 py-8 max-w-6xl">
           {/* Profile Section */}
-<div
-  className={`mb-8 flex flex-col sm:flex-row items-center sm:items-start gap-6 p-6 sm:p-8 ${primaryBgClass} rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 transition-all hover:shadow-md`}
->
+          <div
+            className={`mb-8 flex flex-col sm:flex-row items-center sm:items-start gap-6 p-6 sm:p-8 ${primaryBgClass} rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 transition-all hover:shadow-md`}
+            style={{ backgroundColor: institutionData?.primaryColor }}
+          >
             <div className="relative">
               <div className="absolute -inset-1.5 bg-gradient-to-r from-violet-600 to-indigo-600 rounded-full blur-sm opacity-75"></div>
               <div className="relative w-28 h-28">
@@ -104,9 +105,9 @@ console.log("Primary Background Class: ", primaryBgClass);
                     {userData?.role === "ADMIN" ? "Administrator Dashboard" : "User Dashboard"}
                   </p>
                 </div>
-               <div className="flex flex-col items-center gap-2">
-      <ActionDropdown institutionId={institutionData?.id} userId={userId} />
-    </div>
+                <div className="flex flex-col items-center gap-2">
+                  <ActionDropdown institutionId={institutionData?.id} userId={userId} />
+                </div>
               </div>
 
               <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-100 dark:border-gray-700">
@@ -135,7 +136,7 @@ console.log("Primary Background Class: ", primaryBgClass);
                 </span>
               </h2>
 
-             
+
             </div>
 
             {institutionData ? (
@@ -205,24 +206,24 @@ console.log("Primary Background Class: ", primaryBgClass);
                           </div>
                         </div>
                       </div>
-                                     
+
                       <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700 flex justify-end">
                         {institutionData && (
                           <div className="mt-2 sm:mt-0">
                             <Link
-                              href="https://commercial.aiclassroom.in/a"
+                              href={`${process.env.NEXT_PUBLIC_API_URL}/a`}
                               className={cn(
                                 buttonVariants({ variant: "outline", size: "sm" }),
                                 "text-indigo-600 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800 hover:bg-indigo-50 dark:hover:bg-indigo-950 relative"
                               )}
                             >
                               <span className="absolute inset-0 rounded-lg bg-gradient-to-r from-indigo-200 to-purple-200 dark:from-indigo-900 dark:to-purple-900 opacity-60 pointer-events-none animate-pulse"></span>
-                                <span className="relative font-semibold">Go to Institution Portal</span>
-                               
+                              <span className="relative font-semibold">Go to Institution Portal</span>
+
                             </Link>
-                             <span className="block text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                Click here to access your institution dashboard.
-                                </span>
+                            <span className="block text-xs text-gray-500 dark:text-gray-400 mt-1">
+                              Click here to access your institution dashboard.
+                            </span>
                           </div>
                         )}
                       </div>

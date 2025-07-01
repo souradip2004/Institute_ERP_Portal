@@ -74,9 +74,9 @@ export async function sendWelcomeEmail(to: string) {
   await transporter.sendMail(mailOptions);
 }
 
-export async function sendUserDetails(to: string,password:string) {
+export async function sendUserDetails(to: string, password: string) {
   const subject = "Welcome to Our Service!";
-  const htmlContent =  `
+  const htmlContent = `
     <div style="font-family: Arial, sans-serif; padding: 20px; background-color: #f9f9f9; color: #333;">
       <div style="max-width: 600px; margin: auto; background: #fff; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
         <h1 style="color: #4f46e5;">Welcome to <span style="color: #111827;">Ai Classroom</span>!</h1>
@@ -171,14 +171,14 @@ export async function sendPasswordResetEmail(email: string, resetUrl: string) {
     <p>${resetUrl}</p>
   `;
 
-    const mailOptions = {
-      from: process.env.SMTP_FROM_EMAIL,
-      to: email,
-      subject,
-      html: htmlContent,
-    };
+  const mailOptions = {
+    from: process.env.SMTP_FROM_EMAIL,
+    to: email,
+    subject,
+    html: htmlContent,
+  };
 
-    await transporter.sendMail(mailOptions);
+  await transporter.sendMail(mailOptions);
 
 
 }

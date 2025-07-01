@@ -79,48 +79,48 @@ export default function ClassSectionsPage({ id }: ViewClassSectionPageProps) {
       setIsLoading(true);
       try {
         // Fetch teachers first
-        const teachersResponse = await fetch("https://commercial.aiclassroom.in/api/teachers", {
+        const teachersResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/teachers`, {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
           },
         });
-        
+
         if (!teachersResponse.ok) {
           throw new Error('Failed to fetch teachers');
         }
-        
+
         const teachers = await teachersResponse.json();
-        
+
         if (!Array.isArray(teachers)) {
           console.error('Teachers response is not an array:', teachers);
           throw new Error('Invalid teachers data format');
         }
-        
-        const filteredTeachers = teachers.filter((teacher: Teacher) => 
+
+        const filteredTeachers = teachers.filter((teacher: Teacher) =>
           teacher && teacher.user && teacher.user.institutionId === id
         );
-        
+
         setTeachers(filteredTeachers || []);
-        
+
         // Now fetch class sections
-        const response = await fetch('/api/class-sections');
-        
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/class-sections`);
+
         if (!response.ok) {
           throw new Error('Failed to fetch class sections');
         }
-        
+
         const data = await response.json();
-        
+
         if (!Array.isArray(data)) {
           console.error('Class sections response is not an array:', data);
           throw new Error('Invalid class sections data format');
         }
-        
+
         // Filter sections by teacher ID
         const teacherIds = filteredTeachers.map(t => t.id);
         const filteredClassSections = data
-          .filter((section: ApiClassSection) => 
+          .filter((section: ApiClassSection) =>
             section && section.teacherId && teacherIds.includes(section.teacherId)
           )
           .map((section: ApiClassSection) => {
@@ -128,11 +128,11 @@ export default function ClassSectionsPage({ id }: ViewClassSectionPageProps) {
             return {
               id: section.id || '',
               sectionName: section.sectionName || 'Unnamed Section',
-              motherClassId	:section.motherClassId	,
+              motherClassId: section.motherClassId,
               teacherId: section.teacherId || '',
               batchId: section.batchId || '',
               courseId: section.courseId || '',
-              isOptional:section.isOptional || false,
+              isOptional: section.isOptional || false,
               semesterId: section.semesterId || '',
               maxStudents: section.maxStudents || 0,
               createdAt: section.createdAt || new Date().toISOString(),
@@ -143,7 +143,7 @@ export default function ClassSectionsPage({ id }: ViewClassSectionPageProps) {
               teacher: section.teacher || { user: {} }
             };
           });
-        
+
         setClassSections(filteredClassSections as ClassSection[]);
         setError(null);
       } catch (err) {
@@ -162,23 +162,23 @@ export default function ClassSectionsPage({ id }: ViewClassSectionPageProps) {
     const fetchStudents = async () => {
       try {
         setIsLoading(true);
-        const response = await fetch('/api/students');
-        
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/students`);
+
         if (!response.ok) {
           throw new Error('Failed to fetch students');
         }
-        
+
         const data = await response.json();
-        
+
         if (!Array.isArray(data)) {
           console.error('Students response is not an array:', data);
           throw new Error('Invalid students data format');
         }
-        
-        const filteredStudents = data.filter((student: Student) => 
+
+        const filteredStudents = data.filter((student: Student) =>
           student && student.user && student.user.institutionId === id
         );
-        
+
         setStudents(filteredStudents || []);
         setError(null);
       } catch (err) {
@@ -230,8 +230,8 @@ export default function ClassSectionsPage({ id }: ViewClassSectionPageProps) {
             <h3 className="text-lg font-medium text-red-800">Error</h3>
           </div>
           <p className="text-red-700 mb-4">{error}</p>
-          <button 
-            onClick={() => window.location.reload()} 
+          <button
+            onClick={() => window.location.reload()}
             className="w-full px-4 py-2 bg-red-100 text-red-700 rounded-md hover:bg-red-200 transition-colors"
           >
             Retry
@@ -299,29 +299,29 @@ export default function ClassSectionsPage({ id }: ViewClassSectionPageProps) {
 
       {activeSection === "viewClassSections" && (
         <Card className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
-          <ClassSectionsList 
-            classSections={classSections} 
-            onViewClassSection={handleViewClassSection} 
+          <ClassSectionsList
+            classSections={classSections}
+            onViewClassSection={handleViewClassSection}
           />
         </Card>
       )}
 
       {activeSection === "viewClassSectionDetail" && selectedClassSection && (
         <Card className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
-          <ClassSectionDetail 
-            classSection={selectedClassSection} 
-            onBack={handleBackToList} 
+          <ClassSectionDetail
+            classSection={selectedClassSection}
+            onBack={handleBackToList}
           />
         </Card>
       )}
-      
+
       {/* Add Class Modal */}
       {isAddModalOpen && (
-        <AddClassModal 
-          id={id} 
+        <AddClassModal
+          id={id}
           userid={id}
-          isOpen={isAddModalOpen} 
-          onClose={closeAddModal} 
+          isOpen={isAddModalOpen}
+          onClose={closeAddModal}
         />
       )}
     </div>

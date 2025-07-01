@@ -20,7 +20,7 @@ export default function DeleteInstitutionButton({ institutionId, userId }: Delet
 
     setLoading(true);
     try {
-      const deleteRes = await fetch(`https://commercial.aiclassroom.in/api/institutions/${institutionId}`, {
+      const deleteRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/institutions/${institutionId}`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: institutionId }),
@@ -28,7 +28,7 @@ export default function DeleteInstitutionButton({ institutionId, userId }: Delet
 
       if (!deleteRes.ok) throw new Error("Failed to delete institution.");
 
-      await fetch(`https://commercial.aiclassroom.in/api/users/${userId}`, {
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/${userId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ institutionId: null }),

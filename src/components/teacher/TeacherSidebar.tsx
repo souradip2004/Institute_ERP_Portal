@@ -33,22 +33,39 @@ export default function TeacherSidebar({ onSidebarToggle }: TeacherSidebarProps)
   const [institution, setImstitution] = useState(null);
   const [color, setColor] = useState<string>("");
 
+
+
   useEffect(() => {
     if (localStorage.getItem("user")) {
       const data = JSON.parse(localStorage.getItem("user"))?.institutionId;
       const fetchInstitute = async () => {
-        const institutionRes = await fetch(`https://commercial.aiclassroom.in/api/institutions/${data}`, {
-          cache: "no-store",
-        });
-        let institutionData = await institutionRes.json();
-        setImstitution(institutionData)
-        setColor(institutionData.primaryColor);
-        console.log('color--- ', color);
+        try {
+          const institutionRes = await fetch(`/api/institutions/${data}`, {
+            cache: "no-store",
+          });
+          let institutionData = await institutionRes.json();
+          console.log("institutionData--- ", institutionData);
+          setImstitution(institutionData)
+          setColor(institutionData.primaryColor);
+        } catch (error) {
+          console.log('error--- ', error);
+        }
       }
       fetchInstitute();
 
     }
   }, [])
+
+  useEffect(() => {
+    console.log('color--- ', color);
+    localStorage.setItem('primaryColor', color);
+    const temp = localStorage.getItem('primaryColor');
+    console.log('temp--- ', temp);
+    if (temp) {
+      setColor(temp);
+    }
+  }, [color]);
+
   // Memoize the callback to prevent unnecessary re-renders in parent
   const memoizedOnSidebarToggle = useCallback(
     (openStatus: boolean) => {
@@ -56,6 +73,11 @@ export default function TeacherSidebar({ onSidebarToggle }: TeacherSidebarProps)
     },
     [onSidebarToggle]
   );
+
+
+  useEffect(() => {
+    console.log("color--- ", color);
+  }, []);
 
   useEffect(() => {
     // Client-side execution check
@@ -230,6 +252,7 @@ export default function TeacherSidebar({ onSidebarToggle }: TeacherSidebarProps)
                   href={item.href as any}
                   onClick={item.onClick}
                   className={`${commonClasses} ${isActive ? activeClasses : inactiveClasses}`}
+                  style={isActive ? { backgroundColor: color } : undefined}
                 >
                   <span className={`mr-3 ${isActive ? 'text-blue-700' : 'text-gray-500 group-hover:text-blue-700'}`}>{item.icon}</span>
                   <span>{item.name}</span>

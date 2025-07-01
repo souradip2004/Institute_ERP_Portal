@@ -3,9 +3,9 @@ import fetch from "cross-fetch";
 
 export function createApolloClient() {
   return new ApolloClient({
-    ssrMode: typeof window === 'undefined', 
+    ssrMode: typeof window === 'undefined',
     link: new HttpLink({
-      uri: "https://commercial.aiclassroom.in/apollo",
+      uri: `${process.env.NEXT_PUBLIC_API_URL}/apollo`,
       fetch,
     }),
     cache: new InMemoryCache(),
