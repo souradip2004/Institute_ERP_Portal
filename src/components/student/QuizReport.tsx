@@ -1,3 +1,5 @@
+'use client'
+
 import React, { useState, useEffect } from 'react';
 import { FiCheckCircle, FiChevronDown, FiShare2, FiRefreshCw } from 'react-icons/fi';
 import { TbArrowBackUp } from "react-icons/tb";
@@ -21,12 +23,7 @@ interface AiFeedback {
   feedbackText: string;
 }
 
-const translator = (word1: string, word2: string) =>
-  typeof window !== 'undefined' && localStorage.getItem("lang") && localStorage.getItem("lang")!.toLowerCase().includes("english")
-    ? word1
-    : localStorage.getItem("lang")
-      ? word2
-      : word1;
+const translator = (word1: string, word2: string) => word1
 
 const QuizReport: React.FC = () => {
   const [durationInSeconds, setDurationInSeconds] = useState<number>(0);

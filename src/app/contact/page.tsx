@@ -111,11 +111,7 @@ const ContactPage = () => {
     };
 
     const translator = (word1, word2) =>
-        localStorage.getItem("lang") && localStorage.getItem("lang").toLowerCase().includes("english")
-            ? word1
-            : localStorage.getItem("lang")
-                ? word2
-                : word1;
+        word1;
 
     return (
         <div className="min-h-screen flex flex-col justify-between bg-gradient-to-tr from-[#EBCAFF] via-white to-[#EBCAFF]">

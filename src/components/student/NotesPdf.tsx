@@ -1,4 +1,4 @@
-
+"use client"
 import { useState, useEffect, useRef } from 'react';
 import {
     Menu,
@@ -14,11 +14,7 @@ import { useRouter } from 'next/navigation';
 
 // Translator function for English/Hindi UI
 const translator = (word1: string, word2: string) =>
-    typeof window !== 'undefined' && localStorage.getItem("lang") && localStorage.getItem("lang")!.toLowerCase().includes("english")
-        ? word1
-        : localStorage.getItem("lang")
-            ? word2
-            : word1;
+    word1
 
 type PdfData = {
     originalUrl: string;
