@@ -11,6 +11,7 @@ type CostDetail = {
     questionPaperCreditsBalance: number;
     copyCheckingCreditsBalance: number;
     attendanceCreditsBalance: number;
+    schedulerCreditBalance:number;
     total: number;
     lastUpdated: string;
     studentLimit: number;
@@ -42,11 +43,11 @@ const CostManagementPage: React.FC = () => {
     const [costDetails, setCostDetails] = useState<CostDetail | null>(null);
     const [loading, setLoading] = useState(true);
 
-    /*useEffect(() => {
+    useEffect(() => {
         fetchCostDetails()
             .then((data) => {setCostDetails(data);console.log(data)})
             .finally(() => setLoading(false));
-    }, []);*/
+    }, []);
 
     if (loading) {
         return (
