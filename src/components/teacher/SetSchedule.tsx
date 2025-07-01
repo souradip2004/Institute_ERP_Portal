@@ -369,9 +369,7 @@ const SetSchedule = () => {
 
   const translator = useCallback((word1: string, word2: string) => {
     // Only access localStorage on the client side
-    if (typeof window !== 'undefined' && localStorage.getItem("lang")) {
-      return localStorage.getItem("lang")!.toLowerCase().includes("english") ? word1 : (word2 || word1);
-    }
+    
     return word1; // Default to English if localStorage or lang is not available
   }, []); // No dependencies needed as it only checks window and localStorage once
 

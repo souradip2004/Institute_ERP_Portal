@@ -42,12 +42,7 @@ const ArrowRightIcon = ({ className }: { className?: string }) => (
     </svg>
 );
 
-const translator = (word1: string, word2: string) =>
-    typeof window !== 'undefined' && localStorage.getItem("lang") && localStorage.getItem("lang")!.toLowerCase().includes("english")
-        ? word1
-        : localStorage.getItem("lang")
-            ? word2
-            : word1;
+const translator = (word1: string, word2: string) => word1;
 export default function withSearchParams(){
     return(
         <Suspense>

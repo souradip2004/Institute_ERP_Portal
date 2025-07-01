@@ -1,3 +1,4 @@
+'use client'
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import axios from 'axios';
@@ -51,16 +52,13 @@ const StructuredBreakdown: React.FC = () => {
   const [hasDate, setHasDate] = useState(true);
   const [scrollToToday, setScrollToToday] = useState(false);
   const [scores, setScores] = useState<Scores>({});
-  const [studentId, setStudentId] = useState<string | null>(
-    JSON.parse(localStorage.getItem("user"))?.studentId
-  );
+  const [studentId, setStudentId] = useState<string | null>(null);
 
   const [userVivaPreference, setUserVivaPreference] = useState<any>(null);
   const [initialPref, setInitialPref] = useState<{ topic: string; language: string }>({ topic: '', language: '' });
 
   const translator = (word1: string, word2: string) => {
-    const lang = (typeof window !== 'undefined' && localStorage.getItem("lang")) || '';
-    return lang.toLowerCase().includes("english") ? word1 : lang ? word2 : word1;
+    return word1;
   };
 
   useEffect(() => {
@@ -80,7 +78,11 @@ const StructuredBreakdown: React.FC = () => {
       }
     }
   }, []);
-
+useEffect(()=>{
+      if (typeof window === 'undefined') return;
+const data=localStorage.getItem("user")
+    setStudentId(JSON.parse(data)?.studentId)
+},[])
   // Fetch data from API
   useEffect(() => {
     if (typeof window === 'undefined') return;

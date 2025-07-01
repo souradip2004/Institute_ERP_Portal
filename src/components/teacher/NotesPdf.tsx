@@ -12,14 +12,7 @@ import { IoIosClose } from "react-icons/io";
 import { useRouter } from 'next/navigation';
 
 const translator = (word1:string, word2:string) => { // Removed type annotations for plain JS in React immersive
-    if (typeof window !== 'undefined') {
-        const lang = localStorage.getItem("lang");
-        if (lang && lang.toLowerCase().includes("english")) {
-            return word1;
-        } else if (lang) {
-            return word2;
-        }
-    }
+    
     return word1; // Default to word1 if window/localStorage is not available
 };
 type PdfData = {

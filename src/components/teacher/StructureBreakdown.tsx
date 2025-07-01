@@ -65,8 +65,7 @@ const StructuredBreakdown: React.FC = () => {
 
 
   const translator = (word1: string, word2: string) => {
-    const lang = (typeof window !== 'undefined' && localStorage.getItem("lang")) || '';
-    return lang.toLowerCase().includes("english") ? word1 : lang ? word2 : word1;
+    return word1
   };
 
   useEffect(() => {

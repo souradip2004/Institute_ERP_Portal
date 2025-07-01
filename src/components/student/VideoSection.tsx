@@ -1,3 +1,5 @@
+'use client'
+
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { IoMdClose } from 'react-icons/io';
@@ -580,11 +582,7 @@ const VideoSection = () => {
     }
 
     const translator = (word1: string, word2: string) => {
-        if (typeof window !== 'undefined') {
-            const lang = localStorage.getItem('lang');
-            if (lang && lang.toLowerCase().includes('english')) return word1;
-            if (lang) return word2;
-        }
+        
         return word1;
     };
 
