@@ -1,6 +1,6 @@
 // api/exams/create (backend API route)
 
-import { NextRequest, NextResponse } from "next/server";
+import {NextRequest, NextResponse} from "next/server";
 import prisma from "@/lib/prisma";
 import jwt from 'jsonwebtoken';
 
@@ -21,7 +21,8 @@ export async function POST(req: NextRequest) {
       examDate,
       startTime,
       endTime,
-      isAiGenerated = true
+      difficultyLevel,
+      isAiGenerated
     } = await req.json();
     console.log("Request body:", userId);
 
@@ -46,51 +47,51 @@ export async function POST(req: NextRequest) {
         // and then fetch user details from the database using prisma.
         // For demonstration, let's directly use prisma based on userId.id
         userDataFromDb = await prisma.user.findUnique({
-          where: { id: user.id },
-          select: { role: true, institutionId: true }
+          where: {id: user.id},
+          select: {role: true, institutionId: true}
         });
 
         if (!userDataFromDb) {
           console.log("User not found for ID:", user.id);
-          return NextResponse.json({ error: "User not found" }, { status: 404 });
+          return NextResponse.json({error: "User not found"}, {status: 404});
         }
 
       } catch (fetchError) {
         console.error("Error fetching user data from DB:", fetchError);
-        return NextResponse.json({ error: "Failed to verify user" }, { status: 500 });
+        return NextResponse.json({error: "Failed to verify user"}, {status: 500});
       }
     } else {
-      return NextResponse.json({ error: "User ID not provided" }, { status: 400 });
+      return NextResponse.json({error: "User ID not provided"}, {status: 400});
     }
 
     if (userDataFromDb.role !== "TEACHER") {
       console.log("User role:", userDataFromDb.role);
-      return NextResponse.json({ error: "Unauthorized - Teacher access required" }, { status: 403 });
+      return NextResponse.json({error: "Unauthorized - Teacher access required"}, {status: 403});
     }
 
     if (!userDataFromDb.institutionId) {
       console.log("User institution ID:", userDataFromDb.institutionId);
-      return NextResponse.json({ error: "Teacher must be associated with an institution" }, { status: 400 });
+      return NextResponse.json({error: "Teacher must be associated with an institution"}, {status: 400});
     }
 
     // Get teacher record
     const teacher = await prisma.teacher.findFirst({
-      where: { userId: user.id }
+      where: {userId: user.id}
     });
 
     if (!teacher) {
       console.log("Teacher record not found for user ID:", user.id);
-      return NextResponse.json({ error: "Teacher record not found" }, { status: 403 });
+      return NextResponse.json({error: "Teacher record not found"}, {status: 403});
     }
 
     if (!title || !questions || !Array.isArray(questions)) {
-      console.log("Exam data:", { title, questions });
-      return NextResponse.json({ error: "Invalid exam data" }, { status: 400 });
+      console.log("Exam data:", {title, questions});
+      return NextResponse.json({error: "Invalid exam data"}, {status: 400});
     }
 
     if (!classSectionId) {
       console.log("Class section ID is required");
-      return NextResponse.json({ error: "Class section is required" }, { status: 400 });
+      return NextResponse.json({error: "Class section is required"}, {status: 400});
     }
 
     // Validate class section belongs to teacher
@@ -103,7 +104,7 @@ export async function POST(req: NextRequest) {
 
     if (!classSection) {
       console.log("Class section not found for teacher ID:", teacher.id);
-      return NextResponse.json({ error: "Invalid class section" }, { status: 400 });
+      return NextResponse.json({error: "Invalid class section"}, {status: 400});
     }
 
     // First create the exam type if it doesn't exist
@@ -143,27 +144,28 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    const marks = parseFloat(totalMarks) / questions.length;
     // Then create questions for the exam
     await prisma.question.createMany({
       data: questions.map((q: any) => ({
         examId: exam.id,
         questionText: q.question,
-        questionType: "MCQ", // Assuming all are MCQs now, or you can make this dynamic
+        questionType: q.questionType, // Assuming all are MCQs now, or you can make this dynamic
         correctAnswer: Array.isArray(q.answer) ? q.answer : [q.answer],
-        marks: 1, // Default marks, can be dynamic if needed
-        difficultyLevel: "MEDIUM", // Default difficulty, can be dynamic if needed
+        marks, // Default marks, can be dynamic if needed
+        difficultyLevel, // Default difficulty, can be dynamic if needed
         createdById: teacher.id,
         options: q.options || [], // Store options for MCQs
-      })),
+      }))
     });
 
-    return NextResponse.json({ success: true, examId: exam.id });
+    return NextResponse.json({success: true, examId: exam.id});
   } catch (error: any) {
     console.error("Error creating exam:", error);
     console.log("Error creating exam:", error); // Keep this for immediate logging
     return NextResponse.json(
-      { error: "Failed to create exam", details: error.message },
-      { status: 500 }
+      {error: "Failed to create exam", details: error.message},
+      {status: 500}
     );
   }
 }

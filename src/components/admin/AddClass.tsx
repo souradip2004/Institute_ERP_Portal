@@ -104,7 +104,7 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
 
   // Fetch Departments
   useEffect(() => {
-    fetch("http://localhost:3000/api/departments", {
+    fetch("https://commercial.aiclassroom.in/api/departments", {
       method: "GET",
       headers: { "Content-Type": "application/json" },
     })
@@ -121,7 +121,7 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
 
   // Fetch Semesters
   useEffect(() => {
-    fetch("http://localhost:3000/api/semesters", {
+    fetch("https://commercial.aiclassroom.in/api/semesters", {
       method: "GET",
       headers: { "Content-Type": "application/json" },
     })
@@ -145,7 +145,7 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
       return;
     }
 
-    fetch("http://localhost:3000/api/batches", {
+    fetch("https://commercial.aiclassroom.in/api/batches", {
       method: "GET",
       headers: { "Content-Type": "application/json" },
     })
@@ -162,7 +162,7 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
 
   // Fetch Teachers
   useEffect(() => {
-    fetch("http://localhost:3000/api/teachers", {
+    fetch("https://commercial.aiclassroom.in/api/teachers", {
       method: "GET",
       headers: { "Content-Type": "application/json" },
     })
@@ -188,7 +188,7 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
       return;
     }
 
-    fetch("http://localhost:3000/api/courses", {
+    fetch("https://commercial.aiclassroom.in/api/courses", {
       method: "GET",
       headers: { "Content-Type": "application/json" },
     })
@@ -248,7 +248,7 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
     // Handle MotherClass creation
     let motherClassIdToSubmit: string | undefined;
     try {
-      const motherClassResponse = await fetch("http://localhost:3000/api/motherclass", { // Assuming this endpoint exists
+      const motherClassResponse = await fetch("https://commercial.aiclassroom.in/api/motherclass", { // Assuming this endpoint exists
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -447,7 +447,7 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
                   type="button"
                   onClick={async () => {
                     if (!newDepartmentName.trim()) return;
-                    await fetch("http://localhost:3000/api/departments", {
+                    await fetch("https://commercial.aiclassroom.in/api/departments", {
                       method: "POST",
                       headers: { "Content-Type": "application/json" },
                       body: JSON.stringify({ name: newDepartmentName, institutionId: id }),
@@ -551,7 +551,7 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
                       alert("Please fill all fields for the new semester.");
                       return;
                     }
-                    await fetch("http://localhost:3000/api/semesters", {
+                    await fetch("https://commercial.aiclassroom.in/api/semesters", {
                       method: "POST",
                       headers: { "Content-Type": "application/json" },
                       body: JSON.stringify({ name: newSemesterName, startDate, endDate, institutionId: id, isCurrent: true }),
@@ -610,7 +610,7 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
                       alert("Please select a department first to add a batch.");
                       return;
                     }
-                    fetch("http://localhost:3000/api/batches", {
+                    fetch("https://commercial.aiclassroom.in/api/batches", {
                       method: "POST",
                       headers: { "Content-Type": "application/json" },
                       body: JSON.stringify({
@@ -777,7 +777,7 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
                       courseType: "CORE", // Consider making this selectable
                       createdById: selectedTeacherIds[0]
                     })
-                  fetch("http://localhost:3000/api/courses", {
+                  fetch("https://commercial.aiclassroom.in/api/courses", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({

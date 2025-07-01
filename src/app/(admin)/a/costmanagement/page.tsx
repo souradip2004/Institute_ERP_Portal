@@ -11,6 +11,7 @@ type CostDetail = {
     questionPaperCreditsBalance: number;
     copyCheckingCreditsBalance: number;
     attendanceCreditsBalance: number;
+    schedulerCreditBalance:number;
     total: number;
     lastUpdated: string;
     studentLimit: number;
