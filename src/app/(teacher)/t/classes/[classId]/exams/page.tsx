@@ -521,9 +521,11 @@ export default function ExamsPage({params}: ExamsPageProps) {
           setError(`MCQ question "${q.question}" must have at least two non-empty options.`);
           return;
         }
+
         // For MCQ, ensure the answer is one of the options (case-insensitive and trim)
         if (typeof q.answer === 'string' && !q.options.map(opt => opt.trim().toLowerCase()).includes(q.answer.trim().toLowerCase())) {
-          setError(`MCQ question "${q.question}"'s answer must be one of the provided options.`);
+
+          setError(`MCQ question ${q.question}'s answer must be one of the provided options.`);
           return;
         }
       }
@@ -650,12 +652,12 @@ export default function ExamsPage({params}: ExamsPageProps) {
         }
 
         const correctAnswerText = optionText.substring(optionText.indexOf(' ') + 1).trim();
-
+        const cleanedOptions = rawQuestion.options.map((opt: string) => opt.replace(/^[a-zA-Z][\.\)]\s*/, '').trim());
         newQuestion = {
           question: rawQuestion.title,
-          options: rawQuestion.options,
+          options: cleanedOptions,
           answer: correctAnswerText,
-          isSelected: true,
+          isSelected: false,
           questionType: 'MCQ',
         };
 
@@ -669,7 +671,7 @@ export default function ExamsPage({params}: ExamsPageProps) {
           question: rawQuestion.title,
           options: [],
           answer: rawQuestion.correct,
-          isSelected: true,
+          isSelected: false,
           questionType: 'LONG_ANSWER',
         };
       }
@@ -689,8 +691,8 @@ export default function ExamsPage({params}: ExamsPageProps) {
     return mappedQuestions;
   };
 
-  // --- MODIFIED handleCreateAiExam function ---
-  const handleCreateAiExam = async () => {
+  // --- MODIFIED handleGenerateAiQuestions function ---
+  const handleGenerateAiQuestions = async () => {
     try {
       // All previous validations remain
       if (Number(numLongQuestions) < 1) {
@@ -698,7 +700,7 @@ export default function ExamsPage({params}: ExamsPageProps) {
         return;
       }
 
-      if(Number(numMCQQuestions) < 1){
+      if (Number(numMCQQuestions) < 1) {
         setError("Please select a number of MCQ questions at least of 1");
         return;
       }
@@ -787,20 +789,107 @@ export default function ExamsPage({params}: ExamsPageProps) {
       // Use the generated questions directly in the API call
       setQuestions(allQuestions);
 
+      setLoading(false);
+
+    } catch (err: any) {
+      console.error("Error creating exam:", err);
+      setError(err.response?.data?.error || "Failed to create exam");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const handleCreateAiExams = async () => {
+    try {
+      const selectedQuestions = questions.filter((q) => q.isSelected)
+      .map(({question, answer, options, questionType}) => ({question, answer, options, questionType})); // Include questionType
+
+      if (selectedQuestions.length === 0) {
+        setError("Please select at least one question");
+        return;
+      }
+
+      // Validation for question-specific fields
+      for (const q of selectedQuestions) {
+        if (!q.question.trim()) {
+          setError("All selected questions must have text.");
+          return;
+        }
+
+        if (!q.answer || (Array.isArray(q.answer) && q.answer.length === 0) || (typeof q.answer === 'string' && !q.answer.trim())) {
+          setError(`Question "${q.question}" must have an answer.`);
+          return;
+        }
+
+        if (q.questionType === 'MCQ') {
+          if (!q.options || q.options.length < 2 || q.options.some(opt => !opt.trim())) {
+            setError(`MCQ question "${q.question}" must have at least two non-empty options.`);
+            return;
+          }
+          console.log("Line 526 ", q.options, "  ", q.answer)
+          // For MCQ, ensure the answer is one of the options (case-insensitive and trim)
+          if (typeof q.answer === 'string' && !q.options.map(opt => opt.trim().toLowerCase()).includes(q.answer.trim().toLowerCase())) {
+            setError(`MCQ question ${q.question}'s answer must be one of the provided options.`);
+            return;
+          }
+        }
+      }
+
+      if (Number(numLongQuestions) < 1) {
+        setError("Please select a number of long questions at least of 1");
+        return;
+      }
+
+      if (Number(numMCQQuestions) < 1) {
+        setError("Please select a number of MCQ questions at least of 1");
+        return;
+      }
+      if (!examTitle.trim()) {
+        setError("Please enter an exam title");
+        return;
+      }
+      if (!selectedClassSection) {
+        setError("Please select a class section");
+        return;
+      }
+      if (!examDate || !startTime || !endTime) {
+        setError("Please set exam date and time");
+        return;
+      }
+      if (!durationMinutes || parseInt(durationMinutes) < 1) {
+        setError("Please set a valid duration");
+        return;
+      }
+      if (!totalMarks || parseInt(totalMarks) < 1) {
+        setError("Please set valid total marks");
+        return;
+      }
+      if (!passingMarks || parseInt(passingMarks) < 1) {
+        setError("Please set valid passing marks");
+        return;
+      }
+
+      // New validation for PDF and question type setup
+      if (!pdfUrl || aiQuestionType.length === 0) {
+        setError("Please upload a PDF and wait for it to be processed before creating the exam.");
+        return;
+      }
+
+      setLoading(true);
       const response = await axios.post("/api/exam/create", {
-          userId: JSON.parse(localStorage.getItem('user')!),
-          title: examTitle,
-          questions: allQuestions, // Use the locally generated list, not the state variable
-          classSectionId: selectedClassSection,
-          durationMinutes: parseInt(durationMinutes),
-          totalMarks: parseInt(totalMarks),
-          passingMarks: parseInt(passingMarks),
-          examDate,
-          difficultyLevel: difficulty,
-          isAiGenerated: true,
-          startTime: `${examDate}T${startTime}`,
-          endTime: `${examDate}T${endTime}`,
-        });
+        userId: JSON.parse(localStorage.getItem('user')!),
+        title: examTitle,
+        questions: selectedQuestions, // Use the locally generated list, not the state variable
+        classSectionId: selectedClassSection,
+        durationMinutes: parseInt(durationMinutes),
+        totalMarks: parseInt(totalMarks),
+        passingMarks: parseInt(passingMarks),
+        examDate,
+        difficultyLevel: difficulty,
+        isAiGenerated: true,
+        startTime: `${examDate}T${startTime}`,
+        endTime: `${examDate}T${endTime}`,
+      });
 
       if (response.data.success) {
         // Reset form and fetch updated exams
@@ -1124,6 +1213,7 @@ export default function ExamsPage({params}: ExamsPageProps) {
                       <input
                         type="number"
                         value={numLongQuestions}
+                        min={0}
                         onChange={(e) => setNumLongQuestions(e.target.value)}
                         className="w-full px-4 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors"
                       />
@@ -1135,6 +1225,7 @@ export default function ExamsPage({params}: ExamsPageProps) {
                       <input
                         type="number"
                         value={numMCQQuestions}
+                        min={0}
                         onChange={(e) => setNumMCQQuestions(e.target.value)}
                         className="w-full px-4 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors"
                       />
@@ -1473,7 +1564,7 @@ export default function ExamsPage({params}: ExamsPageProps) {
             <div className="flex justify-start">
               {!questionMode ? (
                 <button
-                  onClick={handleCreateAiExam}
+                  onClick={questions && questions.length > 0 ? handleCreateAiExams : handleGenerateAiQuestions}
                   disabled={loading || isProcessingPdf || !pdfUrl || pdfPageImages.length === 0}
                   className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center shadow-lg"
                 >
@@ -1488,10 +1579,10 @@ export default function ExamsPage({params}: ExamsPageProps) {
                               d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                       </svg>
                       {/* Text */}
-                      <span>Creating Exam...</span>
+                      <span>{questions && questions.length > 0 ? "Creating Exam..." : "Generating Questions..."}</span>
                     </>
                   ) : (
-                    "Generate Questions & Create Exam"
+                    <>{questions && questions.length > 0 ? "Create Exam" : "Generate Questions"}</>
                   )}
                 </button>
               ) : (
@@ -1505,15 +1596,6 @@ export default function ExamsPage({params}: ExamsPageProps) {
               )}
             </div>
           </div>
-          {/*<div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
-            <button
-              onClick={questionMode ? handleCreateExam : handleCreateAiExam}
-              disabled={loading}
-              className="w-full sm:w-auto bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-6 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 disabled:opacity-50 transition-colors flex items-center justify-center"
-            >
-              {loading ? <Loader size="small"/> : "Create Exam"}
-            </button>
-          </div>*/}
         </div>
       ) : (
         // Exam List
