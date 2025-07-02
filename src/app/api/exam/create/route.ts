@@ -144,7 +144,7 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    const marks = parseFloat(totalMarks) / questions.length;
+    const marks = parseFloat((parseFloat(totalMarks) / questions.length).toFixed(2));
     // Then create questions for the exam
     await prisma.question.createMany({
       data: questions.map((q: any) => ({
