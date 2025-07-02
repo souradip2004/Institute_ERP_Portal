@@ -15,6 +15,7 @@ import {
     UserPlus,
     ChevronDown,
     ChevronUp,
+    AtomIcon,
 } from "lucide-react";
 import FAQ from '@/components/ui/faq';
 import {
@@ -51,7 +52,7 @@ const features = [
         title: "LIVE DOUBT SOLVING WITH AI AND MENTORS",
         description:
             "Real-time chat support from AI tutors and human mentors for instant problem-solving.",
-        icon:"/mentorai.png",
+        icon: "/mentorai.png",
     },
     {
         title: "Personalized Dashboard",
@@ -61,8 +62,11 @@ const features = [
     },
 ];
 
+
+
 export default function LandingPage() {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    const [activeIndex, setActiveIndex] = useState(0);
 
     return (
         <div className="min-h-screen flex flex-col bg-gray-50">
@@ -90,7 +94,7 @@ export default function LandingPage() {
                                 className="absolute top-[calc(100%+8px)] left-1/2 transform -translate-x-1/2 mt-2 px-3 py-1.5 bg-gray-800 text-white text-xs rounded-md shadow-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-all duration-300 ease-in-out pointer-events-none group-hover:scale-100 scale-95 origin-top"
                             >
                                 For Individuals
-                                <svg className="absolute text-gray-800 h-2 w-full left-0 top-[-7px]" x="0px" y="0px" viewBox="0 0 255 255" xmlSpace="preserve"><polygon className="fill-current" points="0,255 127.5,0 255,255"/></svg>
+                                <svg className="absolute text-gray-800 h-2 w-full left-0 top-[-7px]" x="0px" y="0px" viewBox="0 0 255 255" xmlSpace="preserve"><polygon className="fill-current" points="0,255 127.5,0 255,255" /></svg>
                             </div>
                         </div>
 
@@ -166,7 +170,7 @@ export default function LandingPage() {
                                             className="absolute top-[calc(100%+8px)] left-1/2 transform -translate-x-1/2 mt-2 px-3 py-1.5 bg-gray-800 text-white text-xs rounded-md shadow-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-all duration-300 ease-in-out pointer-events-none group-hover:scale-100 scale-95 origin-top"
                                         >
                                             For Individuals
-                                            <svg className="absolute text-gray-800 h-2 w-full left-0 top-[-7px]" x="0px" y="0px" viewBox="0 0 255 255" xmlSpace="preserve"><polygon className="fill-current" points="0,255 127.5,0 255,255"/></svg>
+                                            <svg className="absolute text-gray-800 h-2 w-full left-0 top-[-7px]" x="0px" y="0px" viewBox="0 0 255 255" xmlSpace="preserve"><polygon className="fill-current" points="0,255 127.5,0 255,255" /></svg>
                                         </div>
                                     </div>
                                 </div>
@@ -177,30 +181,57 @@ export default function LandingPage() {
             </header>
 
             {/* Hero Section */}
-            <section className="bg-white">
-                <div className="max-w-7xl mx-auto flex flex-col-reverse lg:flex-row items-center px-6 py-20 gap-16">
-                    <div className="lg:w-1/2 text-center lg:text-left">
-                        <h2 className="text-xl font-medium text-gray-600">Smart</h2>
-                        <h1 className="text-6xl font-bold text-purple-900 mb-2">Classrooms</h1>
-                        <h3 className="text-3xl font-medium text-gray-800 mb-6">
-                            Smart <span className="text-purple-900 font-semibold">Futures</span>
-                        </h3>
-                        <p className="text-gray-600 mb-8 max-w-md mx-auto lg:mx-0">
-                            Transform the way you learn and teach with AI-powered tools that enhance productivity and engagement.
-                        </p>
-                        <Link href="/register" className="bg-purple-900 hover:bg-purple-800 text-white font-medium py-3 px-8 rounded-lg transition-colors">
-                            Get Started
-                        </Link>
+            <section className="relative bg-white font-sans overflow-hidden">
+
+
+                {/* Decorative background elements */}
+                <div className="absolute top-5 right-5 text-purple-100/50 z-10">
+                    <AtomIcon />
+                </div>
+                <div className="absolute -top-12 -left-12 w-72 h-72 bg-purple-50/50 rounded-full z-0"></div>
+                <div className="absolute -bottom-16 -right-16 w-80 h-80 border-4 border-purple-100/50 rounded-full z-0"></div>
+
+                <div className="flex flex-col md:flex-row items-center justify-center">
+                    <div className="block md:hidden w-[80%] h-[80%] object-cover z-10">
+                        <img src="/mainscreen.png" alt="Hero" className="object-cover" />
                     </div>
-                    <div className="lg:w-1/2">
-                        <Image
-                            src="/mainscreen.png"
-                            alt="AI Classroom Illustration"
-                            width={500}
-                            height={500}
-                            className="w-full h-auto"
-                        />
+                    <div className="relative container mx-auto flex px-6 py-6 sm:py-32 z-10">
+                        <div className="max-w-2xl text-left">
+                            <div className="flex flex-col items-start gap-2">
+                                <h2 className="text-2xl md:text-3xl font-medium text-gray-800">Smart</h2>
+                                <h1 className="text-5xl md:text-7xl font-bold text-[#3A1078]">Classrooms</h1>
+                                <h3 className="text-3xl md:text-5xl font-medium text-gray-800">
+                                    Smart <span className="text-[#3A1078] font-bold">Futures</span>
+                                </h3></div>
+
+                            <p className="mt-8 text-lg text-gray-600 max-w-lg">
+                                Transform the way you learn and teach with AI-powered tools that enhance productivity and engagement.
+                            </p>
+
+                            <ul className="mt-10 space-y-5 text-xl font-medium text-purple-800">
+                                <li className="flex items-center gap-4">
+                                    <img src="/frame.svg" alt="Admin" className="w-10 h-10 object-cover" />
+                                    <span>Smart Admin Panel</span>
+                                </li>
+                                <li className="flex items-center gap-4">
+                                    <img src="/h2SVG.svg" alt="Admin" className="w-10 h-10 object-cover" />
+                                    <span>Seamless Teacher Dashboard</span>
+                                </li>
+                                <li className="flex items-center gap-4">
+                                    <img src="/h1SVG.svg" alt="Admin" className="w-10 h-10 object-cover" />
+                                    <span>24/7 Student Access</span>
+                                </li>
+                            </ul>
+
+                            <button className="mt-12 bg-purple-900 hover:bg-purple-800 text-white font-bold text-xl py-4 px-14 rounded-lg transition-colors shadow-lg hover:shadow-xl">
+                                Get Started
+                            </button>
+                        </div>
                     </div>
+
+                </div>
+                <div className="hidden md:block absolute top-[10%] right-0 w-[40%] h-[40%] object-cover z-10">
+                    <img src="/hero_image.png" alt="Hero" className="absolute top-0 right-0 object-cover" />
                 </div>
             </section>
 
@@ -217,6 +248,7 @@ export default function LandingPage() {
                     </div>
 
                     <Swiper
+                        onSlideChange={(swiper) => setActiveIndex(swiper.realIndex)}
                         modules={[Navigation, Pagination, Autoplay, EffectCoverflow]}
                         spaceBetween={40} // Increased space between slides
                         slidesPerView={1}
@@ -244,14 +276,15 @@ export default function LandingPage() {
                     >
                         {features.map((feature, index) => (
                             <SwiperSlide key={index}>
-                                <div className="bg-white rounded-3xl p-8 shadow-lg hover:shadow-xl transition-all duration-500 ease-in-out transform hover:-translate-y-2 min-h-[320px] flex flex-col items-center text-center border border-gray-100">
-                                    <div className="w-20 h-20 bg-indigo-50 rounded-full flex items-center justify-center mb-6 shadow-md p-2">
-                                        <img src={feature.icon} alt={feature.title} className="w-full h-full object-cover rounded-full" style={{ width: '100%', height: '100%' }} />
+                                <div className={`rounded-3xl p-8 shadow-lg transition-all duration-500 ease-in-out transform
+        h-[400px] min-h-[320px] flex flex-col items-center text-center border border-gray-100
+        ${index === activeIndex ? 'bg-gradient-to-b from-[#C4D9FF] to-[#C5BAFF]' : 'bg-white hover:shadow-xl hover:-translate-y-2'}
+      `}>
+                                    <h3 className="text-2xl font-bold text-[#3A1078] mb-3">{feature.title}</h3>
+                                    <p className="text-black mt-4 text-base leading-relaxed">{feature.description}</p>
+                                    <div className="w-20 h-20 bg-indigo-50 rounded-full flex items-center justify-center mt-auto mb-6 shadow-md p-2">
+                                        <img src={feature.icon} alt={feature.title} className="w-full h-full object-cover rounded-full" />
                                     </div>
-                                    <h3 className="text-xl font-bold text-indigo-700 mb-3">
-                                        {feature.title}
-                                    </h3>
-                                    <p className="text-gray-600 text-base leading-relaxed">{feature.description}</p>
                                 </div>
                             </SwiperSlide>
                         ))}
@@ -273,7 +306,7 @@ export default function LandingPage() {
                     </Swiper>
                 </div>
             </section>
-            <FAQ/>
+            <FAQ />
             {/* Footer */}
             <footer className="border-t bg-gray-100 pt-8">
                 <div className="flex flex-wrap justify-between mx-[10%] gap-8">
