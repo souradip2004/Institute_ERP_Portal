@@ -14,12 +14,12 @@ interface Question {
   answer: string | string[] | null;
   options?: string[]; // Options are still part of the interface as manual entry can be MCQ
   isSelected: boolean;
-  questionType: 'MCQ' | 'LONG_ANSWER'; // Added questionType
+  questionType: 'MCQ' | 'LONG_ANSWER' | "Both"; // Added questionType
 }
 
 interface AiQuestionType {
   pgNo: number;
-  questionType: "MCQ" | "LONG_ANSWER";
+  questionType: "MCQ" | "LONG_ANSWER" | "Both";
 }
 
 interface TeacherClassSection {
@@ -775,8 +775,8 @@ export default function ExamsPage({params}: ExamsPageProps) {
       setLoading(true);
 
       // Filter pages based on user selection from aiQuestionType state
-      const mcqPagesConfig = aiQuestionType.filter(q => q.questionType === 'MCQ');
-      const longPagesConfig = aiQuestionType.filter(q => q.questionType === "LONG_ANSWER");
+      const mcqPagesConfig = aiQuestionType.filter(q => q.questionType === 'MCQ' || q.questionType === 'Both');
+      const longPagesConfig = aiQuestionType.filter(q => q.questionType === "LONG_ANSWER" || q.questionType === 'Both');
 
       // Get the actual image URLs for each type from the pdfPageImages state
       const mcqPageImages = mcqPagesConfig.map(config => pdfPageImages[config.pgNo - 1]);
@@ -1395,11 +1395,12 @@ export default function ExamsPage({params}: ExamsPageProps) {
                                     <label className="font-medium text-gray-700 whitespace-nowrap">Page {item.pgNo}</label>
                                     <select
                                       value={item.questionType}
-                                      onChange={(e) => handleAiQuestionTypeChange(index, e.target.value as 'MCQ' | 'LONG_ANSWER')}
+                                      onChange={(e) => handleAiQuestionTypeChange(index, e.target.value as 'MCQ' | 'LONG_ANSWER' | 'Both')}
                                       className="flex-grow px-3 py-1.5 rounded-md border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors bg-white text-sm"
                                     >
                                       <option value="MCQ">MCQ</option>
                                       <option value="LONG_ANSWER">Long Answer</option>
+                                      <option value="Both">Both</option>
                                     </select>
                                     {/* --- NEW: Remove Page Button --- */}
                                     <button onClick={() => handleRemovePage(item.pgNo)} className="text-red-500 hover:text-red-700 transition-colors p-1">
