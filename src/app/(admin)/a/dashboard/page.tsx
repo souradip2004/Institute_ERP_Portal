@@ -35,7 +35,6 @@ export default async function DashboardPage() {
   if (!userId) {
     redirect("/login");
   }
-
   // Fetch user details
   const userRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/${userId}`, { cache: "no-store" });
   const userData = await userRes.json();

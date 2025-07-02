@@ -12,6 +12,7 @@ export async function POST(request: Request) {
 
   try {
     const newLink = await LinkModel.create({ id, link });
+    console.log(link,id)
     return NextResponse.json(newLink, { status: 201 });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });

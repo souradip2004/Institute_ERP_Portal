@@ -402,7 +402,9 @@ const NotesLibrary: React.FC<NotesLibraryProps> = ({
                                                                                 })
                                                                             });
                                                                             if (response.ok) {
+                                                                                setTimeout(()=>{
                                                                                 window.open(`https://aiclassroom.in/share?id=${randomCode}`, '_blank');
+                                                                                },2000)
                                                                             }
                                                                         }}
                                                                         className="h-8 w-8 rounded-full hover:bg-yellow-50 hover:text-yellow-700 flex-shrink-0"
