@@ -617,6 +617,7 @@ export default function ExamsPage({params}: ExamsPageProps) {
     }
 
     const firstQuestionData = response['q_1'];
+
     const questionType: 'MCQ' | 'LONG_ANSWER' =
       firstQuestionData && Array.isArray(firstQuestionData.options) && firstQuestionData.options.length > 0
         ? 'MCQ'
@@ -626,33 +627,44 @@ export default function ExamsPage({params}: ExamsPageProps) {
       const key = `q_${i}`;
       const rawQuestion = response[key];
 
-      // Skip if a question for a given index is missing in the response
       if (!rawQuestion) {
+        console.warn(`Skipping question q_${i}: Data is missing in the API response.`);
         continue;
       }
 
-      let newQuestion: Question;
+      let newQuestion: Question | null = null;
 
       if (questionType === 'MCQ') {
-        const correctLetter = rawQuestion.correct.trim().toLowerCase();
-        let correctAnswerText = '';
+        if (!rawQuestion.title || !rawQuestion.correct || !Array.isArray(rawQuestion.options) || rawQuestion.options.length === 0) {
+          console.warn(`Skipping invalid MCQ q_${i}: Missing title, correct answer, or options.`, rawQuestion);
+          continue;
+        }
 
+        const correctLetter = rawQuestion.correct.trim().toLowerCase();
         const index = correctLetter.charCodeAt(0) - 97;
         const optionText = rawQuestion.options[index];
-        correctAnswerText = optionText.substring(optionText.indexOf(' ') + 1);
 
-        if (!correctAnswerText) {
-          setError(`Invalid correct answer for question ${i}: ${rawQuestion.correct}`);
+        if (!optionText) {
+          console.warn(`Skipping invalid MCQ q_${i}: Correct answer letter '${correctLetter}' does not correspond to a valid option.`, rawQuestion);
+          continue;
         }
+
+        const correctAnswerText = optionText.substring(optionText.indexOf(' ') + 1).trim();
 
         newQuestion = {
           question: rawQuestion.title,
           options: rawQuestion.options,
-          answer: correctAnswerText, // The full option string is the answer
-          isSelected: true, // Default initial state
+          answer: correctAnswerText,
+          isSelected: true,
           questionType: 'MCQ',
         };
+
       } else {
+        if (!rawQuestion.title || !rawQuestion.correct) {
+          console.warn(`Skipping invalid Long Answer q_${i}: Missing title or correct answer.`, rawQuestion);
+          continue;
+        }
+
         newQuestion = {
           question: rawQuestion.title,
           options: [],
@@ -661,7 +673,17 @@ export default function ExamsPage({params}: ExamsPageProps) {
           questionType: 'LONG_ANSWER',
         };
       }
-      mappedQuestions.push(newQuestion);
+
+      if (
+        newQuestion &&
+        newQuestion.question?.trim() &&
+        newQuestion.answer &&
+        (typeof newQuestion.answer === 'string' && newQuestion.answer.trim() !== '')
+      ) {
+        mappedQuestions.push(newQuestion);
+      } else {
+        console.warn(`Discarding a malformed question object due to empty title or answer after processing. Original data:`, rawQuestion);
+      }
     }
 
     return mappedQuestions;
@@ -727,13 +749,13 @@ export default function ExamsPage({params}: ExamsPageProps) {
       if (mcqPageImages.length > 0) {
         const generateMcqQuestions = await axios.post(`https://question-generation-2-5c1d46f-v3.app.beam.cloud`, {
           img_url_list: mcqPageImages,
-          no_of_questions: parseInt(numLongQuestions),
+          no_of_questions: parseInt(numMCQQuestions),
           uid: uuidV4(),
           type_and_question_level: `${difficulty} Level MCQ questions`
         }, {
           headers: {
             Authorization: `Bearer ALXP7mhHyKz1MQATKH7CIQXK9VQBpvoNNuxPvLONWyPCfgemj18cz2T74r4drBpvOkf-3orOQT_6r-63mHPZAA==`
-          },
+          }
         });
         allQuestions = [...allQuestions, ...mapApiResponseToQuestions(generateMcqQuestions.data)];
       }
@@ -742,7 +764,7 @@ export default function ExamsPage({params}: ExamsPageProps) {
       if (longPageImages.length > 0) {
         const generateLongQuestions = await axios.post(`https://question-generation-2-5c1d46f-v3.app.beam.cloud`, {
           img_url_list: longPageImages,
-          no_of_questions: parseInt(numMCQQuestions),
+          no_of_questions: parseInt(numLongQuestions),
           uid: uuidV4(),
           type_and_question_level: `${difficulty} Level Long Answer questions`
         }, {
