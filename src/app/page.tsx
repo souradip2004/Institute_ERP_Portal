@@ -210,7 +210,7 @@ export default function LandingPage() {
 
                             <ul className="mt-10 space-y-5 text-xl font-medium text-purple-800">
                                 <li className="flex items-center gap-4">
-                                    <img src="/frame.svg" alt="Admin" className="w-10 h-10 object-cover" />
+                                    <img src="/Frame.svg" alt="Admin" className="w-10 h-10 object-cover" />
                                     <span>Smart Admin Panel</span>
                                 </li>
                                 <li className="flex items-center gap-4">
