@@ -155,8 +155,14 @@ export default function ExamsPage({params}: ExamsPageProps) {
   const [endPage, setEndPage] = useState<string>('');
 
   useEffect(() => {
-    console.log("aiQuestionType: ", aiQuestionType);
-  }, [aiQuestionType]);
+    const startDate = new Date(`${examDate}T${startTime}`);
+    const endDate = new Date(`${examDate}T${endTime}`);
+
+    if (endDate < startDate) {
+      endDate.setDate(endDate.getDate() + 1);
+    }
+
+  }, [startTime, endTime, examDate]);
 
   useEffect(() => {
     if (localStorage.getItem("user")) {
@@ -333,7 +339,7 @@ export default function ExamsPage({params}: ExamsPageProps) {
 
 
   // --- NEW FUNCTION to handle question type changes ---
-  const handleAiQuestionTypeChange = (pageIndex: number, type: 'MCQ' | 'LONG_ANSWER') => {
+  const handleAiQuestionTypeChange = (pageIndex: number, type: 'MCQ' | 'LONG_ANSWER' | 'Both') => {
     setAiQuestionType(prev =>
       prev.map((item, index) =>
         index === pageIndex ? {...item, questionType: type} : item
@@ -533,6 +539,66 @@ export default function ExamsPage({params}: ExamsPageProps) {
     }
   };
 
+  const today = new Date().toISOString().split('T')[0];
+
+// NEW: Handler for when the duration is changed
+  const handleDurationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newDuration = e.target.value;
+    setDurationMinutes(newDuration);
+
+    // If a start time is already set, automatically calculate the end time
+    if (startTime && newDuration && parseInt(newDuration) > 0) {
+      const [hours, minutes] = startTime.split(':').map(Number);
+      const startDate = new Date();
+      startDate.setHours(hours, minutes, 0, 0);
+      startDate.setMinutes(startDate.getMinutes() + parseInt(newDuration, 10));
+
+      const newEndTime = `${String(startDate.getHours()).padStart(2, '0')}:${String(startDate.getMinutes()).padStart(2, '0')}`;
+      setEndTime(newEndTime);
+    }
+  };
+
+// NEW: Handler for when the start time is changed
+  const handleStartTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newStartTime = e.target.value;
+    setStartTime(newStartTime);
+
+    // If a duration is already set, automatically calculate the end time
+    if (newStartTime && durationMinutes && parseInt(durationMinutes) > 0) {
+      const [hours, minutes] = newStartTime.split(':').map(Number);
+      const startDate = new Date();
+      startDate.setHours(hours, minutes, 0, 0);
+      startDate.setMinutes(startDate.getMinutes() + parseInt(durationMinutes, 10));
+
+      const newEndTime = `${String(startDate.getHours()).padStart(2, '0')}:${String(startDate.getMinutes()).padStart(2, '0')}`;
+      setEndTime(newEndTime);
+    }
+  };
+
+// NEW: Handler for when the end time is changed
+  const handleEndTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newEndTime = e.target.value;
+    setEndTime(newEndTime);
+
+    // If a start time is already set, automatically calculate the duration
+    if (startTime && newEndTime) {
+      const startDate = new Date(`1970-01-01T${startTime}:00`);
+      const endDate = new Date(`1970-01-01T${newEndTime}:00`);
+
+      // Handle cases where the exam ends on the next day
+      if (endDate < startDate) {
+        endDate.setDate(endDate.getDate() + 1);
+      }
+
+      const diffInMillis = endDate.getTime() - startDate.getTime();
+      const diffInMinutes = Math.round(diffInMillis / 60000); // 60000ms in a minute
+
+      if (diffInMinutes > 0) {
+        setDurationMinutes(String(diffInMinutes));
+      }
+    }
+  };
+
   const handleCreateExam = async () => {
     setError("");
     const selectedQuestions = questions.filter((q) => q.isSelected)
@@ -604,6 +670,15 @@ export default function ExamsPage({params}: ExamsPageProps) {
     try {
       setLoading(true);
       // updateCoins(questions.length)
+      const startDate = new Date(`${examDate}T${startTime}`);
+      const endDate = new Date(`${examDate}T${endTime}`);
+
+      if (endDate < startDate) {
+        endDate.setDate(endDate.getDate() + 1);
+      }
+
+      const startTimeISO = startDate.toISOString();
+      const endTimeISO = endDate.toISOString();
       const response = await axios.post(
         "/api/exam/create", // Ensure this path is correct based on your API route file
         {
@@ -617,8 +692,8 @@ export default function ExamsPage({params}: ExamsPageProps) {
           examDate,
           isAiGenerated: false,
           difficultyLevel: difficulty,
-          startTime: `${examDate}T${startTime}`,
-          endTime: `${examDate}T${endTime}`,
+          startTime: startTimeISO,
+          endTime: endTimeISO,
         },
         {
           headers: {
@@ -949,7 +1024,6 @@ export default function ExamsPage({params}: ExamsPageProps) {
     }
   }
 
-
   const toggleQuestionSelection = (index: number) => {
     setQuestions(
       questions.map((q, i) =>
@@ -1150,11 +1224,14 @@ export default function ExamsPage({params}: ExamsPageProps) {
                   <input
                     type="number"
                     value={durationMinutes}
-                    onChange={(e) => setDurationMinutes(e.target.value)}
+                    // --- Use the new handler ---
+                    onChange={handleDurationChange}
                     className="w-full px-4 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors"
+                    min="1"
                   />
                 </div>
 
+                {/* Total Marks and Passing Marks inputs remain the same */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     <span className="flex items-center gap-1">
@@ -1198,21 +1275,23 @@ export default function ExamsPage({params}: ExamsPageProps) {
                     type="date"
                     value={examDate}
                     onChange={(e) => setExamDate(e.target.value)}
+                    min={today}
                     className="w-full px-4 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors"
                   />
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    <span className="flex items-center gap-1">
-                      <Clock className="h-4 w-4"/>
-                      Start Time
-                    </span>
+                      <span className="flex items-center gap-1">
+                        <Clock className="h-4 w-4"/>
+                        Start Time
+                      </span>
                   </label>
                   <input
                     type="time"
                     value={startTime}
-                    onChange={(e) => setStartTime(e.target.value)}
+                    // --- Use the new handler ---
+                    onChange={handleStartTimeChange}
                     className="w-full px-4 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors"
                   />
                 </div>
@@ -1227,7 +1306,8 @@ export default function ExamsPage({params}: ExamsPageProps) {
                   <input
                     type="time"
                     value={endTime}
-                    onChange={(e) => setEndTime(e.target.value)}
+                    // --- Use the new handler ---
+                    onChange={handleEndTimeChange}
                     className="w-full px-4 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors"
                   />
                 </div>
@@ -1339,14 +1419,16 @@ export default function ExamsPage({params}: ExamsPageProps) {
 
                   {pdfPageImages.length > 0 && (
                     <div className="mt-6 border-t pt-6">
-                      <h3 className="text-lg font-semibold text-gray-800 mb-4 text-center">PDF Preview & Page Configuration</h3>
+                      <h3 className="text-lg font-semibold text-gray-800 mb-4 text-center">PDF Preview & Page
+                        Configuration</h3>
                       <div className="grid grid-cols-12 gap-6 min-h-[500px] max-h-[80vh]">
                         {/* Left Side: PDF Preview (No changes here) */}
-                        <div className="col-span-12 md:col-span-7 lg:col-span-8 bg-white p-4 border rounded-lg max-h-[75vh] shadow-inner overflow-y-scroll">
+                        <div
+                          className="col-span-12 md:col-span-7 lg:col-span-8 bg-white p-4 border rounded-lg max-h-[75vh] shadow-inner overflow-y-scroll">
                           <div className="space-y-4">
                             {pdfPageImages.map((imgSrc, index) => (
                               <div key={index} id={`page-preview-${index + 1}`} className="border rounded-lg p-2">
-                                <img src={imgSrc} alt={`Page ${index + 1}`} className="w-full h-auto rounded shadow" />
+                                <img src={imgSrc} alt={`Page ${index + 1}`} className="w-full h-auto rounded shadow"/>
                                 <p className="text-center text-sm font-medium text-gray-600 mt-2">Page {index + 1}</p>
                               </div>
                             ))}
@@ -1391,8 +1473,10 @@ export default function ExamsPage({params}: ExamsPageProps) {
                               <h4 className="font-semibold text-gray-700 mb-2">Configure Selected Pages</h4>
                               {aiQuestionType.length > 0 ? (
                                 aiQuestionType.map((item, index) => (
-                                  <div key={item.pgNo} className="p-3 bg-gray-100 rounded-lg flex items-center justify-between gap-2">
-                                    <label className="font-medium text-gray-700 whitespace-nowrap">Page {item.pgNo}</label>
+                                  <div key={item.pgNo}
+                                       className="p-3 bg-gray-100 rounded-lg flex items-center justify-between gap-2">
+                                    <label
+                                      className="font-medium text-gray-700 whitespace-nowrap">Page {item.pgNo}</label>
                                     <select
                                       value={item.questionType}
                                       onChange={(e) => handleAiQuestionTypeChange(index, e.target.value as 'MCQ' | 'LONG_ANSWER' | 'Both')}
@@ -1400,16 +1484,18 @@ export default function ExamsPage({params}: ExamsPageProps) {
                                     >
                                       <option value="MCQ">MCQ</option>
                                       <option value="LONG_ANSWER">Long Answer</option>
-                                      <option value="Both">Both</option>
+                                      <option value="Both">Both MCQ and Long Answer</option>
                                     </select>
                                     {/* --- NEW: Remove Page Button --- */}
-                                    <button onClick={() => handleRemovePage(item.pgNo)} className="text-red-500 hover:text-red-700 transition-colors p-1">
-                                      <XCircle className="h-5 w-5" />
+                                    <button onClick={() => handleRemovePage(item.pgNo)}
+                                            className="text-red-500 hover:text-red-700 transition-colors p-1">
+                                      <XCircle className="h-5 w-5"/>
                                     </button>
                                   </div>
                                 ))
                               ) : (
-                                <p className="text-sm text-gray-500 text-center py-4">No pages selected. Please select a range above.</p>
+                                <p className="text-sm text-gray-500 text-center py-4">No pages selected. Please select a
+                                  range above.</p>
                               )}
                             </div>
                           </div>
@@ -1642,7 +1728,7 @@ export default function ExamsPage({params}: ExamsPageProps) {
                               d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                       </svg>
                       {/* Text */}
-                      <span>{questions && questions.length > 0 ? "Creating Exam..." : isProcessingPdf ? "Processing pdf...": "Generating Questions....."}</span>
+                      <span>{questions && questions.length > 0 ? "Creating Exam..." : isProcessingPdf ? "Processing pdf..." : "Generating Questions....."}</span>
                     </>
                   ) : (
                     <>{questions && questions.length > 0 ? "Create Exam" : "Generate Questions"}</>
