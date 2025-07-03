@@ -223,7 +223,7 @@ export default function LandingPage() {
                                 </li>
                             </ul>
 
-                            <button className="mt-12 bg-purple-900 hover:bg-purple-800 text-white font-bold text-xl py-4 px-14 rounded-lg transition-colors shadow-lg hover:shadow-xl">
+                            <button className="mt-12 bg-purple-900 hover:bg-purple-800 text-white font-bold text-xl py-4 px-14 rounded-lg transition-colors shadow-lg hover:shadow-xl" onClick={()=>window.location.href="/register"}>
                                 Get Started
                             </button>
                         </div>
