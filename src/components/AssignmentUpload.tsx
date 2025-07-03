@@ -63,9 +63,7 @@ const AssignmentUpload = ({ classSectionId,instituteId}: AssignmentUploadProps) 
     })
     if(result.ok){
       const res=await result.json();
-      alert(JSON.stringify(res))
     }else{
-      alert(result.status)
     }
   }
   // Set mounted flag after component mounts to enable client-side only features
