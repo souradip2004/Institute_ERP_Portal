@@ -125,7 +125,8 @@ export async function POST(req: NextRequest) {
         }
       });
     }
-
+    console.table([new Date(startTime),new Date(endTime), new Date(examDate)]);
+    console.table([startTime, endTime,examDate]);
     // Create the exam
     const exam = await prisma.exam.create({
       data: {
@@ -133,13 +134,13 @@ export async function POST(req: NextRequest) {
         classSectionId,
         examTypeId: examType.id,
         createdById: teacher.id,
-        status: "DRAFT",
+        status: "PUBLISHED",
         durationMinutes: parseInt(durationMinutes) || 60,
         totalMarks: parseFloat(totalMarks) || questions.length,
         passingMarks: parseFloat(passingMarks) || questions.length * 0.4,
         isAiGenerated,
-        examDate: new Date(examDate),
-        startTime: new Date(startTime),
+        examDate: endTime,
+        startTime: startTime,
         endTime: new Date(endTime),
       },
     });
