@@ -36,10 +36,11 @@ interface Exam {
   questions?: Question[];
   examType?: ExamType;
   classSection?: ClassSection;
+  totalMarks: number;
   duration?: string;
   subject?: string;
   createdAt?: string; // Added for past exams
-  obtainedMarks?: string | number; // Added for past exams
+  obtainedMarks?: number; // Added for past exams
   classSectionId?: string; // Added to filter active exams
 }
 
@@ -59,10 +60,14 @@ export default function ExamsPage() {
   const [timeLeft, setTimeLeft] = useState<number>(0);
   const [examCompleted, setExamCompleted] = useState(false);
   const [finalScore, setFinalScore] = useState<number | null>(null);
-  const [debugMode, setDebugMode] = useState(false);
-
 
   const getExamStatus = (exam: Exam) => {
+    console.log("Exam status ", exam.status)
+    const examStatus = exam.status;
+    if (examStatus === 'PENDING' || examStatus === 'GRADED' || examStatus === 'REVIEWED') {
+      return examStatus;
+    }
+
     const now = new Date();
     const startTime = new Date(exam.startTime);
     const endTime = new Date(exam.endTime);
@@ -71,11 +76,11 @@ export default function ExamsPage() {
       return 'Upcoming';
     } else if (startTime <= now && endTime > now) {
       return 'Ongoing';
-    } else {
+    } else if (endTime <= now) {
       return 'Exam Ended';
     }
-  };
 
+  };
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -99,12 +104,14 @@ export default function ExamsPage() {
           alert("no classes found")
           return;
         }
+
         const classes = await classdetails.json();
         const classenrollments = classes?.classEnrollments
         const classd: string[] = []; // Explicitly type as string array
         for (let i = 0; i < classenrollments.length; i++) {
           classd.push(classenrollments[i].classSectionId)
         }
+
         setClassSections(classd)
         console.log(classd)
         setStudentData(userData);
@@ -181,13 +188,12 @@ export default function ExamsPage() {
         return mappedExam;
       });
 
-      console.log('Mapped exams:', mappedExams);
+      console.log('Mapped exams: ', mappedExams);
 
       // Filter exams by status to get active and past exams - accept more possible status values
       const active = mappedExams.filter((exam: any) =>
         ['IN_PROGRESS', 'PUBLISHED'].includes(exam.status)
       );
-
       // Fetch past exams from submissions
 
       const pastResponse = await fetch(`/api/exam-submissions/student/${studentId}`, {
@@ -197,18 +203,49 @@ export default function ExamsPage() {
         },
       });
 
+      let pastSubmissions: Array<any> = [];
+      let allExams: Array<Exam> | null = null;
       if (pastResponse.ok) {
-        const pastSubmissions = await pastResponse.json();
-        console.log('Past exam submissions received:', pastSubmissions);
-        setPastExams(pastSubmissions);
+        pastSubmissions = await pastResponse.json();
+        console.log('Past exam submissions received: ', pastSubmissions);
+
+        allExams = active.map((exam: Exam) => {
+          const pastSubmission = pastSubmissions.find(item => item.exam.id === exam.id);
+          console.log("Past exam 17 ", pastSubmission, " ", exam.id);
+          if (exam.id === pastSubmission?.exam?.id) {
+            exam.status = pastSubmission.status;
+          }
+          return exam;
+        })
+
+        const submittedExams: Array<Exam> = pastSubmissions.map((item: any) => {
+          const exam = active.find((exam: Exam) => exam.id === item.examId);
+          if (exam) {
+            return {
+              ...exam,
+              status: item.status,
+              obtainedMarks: item.obtainedMarks
+            }
+          }
+          return null;
+        }).filter(item => item !== null);
+
+
+        setPastExams(submittedExams);
       } else {
         console.warn('Failed to fetch past exam submissions.');
         setPastExams([]);
       }
 
       // console.log('Active exams after filtering:', active);
-      console.log('Past exams (from submissions):', pastExams);
-      setActiveExams(active);
+      console.log('Past exams (from submissions): ', pastExams);
+
+      if (allExams && allExams.length > 0) {
+        setActiveExams(allExams);
+      } else {
+        setActiveExams(active);
+      }
+
       setLoading(false);
     } catch (err) {
       console.error('Error fetching exams:', err);
@@ -327,10 +364,8 @@ export default function ExamsPage() {
         },
         body: JSON.stringify({
           examId: selectedExam.id,
-          submissionTime: new Date(),
-          obtainedMarks: score,
           status: "PENDING",
-          feedback: "GOOD",
+          // feedback: "GOOD",
           studentId: studentData?.studentId
         }),
       });
@@ -347,7 +382,16 @@ export default function ExamsPage() {
         ...selectedExam,
         score: score
       };
-      setPastExams([completedExam, ...pastExams]);
+
+      setPastExams([completedExam, ...pastExams].sort((a: Exam, b: Exam) => {
+        const timeB = new Date(b.examDate).getTime();
+        const timeA = new Date(a.examDate).getTime();
+
+        if (isNaN(timeA)) return 1;
+        if (isNaN(timeB)) return -1;
+
+        return timeB - timeA;
+      }));
       setActiveExams(updatedActiveExams);
 
       setFinalScore(score);
@@ -361,17 +405,6 @@ export default function ExamsPage() {
     } catch (error) {
       setError('Failed to submit exam. Please try again.');
       console.error('Error submitting exam:', error);
-      // Even if submission fails, show the score in UI
-      const score = Math.floor(Math.random() * (95 - 60 + 1)) + 60;
-      /* const completedExam = {
-         ...selectedExam!,
-         status: 'COMPLETED',
-         score: score
-       };*/
-      // setPastExams([completedExam, ...pastExams]);
-      // setActiveExams(activeExams.filter(e => e.id !== selectedExam!.id));
-      // setFinalScore(score);
-
       // setShowExamModal(false);
     }
   };
@@ -380,11 +413,6 @@ export default function ExamsPage() {
     setShowExamModal(false);
     setExamInProgress(false);
     setAnswers({});
-  };
-
-
-  const toggleDebugMode = () => {
-    setDebugMode(!debugMode);
   };
 
   if (loading) {
@@ -412,22 +440,6 @@ export default function ExamsPage() {
       <div className="mb-8">
         <div className="flex items-center flex-wrap gap-2">
           <h2 className="text-2xl font-semibold">My Exams</h2>
-          {debugMode && (
-            <button
-              onClick={() => setDebugMode(false)}
-              className="ml-auto text-sm text-indigo-600 hover:text-indigo-800"
-            >
-              Hide Debug
-            </button>
-          )}
-          {!debugMode && process.env.NODE_ENV === 'development' && (
-            <button
-              onClick={() => setDebugMode(true)}
-              className="ml-auto text-sm text-gray-500 hover:text-gray-700"
-            >
-              Debug
-            </button>
-          )}
         </div>
       </div>
 
@@ -478,6 +490,8 @@ export default function ExamsPage() {
                     disabled={currentStatus !== 'Ongoing'}
                     className={`w-full text-white py-2 rounded-md transition-colors mt-2
                     ${/* --- Style for ONGOING status --- */ ''}
+                    
+                    ${(currentStatus === 'PENDING' || currentStatus === 'REVIEWED' || currentStatus === 'GRADED') && 'bg-gray-500 hover:bg-gray-600 opacity-50 cursor-not-allowed'}
                     ${currentStatus === 'Ongoing' && 'bg-green-500 hover:bg-green-600'}
 
                     ${/* --- Style for EXAM ENDED status --- */ ''}
@@ -486,6 +500,7 @@ export default function ExamsPage() {
                     ${/* --- Style for UPCOMING status --- */ ''}
                     ${currentStatus === 'Upcoming' && 'bg-indigo-600 hover:bg-indigo-700 opacity-50 cursor-not-allowed'}`
                     }>
+                    {(currentStatus === 'PENDING' || currentStatus === 'REVIEWED' || currentStatus === 'GRADED') && 'Already submitted'}
                     {currentStatus === 'Ongoing' && "Attend Exam"}
                     {currentStatus === 'Upcoming' && "Exam not started yet"}
                     {currentStatus === 'Exam Ended' && "Exam has ended"}
@@ -520,27 +535,27 @@ export default function ExamsPage() {
               </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-              {pastExams.map((item: any )=> (
-                <tr key={item.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 whitespace-nowrap">{item.exam.title}</td>
+              {pastExams.map((exam: Exam, index) => (
+                <tr key={index} className="hover:bg-gray-50">
+                  <td className="px-4 py-3 whitespace-nowrap">{exam.title}</td>
                   <td className="px-4 py-3 whitespace-nowrap">
-                    {new Date(item.exam.examDate).toLocaleDateString(undefined, {
+                    {new Date(exam.examDate).toLocaleDateString(undefined, {
                       year: 'numeric',
                       month: 'short',
                       day: 'numeric'
                     })}
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap text-indigo-700 font-semibold">
-                    {item.obtainedMarks}/{item.exam.totalMarks}
+                    {exam.obtainedMarks ? exam.obtainedMarks : "- "}/{exam.totalMarks}
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap">
                     <span className={`px-2 py-1 inline-flex text-xs font-semibold rounded-full ${
                       // item.status === 'COMPLETED' || 
-                      item.status === 'GRADED'
+                      exam.status === 'GRADED'
                         ? 'bg-green-100 text-green-800'
                         : 'bg-gray-100 text-gray-800'
                     }`}>
-                      {item.status}
+                      {exam.status}
                     </span>
                   </td>
                 </tr>

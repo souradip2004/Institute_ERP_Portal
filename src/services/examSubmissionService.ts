@@ -17,11 +17,8 @@ export class ExamSubmissionService {
         examId: data.examId,
         studentId: data.studentId,
         submissionTime: new Date(),
-        obtainedMarks: data.obtainedMarks || 0,
         status: data.status,
-        feedback: data.feedback,
-        gradedById: data.gradedById,
-        gradedAt: data.gradedAt ? new Date(data.gradedAt) : null,
+        // gradedById: data.gradedById
       },
     });
   }
@@ -46,6 +43,9 @@ export class ExamSubmissionService {
         student: true,
         gradedBy: true,
       },
+      orderBy: {
+        submissionTime: 'desc'
+      }
     })
   }
 
