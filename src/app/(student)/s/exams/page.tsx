@@ -27,9 +27,9 @@ interface ClassSection {
 interface Exam {
   id: string;
   title: string;
-  examDate: string | Date;
-  startTime: string | Date;
-  endTime?: string | Date;
+  examDate: string;
+  startTime: string;
+  endTime: string;
   durationMinutes?: number;
   status: string;
   score?: string | number;
@@ -38,7 +38,7 @@ interface Exam {
   classSection?: ClassSection;
   duration?: string;
   subject?: string;
-  createdAt?: string | Date; // Added for past exams
+  createdAt?: string; // Added for past exams
   obtainedMarks?: string | number; // Added for past exams
   classSectionId?: string; // Added to filter active exams
 }
@@ -60,7 +60,6 @@ export default function ExamsPage() {
   const [examCompleted, setExamCompleted] = useState(false);
   const [finalScore, setFinalScore] = useState<number | null>(null);
   const [debugMode, setDebugMode] = useState(false);
-  const [rawExamData, setRawExamData] = useState<any[]>([]);
 
 
   const getExamStatus = (exam: Exam) => {
@@ -133,16 +132,12 @@ export default function ExamsPage() {
       }
 
       const data = await response.json();
-      console.log('Raw exam data received:', data);
-
-      // Store raw data for debugging
-      setRawExamData(data);
+      // console.log('Raw exam data received:', data);
 
       // Check if data is empty
       if (!data || data.length === 0) {
         console.log('No exam data returned from API');
         setActiveExams([]);
-        setPastExams([]);
         setLoading(false);
         return;
       }
@@ -156,48 +151,45 @@ export default function ExamsPage() {
           (exam.examType && exam.examType.name) ||
           (exam.classSection && exam.classSection.course && exam.classSection.course.name) ||
           'Unknown Subject';
-        const examDateObj = new Date(exam.examDate);
-        const startTimeObj = new Date(exam.startTime);
 
-        const newCombinedDate = new Date(examDateObj);
-        newCombinedDate.setUTCHours(startTimeObj.getUTCHours());
-        newCombinedDate.setUTCMinutes(startTimeObj.getUTCMinutes());
-        newCombinedDate.setUTCSeconds(startTimeObj.getUTCSeconds());
-        newCombinedDate.setUTCMilliseconds(startTimeObj.getUTCMilliseconds());
+        const startTime = new Date(exam.startTime);
+        const endTime = new Date(exam.endTime);
 
-        const endTimeObj = new Date(exam.endTime);
-        const newCombinedEndDate = new Date(examDateObj);
-        newCombinedEndDate.setUTCHours(endTimeObj.getUTCHours());
-        newCombinedEndDate.setUTCMinutes(endTimeObj.getUTCMinutes());
-        newCombinedEndDate.setUTCSeconds(endTimeObj.getUTCSeconds());
-        newCombinedEndDate.setUTCMilliseconds(endTimeObj.getUTCMilliseconds());
+        const startDateTime = new Date(exam.examDate);
+        startDateTime.setUTCHours(
+          startTime.getUTCHours(),
+          startTime.getUTCMinutes(),
+          startTime.getUTCSeconds(),
+          startTime.getUTCMilliseconds()
+        );
 
-        /*console.log("Exam details ", exam)
-        console.log("kolkataDisplayString ", newCombinedDate);
-        console.log("kolkataDisplayEndString ", newCombinedEndDate);*/
-        const examRes = {
+        const endDateTime = new Date(exam.examDate);
+        endDateTime.setUTCHours(
+          endTime.getUTCHours(),
+          endTime.getUTCMinutes(),
+          endTime.getUTCSeconds(),
+          endTime.getUTCMilliseconds()
+        );
+
+        const mappedExam = {
           ...exam,
           subject: subject,
           duration: exam.durationMinutes,
-          startTime: newCombinedDate.toISOString(),
-          endTime: newCombinedEndDate.toISOString()
+          startTime: startDateTime.toISOString(),
+          endTime: endDateTime.toISOString()
         }
-        return examRes;
-
+        return mappedExam;
       });
 
       console.log('Mapped exams:', mappedExams);
 
-      // Check for valid status values in the data
-      const statusValues = [...new Set(mappedExams.map((e: any) => e.status))];
-      console.log('Status values found in data:', statusValues);
-
       // Filter exams by status to get active and past exams - accept more possible status values
       const active = mappedExams.filter((exam: any) =>
-        ['DRAFT', 'IN_PROGRESS', 'PUBLISHED'].includes(exam.status)
+        ['IN_PROGRESS', 'PUBLISHED'].includes(exam.status)
       );
 
       // Fetch past exams from submissions
+
       const pastResponse = await fetch(`/api/exam-submissions/student/${studentId}`, {
         method: "GET",
         headers: {
@@ -207,19 +199,19 @@ export default function ExamsPage() {
 
       if (pastResponse.ok) {
         const pastSubmissions = await pastResponse.json();
+        console.log('Past exam submissions received:', pastSubmissions);
         setPastExams(pastSubmissions);
       } else {
         console.warn('Failed to fetch past exam submissions.');
         setPastExams([]);
       }
 
-      console.log('Active exams after filtering:', active);
+      // console.log('Active exams after filtering:', active);
       console.log('Past exams (from submissions):', pastExams);
       setActiveExams(active);
       setLoading(false);
     } catch (err) {
       console.error('Error fetching exams:', err);
-      setActiveExams([]);
       setPastExams([]);
       setLoading(false);
     }
@@ -237,10 +229,12 @@ export default function ExamsPage() {
       setError('Exam has not started yet.');
       return;
     }
+
     if (examEnd && now > examEnd) {
       setError('Exam has already ended.');
       return;
     }
+
     try {
       // Fetch exam details with questions
       const response = await fetch(`/api/exams/sadasdsad/${exam.id}`, {
@@ -358,51 +352,36 @@ export default function ExamsPage() {
 
       setFinalScore(score);
       setExamCompleted(true);
-      setShowExamModal(false);
+      setCurrentQuestionIndex(0);
+      setCurrentAnswer('');
+      // setShowExamModal(false);
 
       // Show success message
       setError(null);
     } catch (error) {
+      setError('Failed to submit exam. Please try again.');
       console.error('Error submitting exam:', error);
       // Even if submission fails, show the score in UI
       const score = Math.floor(Math.random() * (95 - 60 + 1)) + 60;
-      const completedExam = {
-        ...selectedExam!,
-        status: 'COMPLETED',
-        score: score
-      };
-      setPastExams([completedExam, ...pastExams]);
-      setActiveExams(activeExams.filter(e => e.id !== selectedExam!.id));
-      setFinalScore(score);
-      setExamCompleted(true);
-      setShowExamModal(false);
+      /* const completedExam = {
+         ...selectedExam!,
+         status: 'COMPLETED',
+         score: score
+       };*/
+      // setPastExams([completedExam, ...pastExams]);
+      // setActiveExams(activeExams.filter(e => e.id !== selectedExam!.id));
+      // setFinalScore(score);
+
+      // setShowExamModal(false);
     }
   };
 
   const closeExam = () => {
     setShowExamModal(false);
     setExamInProgress(false);
-    setExamCompleted(false);
-    setFinalScore(null);
     setAnswers({});
-    setCurrentQuestionIndex(0);
-    setCurrentAnswer('');
   };
 
-  const handleNotify = (examId: string) => {
-    console.log(`Notification set for exam ${examId}`);
-    // Implementation would notify the user when the exam is about to start
-  };
-
-  const handleJoinExam = (examId: string) => {
-    console.log(`Joining exam ${examId}`);
-    // Implementation would navigate to the exam page
-  };
-
-  const handleViewPaper = (examId: string) => {
-    console.log(`Viewing paper for exam ${examId}`);
-    // Implementation would navigate to the exam paper review page
-  };
 
   const toggleDebugMode = () => {
     setDebugMode(!debugMode);
@@ -457,14 +436,6 @@ export default function ExamsPage() {
         <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded">
           <p className="font-bold">Error</p>
           <p>{error}</p>
-        </div>
-      )}
-
-      {/* Debug Mode */}
-      {debugMode && (
-        <div className="bg-white p-4 rounded-lg shadow mb-4 overflow-auto max-h-60 text-xs">
-          <h3 className="font-semibold mb-2">Raw Exam Data:</h3>
-          <pre>{JSON.stringify(rawExamData, null, 2)}</pre>
         </div>
       )}
 
@@ -549,27 +520,27 @@ export default function ExamsPage() {
               </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-              {pastExams.map(exam => (
-                <tr key={exam.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 whitespace-nowrap">{exam.title || exam.title}</td>
+              {pastExams.map((item: any )=> (
+                <tr key={item.id} className="hover:bg-gray-50">
+                  <td className="px-4 py-3 whitespace-nowrap">{item.exam.title}</td>
                   <td className="px-4 py-3 whitespace-nowrap">
-                    {new Date(exam.examDate || exam.createdAt).toLocaleDateString(undefined, {
+                    {new Date(item.exam.examDate).toLocaleDateString(undefined, {
                       year: 'numeric',
                       month: 'short',
                       day: 'numeric'
                     })}
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap text-indigo-700 font-semibold">
-                    {exam.score || exam.obtainedMarks}/100
+                    {item.obtainedMarks}/{item.exam.totalMarks}
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap">
                     <span className={`px-2 py-1 inline-flex text-xs font-semibold rounded-full ${
-                      // exam.status === 'COMPLETED' || 
-                      exam.status === 'GRADED'
+                      // item.status === 'COMPLETED' || 
+                      item.status === 'GRADED'
                         ? 'bg-green-100 text-green-800'
                         : 'bg-gray-100 text-gray-800'
                     }`}>
-                      {exam.status}
+                      {item.status}
                     </span>
                   </td>
                 </tr>

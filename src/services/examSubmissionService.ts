@@ -28,7 +28,7 @@ export class ExamSubmissionService {
 
   async getById(id: string) {
     return prisma.examSubmission.findUnique({
-      where: { id },
+      where: {id},
       include: {
         exam: true,
         student: true,
@@ -36,20 +36,22 @@ export class ExamSubmissionService {
       },
     });
   }
-async getByStudentId(id:string){
-  console.log(id)
-  return prisma.examSubmission.findMany({
-    where:{studentId:id},
-    include: {
-      exam: true,
-      student: true,
-      gradedBy: true,
-    },
-  })
-}
+
+  async getByStudentId(id: string) {
+    console.log(id)
+    return prisma.examSubmission.findMany({
+      where: {studentId: id},
+      include: {
+        exam: true,
+        student: true,
+        gradedBy: true,
+      },
+    })
+  }
+
   async update(id: string, data: any) {
     return prisma.examSubmission.update({
-      where: { id },
+      where: {id},
       data: {
         obtainedMarks: data.obtainedMarks,
         status: data.status,
@@ -62,7 +64,7 @@ async getByStudentId(id:string){
 
   async delete(id: string) {
     return prisma.examSubmission.delete({
-      where: { id },
+      where: {id},
     });
   }
 }
