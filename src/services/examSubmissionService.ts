@@ -17,18 +17,15 @@ export class ExamSubmissionService {
         examId: data.examId,
         studentId: data.studentId,
         submissionTime: new Date(),
-        obtainedMarks: data.obtainedMarks || 0,
         status: data.status,
-        feedback: data.feedback,
-        gradedById: data.gradedById,
-        gradedAt: data.gradedAt ? new Date(data.gradedAt) : null,
+        // gradedById: data.gradedById
       },
     });
   }
 
   async getById(id: string) {
     return prisma.examSubmission.findUnique({
-      where: { id },
+      where: {id},
       include: {
         exam: true,
         student: true,
@@ -36,20 +33,25 @@ export class ExamSubmissionService {
       },
     });
   }
-async getByStudentId(id:string){
-  console.log(id)
-  return prisma.examSubmission.findMany({
-    where:{studentId:id},
-    include: {
-      exam: true,
-      student: true,
-      gradedBy: true,
-    },
-  })
-}
+
+  async getByStudentId(id: string) {
+    console.log(id)
+    return prisma.examSubmission.findMany({
+      where: {studentId: id},
+      include: {
+        exam: true,
+        student: true,
+        gradedBy: true,
+      },
+      orderBy: {
+        submissionTime: 'desc'
+      }
+    })
+  }
+
   async update(id: string, data: any) {
     return prisma.examSubmission.update({
-      where: { id },
+      where: {id},
       data: {
         obtainedMarks: data.obtainedMarks,
         status: data.status,
@@ -62,7 +64,7 @@ async getByStudentId(id:string){
 
   async delete(id: string) {
     return prisma.examSubmission.delete({
-      where: { id },
+      where: {id},
     });
   }
 }

@@ -471,7 +471,7 @@ export default function ExamsPage({params}: ExamsPageProps) {
 
       // Call the new API endpoint with the teacherId
       const response = await axios.get(`/api/teachers/${teacherId}/section`, {
-        withCredentials: true,
+        withCredentials: true
       });
 
       // Update state with the response data
