@@ -3,6 +3,7 @@ import React, {useState, useEffect} from 'react';
 import Link from 'next/link';
 import Loader from '@/components/ui/Loader';
 
+// --- INTERFACES (No changes) ---
 interface Question {
   id: string;
   questionText: string;
@@ -15,7 +16,7 @@ interface ExamType {
 }
 
 interface Course {
-  name: string;
+  name:string;
   subject: string;
 }
 
@@ -39,9 +40,9 @@ interface Exam {
   totalMarks: number;
   duration?: string;
   subject?: string;
-  createdAt?: string; // Added for past exams
-  obtainedMarks?: number; // Added for past exams
-  classSectionId?: string; // Added to filter active exams
+  createdAt?: string;
+  obtainedMarks?: number;
+  classSectionId?: string;
 }
 
 export default function ExamsPage() {
@@ -53,16 +54,19 @@ export default function ExamsPage() {
   const [selectedExam, setSelectedExam] = useState<Exam | null>(null);
   const [showExamModal, setShowExamModal] = useState(false);
   const [examInProgress, setExamInProgress] = useState(false);
-  const [classSection, setClassSections] = useState<string[]>([]); // Explicitly type as string array
+  const [classSection, setClassSections] = useState<string[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [currentAnswer, setCurrentAnswer] = useState('');
   const [answers, setAnswers] = useState<{ [key: string]: string }>({});
   const [timeLeft, setTimeLeft] = useState<number>(0);
   const [examCompleted, setExamCompleted] = useState(false);
-  const [finalScore, setFinalScore] = useState<number | null>(null);
+  const [submittingExam, setSubmittingExam] = useState(false);
+  // --- NEW STATE FOR FILTERING ---
+  const [activeFilter, setActiveFilter] = useState('All');
 
+
+  // --- EXISTING FUNCTIONS (No changes) ---
   const getExamStatus = (exam: Exam) => {
-    console.log("Exam status ", exam.status)
     const examStatus = exam.status;
     if (examStatus === 'PENDING' || examStatus === 'GRADED' || examStatus === 'REVIEWED') {
       return examStatus;
@@ -79,13 +83,13 @@ export default function ExamsPage() {
     } else if (endTime <= now) {
       return 'Exam Ended';
     }
-
+    // Default fallback, should ideally not be reached if statuses are correct
+    return exam.status;
   };
 
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        // Get user data from localStorage
         const userDataStr = localStorage.getItem('user');
         if (!userDataStr) {
           setError("User data not found. Please log in again.");
@@ -107,15 +111,13 @@ export default function ExamsPage() {
 
         const classes = await classdetails.json();
         const classenrollments = classes?.classEnrollments
-        const classd: string[] = []; // Explicitly type as string array
+        const classd: string[] = [];
         for (let i = 0; i < classenrollments.length; i++) {
           classd.push(classenrollments[i].classSectionId)
         }
 
         setClassSections(classd)
-        console.log(classd)
         setStudentData(userData);
-        // Fetch exams
         await fetchExams(userData.studentId || userData.id);
       } catch (error) {
         console.error("Error fetching user data:", error);
@@ -127,41 +129,27 @@ export default function ExamsPage() {
     fetchUserData();
   }, []);
 
-  const fetchExams = async (studentId: string) => { // Removed classSectionId from here, as it's handled by classSection state
+  const fetchExams = async (studentId: string) => {
     try {
       setLoading(true);
-
-      // Fetch from the backend API, assuming the API handles filtering based on studentId and potentially classSection
       const response = await fetch(`/api/exams?studentId=${studentId}`);
-
       if (!response.ok) {
         throw new Error('Failed to fetch exams');
       }
-
       const data = await response.json();
-      // console.log('Raw exam data received:', data);
-
-      // Check if data is empty
       if (!data || data.length === 0) {
-        console.log('No exam data returned from API');
         setActiveExams([]);
         setLoading(false);
         return;
       }
-
-      // Map API data to our Exam interface, handling different structures
       const mappedExams = data.map((exam: any) => {
-        // console.log("Exam ", exam);
-        // Get subject from different possible locations
         const subject =
           exam.subject ||
           (exam.examType && exam.examType.name) ||
           (exam.classSection && exam.classSection.course && exam.classSection.course.name) ||
           'Unknown Subject';
-
         const startTime = new Date(exam.startTime);
         const endTime = new Date(exam.endTime);
-
         const startDateTime = new Date(exam.examDate);
         startDateTime.setUTCHours(
           startTime.getUTCHours(),
@@ -169,7 +157,6 @@ export default function ExamsPage() {
           startTime.getUTCSeconds(),
           startTime.getUTCMilliseconds()
         );
-
         const endDateTime = new Date(exam.examDate);
         endDateTime.setUTCHours(
           endTime.getUTCHours(),
@@ -177,47 +164,34 @@ export default function ExamsPage() {
           endTime.getUTCSeconds(),
           endTime.getUTCMilliseconds()
         );
-
-        const mappedExam = {
+        return {
           ...exam,
           subject: subject,
           duration: exam.durationMinutes,
           startTime: startDateTime.toISOString(),
           endTime: endDateTime.toISOString()
-        }
-        return mappedExam;
+        };
       });
-
-      console.log('Mapped exams: ', mappedExams);
-
-      // Filter exams by status to get active and past exams - accept more possible status values
       const active = mappedExams.filter((exam: any) =>
         ['IN_PROGRESS', 'PUBLISHED'].includes(exam.status)
       );
-      // Fetch past exams from submissions
-
       const pastResponse = await fetch(`/api/exam-submissions/student/${studentId}`, {
         method: "GET",
         headers: {
           'Content-Type': 'application/json',
         },
       });
-
       let pastSubmissions: Array<any> = [];
       let allExams: Array<Exam> | null = null;
       if (pastResponse.ok) {
         pastSubmissions = await pastResponse.json();
-        console.log('Past exam submissions received: ', pastSubmissions);
-
         allExams = active.map((exam: Exam) => {
           const pastSubmission = pastSubmissions.find(item => item.exam.id === exam.id);
-          console.log("Past exam 17 ", pastSubmission, " ", exam.id);
           if (exam.id === pastSubmission?.exam?.id) {
             exam.status = pastSubmission.status;
           }
           return exam;
         })
-
         const submittedExams: Array<Exam> = pastSubmissions.map((item: any) => {
           const exam = active.find((exam: Exam) => exam.id === item.examId);
           if (exam) {
@@ -229,23 +203,16 @@ export default function ExamsPage() {
           }
           return null;
         }).filter(item => item !== null);
-
-
         setPastExams(submittedExams);
       } else {
         console.warn('Failed to fetch past exam submissions.');
         setPastExams([]);
       }
-
-      // console.log('Active exams after filtering:', active);
-      console.log('Past exams (from submissions): ', pastExams);
-
       if (allExams && allExams.length > 0) {
         setActiveExams(allExams);
       } else {
         setActiveExams(active);
       }
-
       setLoading(false);
     } catch (err) {
       console.error('Error fetching exams:', err);
@@ -257,37 +224,38 @@ export default function ExamsPage() {
   const startExam = async (exam: Exam) => {
     const now = new Date();
     const examStart = new Date(exam.startTime);
-    const examEnd = exam.endTime ? new Date(exam.endTime) : null;
-    console.log("Current time: ", now);
-    console.log("Exam start time: ", examStart);
-    console.log("Exam end time: ", examEnd);
-
+    if (!exam.endTime) {
+      setError('Exam has an invalid end time and cannot be started.');
+      return;
+    }
+    const examEnd = new Date(exam.endTime);
     if (now < examStart) {
       setError('Exam has not started yet.');
       return;
     }
-
-    if (examEnd && now > examEnd) {
+    if (now > examEnd) {
       setError('Exam has already ended.');
       return;
     }
-
+    const nowMs = now.getTime();
+    const startTimeMs = examStart.getTime();
+    const endTimeMs = examEnd.getTime();
+    const elapsedSinceStartMs = nowMs - startTimeMs;
+    const maxBufferMs = 10 * 60 * 1000;
+    const bufferToAddMs = Math.min(elapsedSinceStartMs, maxBufferMs);
+    const remainingTimeUntilEndMs = endTimeMs - nowMs;
+    const finalTimeLeftInSeconds = Math.max(0, Math.floor((remainingTimeUntilEndMs + bufferToAddMs) / 1000));
     try {
-      // Fetch exam details with questions
       const response = await fetch(`/api/exams/sadasdsad/${exam.id}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
         },
       });
-
       if (!response.ok) {
         throw new Error('Failed to fetch exam details');
       }
-
       const examWithQuestions = await response.json();
-      console.log("Exam with questions: ", examWithQuestions);
-      // Update the exam with questions and exam type
       setSelectedExam({
         ...exam,
         questions: examWithQuestions.questions || [],
@@ -295,7 +263,7 @@ export default function ExamsPage() {
       });
       setExamInProgress(true);
       setShowExamModal(true);
-      setTimeLeft(exam.durationMinutes ? exam.durationMinutes * 60 : 3600);
+      setTimeLeft(finalTimeLeftInSeconds);
     } catch (error) {
       console.error('Error starting exam:', error);
       setError('Failed to start exam. Please try again.');
@@ -319,44 +287,10 @@ export default function ExamsPage() {
     return () => clearInterval(timer);
   }, [examInProgress, timeLeft]);
 
-  const submitAnswer = () => {
-    if (!selectedExam || !selectedExam.questions) return;
-
-    const currentQuestion = selectedExam.questions[currentQuestionIndex];
-    console.log('Submitting answer:', {
-      questionId: currentQuestion.id,
-      answer: currentAnswer,
-      currentIndex: currentQuestionIndex,
-      totalQuestions: selectedExam.questions.length
-    });
-
-    // Save the answer
-    setAnswers(prev => {
-      const newAnswers = {
-        ...prev,
-        [currentQuestion.id]: currentAnswer.trim()
-      };
-      console.log('Updated answers:', newAnswers);
-      return newAnswers;
-    });
-
-    // Move to next question or submit exam
-    if (currentQuestionIndex < selectedExam.questions.length - 1) {
-      setCurrentQuestionIndex(prev => prev + 1);
-      setCurrentAnswer('');
-    } else {
-      console.log('All questions answered, submitting exam...');
-      submitExam();
-    }
-  };
-
   const submitExam = async () => {
     if (!selectedExam) return;
-
+    setSubmittingExam(true);
     try {
-      // Generate a random score between 60 and 95
-      const score = Math.floor(Math.random() * (95 - 60 + 1)) + 60;
-
       const response = await fetch('/api/exams/submit', {
         method: 'POST',
         headers: {
@@ -365,47 +299,51 @@ export default function ExamsPage() {
         body: JSON.stringify({
           examId: selectedExam.id,
           status: "PENDING",
-          // feedback: "GOOD",
           studentId: studentData?.studentId
         }),
       });
-
       if (!response.ok) {
         throw new Error('Failed to submit exam');
       }
 
       const result = await response.json();
-
-      // Update the exam status locally
       const updatedActiveExams = activeExams.filter(e => e.id !== selectedExam.id);
-      const completedExam = {
-        ...selectedExam,
-        score: score
-      };
-
-      setPastExams([completedExam, ...pastExams].sort((a: Exam, b: Exam) => {
+      setPastExams([selectedExam, ...pastExams].sort((a: Exam, b: Exam) => {
         const timeB = new Date(b.examDate).getTime();
         const timeA = new Date(a.examDate).getTime();
-
         if (isNaN(timeA)) return 1;
         if (isNaN(timeB)) return -1;
-
         return timeB - timeA;
       }));
-      setActiveExams(updatedActiveExams);
 
-      setFinalScore(score);
+      setActiveExams(updatedActiveExams);
       setExamCompleted(true);
       setCurrentQuestionIndex(0);
       setCurrentAnswer('');
-      // setShowExamModal(false);
-
-      // Show success message
       setError(null);
     } catch (error) {
       setError('Failed to submit exam. Please try again.');
       console.error('Error submitting exam:', error);
-      // setShowExamModal(false);
+    } finally {
+      setSubmittingExam(false);
+    }
+  };
+
+  const submitAnswer = () => {
+    if (!selectedExam || !selectedExam.questions) return;
+    const currentQuestion = selectedExam.questions[currentQuestionIndex];
+    setAnswers(prev => {
+      const newAnswers = {
+        ...prev,
+        [currentQuestion.id]: currentAnswer.trim()
+      };
+      return newAnswers;
+    });
+    if (currentQuestionIndex < selectedExam.questions.length - 1) {
+      setCurrentQuestionIndex(prev => prev + 1);
+      setCurrentAnswer('');
+    } else {
+      submitExam();
     }
   };
 
@@ -415,6 +353,7 @@ export default function ExamsPage() {
     setAnswers({});
   };
 
+  // --- LOADING AND ERROR STATES (No changes) ---
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[calc(100vh-64px)]">
@@ -425,7 +364,7 @@ export default function ExamsPage() {
 
   if (error) {
     return (
-      <div className="p-4 sm:p-8"> {/* Adjusted padding for mobile */}
+      <div className="p-4 sm:p-8">
         <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6" role="alert">
           <p className="font-bold">Error</p>
           <p>{error}</p>
@@ -434,16 +373,34 @@ export default function ExamsPage() {
     );
   }
 
+  // --- NEW: LOGIC TO PRE-FILTER EXAMS BASED ON THE ACTIVE TAB ---
+  const filteredActiveExams = activeExams
+  .filter(exam => exam.classSectionId && classSection.includes(exam.classSectionId))
+  .filter(exam => {
+    if (activeFilter === 'All') {
+      return true;
+    }
+    const status = getExamStatus(exam);
+    if (activeFilter === 'Upcoming') {
+      return status === 'Upcoming';
+    }
+    if (activeFilter === 'Ongoing') {
+      return status === 'Ongoing';
+    }
+    if (activeFilter === 'Submitted') {
+      return ['PENDING', 'GRADED', 'REVIEWED'].includes(status);
+    }
+    return true; // Fallback to show all if filter is unknown
+  });
+
   return (
     <div className="p-4 sm:p-6 min-w-0 w-full">
-      {/* Header */}
       <div className="mb-8">
         <div className="flex items-center flex-wrap gap-2">
           <h2 className="text-2xl font-semibold">My Exams</h2>
         </div>
       </div>
 
-      {/* Error Box */}
       {error && (
         <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded">
           <p className="font-bold">Error</p>
@@ -451,13 +408,32 @@ export default function ExamsPage() {
         </div>
       )}
 
-      {/* Active Exams */}
+      {/* --- ACTIVE EXAMS SECTION (MODIFIED) --- */}
       <section className="mb-6">
-        <h3 className="text-xl font-semibold mb-4">Active Exams</h3>
+        <div className="flex justify-between items-center flex-wrap gap-y-4 mb-4">
+          <h3 className="text-xl font-semibold">Active Exams</h3>
+
+          {/* --- NEW: FILTER TABS UI --- */}
+          <div className="flex items-center border border-gray-200 rounded-lg p-1 bg-gray-50 text-sm">
+            {['All', 'Upcoming', 'Ongoing', 'Submitted'].map(filter => (
+              <button
+                key={filter}
+                onClick={() => setActiveFilter(filter)}
+                className={`px-3 py-1 rounded-md transition-colors font-medium ${
+                  activeFilter === filter
+                    ? 'bg-indigo-600 text-white shadow'
+                    : 'text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                {filter}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-          {activeExams
-          .filter(exam => exam.classSectionId && classSection.includes(exam.classSectionId))
-          .map(exam => {
+          {/* --- MODIFIED: Use the pre-filtered list --- */}
+          {filteredActiveExams.map(exam => {
             const currentStatus = getExamStatus(exam);
             return (
               <div key={exam.id} className="bg-white rounded-lg shadow border border-gray-100 flex flex-col">
@@ -475,31 +451,26 @@ export default function ExamsPage() {
                     <div className="flex justify-between items-center mb-4">
                       <span className="text-gray-600 text-sm">Starts:</span>
                       <span className="text-gray-800 font-medium text-right break-words">
-                      {new Date(exam.startTime).toLocaleString(undefined, {
-                        month: 'short',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        hour12: true
-                      })}
-                    </span>
+                        {new Date(exam.startTime).toLocaleString(undefined, {
+                          month: 'short',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          hour12: true
+                        })}
+                      </span>
                     </div>
                   </div>
                   <button
                     onClick={() => startExam(exam)}
                     disabled={currentStatus !== 'Ongoing'}
-                    className={`w-full text-white py-2 rounded-md transition-colors mt-2
-                    ${/* --- Style for ONGOING status --- */ ''}
-                    
-                    ${(currentStatus === 'PENDING' || currentStatus === 'REVIEWED' || currentStatus === 'GRADED') && 'bg-gray-500 hover:bg-gray-600 opacity-50 cursor-not-allowed'}
-                    ${currentStatus === 'Ongoing' && 'bg-green-500 hover:bg-green-600'}
-
-                    ${/* --- Style for EXAM ENDED status --- */ ''}
-                    ${currentStatus === 'Exam Ended' && 'bg-gray-500 hover:bg-gray-600 opacity-50 cursor-not-allowed'}
-    
-                    ${/* --- Style for UPCOMING status --- */ ''}
-                    ${currentStatus === 'Upcoming' && 'bg-indigo-600 hover:bg-indigo-700 opacity-50 cursor-not-allowed'}`
-                    }>
+                    className={`w-full text-white py-2 rounded-md transition-colors mt-2 ${
+                      (currentStatus === 'PENDING' || currentStatus === 'REVIEWED' || currentStatus === 'GRADED') ? 'bg-gray-500 hover:bg-gray-600 opacity-50 cursor-not-allowed' :
+                        currentStatus === 'Ongoing' ? 'bg-green-500 hover:bg-green-600' :
+                          currentStatus === 'Exam Ended' ? 'bg-gray-500 hover:bg-gray-600 opacity-50 cursor-not-allowed' :
+                            currentStatus === 'Upcoming' ? 'bg-indigo-600 hover:bg-indigo-700 opacity-50 cursor-not-allowed' : ''
+                    }`}
+                  >
                     {(currentStatus === 'PENDING' || currentStatus === 'REVIEWED' || currentStatus === 'GRADED') && 'Already submitted'}
                     {currentStatus === 'Ongoing' && "Attend Exam"}
                     {currentStatus === 'Upcoming' && "Exam not started yet"}
@@ -510,17 +481,19 @@ export default function ExamsPage() {
               </div>
             )
           })}
-          {activeExams.filter(exam => exam.classSectionId && classSection.includes(exam.classSectionId)).length === 0 && (
+
+          {/* --- MODIFIED: Dynamic "No Exams" message --- */}
+          {filteredActiveExams.length === 0 && (
             <div className="col-span-full bg-white p-8 rounded-lg shadow-sm text-center">
               <div className="text-gray-400 text-5xl mb-4">📝</div>
-              <h4 className="text-xl font-medium text-gray-700 mb-2">No Active Exams</h4>
-              <p className="text-gray-500">No upcoming or ongoing exams found at the moment.</p>
+              <h4 className="text-xl font-medium text-gray-700 mb-2">No {activeFilter !== 'All' && activeFilter} Exams</h4>
+              <p className="text-gray-500">No {activeFilter !== 'All' ? activeFilter.toLowerCase() : 'active'} exams found at the moment.</p>
             </div>
           )}
         </div>
       </section>
 
-      {/* Past Exams */}
+      {/* --- PAST EXAMS SECTION (No changes) --- */}
       <section>
         <h3 className="text-xl font-semibold mb-4">Past Exams</h3>
         <div className="bg-white rounded-lg shadow overflow-hidden">
@@ -549,14 +522,13 @@ export default function ExamsPage() {
                     {exam.obtainedMarks ? exam.obtainedMarks : "- "}/{exam.totalMarks}
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap">
-                    <span className={`px-2 py-1 inline-flex text-xs font-semibold rounded-full ${
-                      // item.status === 'COMPLETED' || 
-                      exam.status === 'GRADED'
-                        ? 'bg-green-100 text-green-800'
-                        : 'bg-gray-100 text-gray-800'
-                    }`}>
-                      {exam.status}
-                    </span>
+                      <span className={`px-2 py-1 inline-flex text-xs font-semibold rounded-full ${
+                        exam.status === 'GRADED'
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-gray-100 text-gray-800'
+                      }`}>
+                        {exam.status}
+                      </span>
                   </td>
                 </tr>
               ))}
@@ -573,7 +545,7 @@ export default function ExamsPage() {
         </div>
       </section>
 
-      {/* Modal */}
+      {/* --- MODAL (No changes) --- */}
       {showExamModal && selectedExam && (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-xl">
@@ -589,11 +561,8 @@ export default function ExamsPage() {
                 </div>
 
                 {(() => {
-                  // Get the current question to avoid repetitive indexing
                   const currentQuestion = selectedExam.questions[currentQuestionIndex];
-                  // Determine if the question is an MCQ by checking if any option has content
                   const isMcq = currentQuestion.options && currentQuestion.options.some(opt => opt.trim() !== '');
-
                   return (
                     <div className="p-6">
                       <div className="flex justify-between items-center mb-4 flex-wrap gap-2">
@@ -604,10 +573,7 @@ export default function ExamsPage() {
                           {currentQuestion.marks} Points
                         </div>
                       </div>
-
-                      {/* Conditionally render MCQ or Long Answer UI */}
                       {isMcq ? (
-                        // --- MCQ UI ---
                         <div className="border border-gray-200 rounded-lg p-4 bg-gray-50 mb-4">
                           <p className="text-gray-800 font-medium mb-6">
                             {currentQuestion.questionText}
@@ -629,7 +595,6 @@ export default function ExamsPage() {
                           </div>
                         </div>
                       ) : (
-                        // --- Long Answer UI (Original) ---
                         <div className="border border-gray-200 rounded-lg p-4 bg-gray-50 mb-4">
                           <p className="text-gray-800 font-medium mb-6">
                             {currentQuestion.questionText}
@@ -643,7 +608,6 @@ export default function ExamsPage() {
                           />
                         </div>
                       )}
-
                       <div className="flex justify-between mt-6 flex-wrap gap-2">
                         <button
                           onClick={() => setCurrentQuestionIndex(prev => Math.max(0, prev - 1))}
@@ -654,9 +618,11 @@ export default function ExamsPage() {
                         </button>
                         <button
                           onClick={submitAnswer}
+                          disabled={submittingExam}
                           className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors"
                         >
-                          {currentQuestionIndex === selectedExam.questions.length - 1 ? 'Submit Exam' : 'Next Question'}
+                          {submittingExam && <><Loader size="small"/> <span className={"pl-1"}>Submitting...</span></>}
+                          {!submittingExam && currentQuestionIndex === selectedExam.questions.length - 1 ? 'Submit Exam' : 'Next Question'}
                         </button>
                       </div>
                     </div>
@@ -665,15 +631,13 @@ export default function ExamsPage() {
               </>
             ) : (
               <div className="text-center p-10">
-                <div
-                  className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" fill="none" viewBox="0 0 24 24"
                        stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7"/>
                   </svg>
                 </div>
                 <h2 className="text-2xl font-bold text-gray-800 mb-4">Exam Completed!</h2>
-                <div className="text-5xl font-bold text-indigo-600 mb-6">{finalScore}/100</div>
                 <p className="text-gray-600 mb-8 max-w-md mx-auto">
                   Congratulations on completing your exam. Your answers have been submitted successfully.
                 </p>
