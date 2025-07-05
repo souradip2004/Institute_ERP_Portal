@@ -38,9 +38,9 @@ interface FormData {
   userId: string;
   logoUrl: string; // This will store the Cloudinary URL
   primaryColor: string;
-  approxStudents: number;
-  numTeachers: number;
-  institutionDocument: File | null;
+  //approxStudents: number;
+  //numTeachers: number;
+  //institutionDocument: File | null;
 }
 
 export default function CreateInstitutionForm({ userId, email }: CreateInstitutionFormProps) {
@@ -58,9 +58,9 @@ export default function CreateInstitutionForm({ userId, email }: CreateInstituti
       userId: userId,
       logoUrl: "",
       primaryColor: "#000000",
-      approxStudents: 0,
-      numTeachers: 0,
-      institutionDocument: null,
+      //approxStudents: 0,
+      //numTeachers: 0,
+      //institutionDocument: null,
     },
   });
 
@@ -93,7 +93,7 @@ export default function CreateInstitutionForm({ userId, email }: CreateInstituti
       setInstitutionDocumentFile(file);
 
       setInstitutionDocumentPreview(URL.createObjectURL(file));
-      form.clearErrors("institutionDocument"); // Clear any previous errors related to logoUrl
+      //form.clearErrors("institutionDocument"); // Clear any previous errors related to logoUrl
     } else {
       setInstitutionDocumentFile(null);
       setInstitutionDocumentPreview(null);
@@ -300,7 +300,7 @@ export default function CreateInstitutionForm({ userId, email }: CreateInstituti
               />
             </div>
           </div>
-          <div className="grid gap-4 sm:grid-cols-2">
+          {/* <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <FormLabel className="flex items-center gap-2 mb-2">
                 Approx. Number of Students
@@ -340,7 +340,7 @@ export default function CreateInstitutionForm({ userId, email }: CreateInstituti
             {form.formState.errors.institutionDocument && (
               <p className="text-sm text-red-500 mt-1">Please upload a valid document.</p>
             )}
-          </div>
+          </div> */}
           <div>
             <FormLabel className="flex items-center gap-2 mb-2">
               <Upload className="h-4 w-4 text-indigo-500" />
