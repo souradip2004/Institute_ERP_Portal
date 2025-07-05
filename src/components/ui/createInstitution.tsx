@@ -38,6 +38,9 @@ interface FormData {
   userId: string;
   logoUrl: string; // This will store the Cloudinary URL
   primaryColor: string;
+  approxStudents: number;
+  numTeachers: number;
+  institutionDocument: File | null;
 }
 
 export default function CreateInstitutionForm({ userId, email }: CreateInstitutionFormProps) {
@@ -55,6 +58,9 @@ export default function CreateInstitutionForm({ userId, email }: CreateInstituti
       userId: userId,
       logoUrl: "",
       primaryColor: "#000000",
+      approxStudents: 0,
+      numTeachers: 0,
+      institutionDocument: null,
     },
   });
 
@@ -65,6 +71,8 @@ export default function CreateInstitutionForm({ userId, email }: CreateInstituti
   const [selectedColor, setSelectedColor] = useState("#000000");
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [institutionDocumentFile, setInstitutionDocumentFile] = useState<File | null>(null);
+  const [institutionDocumentPreview, setInstitutionDocumentPreview] = useState<string | null>(null);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -76,6 +84,19 @@ export default function CreateInstitutionForm({ userId, email }: CreateInstituti
     } else {
       setLogoFile(null);
       setLogoPreview(null);
+    }
+  };
+
+  const handleFileChangeInstitutionDocument = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setInstitutionDocumentFile(file);
+
+      setInstitutionDocumentPreview(URL.createObjectURL(file));
+      form.clearErrors("institutionDocument"); // Clear any previous errors related to logoUrl
+    } else {
+      setInstitutionDocumentFile(null);
+      setInstitutionDocumentPreview(null);
     }
   };
 
@@ -279,7 +300,47 @@ export default function CreateInstitutionForm({ userId, email }: CreateInstituti
               />
             </div>
           </div>
-
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <FormLabel className="flex items-center gap-2 mb-2">
+                Approx. Number of Students
+              </FormLabel>
+              <Input
+                type="number"
+                min={0}
+                placeholder="Enter number of students"
+                {...form.register("approxStudents", { required: true, min: 0 })}
+                className="w-full"
+              />
+            </div>
+            <div>
+              <FormLabel className="flex items-center gap-2 mb-2">
+                Number of Teachers
+              </FormLabel>
+              <Input
+                type="number"
+                min={0}
+                placeholder="Enter number of teachers"
+                {...form.register("numTeachers", { required: true, min: 0 })}
+                className="w-full"
+              />
+            </div>
+          </div>
+          <div>
+            <FormLabel className="flex items-center gap-2 mb-2">
+              <Upload className="h-4 w-4 text-indigo-500" />
+              Upload Institution Document (ID Card or Proof of Address)
+            </FormLabel>
+            <Input
+              type="file"
+              accept="application/pdf,image/*"
+              onChange={handleFileChangeInstitutionDocument}
+              className="w-full"
+            />
+            {form.formState.errors.institutionDocument && (
+              <p className="text-sm text-red-500 mt-1">Please upload a valid document.</p>
+            )}
+          </div>
           <div>
             <FormLabel className="flex items-center gap-2 mb-2">
               <Upload className="h-4 w-4 text-indigo-500" />

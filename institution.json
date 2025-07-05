@@ -5,10 +5,13 @@
   "city": "Kolkata",
   "state": "West Bengal",
   "country": "India",
-  "phone": "08436820470",
-  "email": "akash1@gmail.com",
-  "website": "",
-  "userId": "cmckw757p0001eplw79fhezsk",
-  "logoUrl": "https://aiclassroomin.s3.eu-north-1.amazonaws.com/assignments/1751396981187_New Project.webp",
-  "primaryColor": "#00ff19"
+  "phone": "5555555555",
+  "email": "sdg@sdfg.com",
+  "website": "https://www.hexgame.in",
+  "userId": "cmcps8js30000epckg5xv9l04",
+  "logoUrl": "https://aiclassroomin.s3.eu-north-1.amazonaws.com/assignments/1751697291124_hexonodelogo.png",
+  "primaryColor": "#0034ff",
+  "approxStudents": "10",
+  "numTeachers": "10",
+  "institutionDocument": null
 }
