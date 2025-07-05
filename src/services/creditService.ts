@@ -26,6 +26,7 @@ export class CreditService {
                     attendanceCreditsBalance: 0,
                     videoCreditsBalance: 0,
                     copyCheckingCreditsBalance: 0,
+                    
                     total: 0,
                     lastUpdated: new Date()
                 },

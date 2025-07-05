@@ -210,7 +210,7 @@ export default function LandingPage() {
 
                             <ul className="mt-10 space-y-5 text-xl font-medium text-purple-800">
                                 <li className="flex items-center gap-4">
-                                    <img src="/frame.svg" alt="Admin" className="w-10 h-10 object-cover" />
+                                    <img src="/Frame.svg" alt="Admin" className="w-10 h-10 object-cover" />
                                     <span>Smart Admin Panel</span>
                                 </li>
                                 <li className="flex items-center gap-4">
@@ -223,7 +223,7 @@ export default function LandingPage() {
                                 </li>
                             </ul>
 
-                            <button className="mt-12 bg-purple-900 hover:bg-purple-800 text-white font-bold text-xl py-4 px-14 rounded-lg transition-colors shadow-lg hover:shadow-xl">
+                            <button className="mt-12 bg-purple-900 hover:bg-purple-800 text-white font-bold text-xl py-4 px-14 rounded-lg transition-colors shadow-lg hover:shadow-xl" onClick={()=>window.location.href="/register"}>
                                 Get Started
                             </button>
                         </div>

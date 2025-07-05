@@ -130,7 +130,11 @@ export class ExamService {
   }
 
   async getAllExams() {
-    return prisma.exam.findMany();
+    return prisma.exam.findMany({
+      orderBy: {
+        examDate: "desc"
+      }
+    });
   }
 
   // Helper function to determine exam status
