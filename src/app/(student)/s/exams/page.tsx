@@ -1,5 +1,5 @@
 "use client";
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useCallback, useRef} from 'react';
 import Link from 'next/link';
 import Loader from '@/components/ui/Loader';
 
@@ -16,7 +16,7 @@ interface ExamType {
 }
 
 interface Course {
-  name:string;
+  name: string;
   subject: string;
 }
 
@@ -61,10 +61,12 @@ export default function ExamsPage() {
   const [timeLeft, setTimeLeft] = useState<number>(0);
   const [examCompleted, setExamCompleted] = useState(false);
   const [submittingExam, setSubmittingExam] = useState(false);
-  // --- NEW STATE FOR FILTERING ---
+  const latestAnswersRef = useRef(answers);
   const [activeFilter, setActiveFilter] = useState('All');
 
-
+  useEffect(() => {
+    console.log("Answers: ", answers);
+  }, [answers]);
   // --- EXISTING FUNCTIONS (No changes) ---
   const getExamStatus = (exam: Exam) => {
     const examStatus = exam.status;
@@ -270,42 +272,29 @@ export default function ExamsPage() {
     }
   };
 
-  useEffect(() => {
-    let timer: NodeJS.Timeout;
-    if (examInProgress && timeLeft > 0) {
-      timer = setInterval(() => {
-        setTimeLeft(prev => {
-          if (prev <= 1) {
-            clearInterval(timer);
-            submitExam();
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    }
-    return () => clearInterval(timer);
-  }, [examInProgress, timeLeft]);
 
-  const submitExam = async () => {
-    if (!selectedExam) return;
+  const submitExam = useCallback(async (finalAnswers: { [key: string]: string }) => {
+    if (!selectedExam || !studentData) return;
     setSubmittingExam(true);
+
     try {
+      console.log("Answers being submitted: ", finalAnswers); // This will now be correct
       const response = await fetch('/api/exams/submit', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({
           examId: selectedExam.id,
           status: "PENDING",
-          studentId: studentData?.studentId
-        }),
+          studentId: studentData?.studentId,
+          answers: finalAnswers // Use the argument here
+        })
       });
+
       if (!response.ok) {
         throw new Error('Failed to submit exam');
       }
 
+      // --- The rest of your function remains the same ---
       const result = await response.json();
       const updatedActiveExams = activeExams.filter(e => e.id !== selectedExam.id);
       setPastExams([selectedExam, ...pastExams].sort((a: Exam, b: Exam) => {
@@ -321,29 +310,51 @@ export default function ExamsPage() {
       setCurrentQuestionIndex(0);
       setCurrentAnswer('');
       setError(null);
+
     } catch (error) {
       setError('Failed to submit exam. Please try again.');
       console.error('Error submitting exam:', error);
     } finally {
       setSubmittingExam(false);
     }
-  };
+  }, [selectedExam, studentData, activeExams, pastExams]); // removed 'answers' from dependency array
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (examInProgress && timeLeft > 0) {
+      timer = setInterval(() => {
+        setTimeLeft(prev => {
+          if (prev <= 1) {
+            clearInterval(timer);
+            // Use the ref here to get the guaranteed latest answers
+            submitExam(latestAnswersRef.current);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+    // Dependencies are now simpler
+  }, [examInProgress, timeLeft, submitExam]);
 
   const submitAnswer = () => {
     if (!selectedExam || !selectedExam.questions) return;
+
     const currentQuestion = selectedExam.questions[currentQuestionIndex];
-    setAnswers(prev => {
-      const newAnswers = {
-        ...prev,
-        [currentQuestion.id]: currentAnswer.trim()
-      };
-      return newAnswers;
-    });
+
+    const newAnswers = {
+      ...answers,
+      [currentQuestion.id]: currentAnswer.trim()
+    };
+
+    setAnswers(newAnswers);
+
     if (currentQuestionIndex < selectedExam.questions.length - 1) {
       setCurrentQuestionIndex(prev => prev + 1);
-      setCurrentAnswer('');
+      setCurrentAnswer(newAnswers[selectedExam.questions[currentQuestionIndex + 1].id] || ''); // Pre-fill next answer if it exists
     } else {
-      submitExam();
+      submitExam(newAnswers);
     }
   };
 
@@ -486,8 +497,10 @@ export default function ExamsPage() {
           {filteredActiveExams.length === 0 && (
             <div className="col-span-full bg-white p-8 rounded-lg shadow-sm text-center">
               <div className="text-gray-400 text-5xl mb-4">📝</div>
-              <h4 className="text-xl font-medium text-gray-700 mb-2">No {activeFilter !== 'All' && activeFilter} Exams</h4>
-              <p className="text-gray-500">No {activeFilter !== 'All' ? activeFilter.toLowerCase() : 'active'} exams found at the moment.</p>
+              <h4
+                className="text-xl font-medium text-gray-700 mb-2">No {activeFilter !== 'All' && activeFilter} Exams</h4>
+              <p className="text-gray-500">No {activeFilter !== 'All' ? activeFilter.toLowerCase() : 'active'} exams
+                found at the moment.</p>
             </div>
           )}
         </div>
@@ -631,7 +644,8 @@ export default function ExamsPage() {
               </>
             ) : (
               <div className="text-center p-10">
-                <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                <div
+                  className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" fill="none" viewBox="0 0 24 24"
                        stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7"/>

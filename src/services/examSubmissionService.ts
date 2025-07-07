@@ -12,17 +12,40 @@ export class ExamSubmissionService {
   }
 
   async create(data: any) {
+    console.log(data.answers);
+
+    // Use Object.keys() for plain objects
+    const questionIds = Object.keys(data.answers);
+
+    const answerScripts: Array<{
+      questionId: string;
+      studentAnswer: string;
+      status: 'PENDING';
+    }> = [];
+
+    for (const key of questionIds) {
+      answerScripts.push({
+        questionId: key,
+        // Use bracket notation to get the value from the object
+        studentAnswer: data.answers[key],
+        status: data.status,
+      });
+    }
+
+    console.log("Answer Scripts: ", answerScripts);
+
     return prisma.examSubmission.create({
       data: {
         examId: data.examId,
         studentId: data.studentId,
         submissionTime: new Date(),
         status: data.status,
-        // gradedById: data.gradedById
+        answerScripts: {
+          create: answerScripts,
+        },
       },
     });
   }
-
   async getById(id: string) {
     return prisma.examSubmission.findUnique({
       where: {id},

@@ -504,7 +504,7 @@ export default function ExamsPage({params}: ExamsPageProps) {
     }
   };
 
-  const extractQuestions = async () => {
+/*  const extractQuestions = async () => {
     if (!pdfUrl) {
       setError("Please enter a PDF URL");
       return;
@@ -537,7 +537,7 @@ export default function ExamsPage({params}: ExamsPageProps) {
     } finally {
       setLoading(false);
     }
-  };
+  };*/
 
   const today = new Date().toISOString().split('T')[0];
 
