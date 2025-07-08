@@ -27,7 +27,7 @@ export default function ClassesPage() {
   const [error, setError] = useState<string | null>(null);
   const [teacherId, setTeacherId] = useState<string | null>(null);
   const router = useRouter();
-
+  const [details,setdetails]=useState(false);
   useEffect(() => {
     const getUserData = () => {
       if (typeof window !== 'undefined') {
@@ -50,6 +50,7 @@ export default function ClassesPage() {
 
   useEffect(() => {
     const fetchClasses = async () => {
+      if(details)return;
       try {
         setLoading(true);
         setError(null);
@@ -88,6 +89,7 @@ console.log('try to get data from backend');
         }
 
         if (fetchedClasses) {
+          setdetails(true);
           // Transform API data to our ClassData format
           const transformedClasses = fetchedClasses.map((classInfo: any) => {
             return {
@@ -165,8 +167,7 @@ console.log('try to get data from backend');
             >
               <div className="p-6 border-b">
                 <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-xl font-bold">{classItem.name}</h2>
-                  <span className="text-xl font-bold">{classItem.section}</span>
+                  <h2 className="text-xl font-bold">{classItem.section}</h2>
                 </div>
 
                 <div className="flex flex-wrap gap-2 mb-4">

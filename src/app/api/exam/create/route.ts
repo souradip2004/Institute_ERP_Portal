@@ -139,8 +139,8 @@ export async function POST(req: NextRequest) {
         totalMarks: parseFloat(totalMarks) || questions.length,
         passingMarks: parseFloat(passingMarks) || questions.length * 0.4,
         isAiGenerated,
-        examDate: endTime,
-        startTime: startTime,
+        examDate: new Date(endTime+":00").toISOString(),
+        startTime: new Date(startTime+":00").toISOString(),
         endTime: new Date(endTime),
       },
     });

@@ -31,6 +31,17 @@ export class UserService {
   async getById(id: string) {
     return prisma.user.findUnique({ where: { id } });
   }
+  async verifybyId(id: string,coins:number
+
+  ) {
+    return prisma.user.update({
+      where: { id },
+      data: {
+        isVerified: true,
+        coins: { increment: coins } 
+      },
+    });
+  }
 
   async update(id: string, data: any) {
     return prisma.user.update({

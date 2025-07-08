@@ -4,6 +4,7 @@ import {useState, useEffect, FormEvent} from "react";
 import {Card} from "@/components/ui/card";
 import Loader from "@/components/ui/Loader";
 import {Button} from "../ui/button";
+import { set } from "mongoose";
 
 interface Department {
   id: string;
@@ -182,6 +183,11 @@ export default function AddStudentModal({id, isOpen, onClose, onSuccess}: AddStu
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    const verified = JSON.parse(localStorage.getItem("verified") || "false"); // Get verification status from localStorage
+     if(!verified){
+      alert("You are not yet verified to perform this action. Please wait for verification");
+      return;
+    }
     if (!multiplestudent) {
       try {
         setLoading(true);

@@ -56,4 +56,15 @@ export class UserController {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
   }
+  async verifybyId(id: string,coins: number ) {
+    try {
+      const user = await userService.verifybyId(id , coins) ;
+      if (!user) {
+        return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      }
+      return NextResponse.json(user);
+    } catch (error: any) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+  }
 }

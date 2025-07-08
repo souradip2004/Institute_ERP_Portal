@@ -34,6 +34,15 @@ export class CreditService {
         }
         return credit;
     }
+    async updateCoins(id: string, coins: number) { 
+        console.log("Updating coins for user:", id, "Coins to update:", coins);
+        return  prisma.user.update({
+            where: { id },
+            data: {
+                coins: { increment:-coins },
+            },
+        });
+    }       
     async updateTotalById(id: string, data: any, month: number, year: number) {
         const existingCredit = await prisma.credit.findFirst({
             where: { institutionId: id, month, year },

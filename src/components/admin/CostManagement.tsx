@@ -17,6 +17,7 @@ type CostDetail = {
     studentLimit: number;
     classSectionLimit: number;
     reserveLimit: number;
+    sectionCreditsBalance:number;
 };
 
 
@@ -148,6 +149,12 @@ const CostManagementPage: React.FC<ViewCost> = ({ id }) => {
           title="Attendance Credits Used"
           balance={costDetails.attendanceCreditsBalance}
           color="#ef4444"
+        />
+         <CreditCard
+          title="Section Creation
+Credits Used"
+          balance={costDetails.sectionCreditsBalance}
+          color="#10b981"
         />
       </div>
 

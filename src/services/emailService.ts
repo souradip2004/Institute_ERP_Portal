@@ -33,6 +33,70 @@ export async function sendVerificationEmail(to: string, token: string) {
 
   await transporter.sendMail(mailOptions);
 }
+export async function verifyMail(email: string, userId: string, institutionid: string, institutionName: string, document: string, studentcounts: Number, teachercount: Number) {
+  console.log("Sending verification email to:", email);
+  console.log("User ID:", userId);
+  console.log("Institution ID:", institutionid);
+  console.log("Institution Name:", institutionName);
+  const subject = "New verification request from Ai Classroom";
+  const htmlContent = `
+    <div style="font-family: Arial, sans-serif; padding: 20px; background-color: #f9f9f9; color: #333;">
+      <div style="max-width: 600px; margin: auto; background: #fff; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
+        <h1 style="color: #4f46e5;">New Verification Request</h1>
+        <p style="font-size: 16px;">A new verification request has been submitted. Here are the details:</p>
+        <table style="width: 100%; margin-top: 20px; font-size: 16px;">
+          <tr>
+            <td style="font-weight: bold; padding: 8px 0;">Email ID:</td>
+            <td style="color: #4b5563;">${email}</td>
+          </tr>
+          <tr>
+            <td style="font-weight: bold; padding: 8px 0;">User ID:</td>
+            <td style="color: #4b5563;">${userId}</td>
+          </tr>
+          <tr>
+            <td style="font-weight: bold; padding: 8px 0;">Institution ID:</td>
+            <td style="color: #4b5563;">${institutionid}</td>
+          </tr>
+          <tr>
+            <td style="font-weight: bold; padding: 8px 0;">Institution Name:</td>
+            <td style="color: #4b5563;">${institutionName}</td>
+          </tr>
+          <tr>
+            <td style="font-weight: bold; padding: 8px 0;">Document:</td>
+<td style="color: #4b5563;">
+  <a href="${encodeURI(document)}" target="_blank" style="color: #4b5563;">${document}</a>
+</td>
+          </tr>
+          <tr>
+            <td style="font-weight: bold; padding: 8px 0;">Student Count:</td>
+            <td style="color: #4b5563;">${studentcounts}</td>
+          </tr>
+          <tr>
+            <td style="font-weight: bold; padding: 8px 0;">Teacher Count:</td>
+            <td style="color: #4b5563;">${teachercount}</td>
+          </tr>
+        </table>
+        <button style="margin-top: 20px; padding: 10px 20px; background-color: #4f46e5; color: white; border: none; border-radius: 5px; cursor: pointer;">
+          <a href="${process.env.NEXT_PUBLIC_API_URL}/api/users/${userId}/verify" style="color: white; text-decoration: none;">Verify</a>
+        </button>
+        <p style="margin-top: 30px;">Please review the request and take appropriate action.</p>
+        <p style="margin-top: 40px; font-size: 14px; color: #6b7280;">
+          If you have any questions, feel free to <a href="mailto:support@aiclassroom.im" style="color: #4f46e5;">contact our support team</a>.
+        </p>
+        <hr style="margin-top: 40px; border: none; border-top: 1px solid #e5e7eb;" />
+        <p style="font-size: 12px; color: #9ca3af; text-align: center;">&copy; ${new Date().getFullYear()} Ai Classroom. All rights reserved.</p>
+      </div>
+    </div>
+  `;
+  const mailOptions = {
+    from: process.env.SMTP_FROM_EMAIL,
+    to: "rnpsoftprivatelimited@gmail.com", // Replace with the email where you want to receive verification requests
+    subject,
+    html: htmlContent,
+  };
+  await transporter.sendMail(mailOptions);
+
+}
 export async function sendWelcomeEmail(to: string) {
   const subject = "Welcome to Ai Classroom!";
   const htmlContent = `

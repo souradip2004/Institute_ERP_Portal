@@ -42,6 +42,11 @@ interface FormData {
   //numTeachers: number;
   //institutionDocument: File | null;
 }
+interface Verification{
+  approxStudents: number;
+  numTeachers: number;
+  institutionDocument: string;
+}
 
 export default function CreateInstitutionForm({ userId, email }: CreateInstitutionFormProps) {
   const form = useForm<FormData>({
@@ -58,11 +63,15 @@ export default function CreateInstitutionForm({ userId, email }: CreateInstituti
       userId: userId,
       logoUrl: "",
       primaryColor: "#000000",
-      //approxStudents: 0,
-      //numTeachers: 0,
-      //institutionDocument: null,
     },
   });
+  const verify = useForm<Verification>({
+    defaultValues:{
+      approxStudents:0,
+      numTeachers:0,
+      institutionDocument:""
+    }
+  })
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -163,7 +172,24 @@ export default function CreateInstitutionForm({ userId, email }: CreateInstituti
 
       if (!updateUserRes.ok) throw new Error("Failed to update user.");
       console.log("User Updated Successfully!");
-
+      const res1=await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/emails/verification`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: data.email,
+          userId: userId,
+          institutionid: institution.id,
+          institutionName: data.name,
+          document: institutionDocumentFile ? await uploadImageToCloudinary(institutionDocumentFile) : "",
+          studentcounts: verify.getValues("approxStudents"),
+          teachercount: verify.getValues("numTeachers"),
+        }),
+      });
+      if (!res1.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "Failed to send verification email.");
+      }
+      console.log("Verification email sent successfully!");
       setSuccess("Institution created and linked successfully!");
       setTimeout(() => {
         window.location.reload();
@@ -300,7 +326,7 @@ export default function CreateInstitutionForm({ userId, email }: CreateInstituti
               />
             </div>
           </div>
-          {/* <div className="grid gap-4 sm:grid-cols-2">
+         <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <FormLabel className="flex items-center gap-2 mb-2">
                 Approx. Number of Students
@@ -309,7 +335,7 @@ export default function CreateInstitutionForm({ userId, email }: CreateInstituti
                 type="number"
                 min={0}
                 placeholder="Enter number of students"
-                {...form.register("approxStudents", { required: true, min: 0 })}
+                {...verify.register("approxStudents", { required: true, min: 0 })}
                 className="w-full"
               />
             </div>
@@ -321,7 +347,7 @@ export default function CreateInstitutionForm({ userId, email }: CreateInstituti
                 type="number"
                 min={0}
                 placeholder="Enter number of teachers"
-                {...form.register("numTeachers", { required: true, min: 0 })}
+                {...verify.register("numTeachers", { required: true, min: 0 })}
                 className="w-full"
               />
             </div>
@@ -337,10 +363,10 @@ export default function CreateInstitutionForm({ userId, email }: CreateInstituti
               onChange={handleFileChangeInstitutionDocument}
               className="w-full"
             />
-            {form.formState.errors.institutionDocument && (
+            {verify.formState.errors.institutionDocument && (
               <p className="text-sm text-red-500 mt-1">Please upload a valid document.</p>
             )}
-          </div> */}
+          </div> 
           <div>
             <FormLabel className="flex items-center gap-2 mb-2">
               <Upload className="h-4 w-4 text-indigo-500" />

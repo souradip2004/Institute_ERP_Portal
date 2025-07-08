@@ -20,6 +20,19 @@ export class creditController{
                 return NextResponse.json(transaction)
             }
         }
+        async updatecoins(id:string,coins:number){
+            try{
+            if(!coins){
+                return NextResponse.json({error:"Missing Data"},{status:404})
+            }else{
+                const transaction=await transactionService.updateCoins(id,coins);
+                return NextResponse.json(transaction);
+             }
+            }
+            catch(error){
+                return NextResponse.json({error},{status:500})
+            }
+        }
         async updateTotalById(id:string,data:any,month:number,year:number){
             try{
             if(!month || !year){

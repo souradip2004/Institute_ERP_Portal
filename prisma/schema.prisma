@@ -14,6 +14,8 @@ model User {
   username           String?
   emailVerified      DateTime?              @map("email_verified")
   image              String?
+  isVerified         Boolean                @default(false)
+  coins              Int                   @default(0)
   password           String?
   gender             String?
   dateOfBirth        DateTime?              @map("date_of_birth") @db.Date
@@ -35,7 +37,6 @@ model User {
   student            Student?
   teacher            Teacher?
   institution        Institution?           @relation(fields: [institutionId], references: [id], onDelete: Restrict)
-
   @@map("users")
 }
 
@@ -633,6 +634,8 @@ model Subscription {
 model Credit {
   id                          String      @id @default(cuid())
   institutionId               String      @unique @map("institution_id")
+  sectionCreditsBalance       Int         @default(0) @map("section_credits_balance")
+  animationCreditsBalance    Int         @default(0) @map("animation_credits_balance")
   videoCreditsBalance         Int         @default(0) @map("video_credits_balance")
   questionPaperCreditsBalance Int         @default(0) @map("question_paper_credits_balance")
   copyCheckingCreditsBalance  Int         @default(0) @map("copy_checking_credits_balance")

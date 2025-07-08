@@ -5,6 +5,9 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Menu, X } from 'lucide-react';
 import { Swiper, SwiperSlide } from "swiper/react";
+import { Sparkles, MessageSquare, BarChart2, Zap, TrendingUp, ShieldCheck, LifeBuoy } from 'lucide-react';
+import { Building, Briefcase, Users, UserCheck, CalendarCheck } from 'lucide-react';
+
 import {
     Instagram,
     Linkedin,
@@ -61,7 +64,48 @@ const features = [
         icon: "./aidash.png",
     },
 ];
+type FeatureItemProps = {
+  icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
+  title: string;
+};
 
+const FeatureItem = ({ icon: Icon, title }: FeatureItemProps) => {
+  return (
+    <li className="flex items-start space-x-4">
+      <div className="flex-shrink-0">
+        <Icon className="h-6 w-6 text-purple-600" aria-hidden="true" />
+      </div>
+      <p className="text-lg text-gray-700">
+        {title}
+      </p>
+    </li>
+  );
+};
+type FeatureCardProps = {
+  icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
+  title: string;
+};
+ const features1 = [
+    { icon: Building, title: "Centralized Management" },
+    { icon: Briefcase, title: "Teacher Management" },
+    { icon: Users, title: "Student Organizer" },
+    { icon: TrendingUp, title: "Growth Analytics" },
+    { icon: UserCheck, title: "Attendance Manager" },
+    { icon: CalendarCheck, title: "Smart Scheduling" },
+  ];
+
+const FeatureCard = ({ icon: Icon, title }: FeatureCardProps) => {
+  return (
+    <div className="flex flex-col items-center p-4">
+      <div className="bg-purple-200 p-4 rounded-xl mb-4 shadow-md">
+        <Icon className="h-10 w-10 text-purple-700" aria-hidden="true" />
+      </div>
+      <p className="text-lg font-medium text-purple-800">
+        {title}
+      </p>
+    </div>
+  );
+};
 
 
 export default function LandingPage() {
@@ -306,6 +350,81 @@ export default function LandingPage() {
                     </Swiper>
                 </div>
             </section>
+             <div className="min-h-screen bg-white text-gray-900 font-inter flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+        {/* Image Section */}
+        <div className="flex justify-center lg:justify-end">
+          {/* Using a placeholder image for the devices. In a real app, you'd replace this with your actual image. */}
+          <img
+            src="/iconer.png"
+            alt="Dashboard on Tablet and Phone"
+            className="w-full max-w-md md:max-w-lg lg:max-w-xl rounded-xl shadow-2xl"
+            onError={(e) => {
+              e.target.onerror = null;
+              e.target.src = "https://placehold.co/600x400/F8F0FF/2D0065?text=Image+Not+Found";
+            }}
+          />
+        </div>
+
+        {/* Content Section */}
+        <div className="flex flex-col items-center lg:items-start text-center lg:text-left">
+          <h2 className="text-lg font-semibold text-purple-700 uppercase tracking-wider mb-2">
+            Smart Features
+          </h2>
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-purple-900 leading-tight mb-8">
+            At Your Fingertips
+          </h1>
+
+          {/* Features List */}
+          <ul className="space-y-6 max-w-md lg:max-w-none">
+            <FeatureItem
+              icon={Sparkles}
+              title="Personalized Theme: Lorem Ipsum,"
+            />
+            <FeatureItem
+              icon={MessageSquare}
+              title="Multi-Channel Communication: Lorem Ipsum,"
+            />
+            <FeatureItem
+              icon={BarChart2}
+              title="Real-Time Analytics: Track performance live."
+            />
+            <FeatureItem
+              icon={Zap}
+              title="Real-Time Response: Lorem Ipsum."
+            />
+            <FeatureItem
+              icon={TrendingUp}
+              title="Scalability: Handles high traffic effortlessly."
+            />
+            <FeatureItem
+              icon={ShieldCheck}
+              title="Secure Data: Advanced encryption and compliance."
+            />
+            <FeatureItem
+              icon={LifeBuoy}
+              title="24/7 Support: Always available, uninterrupted service."
+            />
+          </ul>
+        </div>
+      </div>
+    </div>
+     <div className="min-h-screen bg-white font-inter flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-4xl mx-auto bg-purple-50 rounded-3xl shadow-xl p-8 md:p-12 lg:p-16 text-center">
+        <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-purple-900 leading-tight mb-4">
+          Built For All Your <br className="sm:hidden"/>Administrative Needs
+        </h1>
+        <p className="text-md sm:text-lg text-purple-700 mb-12">
+          AI Powered Institution Management Solution For You!
+        </p>
+
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-8">
+          {features1.map((feature, index) => (
+            <FeatureCard key={index} icon={feature.icon} title={feature.title} />
+          ))}
+        </div>
+      </div>
+    </div>
             <FAQ />
             {/* Footer */}
             <footer className="border-t bg-gray-100 pt-8">
@@ -322,7 +441,7 @@ export default function LandingPage() {
                         </div>
 
                         <div className="text-sm text-gray-600 mb-4 max-w-[450px]">
-                            AI Classroom is designed by RnPsoft Private Limited to cater all the needs of a classroom with the AI Effect.
+                            AI Classroom, developed by RnPsoft Private Limited, is designed to meet all the needs of a modern classroom by integrating the power of artificial intelligence.
 
                         </div>
                     </div>
@@ -396,9 +515,9 @@ export default function LandingPage() {
                     <div className="w-full sm:w-auto">
                         <div
                             className="text-sm text-gray-600 mb-2 hover:text-purple-700 cursor-pointer transition-colors duration-200"
-                            onClick={() => window.location.href = "mailto:team@rnpsoft.com"}
+                            onClick={() => window.location.href = "mailto:support@@aiclassroom.in"}
                         >
-                            team@rnpsoft.com
+                            support@aiclassroom.in
                         </div>
                         <div
                             className="text-sm text-gray-600 mb-2 hover:text-purple-700 cursor-pointer transition-colors duration-200"

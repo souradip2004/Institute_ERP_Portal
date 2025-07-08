@@ -70,7 +70,18 @@ const AddTeacherModal = ({ id, isOpen, onClose, onSuccess }: AddTeacherProps) =>
   };
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    
     e.preventDefault();
+    const verified = JSON.parse(localStorage.getItem("verified") || "false"); // Get verification status from localStorage
+    console.log("Verification status:", verified); // Debugging line to check verification status
+    // alert for debugging
+    // console.log("Verification status:", verified);
+    //  
+    alert(verified)
+    if(!verified){
+      alert("You are not yet verified to perform this action. Please wait for verification");
+      return;
+    }
     setIsSubmitting(true); // Start submission loading
 
     if (!isMultiple) {
