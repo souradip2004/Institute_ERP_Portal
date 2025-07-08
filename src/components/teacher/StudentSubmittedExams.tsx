@@ -93,16 +93,14 @@ export function StudentSubmittedExams({exam}: { exam: Exam; }) {
   console.log("ExamSubmissionsPage ", exam)
   // Flatten all submissions from all exams into a single array
   // Each submission object is enhanced with the totalMarks from its parent exam
-  const allSubmissions = (exam.examSubmissions || []).map(submission => ({ // <--- Correct: plural "Submissions"
+  const allSubmissions = (exam.examSubmissions || []).map(submission => ({
       ...submission,
       examTotalMarks: exam.totalMarks,
     })).flat();
 
+  //id: allSubmissions[0].id
+  //studentId: allSubmissions[0].student.id
   console.log("allSubmissions ", allSubmissions)
-
-/*  for (const elem of exams) {
-    console.log(elem.examSubmissions)
-  }*/
 
   return (
     <div className="w-full mx-auto">
