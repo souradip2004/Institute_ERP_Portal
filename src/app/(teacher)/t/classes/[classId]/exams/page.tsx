@@ -7,6 +7,9 @@ import {format} from "date-fns";
 import Loader from '@/components/ui/Loader';
 import {Calendar, Clock, CheckCheck, X, FileText, BookOpen, GraduationCap, XCircle, PlusCircle} from 'lucide-react';
 import {forceLogout as logoutAndRedirect} from "@/lib/logout-utils";
+import {StudentSubmittedExams} from "@/components/teacher/StudentSubmittedExams";
+import {FaCopy} from "react-icons/fa";
+import {useRouter} from "next/navigation";
 
 // Updated Question Interface
 interface Question {
@@ -87,6 +90,7 @@ interface Exam {
   endTime: string;
   questions: Array<{
     id: string;
+    examId: string;
     questionText: string;
     questionType?: string; // This will now correctly reflect 'MCQ' or 'LONG_ANSWER'
     marks: number;
@@ -94,6 +98,33 @@ interface Exam {
     correctAnswer?: string[];
     difficultyLevel?: string;
   }>;
+  examSubmissions: Array<{
+    id: string;
+    examId: string;
+    studentId: string;
+    submissionTime: Date | string;
+    obtainedMarks: number;
+    status: string;
+    feedback?: string | null;
+    gradedById?: string | null;
+    gradedAt?: Date | string | null;
+    createdAt: Date | string;
+    updatedAt: Date | string;
+    student: {
+      id: string;
+      user: {
+        name: string;
+        email: string;
+      }
+      currentSemester: string;
+      currentYear: string;
+      studentRoll: string;
+      department: {
+        id: string;
+        name: string;
+      }
+    }
+  }>
   classSection: {
     batch: {
       name: string;
@@ -114,9 +145,9 @@ interface ExamsPageProps {
 }
 
 export default function ExamsPage({params}: ExamsPageProps) {
-  const resolvedParams = React.use(params as any) as { classId: string };
-  // Tab state
-  const [activeTab, setActiveTab] = useState<'view' | 'create'>('view');
+  const router = useRouter();
+
+  const [activeTab, setActiveTab] = useState<'view' | 'create' | 'copy-check'>('view');
 
   // States for exam creation
   const [examTitle, setExamTitle] = useState("");
@@ -153,6 +184,10 @@ export default function ExamsPage({params}: ExamsPageProps) {
   const [isProcessingPdf, setIsProcessingPdf] = useState(false);
   const [startPage, setStartPage] = useState<string>('1');
   const [endPage, setEndPage] = useState<string>('');
+
+  useEffect(() => {
+    console.log("All exams: ", exams);
+  }, [exams]);
 
   useEffect(() => {
     const startDate = new Date(`${examDate}T${startTime}`);
@@ -337,7 +372,6 @@ export default function ExamsPage({params}: ExamsPageProps) {
     setAiQuestionType(newAiQuestionTypeConfig);
   };
 
-
   // --- NEW FUNCTION to handle question type changes ---
   const handleAiQuestionTypeChange = (pageIndex: number, type: 'MCQ' | 'LONG_ANSWER' | 'Both') => {
     setAiQuestionType(prev =>
@@ -481,6 +515,7 @@ export default function ExamsPage({params}: ExamsPageProps) {
       if (response.data.length > 0) {
         setSelectedClassSection(response.data[0].section.id);
       }
+
     } catch (err: any) {
       console.error("Error fetching class sections:", err);
       setError(err.response?.data?.error || "Failed to fetch class sections");
@@ -495,6 +530,8 @@ export default function ExamsPage({params}: ExamsPageProps) {
       const response = await axios.get(`/api/exam/list/${userData.id}`, {
         withCredentials: true,
       });
+
+      console.log("Fetched exams: ", response.data.exams);
       setExams(response.data.exams);
     } catch (err: any) {
       console.error("Error fetching exams:", err);
@@ -504,40 +541,40 @@ export default function ExamsPage({params}: ExamsPageProps) {
     }
   };
 
-/*  const extractQuestions = async () => {
-    if (!pdfUrl) {
-      setError("Please enter a PDF URL");
-      return;
-    }
-
-    try {
-      setLoading(true);
-      const response = await axios.post("/api/extract-questions", {
-        pdfUrl,
-        numQuestions: parseInt(numLongQuestions) || 2
-      }, {
-        withCredentials: true
-      });
-
-      if (response.data.questions) {
-        const extractedQuestions = response.data.questions.map((q: any) => ({
-          ...q,
-          options: [],
-          isSelected: false,
-          questionType: 'LONG_ANSWER', // AI generated questions are now explicitly LONG_ANSWER
-        }));
-        setQuestions(extractedQuestions);
-        setTotalMarks(extractedQuestions.length.toString());
-        setPassingMarks(Math.ceil(extractedQuestions.length * 0.4).toString());
-        setError("");
+  /*  const extractQuestions = async () => {
+      if (!pdfUrl) {
+        setError("Please enter a PDF URL");
+        return;
       }
-    } catch (err: any) {
-      console.error("Error extracting questions:", err);
-      setError(err.response?.data?.error || "Failed to extract questions");
-    } finally {
-      setLoading(false);
-    }
-  };*/
+
+      try {
+        setLoading(true);
+        const response = await axios.post("/api/extract-questions", {
+          pdfUrl,
+          numQuestions: parseInt(numLongQuestions) || 2
+        }, {
+          withCredentials: true
+        });
+
+        if (response.data.questions) {
+          const extractedQuestions = response.data.questions.map((q: any) => ({
+            ...q,
+            options: [],
+            isSelected: false,
+            questionType: 'LONG_ANSWER', // AI generated questions are now explicitly LONG_ANSWER
+          }));
+          setQuestions(extractedQuestions);
+          setTotalMarks(extractedQuestions.length.toString());
+          setPassingMarks(Math.ceil(extractedQuestions.length * 0.4).toString());
+          setError("");
+        }
+      } catch (err: any) {
+        console.error("Error extracting questions:", err);
+        setError(err.response?.data?.error || "Failed to extract questions");
+      } finally {
+        setLoading(false);
+      }
+    };*/
 
   const today = new Date().toISOString().split('T')[0];
 
@@ -1104,6 +1141,10 @@ export default function ExamsPage({params}: ExamsPageProps) {
     }
   };
 
+  const fetchSubmittedExams = async (examId: string) => {
+
+  }
+
   const closeExamDetails = () => {
     setSelectedExam(null);
   };
@@ -1140,6 +1181,19 @@ export default function ExamsPage({params}: ExamsPageProps) {
               Create Exam
             </span>
           </button>
+
+          <button
+            onClick={() => setActiveTab('copy-check')}
+            className={`px-4 py-2 rounded-md font-medium transition-colors ${activeTab === 'copy-check'
+              ? 'bg-purple-100 text-purple-700'
+              : 'text-gray-600 hover:bg-gray-100'}
+            `}>
+
+            <span className="flex items-center gap-2">
+              <FaCopy className="h-5 w-5"/>
+              Copy Check
+            </span>
+          </button>
         </div>
       </div>
 
@@ -1152,7 +1206,7 @@ export default function ExamsPage({params}: ExamsPageProps) {
         </div>
       )}
 
-      {activeTab === 'create' ? (
+      {activeTab === 'create' && (
         // Create Exam Form
         <div className="bg-white shadow-md rounded-lg overflow-visible">
 
@@ -1506,6 +1560,7 @@ export default function ExamsPage({params}: ExamsPageProps) {
                 </div>
               )}
 
+
               {questionMode && (
                 <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
                   <h3 className="font-medium text-gray-700 mb-3">Manual Question Entry</h3>
@@ -1746,12 +1801,15 @@ export default function ExamsPage({params}: ExamsPageProps) {
             </div>
           </div>
         </div>
-      ) : (
+      )}
+
+      {(activeTab === 'view' || activeTab === 'copy-check') && (
         // Exam List
         <div>
           {loadingExams ? (
             <div className="flex items-center justify-center h-64">
-              <Loader size="large" message="Loading exams..."/>
+              {activeTab === 'view' && (<Loader size="large" message="Loading exams..."/>)}
+              {activeTab === 'copy-check' && (<Loader size="large" message="Fetching submitted exams..."/>)}
             </div>
           ) : exams.length === 0 ? (
             <div className="bg-white rounded-lg shadow-md p-8 text-center">
@@ -1803,10 +1861,10 @@ export default function ExamsPage({params}: ExamsPageProps) {
                           <span>{exam.durationMinutes} minutes</span>
                         </div>
 
-                        <div className="flex items-center text-gray-600">
+                        {/*<div className="flex items-center text-gray-600">
                           <FileText className="h-4 w-4 mr-1 text-gray-500"/>
                           <span>{exam.questions.length} questions</span>
-                        </div>
+                        </div>*/}
 
                         <div className="flex items-center text-gray-600">
                           <span className="font-medium mr-1">Marks:</span>
@@ -1837,15 +1895,21 @@ export default function ExamsPage({params}: ExamsPageProps) {
 
                   <div className="px-6 py-3 bg-gray-50 border-t border-gray-200">
                     <div className="flex space-x-2 justify-end">
-                      <button
+                      {activeTab === 'view' && (<button
                         onClick={() => fetchExamDetails(exam.id)}
                         className="px-3 py-1 bg-white border border-gray-300 rounded text-gray-600 text-sm hover:bg-gray-50 transition-colors"
                       >
                         View Details
                       </button>
-                      {/* <button className="px-3 py-1 bg-purple-100 border border-purple-200 rounded text-purple-700 text-sm hover:bg-purple-200 transition-colors">
-                        Manage
-                      </button> */}
+                      )}
+
+                      {activeTab === 'copy-check' && (<button
+                        className="px-3 py-1 bg-white border border-gray-300 rounded text-gray-600 text-sm hover:bg-gray-50 transition-colors"
+                        onClick={() => router.push(`exams/submissions?examId=${exam.id}&teacherId=${JSON.parse(localStorage.getItem('user')!).id}`)}
+                      >
+                        View Submissions
+                      </button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -1855,6 +1919,10 @@ export default function ExamsPage({params}: ExamsPageProps) {
         </div>
       )}
 
+     {/* {activeTab === 'copy-check' && (
+        <ExamSubmissionsPage exams={exams}/>
+      )}
+*/}
       {selectedExam && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">

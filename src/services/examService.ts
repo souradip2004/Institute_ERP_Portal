@@ -195,6 +195,66 @@ export class ExamService {
     return await prisma.exam.create({ data: formattedData });
   }
 
+  async getExamByCreatedById(createdById: string) {
+    return prisma.exam.findMany({
+      where: {
+        createdById: createdById
+      },
+      include: {
+        examType: {
+          select: {
+            name: true,
+          },
+        },
+        classSection: {
+          select: {
+            id: true,
+            batch: {
+              select: {
+                batchName: true,
+              },
+            },
+            semester: {
+              select: {
+                name: true,
+              },
+            },
+            // Fetch course information through teacher course section relation
+            teacherCourseSectionRelations: {
+              select: {
+                course: {
+                  select: {
+                    name: true,
+                  },
+                },
+              },
+              take: 1,
+            },
+          },
+        },
+        // Get student's submissions if any
+        examSubmissions: {
+          select: {
+            id: true,
+            obtainedMarks: true,
+            status: true,
+            submissionTime: true,
+          },
+        },
+        questions: {
+          select: {
+            id: true,
+            questionType: true,
+            marks: true,
+          },
+        },
+      },
+      orderBy: {
+        examDate: "desc",
+      }
+    })
+  }
+
   async getExamById(id: string) {
     return prisma.exam.findUnique({
       where: { id },

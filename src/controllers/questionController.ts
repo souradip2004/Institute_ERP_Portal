@@ -64,7 +64,7 @@ export class QuestionController {
     try {
       if (!id) return NextResponse.json({ error: 'Question ID is required' }, { status: 400 });
 
-      const question = await questionService.getQuestionById(id);
+      const question = await questionService.getQuestionById(id)
       if (!question) return NextResponse.json({ error: 'Question not found' }, { status: 404 });
 
       return NextResponse.json(question);
