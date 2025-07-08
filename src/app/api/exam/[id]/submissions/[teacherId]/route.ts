@@ -4,24 +4,27 @@ import jwt from 'jsonwebtoken';
 
 const SECRET_KEY = process.env.JWT_SECRET || 'your-secret-key';
 
-export async function GET(req: NextRequest, {params}: { params: { id: string } }) {
+export async function GET(
+  req: NextRequest,
+  {params}: { params: { id: string; teacherId: string } }
+) {
   try {
-    console.log(params.id)
-
 
     // Get teacher record
     const teacher = await prisma.teacher.findFirst({
-      where: {userId: params.id}
+      where: {userId: params.teacherId}
     });
-
     if (!teacher) {
       return NextResponse.json({error: "Teacher record not found"}, {status: 403});
     }
 
-    // Get all exams created by this teacher
-    const exams = await prisma.exam.findMany({
+    const examId = params.id;
+
+    // Get the exam with detailed question information
+    const exam = await prisma.exam.findUnique({
       where: {
-        createdById: teacher.id
+        id: examId,
+        createdById: teacher.id,
       },
       include: {
         classSection: {
@@ -36,7 +39,7 @@ export async function GET(req: NextRequest, {params}: { params: { id: string } }
               select: {
                 id: true,
                 user: {
-                  select :{
+                  select: {
                     name: true,
                     email: true,
                   }
@@ -54,17 +57,17 @@ export async function GET(req: NextRequest, {params}: { params: { id: string } }
             },
           }
         }
-      },
-      orderBy: {
-        createdAt: 'desc'
       }
     });
+    if (!exam) {
+      return NextResponse.json({error: "Exam not found"}, {status: 404});
+    }
 
-    return NextResponse.json({exams});
+    return NextResponse.json({exam});
   } catch (error: any) {
-    console.error("Error fetching exams:", error);
+    console.error("Error fetching exam details:", error);
     return NextResponse.json(
-      {error: "Failed to fetch exams", details: error.message},
+      {error: "Failed to fetch exam details", details: error.message},
       {status: 500}
     );
   }

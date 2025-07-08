@@ -13,6 +13,14 @@ export class ExamSubmissionController {
     }
   }
 
+  async getExamSubmissionByExamId(examId: string) {
+    try {
+      const submissions = await examSubmissionService.getAll();
+      return NextResponse.json(submissions);
+    } catch (error: any) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+  }
   async create(req: NextRequest) {
     try {
       const data = await req.json();

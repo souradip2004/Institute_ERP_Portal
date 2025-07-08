@@ -1,160 +1,125 @@
 "use client";
-import React, { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
 
-interface Student {
-    id: string;
-    studentRoll: string;
-    user: { name: string };
+import {useSearchParams} from "next/navigation";
+import {useEffect, useState} from "react";
+import axios from "axios";
+import Loader from "@/components/ui/Loader";
+import {StudentSubmittedExams} from "@/components/teacher/StudentSubmittedExams";
+
+// A simple component to display error messages
+function ErrorDisplay({message}: { message: string }) {
+  return (
+    <div style={{color: 'red', padding: '20px'}}>
+      <h2>Error</h2>
+      <p>{message}</p>
+    </div>
+  );
 }
 
 interface Exam {
+  id: string;
+  title: string;
+  status: string;
+  durationMinutes: number;
+  totalMarks: number;
+  passingMarks: number;
+  examDate: string;
+  startTime: string;
+  endTime: string;
+  examSubmissions: Array<{
     id: string;
-    classSectionId: string;
-    totalMarks?: number;
+    examId: string;
+    studentId: string;
+    submissionTime: Date | string;
+    obtainedMarks: number;
+    status: string;
+    gradedById?: string | null;
+    gradedAt?: Date | string | null;
+    createdAt: Date | string;
+    updatedAt: Date | string;
+    student: {
+      id: string;
+      user: {
+        name: string;
+        email: string;
+      }
+      currentSemester: string;
+      currentYear: string;
+      studentRoll: string;
+      department: {
+        id: string;
+        name: string;
+      }
+    }
+  }>
+  classSection: {
+    batch: {
+      name: string;
+    };
+    semester: {
+      name: string;
+    };
+  };
+  examType?: {
+    name: string;
+  };
 }
 
-interface ExamSubmission {
-    id: string;
-    student: Student;
-    exam: Exam;
-    obtainedMarks: number;
-    submissionTime: string;
-    status: string;
-}
 
 export default function ExamSubmissionsPage() {
-    const params = useParams();
-    const classId = params?.classId as string;
-    const [submissions, setSubmissions] = useState<ExamSubmission[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+  const searchParams = useSearchParams();
+  const examId = searchParams?.get('examId');
+  const teacherId = searchParams?.get('teacherId');
 
-    useEffect(() => {
-        const fetchSubmissions = async () => {
-            setLoading(true);
-            try {
-                const res = await fetch("/api/exam-submissions");
-                if (!res.ok) throw new Error("Failed to fetch submissions");
-                const data = await res.json();
-                // Filter by classSectionId
-                const filtered = data.filter((s: ExamSubmission) => s.exam.classSectionId === classId);
-                setSubmissions(filtered);
-            } catch (err: any) {
-                setError(err.message || "Unknown error");
-            } finally {
-                setLoading(false);
-            }
-        };
-        // if (classId) fetchSubmissions();
-    }, [classId]);
+  const [submittedExam, setSubmittedExam] = useState<Exam>();
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        setSubmissions([
-            {
-                id: "1",
-                student: { id: "1", studentRoll: "123456", user: { name: "John Doe" } },
-                exam: { id: "1", classSectionId: "1", totalMarks: 100 },
-                obtainedMarks: 85,
-                submissionTime: "2024-01-01 10:00:00",
-                status: "Submitted"
-            },
-            {
-                id: "2",
-                student: { id: "2", studentRoll: "789012", user: { name: "Jane Smith" } },
-                exam: { id: "1", classSectionId: "1", totalMarks: 100 },
-                obtainedMarks: 92,
-                submissionTime: "2024-01-01 09:45:00",
-                status: "Submitted"
-            },
-            {
-                id: "3",
-                student: { id: "3", studentRoll: "345678", user: { name: "Robert Johnson" } },
-                exam: { id: "1", classSectionId: "1", totalMarks: 100 },
-                obtainedMarks: 78,
-                submissionTime: "2024-01-01 11:15:00",
-                status: "Submitted"
-            },
-            {
-                id: "4",
-                student: { id: "4", studentRoll: "901234", user: { name: "Emily Davis" } },
-                exam: { id: "1", classSectionId: "1", totalMarks: 100 },
-                obtainedMarks: 95,
-                submissionTime: "2024-01-01 08:30:00",
-                status: "Submitted"
-            },
-        ]);
-        setLoading(false);
-    }, [])
+  useEffect(() => {
+    // 1. Only run the fetch if both IDs are available
+    if (examId && teacherId) {
+      const fetchSubmissions = async () => {
+        try {
+          setError(null); // Reset error state on new fetch
+          setLoading(true);
+          const {data} = await axios.get(`/api/exam/${examId}/submissions/${teacherId}`);
+          setSubmittedExam(data.exam);
 
-    return (
-        <div className="p-8 max-w-6xl mx-auto">
-            <h1 className="text-3xl font-bold mb-6 text-center">Exam Submissions</h1>
-            {loading ? (
-                <div className="text-center text-lg">Loading...</div>
-            ) : error ? (
-                <div className="text-center text-red-500">{error}</div>
-            ) : (
-                <div className="bg-white rounded-xl shadow-xl overflow-hidden border border-gray-100">
-                    <Table>
-                        <TableHeader className="bg-gray-50">
-                            <TableRow className="hover:bg-gray-50">
-                                <TableHead className="font-semibold text-gray-700">Student Name</TableHead>
-                                <TableHead className="font-semibold text-gray-700">Class Roll</TableHead>
-                                <TableHead className="font-semibold text-gray-700">View Paper</TableHead>
-                                <TableHead className="font-semibold text-gray-700">Marks</TableHead>
-                                <TableHead className="font-semibold text-gray-700">AI Copy Checking</TableHead>
-                                <TableHead className="font-semibold text-gray-700">Submission Date & Time</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {submissions.length === 0 ? (
-                                <TableRow>
-                                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                                        No submissions found for this class.
-                                    </TableCell>
-                                </TableRow>
-                            ) : (
-                                submissions.map((submission) => (
-                                    <TableRow key={submission.id} className="border-b hover:bg-gray-50/50 transition-colors">
-                                        <TableCell className="font-medium">{submission.student.user?.name || "-"}</TableCell>
-                                        <TableCell>{submission.student.studentRoll}</TableCell>
-                                        <TableCell>
-                                            <Button size="sm" variant="outline" className="hover:bg-blue-50">
-                                                View Paper
-                                            </Button>
-                                        </TableCell>
-                                        <TableCell>
-                                            <div className="flex items-center gap-2">
-                                                <span className="font-medium text-gray-800">
-                                                    {submission.obtainedMarks}/{submission.exam.totalMarks || 100}
-                                                </span>
-                                                {/* <Button size="sm" variant="secondary" className="ml-2 bg-blue-50 hover:bg-blue-100 text-blue-600">
-                                                    Edit
-                                                </Button> */}
-                                            </div>
-                                        </TableCell>
-                                        <TableCell>
-                                            <Button
-                                                size="sm"
-                                                variant="default"
-                                                className="bg-purple-600 hover:bg-purple-700 text-white"
-                                            >
-                                                AI Copy Check
-                                            </Button>
-                                        </TableCell>
-                                        <TableCell className="text-gray-600">
-                                            {new Date(submission.submissionTime).toLocaleString()}
-                                        </TableCell>
-                                    </TableRow>
-                                ))
-                            )}
-                        </TableBody>
-                    </Table>
-                </div>
-            )}
+          console.log("Fetched exam submissions: ", data);
+        } catch (e) {
+          console.error("Failed to fetch exam submissions:", e);
+          setError("Could not load the exam submissions. Please try again later.");
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      fetchSubmissions();
+    } else {
+      setLoading(false);
+      setError("Exam ID or Teacher ID is missing from the URL.");
+    }
+    // 3. Add examId and teacherId to the dependency array
+  }, [examId, teacherId]);
+
+  // 4. Handle all three states in the UI: loading, error, and success
+  if (loading) {
+    return <Loader size="large" message="Loading submissions..."/>;
+  }
+
+  if (error) {
+    return <ErrorDisplay message={error}/>;
+  }
+
+  return (
+    <div className={"p-6 w-full"}>
+      {submittedExam ? (
+        <div>
+          <StudentSubmittedExams exam={submittedExam}/>
         </div>
-    );
+      ) : (
+        <p>No submissions found.</p>
+      )}
+    </div>
+  );
 }
