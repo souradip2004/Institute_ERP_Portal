@@ -18,7 +18,8 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { cookies } from 'next/headers'; // <-- Import cookies from next/headers
-
+import { FaEdit } from "react-icons/fa";
+import EditDashboardPage from "@/components/admin/EditInstitute"
 
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -38,6 +39,8 @@ export default async function DashboardPage() {
   // Fetch user details
   const userRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/${userId}`, { cache: "no-store" });
   const userData = await userRes.json();
+
+  let editMode = false;
 
   let institutionData = null;
 
@@ -138,6 +141,24 @@ export default async function DashboardPage() {
 
             </div>
 
+            {editMode && (
+              <EditDashboardPage
+                instituteID="inst_4d8f9b2c"
+                name="Horizon Academy of Science"
+                email="admissions@horizon-academy.edu"
+                phone="+1 (555) 202-4567"
+                website="https://www.horizon-academy.edu"
+                address="452 Innovation Drive"
+                city="Starlight City"
+                state="Veridia"
+                country="Republic of Innovatia"
+                type="school"
+                primaryColor="#059669" // A nice emerald green
+              />
+            )}
+
+
+
             {institutionData ? (
               <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 overflow-hidden shadow-sm transition-all hover:shadow-md">
                 <div className="bg-gradient-to-r from-indigo-500 to-purple-600 p-6">
@@ -145,9 +166,20 @@ export default async function DashboardPage() {
                     <h3 className="text-2xl font-bold text-white">
                       {institutionData.name}
                     </h3>
-                    <span className="px-3 py-1 text-xs font-medium text-indigo-800 bg-indigo-100 rounded-full self-start">
-                      {institutionData.type}
-                    </span>
+                    <div className="flex gap-6">
+                      <span className="px-3 py-1 text-xs font-medium text-indigo-800 bg-indigo-100 rounded-full self-start ">
+                        {institutionData.type}
+                      </span>
+                      <span>
+                        <Link
+                          href="/a/dashboard/edit"
+                          className="flex items-center gap-2 px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition"
+                        >
+                          <FaEdit className="h-5 w-5" />
+                          Edit
+                        </Link>
+                      </span>
+                    </div>
                   </div>
                 </div>
 

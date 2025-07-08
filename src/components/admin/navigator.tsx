@@ -36,8 +36,8 @@ interface NavigatorProps {
   coins?: number; // Optional, if you want to display coins in the future
 }
 
-const Navigator = ({ id, userId, logo, name, primaryColor,verified,coins}: NavigatorProps) => {
-  
+const Navigator = ({ id, userId, logo, name, primaryColor, verified, coins }: NavigatorProps) => {
+
   const [activeComponent, setActiveComponent] = useState<string>("Dashboard");
   const [isSidebarOpen, setIsSidebarOpen] = useState(true); // Initial state: sidebar is open
   const [isMobileView, setIsMobileView] = useState(false); // State to track mobile view
@@ -107,7 +107,7 @@ const Navigator = ({ id, userId, logo, name, primaryColor,verified,coins}: Navig
       case "Student":
         return (
           <div className="space-y-6">
-            <AddStudent id={id}/>
+            <AddStudent id={id} />
             <StudentDetail id={id} />
           </div>
         );
@@ -282,37 +282,39 @@ const Navigator = ({ id, userId, logo, name, primaryColor,verified,coins}: Navig
             })}
           </nav>
         </div>
-<div className="p-5 border-t border-gray-200 mb-8">
- {          verified  ? (          <div className="flex items-center justify-between mb-4">
-            <span className="text-sm text-gray-600">Coins:</span>
-            <span className="text-lg font-semibold text-blue-600">
-              {coins}
-            </span>
-          </div>) : (
-            <div className="flex items-center justify-between mb-4">
+        <div className="flex flex-col justify-center">
+          <div className="p-5 border-t border-gray-200">
+            {verified ? (<div className="flex items-center justify-between mb-4">
               <span className="text-sm text-gray-600">Coins:</span>
-              <span className="text-lg font-semibold text-red-600">
-                Not Verified
+              <span className="text-lg font-semibold text-blue-600">
+                {coins}
               </span>
-              <span className="text-sm text-gray-500">
-                Please wait for verification to earn coins.
-              </span>
+            </div>) : (
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-sm text-gray-600">Coins:</span>
+                <span className="text-lg font-semibold text-red-600">
+                  Not Verified
+                </span>
+                <span className="text-sm text-gray-500">
+                  Please wait for verification to earn coins.
+                </span>
               </div>
-          )}
-          
-  </div>
-        <div className="mb-8 p-3 ">
-          <Link href={"/a/dashboard"}
-            className={`flex items-center w-full px-4 py-2.5 rounded-lg transition-colors duration-100 
+            )}
+
+          </div>
+          <div className="mb-8 p-3 ">
+            <Link href={"/a/dashboard"}
+              className={`flex items-center w-full px-4 py-2.5 rounded-lg transition-colors duration-100 
                 text-gray-500 bg-gray-100 hover:bg-gray-200 
             }`}
-          >
-            <span className="flex items-center justify-center w-6 h-6">
-              <User size={20} />
-            </span>
-            <span className={`ml-4 font-medium`}>My Profile</span>
+            >
+              <span className="flex items-center justify-center w-6 h-6">
+                <User size={20} />
+              </span>
+              <span className={`ml-4 font-medium`}>My Profile</span>
 
-          </Link>
+            </Link>
+          </div>
         </div>
       </aside>
 
