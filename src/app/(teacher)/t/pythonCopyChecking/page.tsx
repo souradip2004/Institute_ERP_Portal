@@ -296,7 +296,12 @@ export default function TeacherPage({ params }: { params: { id: string } }) {
 
   return (
     <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mt-4 sm:mt-0 mb-6">Teacher Answer Sheet Upload</h1>
+      <div className='flex flex-row justify-between'>
+        <h1 className="text-2xl font-bold mt-4 sm:mt-0 mb-6">Teacher Answer Sheet Upload</h1>
+        <button onClick={() => { window.location.href = '/t/manualMarksEntry' }} className='bg-gradient-to-r from-[#9A94FF] to-[#AA00FF] text-white font-semibold px-4 py-2 rounded-md'>Manual Marks Entry</button>
+      </div>
+
+
       {/* <button onClick={handleOnClick} className='border-blue-200 m-5 p-5 border text-5xl bg-amber-500'>parsedData</button> */}
 
       <div className="mb-8">
