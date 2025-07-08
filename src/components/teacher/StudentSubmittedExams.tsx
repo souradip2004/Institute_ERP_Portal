@@ -1,7 +1,8 @@
 "use client";
-import React from "react";
-import {Table, TableHeader, TableBody, TableRow, TableHead, TableCell} from "@/components/ui/table";
-import {Button} from "@/components/ui/button";
+import React, { useState } from "react";
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import ViewPaper from '../../components/teacher/ViewPaper';
 
 // Interface for a single question
 interface Question {
@@ -89,18 +90,22 @@ interface Exam {
   };
 }
 
-export function StudentSubmittedExams({exam}: { exam: Exam; }) {
+export function StudentSubmittedExams({ exam }: { exam: Exam; }) {
   console.log("ExamSubmissionsPage ", exam)
   // Flatten all submissions from all exams into a single array
   // Each submission object is enhanced with the totalMarks from its parent exam
   const allSubmissions = (exam.examSubmissions || []).map(submission => ({
-      ...submission,
-      examTotalMarks: exam.totalMarks,
-    })).flat();
+    ...submission,
+    examTotalMarks: exam.totalMarks,
+  })).flat();
 
   //id: allSubmissions[0].id
   //studentId: allSubmissions[0].student.id
   console.log("allSubmissions ", allSubmissions)
+
+  const [viewPaperOpen, SetViewPaperOpen] = useState(false);
+  const [id, SetId] = useState('');
+  const [studentId, SetStudentId] = useState('');
 
   return (
     <div className="w-full mx-auto">
@@ -130,16 +135,22 @@ export function StudentSubmittedExams({exam}: { exam: Exam; }) {
                   <TableCell className="font-medium">{submission.student.user.name}</TableCell>
                   <TableCell>{submission.student.studentRoll}</TableCell>
                   <TableCell>
-                    <Button size="sm" variant="outline" className="hover:bg-blue-50">
+                    <Button size="sm" variant="outline" className="hover:bg-blue-50"
+                      onClick={() => {
+                        SetId(submission.id);
+                        SetStudentId(submission.studentId);
+                        SetViewPaperOpen(true);
+                      }}
+                    >
                       View Paper
                     </Button>
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
-                          <span className="font-medium text-gray-800">
-                              {submission.obtainedMarks ? submission.obtainedMarks : "-" }/{submission.examTotalMarks || 100}
+                      <span className="font-medium text-gray-800">
+                        {submission.obtainedMarks ? submission.obtainedMarks : "-"}/{submission.examTotalMarks || 100}
 
-                          </span>
+                      </span>
                     </div>
                   </TableCell>
                   <TableCell>
@@ -160,6 +171,10 @@ export function StudentSubmittedExams({exam}: { exam: Exam; }) {
           </TableBody>
         </Table>
       </div>
+
+      {viewPaperOpen && (
+        <ViewPaper id={id} studentId={studentId} />
+      )}
     </div>
   );
 }
