@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
-import { ExamService } from "@/services/examService";
-import { AuthUtils } from "@/utils/authUtils";
-import { Role } from "@prisma/client";
+import {NextRequest, NextResponse} from "next/server";
+import {ExamService} from "@/services/examService";
+import {AuthUtils} from "@/utils/authUtils";
+import {Role} from "@prisma/client";
 
 // Create a shared instance
 const examService = new ExamService();
@@ -12,7 +12,17 @@ export class ExamController {
       const exams = await examService.getAllExams();
       return NextResponse.json(exams);
     } catch (error: any) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json({error: error.message}, {status: 500});
+    }
+  }
+
+  async getAllExamsByCreatedBy(req: NextRequest, createdBy: string) {
+    try {
+
+      const exams = await examService.getExamByCreatedById(createdBy);
+      return NextResponse.json(exams);
+    } catch (error: any) {
+      return NextResponse.json({error: error.message}, {status: 500});
     }
   }
 
@@ -24,7 +34,6 @@ export class ExamController {
       const localExamService = new ExamService();
       console.log("Local ExamService instance created");
 
-      
 
       // Get classSectionId from query parameter
       const classSectionId = req.nextUrl.searchParams.get("classSectionId");
@@ -34,8 +43,8 @@ export class ExamController {
       // Check for null values
       if (!classSectionId || !studentId) {
         return NextResponse.json(
-          { error: "Missing classSectionId or studentID in query parameters" },
-          { status: 400 }
+          {error: "Missing classSectionId or studentID in query parameters"},
+          {status: 400}
         );
       }
 
@@ -65,12 +74,12 @@ export class ExamController {
       }
 
       console.log(`Retrieved ${exams.length} exams`);
-      return NextResponse.json(exams, { status: 200 });
+      return NextResponse.json(exams, {status: 200});
     } catch (error: any) {
       console.error("Error fetching student exams:", error);
       return NextResponse.json(
-        { error: "Internal server error", details: error.message },
-        { status: 500 }
+        {error: "Internal server error", details: error.message},
+        {status: 500}
       );
     }
   }
@@ -79,9 +88,9 @@ export class ExamController {
     try {
       const data = await req.json();
       const exam = await examService.createExam(data);
-      return NextResponse.json(exam, { status: 201 });
+      return NextResponse.json(exam, {status: 201});
     } catch (error: any) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json({error: error.message}, {status: 500});
     }
   }
 
@@ -89,11 +98,11 @@ export class ExamController {
     try {
       const exam = await examService.getExamById(id);
       if (!exam) {
-        return NextResponse.json({ error: "Exam not found" }, { status: 404 });
+        return NextResponse.json({error: "Exam not found"}, {status: 404});
       }
       return NextResponse.json(exam);
     } catch (error: any) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json({error: error.message}, {status: 500});
     }
   }
 
@@ -103,16 +112,16 @@ export class ExamController {
       const exam = await examService.updateExam(id, data);
       return NextResponse.json(exam);
     } catch (error: any) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json({error: error.message}, {status: 500});
     }
   }
 
   async deleteExam(id: string) {
     try {
       await examService.deleteExam(id);
-      return NextResponse.json({ message: "Exam deleted successfully" });
+      return NextResponse.json({message: "Exam deleted successfully"});
     } catch (error: any) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json({error: error.message}, {status: 500});
     }
   }
 }
