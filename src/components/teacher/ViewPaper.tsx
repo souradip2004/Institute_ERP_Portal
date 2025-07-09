@@ -1,7 +1,7 @@
 // components/exam/AnswerScriptGrader.tsx
 "use client";
 import {useState, useEffect} from 'react';
-import {Loader2, AlertCircle, CheckCircle, FileText, MessageSquare, KeyRound} from 'lucide-react';
+import {Loader2, AlertCircle, CheckCircle, FileText, MessageSquare, KeyRound, Eye} from 'lucide-react';
 import {Exam} from "@/types/exam";
 
 interface Question {
@@ -16,15 +16,15 @@ interface AnswerScript {
   id: string;
   studentAnswer: string;
   question: Question;
-  obtainedMarks: number | null; // Added obtained marks to pre-fill
-  feedback: string | null;      // Added feedback to pre-fill
+  obtainedMarks: number | null;
+  remarks: string | null;
 }
 
 interface ExamSubmission {
   id: string;
   studentId: string;
   submissionTime: string;
-  status: 'PENDING' | 'GRADED' | 'REVIEWED';
+  status: 'PENDING' | 'GRADED';
   feedback: string | null;
   answerScripts: AnswerScript[];
 }
@@ -36,13 +36,11 @@ interface AnswerScriptGraderProps {
   setViewPaperOpen: any;
 }
 
-// --- THE COMPONENT (with Feedback/Remarks feature) ---
 const AnswerScriptGrader = ({id, studentId, setSubmittedExam, setViewPaperOpen}: AnswerScriptGraderProps) => {
   const [submission, setSubmission] = useState<ExamSubmission | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // --- STATE FOR GRADING ---
   const [awardedMarks, setAwardedMarks] = useState<{ [key: string]: number }>({});
   const [feedbackRemarks, setFeedbackRemarks] = useState<{ [key: string]: string }>({});
   const [overallFeedback, setOverallFeedback] = useState<string>('');
@@ -71,14 +69,13 @@ const AnswerScriptGrader = ({id, studentId, setSubmittedExam, setViewPaperOpen}:
 
         setSubmission(data.examSubmission);
 
-        // Initialize state for marks and feedback for each question
         const initialMarks: { [key: string]: number } = {};
         const initialRemarks: { [key: string]: string } = {};
         data.examSubmission.answerScripts.forEach((script: AnswerScript) => {
-          // Pre-fill with existing marks/feedback if available, otherwise default
           initialMarks[script.id] = script.obtainedMarks ?? 0;
-          initialRemarks[script.id] = script.feedback ?? '';
+          initialRemarks[script.id] = script.remarks ?? '';
         });
+
         setAwardedMarks(initialMarks);
         setFeedbackRemarks(initialRemarks);
         setOverallFeedback(data.examSubmission.feedback ?? '');
@@ -121,7 +118,7 @@ const AnswerScriptGrader = ({id, studentId, setSubmittedExam, setViewPaperOpen}:
       return {
         id: script.id,
         obtainedMarks: awardedMarks[script.id] || 0,
-        feedback: feedbackRemarks[script.id] || '', // Include individual feedback
+        remarks: feedbackRemarks[script.id] || null
       };
     });
 
@@ -133,7 +130,6 @@ const AnswerScriptGrader = ({id, studentId, setSubmittedExam, setViewPaperOpen}:
       feedback: overallFeedback,
     };
 
-    console.log("Submitting Payload:", JSON.stringify(gradingPayload, null, 2));
     try {
       const res = await fetch("/api/exam/answer-script/submit-marks", {
         method: 'POST',
@@ -146,7 +142,6 @@ const AnswerScriptGrader = ({id, studentId, setSubmittedExam, setViewPaperOpen}:
         throw new Error(`Failed to submit grades. Status: ${res.status}, Message: ${errorData.message}`);
       }
       const result = await res.json();
-      console.log("Submission Result:", result);
 
       setSubmittedExam((prev: Exam) => ({
         ...prev,
@@ -154,36 +149,34 @@ const AnswerScriptGrader = ({id, studentId, setSubmittedExam, setViewPaperOpen}:
           item.id === result.id ? {...item, obtainedMarks: result.obtainedMarks, status: result.status} : item
         ),
       }));
+
       setIsSubmitting(false);
       setViewPaperOpen(false);
     } catch (error) {
+      setIsSubmitting(false);
       console.error(error);
-      // setError("Failed to submit grades. Check the console for details.")
       alert("Failed to submit grades. Check the console for details.");
     }
   };
 
-  if (isLoading) return <div className="flex flex-col items-center justify-center p-8 text-gray-500">
-    <Loader2
-      className="h-12 w-12 animate-spin mb-4 text-blue-500"/><p className="text-lg">Loading Answer Script...</p></div>;
-  if (error) return <div
-    className="flex flex-col items-center justify-center p-8 bg-red-50 text-red-700 border border-red-200 rounded-lg">
-    <AlertCircle className="h-12 w-12 mb-4"/><p className="text-lg font-semibold">An Error Occurred</p><p>{error}</p>
-  </div>;
-  if (!submission) return <div className="flex flex-col items-center justify-center p-8 text-gray-500"><FileText
-    className="h-12 w-12 mb-4"/><p className="text-lg">No submission data found.</p></div>;
+  if (isLoading) return <div className="flex flex-col items-center justify-center p-8 text-gray-500"><Loader2 className="h-12 w-12 animate-spin mb-4 text-blue-500"/><p className="text-lg">Loading Answer Script...</p></div>;
+  if (error) return <div className="flex flex-col items-center justify-center p-8 bg-red-50 text-red-700 border border-red-200 rounded-lg"><AlertCircle className="h-12 w-12 mb-4"/><p className="text-lg font-semibold">An Error Occurred</p><p>{error}</p></div>;
+  if (!submission) return <div className="flex flex-col items-center justify-center p-8 text-gray-500"><FileText className="h-12 w-12 mb-4"/><p className="text-lg">No submission data found.</p></div>;
+
+  // ======================= READ-ONLY LOGIC ADDED HERE =======================
+  const isGraded = submission.status === 'GRADED';
+  // ==========================================================================
 
   return (
     <div className="bg-white text-gray-800 p-6 md:p-8 rounded-xl shadow-lg border border-gray-200 font-sans mt-4">
       <header className="mb-8 border-b border-gray-200 pb-6">
-        <h1 className="text-3xl font-bold text-blue-600">Answer Script Grading</h1>
+        <h1 className="text-3xl font-bold text-blue-600 flex items-center">
+          {isGraded ? <><Eye className="mr-3 h-8 w-8"/>View Graded Script</> : 'Answer Script Grading'}
+        </h1>
         <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4 text-gray-600">
-          <p><span
-            className="font-semibold text-gray-500">Submission Time:</span> {new Date(submission.submissionTime).toLocaleString()}
-          </p>
+          <p><span className="font-semibold text-gray-500">Submission Time:</span> {new Date(submission.submissionTime).toLocaleString()}</p>
           <p><span className="font-semibold text-gray-500">Status:</span>
-            <span
-              className={`ml-2 px-2 py-1 text-xs font-bold rounded-full ${submission.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'}`}>
+            <span className={`ml-2 px-2 py-1 text-xs font-bold rounded-full ${isGraded ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
               {submission.status}
             </span>
           </p>
@@ -193,65 +186,51 @@ const AnswerScriptGrader = ({id, studentId, setSubmittedExam, setViewPaperOpen}:
       <div className="space-y-8">
         {submission.answerScripts.map((script, index) => (
           <div key={script.id} className="border border-gray-200 rounded-lg p-6 shadow-sm">
-            {/* Question Header */}
             <div className="flex justify-between items-center mb-4 pb-2 border-b border-gray-100">
               <h3 className="font-bold text-lg text-gray-900">Question : {index + 1}</h3>
               <span className="text-xs font-semibold bg-gray-200 text-gray-700 rounded-md px-2 py-1 capitalize">
                 {script.question.questionType.replace('_', ' ').toLowerCase()}
               </span>
             </div>
-
             <p className="mb-4 text-gray-800 font-medium">{script.question.questionText}</p>
-
-            {/* Student's Answer */}
             <div className="mb-5">
               <label className="font-semibold text-gray-800">Student's Answer:</label>
               <div className="mt-2 bg-green-50 border-l-4 border-green-400 text-green-900 p-4 rounded-r-lg">
                 {script.studentAnswer}
               </div>
             </div>
-
             <div className="mb-5">
               <label className="font-semibold text-gray-800 flex items-center">
-                <KeyRound className="w-4 h-4 mr-2 text-yellow-600"/>
-                Correct Answer:
+                <KeyRound className="w-4 h-4 mr-2 text-yellow-600"/> Correct Answer:
               </label>
-              <div
-                className="mt-2 bg-yellow-50 border-l-4 border-yellow-400 text-yellow-900 p-4 rounded-r-lg font-mono text-sm">
+              <div className="mt-2 bg-yellow-50 border-l-4 border-yellow-400 text-yellow-900 p-4 rounded-r-lg font-mono text-sm">
                 {script.question.correctAnswer.join(', ')}
               </div>
             </div>
-
-            {/* Remarks and Marks Section */}
             <div className="grid grid-cols-1 md:grid-cols-12 gap-x-6 gap-y-4 pt-4 border-t border-gray-100">
-              {/* Remarks */}
               <div className="md:col-span-8">
-                <label htmlFor={`feedback_${script.id}`} className="font-semibold text-gray-800 mb-2 block">
-                  Remarks:
-                </label>
+                <label htmlFor={`feedback_${script.id}`} className="font-semibold text-gray-800 mb-2 block">Remarks:</label>
                 <textarea
                   id={`feedback_${script.id}`}
                   rows={2}
-                  className="w-full p-2 text-sm bg-white border border-gray-300 rounded-md text-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
+                  className="w-full p-2 text-sm bg-white border border-gray-300 rounded-md text-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition disabled:bg-gray-100 disabled:cursor-not-allowed"
                   placeholder="Add remarks for this answer..."
                   value={feedbackRemarks[script.id] || ''}
                   onChange={(e) => handleFeedbackChange(script.id, e.target.value)}
+                  disabled={isGraded} // <-- Disables the textarea
                 />
               </div>
-
-              {/* Marks */}
               <div className="md:col-span-4 self-end">
-                <label className="font-semibold text-gray-800 mb-2 block text-left md:text-right">
-                  Marks:
-                </label>
+                <label className="font-semibold text-gray-800 mb-2 block text-left md:text-right">Marks:</label>
                 <div className="flex items-center justify-start md:justify-end space-x-2">
                   <input
                     type="number"
                     value={awardedMarks[script.id] ?? 0}
                     onChange={(e) => handleMarksChange(script.id, e.target.value, script.question.marks)}
-                    className="w-20 p-2 text-center bg-white border border-gray-300 rounded-md text-gray-900 font-bold focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                    className="w-20 p-2 text-center bg-white border border-gray-300 rounded-md text-gray-900 font-bold focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none disabled:bg-gray-100 disabled:cursor-not-allowed"
                     max={script.question.marks}
                     min={0}
+                    disabled={isGraded} // <-- Disables the input
                   />
                   <span className="text-gray-400 text-xl">/</span>
                   <span className="w-8 text-left font-bold text-xl text-blue-600">{script.question.marks}</span>
@@ -262,19 +241,18 @@ const AnswerScriptGrader = ({id, studentId, setSubmittedExam, setViewPaperOpen}:
         ))}
       </div>
 
-      {/* Overall Feedback Section */}
       <div className="mt-8">
         <label htmlFor="overallFeedback" className="flex items-center text-lg font-semibold text-gray-700 mb-2">
-          <MessageSquare className="h-5 w-5 mr-2 text-gray-500"/>
-          Overall Feedback
+          <MessageSquare className="h-5 w-5 mr-2 text-gray-500"/> Overall Feedback
         </label>
         <textarea
           id="overallFeedback"
           rows={4}
-          className="w-full p-3 bg-white border border-gray-300 rounded-lg text-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
+          className="w-full p-3 bg-white border border-gray-300 rounded-lg text-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition disabled:bg-gray-100 disabled:cursor-not-allowed"
           placeholder="Provide a summary of the student's performance on the entire exam..."
           value={overallFeedback}
           onChange={(e) => setOverallFeedback(e.target.value)}
+          disabled={isGraded} // <-- Disables the textarea
         />
       </div>
 
@@ -283,25 +261,20 @@ const AnswerScriptGrader = ({id, studentId, setSubmittedExam, setViewPaperOpen}:
           <span className="text-gray-500">Total Score: </span>
           <span className="text-blue-600">{calculateTotalObtainedMarks()} / {calculateTotalMaxMarks()}</span>
         </div>
-        <button
-          disabled={isSubmitting}
-          onClick={handleSubmitGrades}
-          className={`mt-4 md:mt-0 flex items-center justify-center px-6 py-3 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition-all duration-200 shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-blue-500
-          ${isSubmitting ? 'opacity-70 cursor-not-allowed' : ''}
-          `}
-        >
-          {isSubmitting ? (
-            <>
-              <Loader2 className="h-5 w-5 mr-2 animate-spin"/>
-              Submitting Grades
-            </>
+        {/* ======================= BUTTON IS NOW CONDITIONAL ======================= */}
+        {!isGraded && (
+          <button
+            disabled={isSubmitting}
+            onClick={handleSubmitGrades}
+            className={`mt-4 md:mt-0 flex items-center justify-center px-6 py-3 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition-all duration-200 shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-blue-500 ${isSubmitting ? 'opacity-70 cursor-not-allowed' : ''}`}>
+            {isSubmitting ? (
+              <><Loader2 className="h-5 w-5 mr-2 animate-spin"/>Submitting...</>
             ) : (
-            <>
-            <CheckCircle className="h-5 w-5 mr-2"/>
-              Submit Grades
-            </>
-          )}
-        </button>
+              <><CheckCircle className="h-5 w-5 mr-2"/>Submit Grades</>
+            )}
+          </button>
+        )}
+        {/* ========================================================================== */}
       </footer>
     </div>
   );
