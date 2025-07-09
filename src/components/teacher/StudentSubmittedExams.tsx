@@ -1,111 +1,65 @@
 "use client";
-import React, { useState } from "react";
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
+import React, {useState} from "react";
+import {Table, TableHeader, TableBody, TableRow, TableHead, TableCell} from "@/components/ui/table";
+import {Button} from "@/components/ui/button";
 import ViewPaper from '../../components/teacher/ViewPaper';
+import axios from "axios";
+import {Exam} from "@/types/exam";
 
-// Interface for a single question
-interface Question {
-  id: string;
-  examId: string;
-  questionText: string;
-  questionType?: 'MCQ' | 'LONG_ANSWER';
-  marks: number;
-  options?: string[];
-  correctAnswer?: string[];
-  difficultyLevel?: string;
-}
-
-// Interface for the class section details
-interface ClassSection {
-  id: string;
-  batch: {
-    name: string;
-  };
-  semester: {
-    name: string;
-  };
-}
-
-interface Question2 {
-  questions: Array<{
-    id: string;
-    examId: string;
-    questionText: string;
-    questionType?: string; // This will now correctly reflect 'MCQ' or 'LONG_ANSWER'
-    marks: number;
-    options?: string[];
-    correctAnswer?: string[];
-    difficultyLevel?: string;
-  }>;
-}
-
-// The primary interface for dynamic exam data
-interface Exam {
-  id: string;
-  title: string;
-  status: string;
-  durationMinutes: number;
-  totalMarks: number;
-  passingMarks: number;
-  examDate: string;
-  startTime: string;
-  endTime: string;
-  examSubmissions: Array<{
-    id: string;
-    examId: string;
-    studentId: string;
-    submissionTime: Date | string;
-    obtainedMarks: number;
-    status: string;
-    gradedById?: string | null;
-    gradedAt?: Date | string | null;
-    createdAt: Date | string;
-    updatedAt: Date | string;
-    student: {
-      id: string;
-      user: {
-        name: string;
-        email: string;
-      }
-      currentSemester: string;
-      currentYear: string;
-      studentRoll: string;
-      department: {
-        id: string;
-        name: string;
-      }
-    }
-  }>
-  classSection: {
-    batch: {
-      name: string;
-    };
-    semester: {
-      name: string;
-    };
-  };
-  examType?: {
-    name: string;
-  };
-}
-
-export function StudentSubmittedExams({ exam }: { exam: Exam; }) {
-  console.log("ExamSubmissionsPage ", exam)
-  // Flatten all submissions from all exams into a single array
-  // Each submission object is enhanced with the totalMarks from its parent exam
-  const allSubmissions = (exam.examSubmissions || []).map(submission => ({
+export function StudentSubmittedExams({submittedExam, setSubmittedExam}: {
+  submittedExam: Exam;
+  setSubmittedExam: any
+}) {
+  console.log("ExamSubmissionsPage ", submittedExam)
+  const allSubmissions = (submittedExam.examSubmissions || []).map(submission => ({
     ...submission,
-    examTotalMarks: exam.totalMarks,
-  })).flat();
+    examTotalMarks: submittedExam.totalMarks,
+  }));
 
   //id: allSubmissions[0].id
   //studentId: allSubmissions[0].student.id
+
   console.log("allSubmissions ", allSubmissions)
 
-  const [viewPaperOpen, SetViewPaperOpen] = useState(false);
+  const [viewPaperOpen, setViewPaperOpen] = useState(false);
   const [id, SetId] = useState('');
   const [studentId, SetStudentId] = useState('');
+
+  const handleAiCopyCheck = async (id: string, studentId: string) => {
+    try {
+      const teacherId = (JSON.parse(localStorage.getItem('user') || '{}') as { teacherId?: string }).teacherId ?? null;
+
+      const response = await axios.get(`/api/exam/answer-script/ai-copy-checking?id=${id}&studentId=${studentId}&teacherId=${teacherId}`);
+
+      console.log("response ", response.data)
+
+      setSubmittedExam((prev: Exam) => {
+        return {
+          ...prev,
+          examSubmissions: prev.examSubmissions.map(submission => {
+            if (submission.id === response.data.id) {
+
+              console.log("Submission inside if ", submission)
+              return {
+                ...submission,
+                obtainedMarks: response.data.obtainedMarks,
+                status: response.data.status
+              }
+            }
+
+            return submission;
+          })
+        };
+      });
+
+      alert("AI Copy Check Successful");
+
+    } catch (e) {
+      alert("AI Copy Check Failed");
+    } finally {
+
+    }
+  }
 
   return (
     <div className="w-full mx-auto">
@@ -135,11 +89,12 @@ export function StudentSubmittedExams({ exam }: { exam: Exam; }) {
                   <TableCell className="font-medium">{submission.student.user.name}</TableCell>
                   <TableCell>{submission.student.studentRoll}</TableCell>
                   <TableCell>
-                    <Button size="sm" variant="outline" className="hover:bg-blue-50"
+                    <Button
+                      size="sm" variant="outline" className="hover:bg-blue-50"
                       onClick={() => {
                         SetId(submission.id);
                         SetStudentId(submission.studentId);
-                        SetViewPaperOpen(true);
+                        setViewPaperOpen(true);
                       }}
                     >
                       View Paper
@@ -148,8 +103,7 @@ export function StudentSubmittedExams({ exam }: { exam: Exam; }) {
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <span className="font-medium text-gray-800">
-                        {submission.obtainedMarks ? submission.obtainedMarks : "-"}/{submission.examTotalMarks || 100}
-
+                        {(submission.obtainedMarks) ? submission.obtainedMarks : submission.status === 'GRADED' ? submission.obtainedMarks : "-"}/{submission.examTotalMarks || 100}
                       </span>
                     </div>
                   </TableCell>
@@ -158,6 +112,7 @@ export function StudentSubmittedExams({ exam }: { exam: Exam; }) {
                       size="sm"
                       variant="default"
                       className="bg-purple-600 hover:bg-purple-700 text-white"
+                      onClick={() => handleAiCopyCheck(submission.id, submission.studentId)}
                     >
                       AI Copy Check
                     </Button>
@@ -173,7 +128,8 @@ export function StudentSubmittedExams({ exam }: { exam: Exam; }) {
       </div>
 
       {viewPaperOpen && (
-        <ViewPaper id={id} studentId={studentId} />
+        <ViewPaper id={id} studentId={studentId} setSubmittedExam={setSubmittedExam}
+                   setViewPaperOpen={setViewPaperOpen}/>
       )}
     </div>
   );

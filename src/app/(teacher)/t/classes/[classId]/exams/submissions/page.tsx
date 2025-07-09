@@ -5,6 +5,7 @@ import {useEffect, useState} from "react";
 import axios from "axios";
 import Loader from "@/components/ui/Loader";
 import {StudentSubmittedExams} from "@/components/teacher/StudentSubmittedExams";
+import {Exam} from "@/types/exam";
 
 // A simple component to display error messages
 function ErrorDisplay({message}: { message: string }) {
@@ -16,62 +17,13 @@ function ErrorDisplay({message}: { message: string }) {
   );
 }
 
-interface Exam {
-  id: string;
-  title: string;
-  status: string;
-  durationMinutes: number;
-  totalMarks: number;
-  passingMarks: number;
-  examDate: string;
-  startTime: string;
-  endTime: string;
-  examSubmissions: Array<{
-    id: string;
-    examId: string;
-    studentId: string;
-    submissionTime: Date | string;
-    obtainedMarks: number;
-    status: string;
-    gradedById?: string | null;
-    gradedAt?: Date | string | null;
-    createdAt: Date | string;
-    updatedAt: Date | string;
-    student: {
-      id: string;
-      user: {
-        name: string;
-        email: string;
-      }
-      currentSemester: string;
-      currentYear: string;
-      studentRoll: string;
-      department: {
-        id: string;
-        name: string;
-      }
-    }
-  }>
-  classSection: {
-    batch: {
-      name: string;
-    };
-    semester: {
-      name: string;
-    };
-  };
-  examType?: {
-    name: string;
-  };
-}
-
 
 export default function ExamSubmissionsPage() {
   const searchParams = useSearchParams();
   const examId = searchParams?.get('examId');
   const teacherId = searchParams?.get('teacherId');
 
-  const [submittedExam, setSubmittedExam] = useState<Exam>();
+  const [submittedExam, setSubmittedExam] = useState<Exam| null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -115,7 +67,7 @@ export default function ExamSubmissionsPage() {
     <div className={"p-6 w-full"}>
       {submittedExam ? (
         <div>
-          <StudentSubmittedExams exam={submittedExam}/>
+          <StudentSubmittedExams submittedExam={submittedExam}  setSubmittedExam={setSubmittedExam}/>
         </div>
       ) : (
         <p>No submissions found.</p>
