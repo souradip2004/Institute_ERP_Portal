@@ -47,6 +47,7 @@ export async function GET(
           select: {
             id: true,
             studentAnswer: true,
+            status: true,
             question: {
               select: {
                 questionText: true,
@@ -65,6 +66,11 @@ export async function GET(
     if (!examSubmission) {
       return NextResponse.json({error: "Exam not found"}, {status: 404});
     }
+
+    if (examSubmission.status === 'GRADED') {
+      return NextResponse.json({error: "Exam already Graded"}, {status: 400})
+    }
+
     const modelAns: Record<string, string[][]> = {};
     const studentAns: Record<string, string[][]> = {};
     const configJson: Record<string, [number, string, number, number]> = {};
@@ -111,7 +117,7 @@ export async function GET(
         return new NextResponse(JSON.stringify({error: "Each script must have an 'id' and 'obtainedMarks'."}), {status: 400});
       }
 
-      const key = String(index );
+      const key = String(index);
       const score = Number(parsedScores[key]?.[`Updated_Score (?/${answer.question.marks})`] ?? 0);
       totalMarks += score;
       await prisma.answerScript.update({
