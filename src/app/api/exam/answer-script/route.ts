@@ -40,6 +40,7 @@ export async function GET(
             id: true,
             studentAnswer: true,
             obtainedMarks: true,
+            remarks: true,
             question: {
               select: {
                 questionText: true,

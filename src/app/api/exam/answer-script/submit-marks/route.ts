@@ -28,6 +28,7 @@ export async function POST(
         data: {
           obtainedMarks: answer.obtainedMarks,
           status: "GRADED",
+          remarks: answer.remarks,
           gradedById: teacherId,
           gradedAt: new Date()
         },

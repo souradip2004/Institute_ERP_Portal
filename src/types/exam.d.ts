@@ -17,8 +17,6 @@ export interface Exam {
     status: 'PENDING' | 'GRADED';
     gradedById?: string | null;
     gradedAt?: Date | string | null;
-    createdAt: Date | string;
-    updatedAt: Date | string;
     student: {
       id: string;
       user: {
