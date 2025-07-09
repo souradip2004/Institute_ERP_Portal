@@ -108,32 +108,51 @@ const AnswerScriptGrader = ({ id, studentId }: AnswerScriptGraderProps) => {
         return submission?.answerScripts.reduce((total, script) => total + script.question.marks, 0) || 0;
     }
 
-    const handleSubmitGrades = () => {
+    const handleSubmitGrades = async() => {
         if (!submission) return;
 
         const totalObtainedMarks = calculateTotalObtainedMarks();
 
         // Create a detailed breakdown of the grading
-        const gradingDetails = submission.answerScripts.reduce((acc, script) => {
-            acc[script.id] = {
-                marks: awardedMarks[script.id] || 0,
-                feedback: feedbackRemarks[script.id] || ''
-            };
-            return acc;
-        }, {} as { [key: string]: { marks: number; feedback: string } });
-
+     //   const gradingDetails = submission.answerScripts.reduce((acc, script) => {
+          //  acc[script.id] = {
+           //     marks: awardedMarks[script.id] || 0,
+            //    feedback: feedbackRemarks[script.id] || ''
+           // };
+           // return acc;
+   //     }, {} as { [key: string]: { marks: number; feedback: string } });
+   const gradingDetails = submission.answerScripts.map(script => {
+    return {
+        id: script.id,
+        obtainedMarks: awardedMarks[script.id] || 0 // Use 0 if no marks are awarded
+    };
+});
+const teacherId=JSON.parse(localStorage.getItem('user') || '{}').teacherId; // Assuming teacher ID is stored in localStorage
         // The final payload to be sent to your API
         const gradingPayload = {
-            examSubmissionId: submission.id,
-            studentId: submission.studentId,
-            gradingDetails,
-            totalObtainedMarks,
-            overallFeedback: overallFeedback,
+            submissionId: submission.id,
+            teacherId,
+            answerScripts:gradingDetails,
+            feedback: overallFeedback,
         };
 
         console.log("Submitting Payload:", JSON.stringify(gradingPayload, null, 2));
         // In a real app, you would POST this to your grading API endpoint.
+        const res=await fetch("/api/exam/answer-script/submit-marks", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(gradingPayload),
+        });
+        if (!res.ok) {
+            const errorData = await res.json();
+            throw new Error(`Failed to submit grades. Status: ${res.status}, Message: ${errorData.message}`);
+        }
+        const result = await res.json();
+        console.log("Submission Result:", result);
         alert(`Grades submitted successfully! Total Marks: ${totalObtainedMarks}`);
+        
     };
 
     // --- LOADING / ERROR / NO DATA STATES ---

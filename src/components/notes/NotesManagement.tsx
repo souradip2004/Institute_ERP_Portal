@@ -712,7 +712,6 @@ const NotesManagement: React.FC<NotesManagementProps> = ({
                                                                 variant="ghost"
                                                                 size="icon"
                                                                 onClick={async () => {
-                                                                    alert(note.attachments[0].fileUrl)
                                                                     const randomCode = Math.floor(100000 + Math.random() * 900000);
                                                                     console.log("Random 6 digit code:", randomCode);
                                                                     const response = await fetch("/api/connector", {

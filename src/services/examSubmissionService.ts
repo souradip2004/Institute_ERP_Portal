@@ -65,6 +65,7 @@ export class ExamSubmissionService {
         exam: true,
         student: true,
         gradedBy: true,
+        answerScripts:true,
       },
       orderBy: {
         submissionTime: 'desc'

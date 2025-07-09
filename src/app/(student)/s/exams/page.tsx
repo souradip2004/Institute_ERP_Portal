@@ -37,6 +37,8 @@ interface Exam {
   questions?: Question[];
   examType?: ExamType;
   classSection?: ClassSection;
+  answerScripts?:any[];
+  feedback?: string;
   totalMarks: number;
   duration?: string;
   subject?: string;
@@ -187,6 +189,7 @@ export default function ExamsPage() {
       let allExams: Array<Exam> | null = null;
       if (pastResponse.ok) {
         pastSubmissions = await pastResponse.json();
+        console.log("Past Submissions: ", pastSubmissions);
         allExams = active.map((exam: Exam) => {
           const pastSubmission = pastSubmissions.find(item => item.exam.id === exam.id);
           if (exam.id === pastSubmission?.exam?.id) {
@@ -205,6 +208,7 @@ export default function ExamsPage() {
           }
           return null;
         }).filter(item => item !== null);
+        console.log(submittedExams);
         setPastExams(submittedExams);
       } else {
         console.warn('Failed to fetch past exam submissions.');
