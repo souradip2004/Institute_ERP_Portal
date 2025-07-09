@@ -105,14 +105,14 @@ export async function GET(
 
     const parsedScores = JSON.parse(rawResults[2]);
 
-    const index = 0;
+    const index = 1;
     let totalMarks = 0;
     for (const answer of examSubmission.answerScripts) {
       if (answer.id === undefined) {
         return new NextResponse(JSON.stringify({error: "Each script must have an 'id' and 'obtainedMarks'."}), {status: 400});
       }
 
-      const key = String(index + 1);
+      const key = String(index );
       const score = Number(parsedScores[key]?.[`Updated_Score (?/${answer.question.marks})`] ?? 0);
       totalMarks += score;
       await prisma.answerScript.update({
@@ -123,10 +123,13 @@ export async function GET(
         data: {
           obtainedMarks: score,
           status: "GRADED",
+          isAiGraded: true,
           gradedById: teacherId,
           gradedAt: new Date()
         },
       });
+
+      index++;
     }
 
 
