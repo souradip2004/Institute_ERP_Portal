@@ -624,9 +624,12 @@ model GlobalFees{
   paymentterms String @map("payment_terms")
   penalty       Float @default(0)
   institutionId String @map("institution_id")
+  motherClassId String @map("mother_class_id")
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
   institution  Institution @relation(fields: [institutionId], references: [id])
+  motherClass  MotherClass @relation(fields: [motherClassId], references: [id])
+
 }
 model LocalFees {
   id           String   @id @default(cuid())
@@ -637,11 +640,11 @@ model LocalFees {
   paymentterms String @map("payment_terms")
   penalty       Float @default(0)
   institutionId String @map("institution_id")
-  motherClassId String @map("mother_class_id")
+  StudentIds   String[] @map("student_ids")
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
   institution  Institution @relation(fields: [institutionId], references: [id])
-  motherClass  MotherClass @relation(fields: [motherClassId], references: [id])
+  students     Student[] @relation("LocalFeesStudents", fields: [StudentIds], references: [id])
 }
 model ClassFee {
   id            String   @id @default(cuid())
