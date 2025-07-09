@@ -159,9 +159,14 @@ const AnswerScriptGrader = ({id, studentId, setSubmittedExam, setViewPaperOpen}:
     }
   };
 
-  if (isLoading) return <div className="flex flex-col items-center justify-center p-8 text-gray-500"><Loader2 className="h-12 w-12 animate-spin mb-4 text-blue-500"/><p className="text-lg">Loading Answer Script...</p></div>;
-  if (error) return <div className="flex flex-col items-center justify-center p-8 bg-red-50 text-red-700 border border-red-200 rounded-lg"><AlertCircle className="h-12 w-12 mb-4"/><p className="text-lg font-semibold">An Error Occurred</p><p>{error}</p></div>;
-  if (!submission) return <div className="flex flex-col items-center justify-center p-8 text-gray-500"><FileText className="h-12 w-12 mb-4"/><p className="text-lg">No submission data found.</p></div>;
+  if (isLoading) return <div className="flex flex-col items-center justify-center p-8 text-gray-500"><Loader2
+    className="h-12 w-12 animate-spin mb-4 text-blue-500"/><p className="text-lg">Loading Answer Script...</p></div>;
+  if (error) return <div
+    className="flex flex-col items-center justify-center p-8 bg-red-50 text-red-700 border border-red-200 rounded-lg">
+    <AlertCircle className="h-12 w-12 mb-4"/><p className="text-lg font-semibold">An Error Occurred</p><p>{error}</p>
+  </div>;
+  if (!submission) return <div className="flex flex-col items-center justify-center p-8 text-gray-500"><FileText
+    className="h-12 w-12 mb-4"/><p className="text-lg">No submission data found.</p></div>;
 
   // ======================= READ-ONLY LOGIC ADDED HERE =======================
   const isGraded = submission.status === 'GRADED';
@@ -174,9 +179,12 @@ const AnswerScriptGrader = ({id, studentId, setSubmittedExam, setViewPaperOpen}:
           {isGraded ? <><Eye className="mr-3 h-8 w-8"/>View Graded Script</> : 'Answer Script Grading'}
         </h1>
         <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4 text-gray-600">
-          <p><span className="font-semibold text-gray-500">Submission Time:</span> {new Date(submission.submissionTime).toLocaleString()}</p>
+          <p><span
+            className="font-semibold text-gray-500">Submission Time:</span> {new Date(submission.submissionTime).toLocaleString()}
+          </p>
           <p><span className="font-semibold text-gray-500">Status:</span>
-            <span className={`ml-2 px-2 py-1 text-xs font-bold rounded-full ${isGraded ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+            <span
+              className={`ml-2 px-2 py-1 text-xs font-bold rounded-full ${isGraded ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
               {submission.status}
             </span>
           </p>
@@ -203,13 +211,15 @@ const AnswerScriptGrader = ({id, studentId, setSubmittedExam, setViewPaperOpen}:
               <label className="font-semibold text-gray-800 flex items-center">
                 <KeyRound className="w-4 h-4 mr-2 text-yellow-600"/> Correct Answer:
               </label>
-              <div className="mt-2 bg-yellow-50 border-l-4 border-yellow-400 text-yellow-900 p-4 rounded-r-lg font-mono text-sm">
+              <div
+                className="mt-2 bg-yellow-50 border-l-4 border-yellow-400 text-yellow-900 p-4 rounded-r-lg font-mono text-sm">
                 {script.question.correctAnswer.join(', ')}
               </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-12 gap-x-6 gap-y-4 pt-4 border-t border-gray-100">
               <div className="md:col-span-8">
-                <label htmlFor={`feedback_${script.id}`} className="font-semibold text-gray-800 mb-2 block">Remarks:</label>
+                <label htmlFor={`feedback_${script.id}`}
+                       className="font-semibold text-gray-800 mb-2 block">Remarks:</label>
                 <textarea
                   id={`feedback_${script.id}`}
                   rows={2}

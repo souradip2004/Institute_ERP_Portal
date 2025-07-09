@@ -5,6 +5,7 @@ import {Button} from "@/components/ui/button";
 import ViewPaper from '../../components/teacher/ViewPaper';
 import axios from "axios";
 import {Exam} from "@/types/exam";
+import {Loader, Loader2} from "lucide-react";
 
 export function StudentSubmittedExams({submittedExam, setSubmittedExam}: {
   submittedExam: Exam;
@@ -24,9 +25,18 @@ export function StudentSubmittedExams({submittedExam, setSubmittedExam}: {
   const [viewPaperOpen, setViewPaperOpen] = useState(false);
   const [id, SetId] = useState('');
   const [studentId, SetStudentId] = useState('');
+  const [aiCopyCheck, setAiCopyCheck] = useState(false);
 
   const handleAiCopyCheck = async (id: string, studentId: string) => {
     try {
+      const alreadyGraded = allSubmissions.find(submission => submission.id === id && submission.status === 'GRADED');
+
+      if (alreadyGraded) {
+        alert("This exam has already been graded");
+        return;
+      }
+
+      setAiCopyCheck(true);
       const teacherId = (JSON.parse(localStorage.getItem('user') || '{}') as { teacherId?: string }).teacherId ?? null;
 
       const response = await axios.get(`/api/exam/answer-script/ai-copy-checking?id=${id}&studentId=${studentId}&teacherId=${teacherId}`);
@@ -56,7 +66,7 @@ export function StudentSubmittedExams({submittedExam, setSubmittedExam}: {
     } catch (e) {
       alert("AI Copy Check Failed");
     } finally {
-
+      setAiCopyCheck(false);
     }
   }
 
@@ -110,10 +120,16 @@ export function StudentSubmittedExams({submittedExam, setSubmittedExam}: {
                     <Button
                       size="sm"
                       variant="default"
-                      className="bg-purple-600 hover:bg-purple-700 text-white"
+                      disabled={aiCopyCheck}
+                      className={`bg-purple-600 hover:bg-purple-700 text-white
+                      ${aiCopyCheck ? 'cursor-not-allowed opacity-70' : ''}
+                      `}
                       onClick={() => handleAiCopyCheck(submission.id, submission.studentId)}
                     >
-                      AI Copy Check
+                      {aiCopyCheck ? (
+                          <><Loader2 className="h-3 w-3 mr-2 animate-spin"/> AI Checking</>) :
+                        "AI Copy Check"
+                      }
                     </Button>
                   </TableCell>
                   <TableCell className="text-gray-600">
