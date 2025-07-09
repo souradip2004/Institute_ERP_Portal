@@ -11,6 +11,7 @@ import { usePathname } from "next/navigation";
 import Image from "next/image";
 import CostManagementPage from "./CostManagement";
 import CreateAttendance from "./CreateAttendance";
+import FeesManagement from "./AddFees"
 import axios from "axios";
 // Lucide Icons
 import {
@@ -24,6 +25,7 @@ import {
   RotateCw, // Icon for landscape mode
   Monitor,
   User, // Icon for desktop mode
+  IndianRupeeIcon
 } from "lucide-react";
 
 interface NavigatorProps {
@@ -130,6 +132,12 @@ const Navigator = ({ id, userId, logo, name, primaryColor, verified, coins }: Na
             <CreateAttendance />
           </div>
         );
+      case "Fees":
+        return (
+          <div className="space-y-6">
+            <FeesManagement id={id} />
+          </div>
+        );
       default:
         return <div>Select an option from the sidebar</div>;
     }
@@ -167,11 +175,17 @@ const Navigator = ({ id, userId, logo, name, primaryColor, verified, coins }: Na
       component: "Attendance",
       icon: <CalendarCheck2 size={18} />,
     },
+    
+    {
+      name: "Fees Management",
+      component: "Fees",
+      icon: <IndianRupeeIcon size={18} />,
+    },
     {
       name: "Cost Management",
       component: "CostManagement",
       icon: <Bell size={18} />,
-    },
+    }
   ];
 
   return (
