@@ -39,7 +39,6 @@ export function StudentSubmittedExams({submittedExam, setSubmittedExam}: {
           examSubmissions: prev.examSubmissions.map(submission => {
             if (submission.id === response.data.id) {
 
-              console.log("Submission inside if ", submission)
               return {
                 ...submission,
                 obtainedMarks: response.data.obtainedMarks,
@@ -128,8 +127,9 @@ export function StudentSubmittedExams({submittedExam, setSubmittedExam}: {
       </div>
 
       {viewPaperOpen && (
-        <ViewPaper id={id} studentId={studentId} setSubmittedExam={setSubmittedExam}
-                   setViewPaperOpen={setViewPaperOpen}/>
+        <ViewPaper
+          id={id} studentId={studentId} setSubmittedExam={setSubmittedExam}
+          setViewPaperOpen={setViewPaperOpen}/>
       )}
     </div>
   );
