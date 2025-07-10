@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { MessageCircle, Mic, Send, Maximize2 } from "lucide-react"
+import {MessageCircle, Mic, Send, Maximize2, Download} from "lucide-react"
 import "./mentorship.css" // Assuming you have a CSS file for styling
 
 const Mentorship = () => {
@@ -171,7 +171,11 @@ const Mentorship = () => {
           {timeTabs.map((tab) => (
             <button
               key={tab}
-              className={`time-tab ${activeTab === tab ? "active" : ""}`}
+              className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-950 ${
+                activeTab === tab
+                  ? 'bg-gray-900 text-white shadow'
+                  : 'text-gray-500 hover:bg-gray-200 hover:text-gray-800'
+              }`}
               onClick={() => setActiveTab(tab)}
             >
               {tab}
@@ -180,7 +184,7 @@ const Mentorship = () => {
         </div>
 
         <div className="progress-overview">
-          <h3>Progress Overview</h3>
+          <h3 className={"border-t pt-3"}>Progress Overview</h3>
 
           <div className="progress-circle-container">
             <div className="progress-circle">
@@ -204,7 +208,7 @@ const Mentorship = () => {
               </div>
             </div>
             <div className="progress-label">
-              <span className="progress-dot" style={{ backgroundColor: '#4070f4' }}></span> {/* Use a consistent color */}
+              <span className="progress-dot" style={{ backgroundColor: '#4070f4' }}></span>
               <span>Completed {progressData.completion}%</span>
             </div>
           </div>
@@ -251,8 +255,8 @@ const Mentorship = () => {
                   {subject.name.toLowerCase().includes("language") && "📚"}
                   {/* Add more conditions for other subjects or a default */}
                   {!subject.name.toLowerCase().includes("math") &&
-                   !subject.name.toLowerCase().includes("science") &&
-                   !subject.name.toLowerCase().includes("language") && "📝"} {/* Default icon */}
+                    !subject.name.toLowerCase().includes("science") &&
+                    !subject.name.toLowerCase().includes("language") && "📝"} {/* Default icon */}
                 </div>
                 <h4>{subject.name}</h4>
                 <div className="performance-meta">
@@ -281,8 +285,8 @@ const Mentorship = () => {
         </div>
       </div>
 
-      <div className="chat-section">
-        <div className="chat-header">
+      {/*<div className="chat-section">
+        <div className="chat-header bg-blue-500">
           <div className="chat-title">
             <MessageCircle size={18} />
             <h3>Ask Your AI Mentor</h3>
@@ -319,6 +323,77 @@ const Mentorship = () => {
             onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
           />
           <button className="send-button" onClick={handleSendMessage}><Send size={18} /></button>
+        </div>
+      </div>*/}
+
+      <div className="bg-white rounded-lg border border-slate-200 flex flex-col shadow-lg">
+        {/* Chat Header */}
+        <div className="bg-indigo-600 text-white p-4 flex justify-between items-center rounded-t-lg">
+          <div className="flex items-center gap-3">
+            <MessageCircle size={20} />
+            <h3 className="font-semibold text-lg">Ask Your AI Mentor</h3>
+          </div>
+          <button className="p-2 rounded-full hover:bg-indigo-700 transition-colors">
+            <Download size={20} />
+          </button>
+        </div>
+
+        {/* Chat Messages Area */}
+        <div className="flex-1 p-6 space-y-6 overflow-y-auto bg-slate-100">
+          {chatHistory.map((msg, i) => {
+            if (msg.role === "system") return null
+            const isUser = msg.role === "user"
+            return (
+              <div key={i} className={`flex items-start gap-3 ${isUser ? "justify-end" : "justify-start"}`}>
+                <div className={`max-w-md rounded-xl p-4 ${isUser ? "bg-indigo-500 text-white" : "bg-white text-slate-800 shadow-sm"}`}>
+                  <p className="text-sm">{msg.content}</p>
+                  <p className={`text-xs mt-2 ${isUser ? "text-indigo-200" : "text-slate-400"} text-right`}>
+                    Just now
+                  </p>
+                </div>
+              </div>
+            )
+          })}
+          {loading && (
+            <div className="flex justify-start">
+              <div className="max-w-md rounded-xl p-4 bg-white text-slate-800 shadow-sm">
+                <p className="text-sm">Typing...</p>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Suggested Prompts */}
+        {/*<div className="p-4 bg-slate-100 border-t border-slate-200">
+          <div className="flex flex-wrap gap-2">
+            <button className="px-3 py-1 bg-white border border-slate-300 text-slate-700 rounded-lg text-sm hover:bg-slate-50">
+              Explain the formula
+            </button>
+            <button className="px-3 py-1 bg-white border border-slate-300 text-slate-700 rounded-lg text-sm hover:bg-slate-50">
+              Real-world example
+            </button>
+            <button className="px-3 py-1 bg-white border border-slate-300 text-slate-700 rounded-lg text-sm hover:bg-slate-50">
+              Summary of key points
+            </button>
+          </div>
+        </div>*/}
+
+        {/* Chat Input (Functionality is preserved) */}
+        <div className="p-4 bg-white border-t border-slate-200 flex items-center gap-3 rounded-b-lg">
+          <button className="bg-indigo-600 text-white p-3 rounded-full hover:bg-indigo-700 transition-colors">
+            <Mic size={20} />
+          </button>
+          <input
+            type="text"
+            placeholder="Ask your question..."
+            className="flex-1 bg-transparent focus:outline-none placeholder:text-slate-500"
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
+          />
+          <button className="text-indigo-600 p-2 rounded-full hover:bg-indigo-100 transition-colors" onClick={handleSendMessage}>
+            <Send size={22} />
+          </button>
         </div>
       </div>
     </div>

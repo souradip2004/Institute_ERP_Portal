@@ -11,6 +11,7 @@
   border-radius: var(--radius-lg);
   padding: 24px;
   box-shadow: var(--shadow-sm);
+  border: 1px solid #e5e7eb; /* --- ADDED BORDER --- */
 }
 
 .section-header {
@@ -59,6 +60,8 @@
 
 .progress-overview {
   margin-bottom: 24px;
+  padding-bottom: 24px; /* --- ADDED PADDING --- */
+  border-bottom: 1px solid #e5e7eb; /* --- ADDED BORDER --- */
 }
 
 .progress-overview h3 {
@@ -125,6 +128,8 @@
 
 .subject-highlights {
   margin-bottom: 24px;
+  padding-bottom: 24px; /* --- ADDED PADDING --- */
+  border-bottom: 1px solid #e5e7eb; /* --- ADDED BORDER --- */
 }
 
 .subject-highlights h3 {
@@ -142,6 +147,7 @@
 .subject-card {
   padding: 16px;
   border-radius: var(--radius-md);
+  border: 1px solid #e5e7eb; /* --- ADDED BORDER --- */
 }
 
 .subject-card.strongest {
@@ -196,6 +202,7 @@
   border-radius: var(--radius-md);
   padding: 16px;
   box-shadow: var(--shadow-sm);
+  border: 1px solid #e5e7eb; /* --- ADDED BORDER --- */
 }
 
 .subject-icon {
@@ -247,6 +254,7 @@
   flex-direction: column;
   box-shadow: var(--shadow-sm);
   overflow: hidden;
+  border: 1px solid #e5e7eb; /* --- ADDED BORDER --- */
 }
 
 .chat-header {
@@ -254,7 +262,7 @@
   justify-content: space-between;
   align-items: center;
   padding: 16px;
-  background-color: var(--primary-light);
+  /*background-color: var(--primary-light);*/
   border-bottom: 1px solid var(--border-color);
 }
 
