@@ -144,8 +144,7 @@ export function StudentSubmittedExams({submittedExam, setSubmittedExam}: {
 
       {viewPaperOpen && (
         <ViewPaper
-          id={id} studentId={studentId} setSubmittedExam={setSubmittedExam}
-          setViewPaperOpen={setViewPaperOpen}/>
+          id={id} studentId={studentId} setSubmittedExam={setSubmittedExam} setViewPaperOpen={setViewPaperOpen}/>
       )}
     </div>
   );

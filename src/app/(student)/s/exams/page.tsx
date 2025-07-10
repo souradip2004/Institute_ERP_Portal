@@ -2,8 +2,9 @@
 import React, {useState, useEffect, useCallback, useRef} from 'react';
 import Link from 'next/link';
 import Loader from '@/components/ui/Loader';
+import { useRouter } from 'next/navigation'; // Import the router
 
-// --- INTERFACES (No changes) ---
+// --- INTERFACES (Added passingMarks) ---
 interface Question {
   id: string;
   questionText: string;
@@ -40,6 +41,7 @@ interface Exam {
   answerScripts?:any[];
   feedback?: string;
   totalMarks: number;
+  passingMarks?: number; // Added for the new feature
   duration?: string;
   subject?: string;
   createdAt?: string;
@@ -48,6 +50,7 @@ interface Exam {
 }
 
 export default function ExamsPage() {
+  const router = useRouter(); // Initialize the router
   const [activeExams, setActiveExams] = useState<Exam[]>([]);
   const [pastExams, setPastExams] = useState<Exam[]>([]);
   const [loading, setLoading] = useState(true);
@@ -65,11 +68,18 @@ export default function ExamsPage() {
   const [submittingExam, setSubmittingExam] = useState(false);
   const latestAnswersRef = useRef(answers);
   const [activeFilter, setActiveFilter] = useState('All');
+  const [showCloseConfirmModal, setShowCloseConfirmModal] = useState(false);
+
 
   useEffect(() => {
     console.log("Answers: ", answers);
   }, [answers]);
-  // --- EXISTING FUNCTIONS (No changes) ---
+
+  // --- NEW: Function to handle navigation to the submission view ---
+  const fetchSubmission = (submissionId: string) => {
+    router.push(`/s/exams/view-submission?submissionId=${submissionId}&studentId=${studentData?.studentId}`);
+  };
+
   const getExamStatus = (exam: Exam) => {
     const examStatus = exam.status;
     if (examStatus === 'PENDING' || examStatus === 'GRADED' || examStatus === 'REVIEWED') {
@@ -87,7 +97,6 @@ export default function ExamsPage() {
     } else if (endTime <= now) {
       return 'Exam Ended';
     }
-    // Default fallback, should ideally not be reached if statuses are correct
     return exam.status;
   };
 
@@ -132,6 +141,22 @@ export default function ExamsPage() {
 
     fetchUserData();
   }, []);
+
+  useEffect(() => {
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (examInProgress) {
+        event.preventDefault();
+        event.returnValue = 'Are you sure you want to leave? Your exam progress will be lost and will not be submitted.';
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [examInProgress]);
+
 
   const fetchExams = async (studentId: string) => {
     try {
@@ -189,7 +214,6 @@ export default function ExamsPage() {
       let allExams: Array<Exam> | null = null;
       if (pastResponse.ok) {
         pastSubmissions = await pastResponse.json();
-        console.log("Past Submissions: ", pastSubmissions);
         allExams = active.map((exam: Exam) => {
           const pastSubmission = pastSubmissions.find(item => item.exam.id === exam.id);
           if (exam.id === pastSubmission?.exam?.id) {
@@ -202,14 +226,18 @@ export default function ExamsPage() {
           if (exam) {
             return {
               ...exam,
+              submissionId: item.id,
               status: item.status,
-              obtainedMarks: item.obtainedMarks
+              obtainedMarks: item.obtainedMarks,
+              // Make sure passingMarks from the original exam object is included
+              passingMarks: exam.passingMarks
             }
           }
           return null;
         }).filter(item => item !== null);
-        console.log(submittedExams);
         setPastExams(submittedExams);
+
+        console.log("Submitted Exams: ", submittedExams);
       } else {
         console.warn('Failed to fetch past exam submissions.');
         setPastExams([]);
@@ -282,7 +310,6 @@ export default function ExamsPage() {
     setSubmittingExam(true);
 
     try {
-      console.log("Answers being submitted: ", finalAnswers); // This will now be correct
       const response = await fetch('/api/exams/submit', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
@@ -290,7 +317,7 @@ export default function ExamsPage() {
           examId: selectedExam.id,
           status: "PENDING",
           studentId: studentData?.studentId,
-          answers: finalAnswers // Use the argument here
+          answers: finalAnswers
         })
       });
 
@@ -298,7 +325,6 @@ export default function ExamsPage() {
         throw new Error('Failed to submit exam');
       }
 
-      // --- The rest of your function remains the same ---
       const result = await response.json();
       const updatedActiveExams = activeExams.filter(e => e.id !== selectedExam.id);
       setPastExams([selectedExam, ...pastExams].sort((a: Exam, b: Exam) => {
@@ -321,7 +347,7 @@ export default function ExamsPage() {
     } finally {
       setSubmittingExam(false);
     }
-  }, [selectedExam, studentData, activeExams, pastExams]); // removed 'answers' from dependency array
+  }, [selectedExam, studentData, activeExams, pastExams]);
 
   useEffect(() => {
     let timer: NodeJS.Timeout;
@@ -330,7 +356,6 @@ export default function ExamsPage() {
         setTimeLeft(prev => {
           if (prev <= 1) {
             clearInterval(timer);
-            // Use the ref here to get the guaranteed latest answers
             submitExam(latestAnswersRef.current);
             return 0;
           }
@@ -339,7 +364,6 @@ export default function ExamsPage() {
       }, 1000);
     }
     return () => clearInterval(timer);
-    // Dependencies are now simpler
   }, [examInProgress, timeLeft, submitExam]);
 
   const submitAnswer = () => {
@@ -356,7 +380,7 @@ export default function ExamsPage() {
 
     if (currentQuestionIndex < selectedExam.questions.length - 1) {
       setCurrentQuestionIndex(prev => prev + 1);
-      setCurrentAnswer(newAnswers[selectedExam.questions[currentQuestionIndex + 1].id] || ''); // Pre-fill next answer if it exists
+      setCurrentAnswer(newAnswers[selectedExam.questions[currentQuestionIndex + 1].id] || '');
     } else {
       submitExam(newAnswers);
     }
@@ -368,7 +392,6 @@ export default function ExamsPage() {
     setAnswers({});
   };
 
-  // --- LOADING AND ERROR STATES (No changes) ---
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[calc(100vh-64px)]">
@@ -388,7 +411,6 @@ export default function ExamsPage() {
     );
   }
 
-  // --- NEW: LOGIC TO PRE-FILTER EXAMS BASED ON THE ACTIVE TAB ---
   const filteredActiveExams = activeExams
   .filter(exam => exam.classSectionId && classSection.includes(exam.classSectionId))
   .filter(exam => {
@@ -405,7 +427,7 @@ export default function ExamsPage() {
     if (activeFilter === 'Submitted') {
       return ['PENDING', 'GRADED', 'REVIEWED'].includes(status);
     }
-    return true; // Fallback to show all if filter is unknown
+    return true;
   });
 
   return (
@@ -423,12 +445,10 @@ export default function ExamsPage() {
         </div>
       )}
 
-      {/* --- ACTIVE EXAMS SECTION (MODIFIED) --- */}
       <section className="mb-6">
         <div className="flex justify-between items-center flex-wrap gap-y-4 mb-4">
           <h3 className="text-xl font-semibold">Active Exams</h3>
 
-          {/* --- NEW: FILTER TABS UI --- */}
           <div className="flex items-center border border-gray-200 rounded-lg p-1 bg-gray-50 text-sm">
             {['All', 'Upcoming', 'Ongoing', 'Submitted'].map(filter => (
               <button
@@ -447,7 +467,6 @@ export default function ExamsPage() {
         </div>
 
         <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-          {/* --- MODIFIED: Use the pre-filtered list --- */}
           {filteredActiveExams.map(exam => {
             const currentStatus = getExamStatus(exam);
             return (
@@ -497,7 +516,6 @@ export default function ExamsPage() {
             )
           })}
 
-          {/* --- MODIFIED: Dynamic "No Exams" message --- */}
           {filteredActiveExams.length === 0 && (
             <div className="col-span-full bg-white p-8 rounded-lg shadow-sm text-center">
               <div className="text-gray-400 text-5xl mb-4">📝</div>
@@ -510,7 +528,7 @@ export default function ExamsPage() {
         </div>
       </section>
 
-      {/* --- PAST EXAMS SECTION (No changes) --- */}
+      {/* --- PAST EXAMS SECTION (MODIFIED) --- */}
       <section>
         <h3 className="text-xl font-semibold mb-4">Past Exams</h3>
         <div className="bg-white rounded-lg shadow overflow-hidden">
@@ -522,6 +540,9 @@ export default function ExamsPage() {
                 <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase">Date Taken</th>
                 <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase">Score</th>
                 <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase">Status</th>
+                {/* --- NEW: Table Headers --- */}
+                <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase">Result</th>
+                <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase">Actions</th>
               </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -547,11 +568,37 @@ export default function ExamsPage() {
                         {exam.status}
                       </span>
                   </td>
+                  {/* --- NEW: Result Column --- */}
+                  <td className="px-4 py-3 whitespace-nowrap">
+                    {exam.status === 'GRADED' && typeof exam.obtainedMarks === 'number' && typeof exam.passingMarks === 'number' ? (
+                      <span className={`px-2 py-1 inline-flex text-xs font-semibold rounded-full ${
+                        exam.obtainedMarks >= exam.passingMarks
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-red-100 text-red-800'
+                      }`}>
+                            {exam.obtainedMarks >= exam.passingMarks ? 'Pass' : 'Fail'}
+                        </span>
+                    ) : (
+                      <span className="text-gray-500">-</span>
+                    )}
+                  </td>
+                  {/* --- NEW: Actions Column --- */}
+                  <td className="px-4 py-3 whitespace-nowrap text-sm font-medium">
+                    {exam.status === 'GRADED' ? (
+                      <button
+                        onClick={() => fetchSubmission(exam.submissionId)}
+                        className="text-indigo-600 hover:text-indigo-900 transition-colors font-semibold"
+                      >
+                        View Submission
+                      </button>
+                    ) : null}
+                  </td>
                 </tr>
               ))}
               {pastExams.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="px-4 py-10 text-center text-gray-500">
+                  {/* --- MODIFIED: Updated colspan --- */}
+                  <td colSpan={6} className="px-4 py-10 text-center text-gray-500">
                     No past exams found
                   </td>
                 </tr>
@@ -562,18 +609,26 @@ export default function ExamsPage() {
         </div>
       </section>
 
-      {/* --- MODAL (No changes) --- */}
       {showExamModal && selectedExam && (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-xl">
             {!examCompleted ? (
               <>
-                <div className="bg-indigo-600 text-white p-4 rounded-t-lg">
-                  <div className="flex justify-between items-center flex-wrap gap-2">
+                <div className="bg-indigo-600 text-white p-4 rounded-t-lg flex justify-between items-center">
+                  <div className="flex items-center gap-4">
+                    <button
+                      onClick={() => setShowCloseConfirmModal(true)}
+                      className="text-indigo-200 hover:text-white transition-colors p-1 rounded-full hover:bg-white/20"
+                      aria-label="Close exam"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
                     <h2 className="text-xl font-semibold">{selectedExam.title}</h2>
-                    <div className="text-lg font-mono">
-                      {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
-                    </div>
+                  </div>
+                  <div className="text-lg font-mono bg-white/10 px-3 py-1 rounded-md">
+                    {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
                   </div>
                 </div>
 
@@ -667,6 +722,39 @@ export default function ExamsPage() {
                 </button>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {showCloseConfirmModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[60] p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-sm w-full p-6 text-center">
+            <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+              <svg className="h-6 w-6 text-red-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">End Exam?</h3>
+            <p className="text-sm text-gray-500 mb-6">
+              All progress will be lost and your answers will not be submitted. Are you sure you want to exit?
+            </p>
+            <div className="flex justify-center gap-4">
+              <button
+                onClick={() => setShowCloseConfirmModal(false)}
+                className="px-6 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 font-medium transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  closeExam();
+                  setShowCloseConfirmModal(false);
+                }}
+                className="px-6 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 font-medium transition-colors"
+              >
+                End Exam
+              </button>
+            </div>
           </div>
         </div>
       )}

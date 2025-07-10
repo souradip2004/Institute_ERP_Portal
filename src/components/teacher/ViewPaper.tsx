@@ -240,7 +240,7 @@ const AnswerScriptGrader = ({id, studentId, setSubmittedExam, setViewPaperOpen}:
                     className="w-20 p-2 text-center bg-white border border-gray-300 rounded-md text-gray-900 font-bold focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none disabled:bg-gray-100 disabled:cursor-not-allowed"
                     max={script.question.marks}
                     min={0}
-                    disabled={isGraded} // <-- Disables the input
+                    disabled={isGraded}
                   />
                   <span className="text-gray-400 text-xl">/</span>
                   <span className="w-8 text-left font-bold text-xl text-blue-600">{script.question.marks}</span>

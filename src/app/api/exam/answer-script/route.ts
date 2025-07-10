@@ -8,12 +8,14 @@ export async function GET(
   req: NextRequest
 ) {
   try {
+
+    console.log("API hit");
     const searchParams = req.nextUrl.searchParams;
-    const id = searchParams.get('id') as string;
+    const examSubmissionId = searchParams.get('id') as string;
     const studentId = searchParams.get('studentId') as string;
 
 
-    if (!id || !studentId) {
+    if (!examSubmissionId || !studentId) {
       return NextResponse.json(
         { error: "Missing required parameters: id, examId, and studentId" },
         { status: 400 }
@@ -31,7 +33,7 @@ export async function GET(
     // Get the exam with detailed question information
     const examSubmission = await prisma.examSubmission.findUnique({
       where: {
-        id: id,
+        id: examSubmissionId,
         studentId: studentId,
       },
       include: {
