@@ -15,7 +15,7 @@ model User {
   emailVerified      DateTime?              @map("email_verified")
   image              String?
   isVerified         Boolean                @default(false)
-  coins              Int                    @default(0)
+  coins              Int                   @default(0)
   password           String?
   gender             String?
   dateOfBirth        DateTime?              @map("date_of_birth") @db.Date
@@ -37,7 +37,6 @@ model User {
   student            Student?
   teacher            Teacher?
   institution        Institution?           @relation(fields: [institutionId], references: [id], onDelete: Restrict)
-
   @@map("users")
 }
 
@@ -133,6 +132,10 @@ model Institution {
   semesters           Semester[]
   subscriptions       Subscription[]
   users               User[]
+    checkSessions checkSession[]
+  fees          Fees[]
+  globalFees    GlobalFees[]
+  localFees     LocalFees[]
 
   @@map("institutions")
 }
@@ -180,7 +183,10 @@ model Student {
   department            Department                 @relation(fields: [departmentId], references: [id])
   user                  User                       @relation(fields: [userId], references: [id])
   videoViewLogs         VideoViewLog[]
-
+ studentCopies   studentCopies[]
+  questionAnswers StudentQuestionAnswer[]
+  feesCollections FeesCollection[]
+  localFees       LocalFeesOnStudent[]
   @@unique([departmentId, studentRoll])
   @@index([studentRoll])
   @@map("students")
@@ -219,7 +225,8 @@ model Teacher {
   user                          User                           @relation(fields: [userId], references: [id])
   Note                          Note[]
   teacherCourseSectionRelations TeacherCourseSectionRelation[]
-
+  copyChecks      copyCheck[]
+  gradedQuestions StudentQuestionAnswer[] @relation("GradedQuestionByTeacher")
   @@unique([departmentId, teacherCode])
   @@index([teacherCode])
   @@map("teachers")
@@ -256,6 +263,7 @@ model Course {
   department                    Department                     @relation(fields: [departmentId], references: [id])
   AttendanceSession             AttendanceSession[]
   teacherCourseSectionRelations TeacherCourseSectionRelation[]
+  copyChecks copyCheck[]
 
   @@map("courses")
 }
@@ -298,6 +306,7 @@ model MotherClass {
   institutionId String?        @map("institution_id")
   sectionName   String         @map("section_name")
   classSections ClassSection[]
+  globalFees GlobalFees[]
 }
 
 model ClassSection {
@@ -328,7 +337,8 @@ model ClassSection {
   isOptional                    Boolean?                       @default(false)
   motherClassId                 String?                        @map("mother_class_id") // Foreign key to MotherClass
   motherClass                   MotherClass?                   @relation(fields: [motherClassId], references: [id])
-
+  copyChecks copyCheck[]
+  classFees  ClassFee[]
   @@map("class_sections")
 }
 
@@ -348,7 +358,7 @@ model StudentClassEnrollment {
 model AttendanceSession {
   id                String       @id @default(cuid())
   classSectionId    String       @map("class_section_id")
-  courseId          String       @map("course_id") // New field
+  courseId          String       @map("course_id") // New field 
   teacherId         String       @map("teacher_id")
   sessionDate       DateTime     @map("session_date") @db.Date
   startTime         DateTime     @map("start_time") @db.Time(6)
@@ -359,7 +369,7 @@ model AttendanceSession {
   updatedAt         DateTime     @updatedAt @map("updated_at")
   attendanceRecords Attendance[]
   classSection      ClassSection @relation(fields: [classSectionId], references: [id])
-  course            Course       @relation(fields: [courseId], references: [id]) // New relation
+  course            Course       @relation(fields: [courseId], references: [id]) // New relation 
   teacher           Teacher      @relation(fields: [teacherId], references: [id])
 
   @@map("attendance_sessions")
@@ -476,6 +486,250 @@ model Question {
   exam            Exam           @relation(fields: [examId], references: [id])
 
   @@map("questions")
+}
+model checkSession {
+  id              String   @id @default(cuid())
+  name            String
+  institutionId   String   @map("institution_id")
+  classSectionIds String[] @map("class_section_ids")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  institution Institution? @relation(fields: [institutionId], references: [id])
+  copyChecks  copyCheck[]
+}
+
+model QuestionPaper {
+  id              String                 @id @default(cuid())
+  title           String
+  description     String?
+  totalMarks      Float
+  createdAt       DateTime               @default(now()) @map("created_at")
+  updatedAt       DateTime               @updatedAt @map("updated_at")
+
+  sections   QuestionPaperSection[]
+  copyChecks copyCheck[]
+
+  @@map("question_papers")
+}
+
+model QuestionPaperSection {
+  id                      String         @id @default(cuid())
+  title                   String
+  description             String?
+  questionPaperId         String         @map("question_paper_id")
+  order                   Int
+  marksPerSection         Float?
+  requiredQuestions       Int?
+  totalQuestionsInSection Int?
+  createdAt               DateTime       @default(now()) @map("created_at")
+  updatedAt               DateTime       @updatedAt @map("updated_at")
+
+  questionPaper QuestionPaper @relation(fields: [questionPaperId], references: [id])
+  cquestions      CopyQuestion[]
+
+  @@map("question_paper_sections")
+}
+
+model CopyQuestion {
+  id                      String                 @id @default(cuid())
+  questionPaperSectionId String                 @map("question_paper_section_id")
+  text                    String                 @db.Text
+  type                    String
+  marks                   Float
+  isOptional              Boolean                @default(false)
+  order                   Int
+  createdAt               DateTime               @default(now()) @map("created_at")
+  updatedAt               DateTime               @updatedAt @map("updated_at")
+
+  questionPaperSection QuestionPaperSection @relation(fields: [questionPaperSectionId], references: [id])
+  options              QuestionOption[]
+  studentAnswers       StudentQuestionAnswer[]
+
+  @@map("cquestions")
+}
+
+model QuestionOption {
+  id         String   @id @default(cuid())
+  questionId String   @map("question_id")
+  text       String
+  isCorrect  Boolean  @default(false)
+  order      Int
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  question CopyQuestion @relation(fields: [questionId], references: [id])
+  @@map("question_options")
+}
+
+model copyCheck {
+  id              String               @id @default(cuid())
+  checkSessionId  String               @map("check_session_id")
+  classSectionId  String               @map("class_section_id")
+  courseId        String               @map("course_id")
+  teacherId       String               @map("teacher_id")
+  status          CopyCheckStatus      @map("status")
+  questionPaperId String               @map("question_paper_id")
+  createdAt       DateTime             @default(now()) @map("created_at")
+  updatedAt       DateTime             @updatedAt @map("updated_at")
+
+  checkSession  checkSession   @relation(fields: [checkSessionId], references: [id])
+  classSection  ClassSection   @relation(fields: [classSectionId], references: [id])
+  course        Course         @relation(fields: [courseId], references: [id])
+  teacher       Teacher        @relation(fields: [teacherId], references: [id])
+  questionPaper QuestionPaper @relation(fields: [questionPaperId], references: [id])
+
+  studentCopies studentCopies[]
+  @@map("copy_checks")
+}
+
+model studentCopies {
+  id            String          @id @default(cuid())
+  copyCheckId   String          @map("copy_check_id")
+  studentId     String          @map("student_id")
+  submissionUrl String          @map("submission_url")
+  status        CopyCheckStatus @map("status")
+  createdAt     DateTime        @default(now()) @map("created_ok") // Changed map name from 'created_at' to avoid conflict if `createdAt` on Student is same
+  updatedAt     DateTime        @updatedAt @map("updated_at")
+
+  copyCheck copyCheck @relation(fields: [copyCheckId], references: [id])
+  student   Student   @relation(fields: [studentId], references: [id]) // This `student` relation needs an inverse on `Student`
+
+  questionAnswers StudentQuestionAnswer[]
+  @@map("student_copies")
+}
+
+model StudentQuestionAnswer {
+  id               String    @id @default(cuid())
+  studentCopyId    String    @map("student_copy_id") // Links to the specific student's overall submission
+  studentId        String    @map("student_id")     // NEW: Direct link to the Student model
+  questionId       String    @map("question_id")
+  submittedAnswer  String    @db.Text
+  awardedMarks     Float?
+  feedback         String?   @db.Text
+  gradedByTeacherId String?   @map("graded_by_teacher_id")
+  gradedAt         DateTime?
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  studentCopy  studentCopies @relation(fields: [studentCopyId], references: [id])
+  student      Student       @relation(fields: [studentId], references: [id]) // NEW: Relation to Student
+  question     CopyQuestion  @relation(fields: [questionId], references: [id])
+  gradedBy     Teacher?      @relation("GradedQuestionByTeacher", fields: [gradedByTeacherId], references: [id])
+  @@map("student_Youtubes")
+}
+
+model Fees {
+  id            String      @id @default(cuid())
+  institutionId String      @map("institution_id")
+  accountHolder String      @map("account_holder")
+  accountNumber String      @map("account_number")
+  ifscCode      String      @map("ifsc_code")
+  bankName      String      @map("bank_name")
+  branchName    String      @map("branch_name")
+  upiqrCode     String?     @map("upi_qr_code")
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
+  email         String?     @map("email")
+  password      String?     @map("password")
+
+  institution Institution @relation(fields: [institutionId], references: [id])
+  classFees   ClassFee[] // This `classFees` needs an inverse on `ClassFee`
+
+  @@map("fees") // Added map for consistency
+}
+
+model GlobalFees {
+  id              String       @id @default(cuid())
+  name            String
+  description     String?
+  amount          Float
+  taxPercentage   Float        @map("tax_percentage")
+  paymentterms    String       @map("payment_terms")
+  penalty         Float        @default(0)
+  institutionId   String       @map("institution_id")
+  motherClassId   String       @map("mother_class_id")
+  createdAt       DateTime     @default(now()) @map("created_at")
+  updatedAt       DateTime     @updatedAt @map("updated_at")
+
+  institution Institution @relation(fields: [institutionId], references: [id])
+  motherClass MotherClass @relation(fields: [motherClassId], references: [id])
+
+  classFees ClassFee[]
+  @@map("global_fees") // Added map for consistency
+}
+
+model LocalFees {
+  id              String   @id @default(cuid())
+  name            String
+  description     String?
+  amount          Float
+  taxPercentage   Float    @map("tax_percentage")
+  paymentterms    String   @map("payment_terms")
+  penalty         Float    @default(0)
+  institutionId   String   @map("institution_id")
+  // Removed StudentIds String[] for M-N relationship
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  institution Institution @relation(fields: [institutionId], references: [id])
+  // Removed direct M-N relation field. It will be managed by LocalFeesOnStudent.
+
+  classFees ClassFee[]
+  // New relation for the M-N join table
+  studentsLocalFees LocalFeesOnStudent[]
+
+  @@map("local_fees") // Added map for consistency
+}
+
+model ClassFee {
+  id             String         @id @default(cuid())
+  classSectionId String         @map("class_section_id")
+  globalFeesId   String?        @map("global_fees_id")
+  localFeesId    String?        @map("local_fees_id")
+  createdAt      DateTime       @default(now()) @map("created_at")
+  updatedAt      DateTime       @updatedAt @map("updated_at")
+
+  classSection ClassSection @relation(fields: [classSectionId], references: [id])
+  globalFees   GlobalFees?  @relation(fields: [globalFeesId], references: [id])
+  localFees    LocalFees?   @relation(fields: [localFeesId], references: [id])
+
+  feesCollections FeesCollection[]
+  feeCategory     Fees?        @relation(fields: [feeCategoryId], references: [id]) // Inverse relation for Fees.classFees
+  feeCategoryId   String?      @map("fee_category_id") // Add foreign key field for Fees relation
+
+  @@map("class_fees")
+}
+
+model FeesCollection {
+  id            String        @id @default(cuid())
+  classFeeId    String        @map("class_fee_id")
+  studentId     String        @map("student_id")
+  amount        Float
+  paymentDate   DateTime      @map("payment_date") @db.Date
+  paymentMethod String        @map("payment_method")
+  transactionId String?       @map("transaction_id")
+  status        PaymentStatus
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+
+  classFee ClassFee @relation(fields: [classFeeId], references: [id])
+  student  Student  @relation(fields: [studentId], references: [id]) // This `student` relation needs an inverse on `Student`
+  @@map("fees_collections")
+}
+
+model LocalFeesOnStudent {
+  id          String   @id @default(cuid())
+  localFeesId String   @map("local_fees_id")
+  studentId   String   @map("student_id")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  localFees LocalFees @relation(fields: [localFeesId], references: [id])
+  student   Student   @relation(fields: [studentId], references: [id])
+
+  @@unique([localFeesId, studentId]) // Ensure unique pairing
+  @@map("local_fees_on_student")
 }
 
 model ExamSubmission {
@@ -636,7 +890,7 @@ model Credit {
   id                          String      @id @default(cuid())
   institutionId               String      @unique @map("institution_id")
   sectionCreditsBalance       Int         @default(0) @map("section_credits_balance")
-  animationCreditsBalance     Int         @default(0) @map("animation_credits_balance")
+  animationCreditsBalance    Int         @default(0) @map("animation_credits_balance")
   videoCreditsBalance         Int         @default(0) @map("video_credits_balance")
   questionPaperCreditsBalance Int         @default(0) @map("question_paper_credits_balance")
   copyCheckingCreditsBalance  Int         @default(0) @map("copy_checking_credits_balance")
@@ -1115,4 +1369,18 @@ enum EventType {
   EXAM
   CLASS
   OTHER
+}
+enum CopyCheckStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum PaymentStatus {
+  PAID
+  PENDING
+  OVERDUE
+  REFUNDED
+  PARTIAL
 }
