@@ -2,7 +2,7 @@
 
 import React, {useState, useEffect} from 'react';
 import {useSearchParams} from "next/navigation";
-import {Loader2, AlertCircle, FileText, CheckCircle, MessageSquare, KeyRound, Eye, BookOpenCheck} from 'lucide-react';
+import {Loader2, AlertCircle, FileText, CheckCircle, MessageSquare, KeyRound, BookOpenCheck, XCircle} from 'lucide-react';
 
 // --- INTERFACES ---
 // These define the shape of the data we expect from the API.
@@ -10,6 +10,7 @@ interface Question {
   questionText: string;
   questionType: 'LONG_ANSWER' | 'MCQ' | 'SHORT_ANSWER';
   correctAnswer: string[];
+  options: string[],
   marks: number;
 }
 
@@ -63,7 +64,7 @@ function Page() {
         if (!data.examSubmission || data.examSubmission.status !== 'GRADED') {
           throw new Error("This submission is either not available or has not been graded yet.");
         }
-
+        console.log("Exam submission: ", data.examSubmission);
         setSubmission(data.examSubmission);
 
       } catch (err: any) {
@@ -78,14 +79,12 @@ function Page() {
 
   // Helper functions to calculate total marks
   const calculateTotalObtainedMarks = () => {
-    return submission?.answerScripts.reduce((total, script) => total + (script.obtainedMarks || 0), 0) || 0;
+    return Number((submission?.answerScripts.reduce((total, script) => total + (script.obtainedMarks || 0), 0) || 0).toFixed(2));
   };
 
   const calculateTotalMaxMarks = () => {
-    return submission?.answerScripts.reduce((total, script) => total + script.question.marks, 0) || 0;
+    return Number((submission?.answerScripts.reduce((total, script) => total + script.question.marks, 0) || 0).toFixed(2));
   };
-
-  // --- RENDER STATES ---
 
   if (isLoading) {
     return (
@@ -145,9 +144,15 @@ function Page() {
             {submission.answerScripts.map((script, index) => (
               <div key={script.id} className="border border-gray-200 rounded-lg p-6 shadow-sm bg-white">
                 <div className="flex justify-between items-start mb-4 pb-2 border-b border-gray-100">
-                  <h3 className="font-bold text-xl text-gray-900">Question {index + 1}</h3>
+                  <div className="flex items-center gap-3">
+                    <h3 className="font-bold text-xl text-gray-900">Question {index + 1}</h3>
+                    {/* NEW: Question Type Badge */}
+                    <span className="text-xs font-semibold bg-gray-200 text-gray-700 rounded-md px-2 py-1 capitalize">
+                          {script.question.questionType.replace('_', ' ').toLowerCase()}
+                      </span>
+                  </div>
                   <div className="text-right">
-                    <span className="font-bold text-lg text-indigo-600">{script.obtainedMarks ?? 0}</span>
+                    <span className="font-bold text-lg text-indigo-600">{Number(script.obtainedMarks?.toFixed(2)) ?? 0}</span>
                     <span className="text-gray-400 text-lg"> / {script.question.marks}</span>
                     <p className="text-xs text-gray-500">Marks</p>
                   </div>
@@ -155,12 +160,49 @@ function Page() {
 
                 <p className="mb-4 text-gray-800 font-medium text-base">{script.question.questionText}</p>
 
-                <div className="mb-5 space-y-1">
-                  <label className="font-semibold text-gray-800">Your Answer:</label>
-                  <div className="bg-blue-50 border-l-4 border-blue-400 text-blue-900 p-4 rounded-r-lg">
-                    {script.studentAnswer || <span className="text-gray-500 italic">No answer provided.</span>}
+                {/* NEW: Display options only for MCQ questions */}
+                {script.question.questionType === 'MCQ' && (
+                  <div className="mb-5 space-y-1">
+                    <label className="font-semibold text-gray-800">Options:</label>
+                    <div className="space-y-2 mt-2">
+                      {script.question.options.map((option, optionIndex) => {
+                        if (!option) return null; // Don't render empty options
+
+                        const isStudentAnswer = script.studentAnswer === option;
+                        const isCorrectAnswer = script.question.correctAnswer.includes(option);
+
+                        let optionStyle = 'bg-gray-100 border-gray-300 text-gray-800'; // Default style
+                        let icon = null;
+
+                        if (isCorrectAnswer) {
+                          optionStyle = 'bg-green-100 border-green-400 text-green-900 ring-1 ring-green-300';
+                          icon = <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0"/>;
+                        } else if (isStudentAnswer) {
+                          optionStyle = 'bg-red-100 border-red-400 text-red-900';
+                          icon = <XCircle className="h-5 w-5 text-red-600 flex-shrink-0"/>;
+                        }
+
+                        return (
+                          <div key={optionIndex} className={`flex items-center justify-between p-3 border-l-4 rounded-md ${optionStyle}`}>
+                            <span className="flex-grow mr-2">{option}</span>
+                            {icon}
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
+                )}
+
+                {/* For non-MCQ questions, show the student's answer */}
+                {script.question.questionType !== 'MCQ' && (
+                  <div className="mb-5 space-y-1">
+                    <label className="font-semibold text-gray-800">Your Answer:</label>
+                    <div className="bg-blue-50 border-l-4 border-blue-400 text-blue-900 p-4 rounded-r-lg">
+                      {script.studentAnswer || <span className="text-gray-500 italic">No answer provided.</span>}
+                    </div>
+                  </div>
+                )}
+
 
                 <div className="mb-5 space-y-1">
                   <label className="font-semibold text-gray-800 flex items-center">
@@ -198,7 +240,7 @@ function Page() {
 
           <footer className="mt-8 pt-6 border-t border-gray-200 flex flex-col items-center justify-center text-center">
             <p className="text-lg text-gray-600">Final Score</p>
-            <div className="text-5xl font-bold">
+            <div className="text-3xl font-bold">
               <span className="text-indigo-600">{calculateTotalObtainedMarks()}</span>
               <span className="text-gray-400 mx-2">/</span>
               <span className="text-gray-700">{calculateTotalMaxMarks()}</span>

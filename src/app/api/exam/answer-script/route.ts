@@ -48,6 +48,7 @@ export async function GET(
                 questionText: true,
                 questionType: true,
                 correctAnswer: true,
+                options: true,
                 marks: true,
                 difficultyLevel: true
               }

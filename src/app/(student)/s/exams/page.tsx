@@ -2,7 +2,7 @@
 import React, {useState, useEffect, useCallback, useRef} from 'react';
 import Link from 'next/link';
 import Loader from '@/components/ui/Loader';
-import { useRouter } from 'next/navigation'; // Import the router
+import {useRouter} from 'next/navigation'; // Import the router
 
 // --- INTERFACES (Added passingMarks) ---
 interface Question {
@@ -38,9 +38,10 @@ interface Exam {
   questions?: Question[];
   examType?: ExamType;
   classSection?: ClassSection;
-  answerScripts?:any[];
+  answerScripts?: any[];
   feedback?: string;
   totalMarks: number;
+  submissionId: string;
   passingMarks?: number; // Added for the new feature
   duration?: string;
   subject?: string;
@@ -69,7 +70,6 @@ export default function ExamsPage() {
   const latestAnswersRef = useRef(answers);
   const [activeFilter, setActiveFilter] = useState('All');
   const [showCloseConfirmModal, setShowCloseConfirmModal] = useState(false);
-
 
   useEffect(() => {
     console.log("Answers: ", answers);
@@ -621,8 +621,9 @@ export default function ExamsPage() {
                       className="text-indigo-200 hover:text-white transition-colors p-1 rounded-full hover:bg-white/20"
                       aria-label="Close exam"
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                           stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/>
                       </svg>
                     </button>
                     <h2 className="text-xl font-semibold">{selectedExam.title}</h2>
@@ -730,8 +731,10 @@ export default function ExamsPage() {
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[60] p-4">
           <div className="bg-white rounded-lg shadow-xl max-w-sm w-full p-6 text-center">
             <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
-              <svg className="h-6 w-6 text-red-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              <svg className="h-6 w-6 text-red-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                   stroke="currentColor" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
+                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
               </svg>
             </div>
             <h3 className="text-lg font-medium text-gray-900 mb-2">End Exam?</h3>

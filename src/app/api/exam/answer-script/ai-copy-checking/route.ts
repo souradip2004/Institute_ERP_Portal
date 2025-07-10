@@ -95,12 +95,12 @@ export async function GET(
     };
 
     const response = await axios.post(
-      'https://answer-checking-4-89f26c7-v4.app.beam.cloud',
+      'https://answer-checking-4-dad1d16-v3.app.beam.cloud',
       payload,
       {
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer ALXP7mhHyKz1MQATKH7CIQXK9VQBpvoNNuxPvLONWyPCfgemj18cz2T74r4drBpvOkf-3orOQT_6r-63mHPZAA=='
+          'Authorization': 'Bearer cpxjIHGyDUggeCZSEgd7TSs_xuIaJLxQyplSlPcpEv35qftljIUmetr9Drtj_MUyC9PUSJLvV1vbjljWohB8Sw=='
         },
       }
     );
@@ -118,7 +118,7 @@ export async function GET(
       }
 
       const key = String(index);
-      const score = Number(parsedScores[key]?.[`Updated_Score (?/${answer.question.marks})`] ?? 0);
+      const score = Number((parsedScores[key]?.[`Updated_Score (?/${answer.question.marks})`] ?? 0).toFixed(2));
       totalMarks += score;
       await prisma.answerScript.update({
         where: {
@@ -137,7 +137,7 @@ export async function GET(
       index++;
     }
 
-
+    totalMarks = Number(totalMarks.toFixed(2));
     const updatedSubmission = await prisma.examSubmission.update({
       where: {
         id: examSubmission.id,

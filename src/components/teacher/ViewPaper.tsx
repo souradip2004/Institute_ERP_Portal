@@ -271,7 +271,7 @@ const AnswerScriptGrader = ({id, studentId, setSubmittedExam, setViewPaperOpen}:
           <span className="text-gray-500">Total Score: </span>
           <span className="text-blue-600">{calculateTotalObtainedMarks()} / {calculateTotalMaxMarks()}</span>
         </div>
-        {/* ======================= BUTTON IS NOW CONDITIONAL ======================= */}
+
         {!isGraded && (
           <button
             disabled={isSubmitting}

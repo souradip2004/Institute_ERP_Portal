@@ -25,7 +25,7 @@ export function StudentSubmittedExams({submittedExam, setSubmittedExam}: {
   const [viewPaperOpen, setViewPaperOpen] = useState(false);
   const [id, SetId] = useState('');
   const [studentId, SetStudentId] = useState('');
-  const [aiCopyCheck, setAiCopyCheck] = useState(false);
+  const [aiCopyCheck, setAiCopyCheck] = useState({checking: false, submissionId: ""});
 
   const handleAiCopyCheck = async (id: string, studentId: string) => {
     try {
@@ -36,7 +36,7 @@ export function StudentSubmittedExams({submittedExam, setSubmittedExam}: {
         return;
       }
 
-      setAiCopyCheck(true);
+      setAiCopyCheck({checking: true, submissionId: id});
       const teacherId = (JSON.parse(localStorage.getItem('user') || '{}') as { teacherId?: string }).teacherId ?? null;
 
       const response = await axios.get(`/api/exam/answer-script/ai-copy-checking?id=${id}&studentId=${studentId}&teacherId=${teacherId}`);
@@ -66,7 +66,7 @@ export function StudentSubmittedExams({submittedExam, setSubmittedExam}: {
     } catch (e) {
       alert("AI Copy Check Failed");
     } finally {
-      setAiCopyCheck(false);
+      setAiCopyCheck({checking: false, submissionId: ""});
     }
   }
 
@@ -112,7 +112,7 @@ export function StudentSubmittedExams({submittedExam, setSubmittedExam}: {
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <span className="font-medium text-gray-800">
-                        {(submission.obtainedMarks) ? submission.obtainedMarks : submission.status === 'GRADED' ? submission.obtainedMarks : "-"}/{submission.examTotalMarks || 100}
+                        {(submission.obtainedMarks) ? submission.obtainedMarks : submission.status === 'GRADED' ? Number((submission.obtainedMarks).toFixed(2)) : "-"}/{ Number((submission.examTotalMarks).toFixed(2))}
                       </span>
                     </div>
                   </TableCell>
@@ -120,13 +120,13 @@ export function StudentSubmittedExams({submittedExam, setSubmittedExam}: {
                     <Button
                       size="sm"
                       variant="default"
-                      disabled={aiCopyCheck}
+                      disabled={aiCopyCheck.checking && submission.id === aiCopyCheck.submissionId}
                       className={`bg-purple-600 hover:bg-purple-700 text-white
-                      ${aiCopyCheck ? 'cursor-not-allowed opacity-70' : ''}
+                      ${(aiCopyCheck.checking && submission.id === aiCopyCheck.submissionId) ? 'cursor-not-allowed opacity-70' : ''}
                       `}
                       onClick={() => handleAiCopyCheck(submission.id, submission.studentId)}
                     >
-                      {aiCopyCheck ? (
+                      {(aiCopyCheck.checking && submission.id === aiCopyCheck.submissionId) ? (
                           <><Loader2 className="h-3 w-3 mr-2 animate-spin"/> AI Checking</>) :
                         "AI Copy Check"
                       }
