@@ -62,7 +62,6 @@ interface TeacherClassSection {
   } | null;
 }
 
-
 interface Exam {
   id: string;
   title: string;

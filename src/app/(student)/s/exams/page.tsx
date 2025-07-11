@@ -2,7 +2,8 @@
 import React, {useState, useEffect, useCallback, useRef} from 'react';
 import Link from 'next/link';
 import Loader from '@/components/ui/Loader';
-import {useRouter} from 'next/navigation'; // Import the router
+import {useRouter} from 'next/navigation';
+import {S3Utils} from "@/utils/s3Utils"; // Import the router
 
 // --- INTERFACES (Added passingMarks) ---
 interface Question {
@@ -42,12 +43,13 @@ interface Exam {
   feedback?: string;
   totalMarks: number;
   submissionId: string;
-  passingMarks?: number; // Added for the new feature
+  passingMarks?: number;
   duration?: string;
   subject?: string;
   createdAt?: string;
   obtainedMarks?: number;
   classSectionId?: string;
+
 }
 
 export default function ExamsPage() {
@@ -63,13 +65,37 @@ export default function ExamsPage() {
   const [classSection, setClassSections] = useState<string[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [currentAnswer, setCurrentAnswer] = useState('');
-  const [answers, setAnswers] = useState<{ [key: string]: string }>({});
+  // const [answers, setAnswers] = useState<{ [key: string]: string }>({});
   const [timeLeft, setTimeLeft] = useState<number>(0);
   const [examCompleted, setExamCompleted] = useState(false);
   const [submittingExam, setSubmittingExam] = useState(false);
-  const latestAnswersRef = useRef(answers);
+
   const [activeFilter, setActiveFilter] = useState('All');
   const [showCloseConfirmModal, setShowCloseConfirmModal] = useState(false);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploading, setIsUploading] = React.useState(false);
+  const [currentImageUploads, setCurrentImageUploads] = useState<Array<{ url: string; fileName: string }>>([]);
+
+// Modify the 'answers' state to hold an object with the answer text and image URLs
+  const [answers, setAnswers] = useState<{
+    [key: string]: { studentAnswer: string; answerImgURL: Array<{ url: string; fileName: string }> }
+  }>({});
+
+  const latestAnswersRef = useRef(answers);
+
+  useEffect(() => {
+    if (!selectedExam?.questions) return;
+
+    const currentQuestionId = selectedExam.questions[currentQuestionIndex]?.id;
+    if (!currentQuestionId) return;
+
+    const existingAnswer = answers[currentQuestionId];
+
+    // Populate the UI with the saved answer for the current question
+    setCurrentAnswer(existingAnswer?.studentAnswer || '');
+    setCurrentImageUploads(existingAnswer?.answerImgURL || []);
+  }, [currentQuestionIndex, selectedExam, answers]);
 
   useEffect(() => {
     console.log("Answers: ", answers);
@@ -99,64 +125,9 @@ export default function ExamsPage() {
     }
     return exam.status;
   };
-
   useEffect(() => {
-    const fetchUserData = async () => {
-      try {
-        const userDataStr = localStorage.getItem('user');
-        if (!userDataStr) {
-          setError("User data not found. Please log in again.");
-          setLoading(false);
-          return;
-        }
-
-        const userData = JSON.parse(userDataStr);
-        const classdetails = await fetch(`/api/students/${userData.studentId}`, {
-          method: "GET",
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        })
-        if (!classdetails.ok) {
-          alert("no classes found")
-          return;
-        }
-
-        const classes = await classdetails.json();
-        const classenrollments = classes?.classEnrollments
-        const classd: string[] = [];
-        for (let i = 0; i < classenrollments.length; i++) {
-          classd.push(classenrollments[i].classSectionId)
-        }
-
-        setClassSections(classd)
-        setStudentData(userData);
-        await fetchExams(userData.studentId || userData.id);
-      } catch (error) {
-        console.error("Error fetching user data:", error);
-        setError("Failed to load user data. Please refresh the page.");
-        setLoading(false);
-      }
-    };
-
-    fetchUserData();
-  }, []);
-
-  useEffect(() => {
-    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
-      if (examInProgress) {
-        event.preventDefault();
-        event.returnValue = 'Are you sure you want to leave? Your exam progress will be lost and will not be submitted.';
-      }
-    };
-
-    window.addEventListener('beforeunload', handleBeforeUnload);
-
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-    };
-  }, [examInProgress]);
-
+    console.log("Active exams ", activeExams)
+  }, [activeExams]);
 
   const fetchExams = async (studentId: string) => {
     try {
@@ -255,6 +226,112 @@ export default function ExamsPage() {
     }
   };
 
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const userDataStr = localStorage.getItem('user');
+        if (!userDataStr) {
+          setError("User data not found. Please log in again.");
+          setLoading(false);
+          return;
+        }
+
+        const userData = JSON.parse(userDataStr);
+        const classDetails = await fetch(`/api/students/${userData.studentId}`, {
+          method: "GET",
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        })
+
+        if (!classDetails.ok) {
+          alert("no classes found")
+          return;
+        }
+
+        const classes = await classDetails.json();
+        const classEnrollments = classes?.classEnrollments
+        const classd: string[] = [];
+        for (let i = 0; i < classEnrollments.length; i++) {
+          classd.push(classEnrollments[i].classSectionId)
+        }
+
+        setClassSections(classd)
+        setStudentData(userData);
+
+        console.log("Fetching exams ");
+        await fetchExams(userData.studentId || userData.id);
+      } catch (error) {
+        console.error("Error fetching user data:", error);
+        setError("Failed to load user data. Please refresh the page.");
+        setLoading(false);
+      }
+    };
+
+    fetchUserData();
+  }, []);
+
+  useEffect(() => {
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (examInProgress) {
+        event.preventDefault();
+        event.returnValue = 'Are you sure you want to leave? Your exam progress will be lost and will not be submitted.';
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [examInProgress]);
+
+
+  const uploadImageToCloudinary = useCallback(async (file: File): Promise<string> => {
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+
+      // Upload using your S3 utility
+      const key = await S3Utils.uploadFile(buffer, file.name, file.type);
+      const publicUrl = S3Utils.getPublicUrl(key);
+
+      console.log(publicUrl);
+      return publicUrl; // Return the public URL string
+    } catch (err) {
+      console.error("Cloudinary upload error:", err);
+      throw new Error("Image upload failed. Please try again.");
+    }
+  }, []);
+
+  // This is the handler function for the input's onChange event
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    try {
+      // 1. Call the new function
+      const publicUrl = await uploadImageToCloudinary(file);
+
+      // 2. Use the returned URL and the original file name to update state
+      setCurrentImageUploads(prev => [...prev, { url: publicUrl, fileName: file.name }]);
+
+      console.log('Upload successful:', publicUrl);
+    } catch (error) {
+      console.error('Upload failed:', error);
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
+
+  const handleRemoveImage = (fileName: string) => {
+    setCurrentImageUploads(prev => prev.filter(image => image.fileName !== fileName));
+  };
+
   const startExam = async (exam: Exam) => {
     const now = new Date();
     const examStart = new Date(exam.startTime);
@@ -271,6 +348,7 @@ export default function ExamsPage() {
       setError('Exam has already ended.');
       return;
     }
+
     const nowMs = now.getTime();
     const startTimeMs = examStart.getTime();
     const endTimeMs = examEnd.getTime();
@@ -286,9 +364,11 @@ export default function ExamsPage() {
           'Content-Type': 'application/json',
         },
       });
+
       if (!response.ok) {
         throw new Error('Failed to fetch exam details');
       }
+
       const examWithQuestions = await response.json();
       setSelectedExam({
         ...exam,
@@ -305,9 +385,18 @@ export default function ExamsPage() {
   };
 
 
-  const submitExam = useCallback(async (finalAnswers: { [key: string]: string }) => {
+  const submitExam = useCallback(async (finalAnswers: { [key: string]: { studentAnswer: string; answerImgURL: Array<{ url: string; fileName: string }> } }) => {
     if (!selectedExam || !studentData) return;
     setSubmittingExam(true);
+
+    // Transform the answers object into the required array format
+    const answerScripts = Object.entries(finalAnswers).map(([questionId, answerData]) => ({
+      questionId: questionId,
+      studentAnswer: answerData.studentAnswer,
+      // Extract just the URLs for the payload
+      answerImgURL: answerData.answerImgURL.map(img => img.url),
+      status: 'PENDING'
+    }));
 
     try {
       const response = await fetch('/api/exams/submit', {
@@ -317,14 +406,14 @@ export default function ExamsPage() {
           examId: selectedExam.id,
           status: "PENDING",
           studentId: studentData?.studentId,
-          answers: finalAnswers
+          // The key is 'answers' and the value is the formatted array
+          answers: answerScripts
         })
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to submit exam');
-      }
+      if (!response.ok) throw new Error('Failed to submit exam');
 
+      // ... (rest of the success logic is fine)
       const result = await response.json();
       const updatedActiveExams = activeExams.filter(e => e.id !== selectedExam.id);
       setPastExams([selectedExam, ...pastExams].sort((a: Exam, b: Exam) => {
@@ -349,6 +438,7 @@ export default function ExamsPage() {
     }
   }, [selectedExam, studentData, activeExams, pastExams]);
 
+
   useEffect(() => {
     let timer: NodeJS.Timeout;
     if (examInProgress && timeLeft > 0) {
@@ -371,25 +461,54 @@ export default function ExamsPage() {
 
     const currentQuestion = selectedExam.questions[currentQuestionIndex];
 
+    // Create a new master 'answers' object with the latest updates for the current question
     const newAnswers = {
       ...answers,
-      [currentQuestion.id]: currentAnswer.trim()
+      [currentQuestion.id]: {
+        studentAnswer: currentAnswer.trim(),
+        answerImgURL: currentImageUploads
+      }
     };
 
-    setAnswers(newAnswers);
+    setAnswers(newAnswers); // Save progress
 
     if (currentQuestionIndex < selectedExam.questions.length - 1) {
+      // Move to the next question
       setCurrentQuestionIndex(prev => prev + 1);
-      setCurrentAnswer(newAnswers[selectedExam.questions[currentQuestionIndex + 1].id] || '');
+      // The new useEffect will handle populating the state for the next question
     } else {
+      // This is the last question, so trigger the final submission
       submitExam(newAnswers);
     }
   };
 
+  const handlePrevious = () => {
+    if (!selectedExam?.questions) return;
+
+    const currentQuestion = selectedExam.questions[currentQuestionIndex];
+    // Save current state before moving back
+    const newAnswers = {
+      ...answers,
+      [currentQuestion.id]: {
+        studentAnswer: currentAnswer.trim(),
+        answerImgURL: currentImageUploads
+      }
+    };
+    setAnswers(newAnswers);
+
+    // Navigate to the previous question
+    setCurrentQuestionIndex(prev => Math.max(0, prev - 1));
+  };
+
+// --- MODIFIED: closeExam function ---
   const closeExam = () => {
     setShowExamModal(false);
     setExamInProgress(false);
     setAnswers({});
+    setCurrentAnswer('');
+    setCurrentImageUploads([]); // Reset the new image state
+    setCurrentQuestionIndex(0);
+    setExamCompleted(false);
   };
 
   if (loading) {
@@ -611,10 +730,11 @@ export default function ExamsPage() {
 
       {showExamModal && selectedExam && (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-xl">
+          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-xl">
             {!examCompleted ? (
               <>
-                <div className="bg-indigo-600 text-white p-4 rounded-t-lg flex justify-between items-center">
+                <div
+                  className="bg-indigo-600 text-white p-4 rounded-t-lg flex justify-between items-center sticky top-0 z-10">
                   <div className="flex items-center gap-4">
                     <button
                       onClick={() => setShowCloseConfirmModal(true)}
@@ -635,7 +755,8 @@ export default function ExamsPage() {
 
                 {(() => {
                   const currentQuestion = selectedExam.questions[currentQuestionIndex];
-                  const isMcq = currentQuestion.options && currentQuestion.options.some(opt => opt.trim() !== '');
+                  const questionType = currentQuestion.options && currentQuestion.options.some(opt => opt.trim() !== '') ? 'MCQ' : 'LONG_ANSWER';
+
                   return (
                     <div className="p-6">
                       <div className="flex justify-between items-center mb-4 flex-wrap gap-2">
@@ -646,56 +767,134 @@ export default function ExamsPage() {
                           {currentQuestion.marks} Points
                         </div>
                       </div>
-                      {isMcq ? (
-                        <div className="border border-gray-200 rounded-lg p-4 bg-gray-50 mb-4">
-                          <p className="text-gray-800 font-medium mb-6">
-                            {currentQuestion.questionText}
-                          </p>
-                          <div className="space-y-3">
-                            {currentQuestion.options.map((option, index) => (
-                              <button
-                                key={index}
-                                onClick={() => setCurrentAnswer(option)}
-                                className={`w-full text-left p-3 border rounded-md transition-colors text-gray-700 ${
-                                  currentAnswer === option
-                                    ? 'bg-indigo-600 text-white border-indigo-600 ring-2 ring-offset-1 ring-indigo-500'
-                                    : 'bg-white hover:bg-indigo-50 border-gray-300'
-                                }`}
-                              >
-                                {option}
-                              </button>
-                            ))}
-                          </div>
+
+                      <p className="text-gray-800 font-medium mb-6 text-lg">
+                        {currentQuestion.questionText}
+                      </p>
+
+                      {questionType === 'MCQ' ? (
+                        <div className="space-y-3">
+                          {currentQuestion.options.map((option, index) => (
+                            <button
+                              key={index}
+                              onClick={() => setCurrentAnswer(option)}
+                              className={`w-full text-left p-4 border rounded-lg transition-colors text-gray-700 ${
+                                currentAnswer === option
+                                  ? 'bg-indigo-600 text-white border-indigo-600 ring-2 ring-offset-1 ring-indigo-500'
+                                  : 'bg-white hover:bg-indigo-50 border-gray-300'
+                              }`}
+                            >
+                              {option}
+                            </button>
+                          ))}
                         </div>
                       ) : (
-                        <div className="border border-gray-200 rounded-lg p-4 bg-gray-50 mb-4">
-                          <p className="text-gray-800 font-medium mb-6">
-                            {currentQuestion.questionText}
-                          </p>
-                          <textarea
-                            className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
-                            rows={6}
-                            value={currentAnswer}
-                            onChange={(e) => setCurrentAnswer(e.target.value)}
-                            placeholder="Write your answer here..."
-                          />
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          {/* Left Column: Text Area */}
+                          <div>
+                            <textarea
+                              className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all text-base"
+                              rows={12}
+                              value={currentAnswer}
+                              onChange={(e) => setCurrentAnswer(e.target.value)}
+                              placeholder="Write your answer here..."
+                            />
+                          </div>
+
+                          {/* Right Column: Multiple Image Upload */}
+                          <div>
+                            <div className="border border-gray-200 rounded-lg p-4 bg-gray-50 h-full">
+                              <h3 className="font-semibold text-gray-700 mb-3">Attach Images (Optional)</h3>
+                              <input
+                                type="file"
+                                accept="image/*"
+                                ref={fileInputRef}
+                                onChange={handleImageUpload}
+                                className="hidden"
+                                disabled={isUploading}
+                              />
+                              <button
+                                onClick={() => fileInputRef.current?.click()}
+                                disabled={isUploading}
+                                className="w-full flex items-center justify-center gap-2 text-sm bg-white border border-gray-300 text-gray-700 font-medium py-2 px-4 rounded-md hover:bg-gray-100 transition-colors disabled:opacity-50"
+                              >
+                                {isUploading ? (
+                                  <>
+                                    <Loader size="small"/>
+                                    <span>Uploading...</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none"
+                                         viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                      <path strokeLinecap="round" strokeLinejoin="round"
+                                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                                    </svg>
+                                    <span>Upload Image</span>
+                                  </>
+                                )}
+                              </button>
+
+                              {/* Multiple Image Preview Area */}
+                              <div className="mt-4">
+                                {currentImageUploads.length > 0 ? (
+                                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                                    {currentImageUploads.map((image, index) => (
+                                      <div key={index} className="relative group">
+                                        {/* Larger image preview */}
+                                        <div className="w-full h-32 bg-gray-100 rounded-lg overflow-hidden border-2 border-transparent group-hover:border-indigo-500 transition-all duration-200">
+                                          <img
+                                            src={image.url}
+                                            alt={image.fileName}
+                                            className="w-full h-full object-cover"
+                                          />
+                                        </div>
+
+                                        {/* File name below the image */}
+                                        <p className="mt-2 text-xs text-center text-gray-700 truncate" title={image.fileName}>
+                                          {image.fileName}
+                                        </p>
+
+                                        {/* Remove button */}
+                                        <button
+                                          onClick={() => handleRemoveImage(image.fileName)}
+                                          className="absolute top-2 right-2 h-6 w-6 bg-red-600 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 transform scale-75 group-hover:scale-100"
+                                          aria-label="Remove image"
+                                        >
+                                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                          </svg>
+                                        </button>
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <div className="text-center py-4">
+                                    <p className="text-xs text-gray-500">No images uploaded.</p>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
                         </div>
                       )}
-                      <div className="flex justify-between mt-6 flex-wrap gap-2">
+
+                      <div className="flex justify-between mt-6 pt-6 border-t flex-wrap gap-2">
                         <button
-                          onClick={() => setCurrentQuestionIndex(prev => Math.max(0, prev - 1))}
+                          onClick={handlePrevious} // Use the new handler function
                           disabled={currentQuestionIndex === 0}
-                          className="px-4 py-2 border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
+                          className="px-5 py-2 border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors font-medium"
                         >
                           Previous
                         </button>
                         <button
                           onClick={submitAnswer}
                           disabled={submittingExam}
-                          className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors"
+                          className="px-5 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors font-medium disabled:bg-indigo-400"
                         >
-                          {submittingExam && <><Loader size="small"/> <span className={"pl-1"}>Submitting...</span></>}
-                          {!submittingExam && currentQuestionIndex === selectedExam.questions.length - 1 ? 'Submit Exam' : 'Next Question'}
+                          {submittingExam && <><Loader size="small"/> <span
+														className={"pl-2"}>Submitting...</span></>}
+                          {!submittingExam && (currentQuestionIndex === selectedExam.questions.length - 1 ? 'Submit Exam' : 'Save & Next')}
                         </button>
                       </div>
                     </div>
