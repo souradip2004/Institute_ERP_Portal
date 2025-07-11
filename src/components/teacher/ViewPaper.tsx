@@ -1,7 +1,7 @@
 // components/exam/AnswerScriptGrader.tsx
 "use client";
 import {useState, useEffect} from 'react';
-import {Loader2, AlertCircle, CheckCircle, FileText, MessageSquare, KeyRound, Eye, X} from 'lucide-react';
+import {Loader2, AlertCircle, CheckCircle, FileText, MessageSquare, KeyRound, Eye, X, Pencil} from 'lucide-react';
 import {Exam} from "@/types/exam";
 
 interface Question {
@@ -77,7 +77,6 @@ const ImagePreviewModal = ({ imageUrl, onClose }: ImagePreviewModalProps) => {
     </div>
   );
 };
-// ==========================================================
 
 const AnswerScriptGrader = ({id, studentId, setSubmittedExam, setViewPaperOpen}: AnswerScriptGraderProps) => {
   const [submission, setSubmission] = useState<ExamSubmission | null>(null);
@@ -89,6 +88,21 @@ const AnswerScriptGrader = ({id, studentId, setSubmittedExam, setViewPaperOpen}:
   const [overallFeedback, setOverallFeedback] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
+  const [isEditing, setIsEditing] = useState<boolean>(false); // State for edit mode
+
+  // Helper function to reset form state to initial loaded values
+  const resetFormState = (submissionData: ExamSubmission) => {
+    const initialMarks: { [key: string]: number } = {};
+    const initialRemarks: { [key: string]: string } = {};
+    submissionData.answerScripts.forEach((script: AnswerScript) => {
+      initialMarks[script.id] = script.obtainedMarks ?? 0;
+      initialRemarks[script.id] = script.remarks ?? '';
+    });
+
+    setAwardedMarks(initialMarks);
+    setFeedbackRemarks(initialRemarks);
+    setOverallFeedback(submissionData.feedback ?? '');
+  }
 
   useEffect(() => {
     if (!id || !studentId) {
@@ -113,17 +127,7 @@ const AnswerScriptGrader = ({id, studentId, setSubmittedExam, setViewPaperOpen}:
 
         console.log("Answer Script: ", data.examSubmission)
         setSubmission(data.examSubmission);
-
-        const initialMarks: { [key: string]: number } = {};
-        const initialRemarks: { [key: string]: string } = {};
-        data.examSubmission.answerScripts.forEach((script: AnswerScript) => {
-          initialMarks[script.id] = script.obtainedMarks ?? 0;
-          initialRemarks[script.id] = script.remarks ?? '';
-        });
-
-        setAwardedMarks(initialMarks);
-        setFeedbackRemarks(initialRemarks);
-        setOverallFeedback(data.examSubmission.feedback ?? '');
+        resetFormState(data.examSubmission);
 
       } catch (err: any) {
         setError(err.message || 'An unknown error occurred.');
@@ -156,6 +160,13 @@ const AnswerScriptGrader = ({id, studentId, setSubmittedExam, setViewPaperOpen}:
     return submission?.answerScripts.reduce((total, script) => total + script.question.marks, 0) || 0;
   }
 
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    if (submission) {
+      resetFormState(submission); // Reset changes on cancel
+    }
+  }
+
   const handleSubmitGrades = async () => {
     if (!submission) return;
     setIsSubmitting(true);
@@ -163,7 +174,7 @@ const AnswerScriptGrader = ({id, studentId, setSubmittedExam, setViewPaperOpen}:
       return {
         id: script.id,
         obtainedMarks: awardedMarks[script.id] || 0,
-        remarks: feedbackRemarks[script.id] || null
+        remarks: feedbackRemarks[script.id] || ''
       };
     });
 
@@ -195,6 +206,7 @@ const AnswerScriptGrader = ({id, studentId, setSubmittedExam, setViewPaperOpen}:
         ),
       }));
 
+      setIsEditing(false); // Exit editing mode on successful submission
       setIsSubmitting(false);
       setViewPaperOpen(false);
     } catch (error) {
@@ -214,15 +226,29 @@ const AnswerScriptGrader = ({id, studentId, setSubmittedExam, setViewPaperOpen}:
     className="h-12 w-12 mb-4"/><p className="text-lg">No submission data found.</p></div>;
 
   const isGraded = submission.status === 'GRADED';
+  const canEdit = isGraded && isEditing;
+  const isReadOnly = isGraded && !isEditing;
 
   return (
     <>
       {previewImageUrl && <ImagePreviewModal imageUrl={previewImageUrl} onClose={() => setPreviewImageUrl(null)} />}
       <div className="bg-white text-gray-800 p-6 md:p-8 rounded-xl shadow-lg border border-gray-200 font-sans mt-4">
         <header className="mb-8 border-b border-gray-200 pb-6">
-          <h1 className="text-3xl font-bold text-blue-600 flex items-center">
-            {isGraded ? <><Eye className="mr-3 h-8 w-8"/>View Graded Script</> : 'Answer Script Grading'}
-          </h1>
+          <div className="flex justify-between items-center">
+            <h1 className="text-3xl font-bold text-blue-600 flex items-center">
+              {isGraded ? <><Eye className="mr-3 h-8 w-8"/>View Graded Script</> : 'Answer Script Grading'}
+            </h1>
+            {isReadOnly && (
+              <button onClick={() => setIsEditing(true)} className="flex items-center px-4 py-2 bg-blue-100 text-blue-800 text-sm font-semibold rounded-lg hover:bg-blue-200 transition-colors">
+                <Pencil className="mr-2 h-4 w-4" /> Edit Grades
+              </button>
+            )}
+            {canEdit && (
+              <button onClick={handleCancelEdit} className="flex items-center px-4 py-2 bg-red-100 text-red-800 text-sm font-semibold rounded-lg hover:bg-red-200 transition-colors">
+                <X className="mr-2 h-4 w-4" /> Cancel Edit
+              </button>
+            )}
+          </div>
           <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4 text-gray-600">
             <p><span
               className="font-semibold text-gray-500">Submission Time:</span> {new Date(submission.submissionTime).toLocaleString()}
@@ -253,7 +279,6 @@ const AnswerScriptGrader = ({id, studentId, setSubmittedExam, setViewPaperOpen}:
                   {script.studentAnswer || <span className="text-gray-500 italic">No text answer provided.</span>}
                 </div>
 
-                {/* =========== DISPLAY SUBMITTED IMAGES =========== */}
                 {script.question.questionType === 'LONG_ANSWER' && script.answerImgURL && script.answerImgURL.length > 0 && (
                   <div className="mt-4">
                     <label className="font-semibold text-gray-800 flex items-center mb-2">
@@ -276,7 +301,6 @@ const AnswerScriptGrader = ({id, studentId, setSubmittedExam, setViewPaperOpen}:
                     </div>
                   </div>
                 )}
-                {/* ================================================= */}
               </div>
 
               <div className="mb-5">
@@ -299,7 +323,7 @@ const AnswerScriptGrader = ({id, studentId, setSubmittedExam, setViewPaperOpen}:
                     placeholder="Add remarks for this answer..."
                     value={feedbackRemarks[script.id] || ''}
                     onChange={(e) => handleFeedbackChange(script.id, e.target.value)}
-                    disabled={isGraded}
+                    disabled={isReadOnly}
                   />
                 </div>
                 <div className="md:col-span-4 self-end">
@@ -307,12 +331,12 @@ const AnswerScriptGrader = ({id, studentId, setSubmittedExam, setViewPaperOpen}:
                   <div className="flex items-center justify-start md:justify-end space-x-2">
                     <input
                       type="number"
-                      value={awardedMarks[script.id] ?? 0}
+                      value={awardedMarks[script.id] ?? ''}
                       onChange={(e) => handleMarksChange(script.id, e.target.value, script.question.marks)}
                       className="w-20 p-2 text-center bg-white border border-gray-300 rounded-md text-gray-900 font-bold focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none disabled:bg-gray-100 disabled:cursor-not-allowed"
                       max={script.question.marks}
                       min={0}
-                      disabled={isGraded}
+                      disabled={isReadOnly}
                     />
                     <span className="text-gray-400 text-xl">/</span>
                     <span className="w-8 text-left font-bold text-xl text-blue-600">{script.question.marks}</span>
@@ -334,7 +358,7 @@ const AnswerScriptGrader = ({id, studentId, setSubmittedExam, setViewPaperOpen}:
             placeholder="Provide a summary of the student's performance on the entire exam..."
             value={overallFeedback}
             onChange={(e) => setOverallFeedback(e.target.value)}
-            disabled={isGraded}
+            disabled={isReadOnly}
           />
         </div>
 
@@ -344,15 +368,15 @@ const AnswerScriptGrader = ({id, studentId, setSubmittedExam, setViewPaperOpen}:
             <span className="text-blue-600">{calculateTotalObtainedMarks()} / {calculateTotalMaxMarks()}</span>
           </div>
 
-          {!isGraded && (
+          {(!isGraded || isEditing) && (
             <button
               disabled={isSubmitting}
               onClick={handleSubmitGrades}
               className={`mt-4 md:mt-0 flex items-center justify-center px-6 py-3 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition-all duration-200 shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-blue-500 ${isSubmitting ? 'opacity-70 cursor-not-allowed' : ''}`}>
               {isSubmitting ? (
-                <><Loader2 className="h-5 w-5 mr-2 animate-spin"/>Submitting...</>
+                <><Loader2 className="h-5 w-5 mr-2 animate-spin"/>{isEditing ? 'Updating...' : 'Submitting...'}</>
               ) : (
-                <><CheckCircle className="h-5 w-5 mr-2"/>Submit Grades</>
+                <><CheckCircle className="h-5 w-5 mr-2"/>{isEditing ? 'Update Grades' : 'Submit Grades'}</>
               )}
             </button>
           )}
