@@ -33,7 +33,7 @@ export class ExamSubmissionService {
         answerScripts: {
           create: answerScripts,
         },
-      },
+      }
     });
   }
 
