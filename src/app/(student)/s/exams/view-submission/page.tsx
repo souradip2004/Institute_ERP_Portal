@@ -1,6 +1,6 @@
 "use client";
 
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect,Suspense} from 'react';
 import {useSearchParams} from "next/navigation";
 import {Loader2, AlertCircle, FileText, CheckCircle, MessageSquare, KeyRound, BookOpenCheck, XCircle, X} from 'lucide-react';
 
@@ -29,6 +29,12 @@ interface ExamSubmission {
   feedback: string | null;
   answerScripts: AnswerScript[];
 }
+const PageLoader = () => (
+  <div className="flex flex-col items-center justify-center min-h-screen p-8 text-gray-500">
+    <Loader2 className="h-12 w-12 animate-spin mb-4 text-indigo-600"/>
+    <p className="text-lg font-medium">Loading Submission Details...</p>
+  </div>
+);
 
 // --- IMAGE PREVIEW MODAL ---
 const ImagePreviewModal = ({ imageUrl, onClose }: { imageUrl: string, onClose: () => void }) => {
@@ -302,4 +308,11 @@ function Page() {
   );
 }
 
-export default Page;
+export default function SubmissionPageWrapper() {
+  return (
+    // Wrap the component that uses useSearchParams with Suspense
+    <Suspense fallback={<PageLoader />}>
+      <Page />
+    </Suspense>
+  );
+}
