@@ -4,7 +4,15 @@ export class CreditService {
     async getAll() {
         return await prisma.credit.findMany();
     }
-
+async getcoinsById(id: string) {
+        console.log("Fetching coins for user:", id);
+        return await prisma.user.findUnique({
+            where: { id },
+            select: {
+                coins: true,
+            },
+        });
+    }
     async getById(id: string, month: number, year: number) {
         let credit = await prisma.credit.findFirst({
             where: {

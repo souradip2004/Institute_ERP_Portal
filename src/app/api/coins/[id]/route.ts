@@ -2,7 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { creditController } from '@/controllers/creditController';
 
 const examSubmissionController = new creditController();
-
+export async function GET(req: NextRequest, context: { params: Promise<{ id: string }> }) {
+  // Corrected line: Await context.params before destructuring
+  const { id } = await context.params; // <--- This is the fix!
+  return examSubmissionController.getcoinsById(id);
+}
 export async function POST(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   // Corrected line: Await context.params before destructuring
   const { id } = await context.params; // <--- This is the fix!
