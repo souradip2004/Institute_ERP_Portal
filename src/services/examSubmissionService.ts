@@ -12,27 +12,17 @@ export class ExamSubmissionService {
   }
 
   async create(data: any) {
-    console.log(data.answers);
+    console.log("Incoming answers:", data.answers);
 
-    // Use Object.keys() for plain objects
-    const questionIds = Object.keys(data.answers);
+    // Use .map() to correctly transform the array of answers
+    const answerScripts = data.answers.map((answer: any) => ({
+      questionId: answer.questionId, // Correctly access the questionId from each object
+      studentAnswer: answer.studentAnswer,
+      answerImgURL: answer.answerImgURL,
+      status: data.status, // You can also use answer.status if it's part of the answer object
+    }));
 
-    const answerScripts: Array<{
-      questionId: string;
-      studentAnswer: string;
-      status: 'PENDING';
-    }> = [];
-
-    for (const key of questionIds) {
-      answerScripts.push({
-        questionId: key,
-        // Use bracket notation to get the value from the object
-        studentAnswer: data.answers[key],
-        status: data.status,
-      });
-    }
-
-    console.log("Answer Scripts: ", answerScripts);
+    console.log("Corrected Answer Scripts: ", answerScripts);
 
     return prisma.examSubmission.create({
       data: {
@@ -43,9 +33,10 @@ export class ExamSubmissionService {
         answerScripts: {
           create: answerScripts,
         },
-      },
+      }
     });
   }
+
   async getById(id: string) {
     return prisma.examSubmission.findUnique({
       where: {id},

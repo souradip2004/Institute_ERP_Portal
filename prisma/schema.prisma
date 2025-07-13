@@ -767,6 +767,7 @@ model AnswerScript {
   id               String             @id @default(cuid())
   examSubmissionId String             @map("exam_submission_id")
   questionId       String             @map("question_id")
+  answerImgURL     String[]
   studentAnswer    String             @map("student_answer")
   obtainedMarks    Float              @default(0) @map("obtained_marks")
   remarks          String?

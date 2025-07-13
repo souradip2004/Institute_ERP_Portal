@@ -43,6 +43,7 @@ export async function GET(
             studentAnswer: true,
             obtainedMarks: true,
             remarks: true,
+            answerImgURL: true,
             question: {
               select: {
                 questionText: true,

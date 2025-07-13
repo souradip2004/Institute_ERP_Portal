@@ -3,6 +3,20 @@ import {CreditService} from '@/services/creditService'
 import { error } from 'console';
 const transactionService = new CreditService();
 export class creditController{
+    
+       async getcoinsById(id:string){
+            try{
+            const transaction=await transactionService.getcoinsById(id);
+            if(!transaction){
+                return NextResponse.json({ error: "no database found" }, { status: 404 })
+            }else{
+                return NextResponse.json(transaction);
+            }
+            }
+            catch(error){
+                return NextResponse.json({error},{status:500})
+            }
+        }
         async getall(){
             const transaction=await transactionService.getAll();
             if(!transaction){

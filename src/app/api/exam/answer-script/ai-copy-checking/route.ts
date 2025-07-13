@@ -1,9 +1,6 @@
 import {NextRequest, NextResponse} from "next/server";
 import prisma from "@/lib/prisma";
 import axios from "axios";
-import jwt from 'jsonwebtoken';
-
-const SECRET_KEY = process.env.JWT_SECRET || 'your-secret-key';
 
 export async function GET(
   req: NextRequest
@@ -16,27 +13,28 @@ export async function GET(
 
     if (!id || !studentId || !teacherId) {
       return NextResponse.json(
-        {error: "Missing required parameters: id, examId, and studentId"},
+        {error: "Missing required parameters: id, studentId, and teacherId"},
         {status: 400}
       );
     }
 
     const teacher = await prisma.teacher.findUnique({
       where: {id: teacherId}
-    })
+    });
 
     if (!teacher) {
       return NextResponse.json({error: "Teacher record not found"}, {status: 403});
     }
-    // Get teacher record
+
     const student = await prisma.student.findFirst({
       where: {id: studentId}
     });
+
     if (!student) {
       return NextResponse.json({error: "Student record not found"}, {status: 403});
     }
 
-    // Get the exam with detailed question information
+    // Fetch the submission with a guaranteed order for the answer scripts.
     const examSubmission = await prisma.examSubmission.findUnique({
       where: {
         id: id,
@@ -44,12 +42,20 @@ export async function GET(
       },
       include: {
         answerScripts: {
+          orderBy: {
+            question: {
+              // This orderBy is crucial for maintaining order.
+              id: 'asc'
+            }
+          },
           select: {
             id: true,
             studentAnswer: true,
+            answerImgURL: true,
             status: true,
             question: {
               select: {
+                id: true,
                 questionText: true,
                 questionType: true,
                 correctAnswer: true,
@@ -62,81 +68,104 @@ export async function GET(
       }
     });
 
-    console.log("Submitted answer script ", examSubmission);
     if (!examSubmission) {
-      return NextResponse.json({error: "Exam not found"}, {status: 404});
+      return NextResponse.json({error: "Exam submission not found"}, {status: 404});
     }
 
     if (examSubmission.status === 'GRADED') {
-      return NextResponse.json({error: "Exam already Graded"}, {status: 400})
+      return NextResponse.json({error: "Exam already graded"}, {status: 400});
     }
 
-    const modelAns: Record<string, string[][]> = {};
-    const studentAns: Record<string, string[][]> = {};
-    const configJson: Record<string, [number, string, number, number]> = {};
-
-    examSubmission.answerScripts.forEach((script, index) => {
-      const key = String(index + 1); // "1", "2", ...
-      // @ts-ignore
-      modelAns[key] = [[script.question.correctAnswer[0] as string || ""]];
-      studentAns[key] = [[script.studentAnswer || ""]];
-      configJson[key] = [
-        script.question.marks || 0,
-        script.question.difficultyLevel || "Medium",
-        0,
-        0
-      ];
-    });
-
-    const payload = {
-      model_json_anskey: JSON.stringify(modelAns, null, 2),
-      student_json_ans: JSON.stringify(studentAns, null, 2),
-      config_json: JSON.stringify(configJson, null, 2)
-    };
-
-    const response = await axios.post(
-      'https://answer-checking-4-dad1d16-v3.app.beam.cloud',
-      payload,
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer cpxjIHGyDUggeCZSEgd7TSs_xuIaJLxQyplSlPcpEv35qftljIUmetr9Drtj_MUyC9PUSJLvV1vbjljWohB8Sw=='
-        },
-      }
+    // Step 1: Isolate long-answer scripts to prepare the AI payload.
+    const longAnswerScripts = examSubmission.answerScripts.filter(
+      script => script.question.questionType === 'LONG_ANSWER'
     );
 
-    console.log("Response:", response.data);
-    const rawResults = response.data.final_results_data;
+    // This map will hold the AI-calculated scores, keyed by the answer script's ID for accuracy.
+    const aiScores = new Map<string, number>();
 
-    const parsedScores = JSON.parse(rawResults[2]);
+    // Step 2: If there are long-answer questions, send them to the AI service.
+    if (longAnswerScripts.length > 0) {
+      const modelAns: Record<string, string[][]> = {};
+      const studentAns: Record<string, string[][]> = {};
+      const configJson: Record<string, [number, string, number, number]> = {};
 
-    let index = 1;
+      // Prepare the payload for the AI service.
+      longAnswerScripts.forEach((script, index) => {
+        const key = String(index + 1); // The AI service requires a 1-based index as a key.
+        modelAns[key] = [[script.question.correctAnswer[0] || ""]];
+        studentAns[key] = [[script.studentAnswer || ""]];
+        configJson[key] = [
+          script.question.marks || 0,
+          script.question.difficultyLevel || "Hard",
+          0,
+          0
+        ];
+      });
+
+      const payload = {
+        model_json_anskey: JSON.stringify(modelAns),
+        student_json_ans: JSON.stringify(studentAns),
+        config_json: JSON.stringify(configJson)
+      };
+
+      const response = await axios.post(
+        'https://answer-checking-4-dad1d16-v3.app.beam.cloud',
+        payload,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer cpxjIHGyDUggeCZSEgd7TSs_xuIaJLxQyplSlPcpEv35qftljIUmetr9Drtj_MUyC9PUSJLvV1vbjljWohB8Sw=='
+          },
+        }
+      );
+
+      const rawResults = response.data.final_results_data;
+      const parsedScores = JSON.parse(rawResults[2]);
+
+      // Map the AI results back to our answer scripts using their original order and unique ID.
+      longAnswerScripts.forEach((script, index) => {
+        const key = String(index + 1);
+        const score = Number((parsedScores[key]?.[`Updated_Score (?/${script.question.marks})`] ?? 0).toFixed(2));
+        aiScores.set(script.id, score); // Use the script's unique ID as the key in our map.
+      });
+    }
+
+    // Step 3: Iterate through the ORIGINAL, SORTED answer scripts to calculate marks
+    // and create update promises in the correct order.
     let totalMarks = 0;
-    for (const answer of examSubmission.answerScripts) {
-      if (answer.id === undefined) {
-        return new NextResponse(JSON.stringify({error: "Each script must have an 'id' and 'obtainedMarks'."}), {status: 400});
-      }
+    const updatePromises = examSubmission.answerScripts.map(script => {
+      let score = 0;
+      const isAiGraded = true;
 
-      const key = String(index);
-      const score = Number((parsedScores[key]?.[`Updated_Score (?/${answer.question.marks})`] ?? 0).toFixed(2));
+      if (script.question.questionType === 'LONG_ANSWER') {
+        score = aiScores.get(script.id) || 0;
+      } else if (script.question.questionType === 'MCQ') {
+        if (script.question.correctAnswer.includes(script.studentAnswer)) {
+          score = script.question.marks;
+        }
+      }
+      // You can add more grading logic for other question types here.
+
       totalMarks += score;
-      await prisma.answerScript.update({
-        where: {
-          id: answer.id,
-          examSubmissionId: examSubmission.id,
-        },
+
+      // Return the promise for this update.
+      return prisma.answerScript.update({
+        where: { id: script.id },
         data: {
           obtainedMarks: score,
           status: "GRADED",
-          isAiGraded: true,
+          isAiGraded: isAiGraded,
           gradedById: teacherId,
           gradedAt: new Date()
         },
       });
+    });
 
-      index++;
-    }
+    // Step 4: Execute all database updates.
+    await Promise.all(updatePromises);
 
+    // Step 5: Finalize the submission with the total marks.
     totalMarks = Number(totalMarks.toFixed(2));
     const updatedSubmission = await prisma.examSubmission.update({
       where: {
@@ -150,12 +179,14 @@ export async function GET(
       },
     });
 
+    // Note: The frontend must re-fetch the submission data after grading.
+    // To see the correct order, it must use the same 'orderBy' clause used in this function.
     return NextResponse.json(updatedSubmission, {status: 200});
 
   } catch (error: any) {
-    console.error("Error fetching exam details:", error);
+    console.error("Error during AI grading:", error);
     return NextResponse.json(
-      {error: "Failed to fetch exam details", details: error.message},
+      {error: "Failed to grade exam", details: error.message},
       {status: 500}
     );
   }
