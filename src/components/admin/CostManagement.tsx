@@ -136,11 +136,6 @@ const CostManagementPage: React.FC<ViewCost> = ({ id }) => {
           color="#10b981"
         />
         <CreditCard
-          title="Assignment Credits Used"
-          balance={costDetails.assignmentCreditsBalane}
-          color="#a855f7"
-        />
-        <CreditCard
           title="Copy Checking Credits Used"
           balance={costDetails.copyCheckingCreditsBalance}
           color="#f59e42"
@@ -170,7 +165,7 @@ Credits Used"
           </div>
         </div>
       </div>
-
+{/*
       <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
         <EditableLimitCard
           label="Student Daily Limit"
@@ -193,7 +188,7 @@ Credits Used"
           costDetails={costDetails}
           setCostDetails={setCostDetails}
         />
-      </div>
+      </div>*/}
     </div>
   );
 };
