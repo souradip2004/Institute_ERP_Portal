@@ -116,7 +116,7 @@ export async function GET(
           headers: {
             'Content-Type': 'application/json',
             'Authorization': 'Bearer cpxjIHGyDUggeCZSEgd7TSs_xuIaJLxQyplSlPcpEv35qftljIUmetr9Drtj_MUyC9PUSJLvV1vbjljWohB8Sw=='
-          },
+          }
         }
       );
 

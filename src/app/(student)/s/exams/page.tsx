@@ -3,7 +3,8 @@ import React, {useState, useEffect, useCallback, useRef} from 'react';
 import Link from 'next/link';
 import Loader from '@/components/ui/Loader';
 import {useRouter} from 'next/navigation';
-import {S3Utils} from "@/utils/s3Utils"; // Import the router
+import {S3Utils} from "@/utils/s3Utils";
+import {uploadImageToCloudinary} from "@/utils/uploadImageToCloudinary"; // Import the router
 
 // --- INTERFACES (Added passingMarks) ---
 interface Question {
@@ -11,6 +12,7 @@ interface Question {
   questionText: string;
   marks: number;
   options?: string[];
+  diagramImgURL: string[];
 }
 
 interface ExamType {
@@ -49,7 +51,6 @@ interface Exam {
   createdAt?: string;
   obtainedMarks?: number;
   classSectionId?: string;
-
 }
 
 export default function ExamsPage() {
@@ -70,18 +71,25 @@ export default function ExamsPage() {
   const [examCompleted, setExamCompleted] = useState(false);
   const [submittingExam, setSubmittingExam] = useState(false);
 
+
   const [activeFilter, setActiveFilter] = useState('All');
   const [showCloseConfirmModal, setShowCloseConfirmModal] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = React.useState(false);
   const [currentImageUploads, setCurrentImageUploads] = useState<Array<{ url: string; fileName: string }>>([]);
+  const [currentDiagramUploads, setCurrentDiagramUploads] = useState<Array<{ url: string; fileName: string }>>([]);
 
 // Modify the 'answers' state to hold an object with the answer text and image URLs
   const [answers, setAnswers] = useState<{
-    [key: string]: { studentAnswer: string; answerImgURL: Array<{ url: string; fileName: string }> }
+    [key: string]: {
+      studentAnswer: string;
+      answerImgURL: Array<{ url: string; fileName: string }>;
+      diagramImgURL: Array<{ url: string; fileName: string }>; // <-- Add this line
+    }
   }>({});
 
+  const diagramFileInputRef = useRef<HTMLInputElement>(null);
   const latestAnswersRef = useRef(answers);
 
   useEffect(() => {
@@ -98,8 +106,8 @@ export default function ExamsPage() {
   }, [currentQuestionIndex, selectedExam, answers]);
 
   useEffect(() => {
-    console.log("Answers: ", answers);
-  }, [answers]);
+    console.log("Selected exam: ", selectedExam);
+  }, [selectedExam]);
 
   // --- NEW: Function to handle navigation to the submission view ---
   const fetchSubmission = (submissionId: string) => {
@@ -146,8 +154,7 @@ export default function ExamsPage() {
         const subject =
           exam.subject ||
           (exam.examType && exam.examType.name) ||
-          (exam.classSection && exam.classSection.course && exam.classSection.course.name) ||
-          'Unknown Subject';
+          (exam.classSection && exam.classSection.course && exam.classSection.course.name) || 'Unknown Subject';
         const startTime = new Date(exam.startTime);
         const endTime = new Date(exam.endTime);
         const startDateTime = new Date(exam.examDate);
@@ -286,24 +293,6 @@ export default function ExamsPage() {
     };
   }, [examInProgress]);
 
-
-  const uploadImageToCloudinary = useCallback(async (file: File): Promise<string> => {
-    try {
-      const arrayBuffer = await file.arrayBuffer();
-      const buffer = Buffer.from(arrayBuffer);
-
-      // Upload using your S3 utility
-      const key = await S3Utils.uploadFile(buffer, file.name, file.type);
-      const publicUrl = S3Utils.getPublicUrl(key);
-
-      console.log(publicUrl);
-      return publicUrl; // Return the public URL string
-    } catch (err) {
-      console.error("Cloudinary upload error:", err);
-      throw new Error("Image upload failed. Please try again.");
-    }
-  }, []);
-
   // This is the handler function for the input's onChange event
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -384,8 +373,32 @@ export default function ExamsPage() {
     }
   };
 
+  const handleDiagramUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
 
-  const submitExam = useCallback(async (finalAnswers: { [key: string]: { studentAnswer: string; answerImgURL: Array<{ url: string; fileName: string }> } }) => {
+    setIsUploading(true);
+    try {
+      const publicUrl = await uploadImageToCloudinary(file);
+      // Update the new diagram state
+      setCurrentDiagramUploads(prev => [...prev, { url: publicUrl, fileName: file.name }]);
+    } catch (error) {
+      console.error('Diagram upload failed:', error);
+    } finally {
+      setIsUploading(false);
+      if (diagramFileInputRef.current) {
+        diagramFileInputRef.current.value = "";
+      }
+    }
+  };
+
+  const handleRemoveDiagram = (fileName: string) => {
+    setCurrentDiagramUploads(prev => prev.filter(image => image.fileName !== fileName));
+  };
+
+
+  const submitExam = useCallback(async (finalAnswers: { [key: string]: {
+      studentAnswer: string; answerImgURL: Array<{ url: string; fileName: string }> } }) => {
     if (!selectedExam || !studentData) return;
     setSubmittingExam(true);
 
@@ -393,11 +406,10 @@ export default function ExamsPage() {
     const answerScripts = Object.entries(finalAnswers).map(([questionId, answerData]) => ({
       questionId: questionId,
       studentAnswer: answerData.studentAnswer,
-      // Extract just the URLs for the payload
       answerImgURL: answerData.answerImgURL.map(img => img.url),
+      diagramImgURL: (answerData.diagramImgURL || []).map(img => img.url),
       status: 'PENDING'
     }));
-
     try {
       const response = await fetch('/api/exams/submit', {
         method: 'POST',
@@ -406,7 +418,6 @@ export default function ExamsPage() {
           examId: selectedExam.id,
           status: "PENDING",
           studentId: studentData?.studentId,
-          // The key is 'answers' and the value is the formatted array
           answers: answerScripts
         })
       });
@@ -466,7 +477,8 @@ export default function ExamsPage() {
       ...answers,
       [currentQuestion.id]: {
         studentAnswer: currentAnswer.trim(),
-        answerImgURL: currentImageUploads
+        answerImgURL: currentImageUploads,
+        diagramImgURL: currentDiagramUploads // <-- Add this line
       }
     };
 
@@ -509,6 +521,8 @@ export default function ExamsPage() {
     setCurrentImageUploads([]); // Reset the new image state
     setCurrentQuestionIndex(0);
     setExamCompleted(false);
+    setCurrentDiagramUploads([]); // <-- Add this line
+    setCurrentQuestionIndex(0);
   };
 
   if (loading) {
@@ -730,7 +744,7 @@ export default function ExamsPage() {
 
       {showExamModal && selectedExam && (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-xl">
+          <div className="bg-white rounded-lg max-w-5xl w-full max-h-[90vh] overflow-y-auto shadow-xl">
             {!examCompleted ? (
               <>
                 <div
@@ -792,19 +806,83 @@ export default function ExamsPage() {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                           {/* Left Column: Text Area */}
                           <div>
-                            <textarea
-                              className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all text-base"
-                              rows={12}
-                              value={currentAnswer}
-                              onChange={(e) => setCurrentAnswer(e.target.value)}
-                              placeholder="Write your answer here..."
-                            />
+                      <textarea
+                        className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all text-base"
+                        rows={24} // Increased rows to better fit the layout
+                        value={currentAnswer}
+                        onChange={(e) => setCurrentAnswer(e.target.value)}
+                        placeholder="Write your answer here..."
+                      />
                           </div>
 
-                          {/* Right Column: Multiple Image Upload */}
-                          <div>
+                          {/* Right Column: All Uploaders */}
+                          <div className="flex flex-col gap-6">
+                            {/* --- BEGIN: DIAGRAM UPLOADER (CONDITIONAL) --- */}
+                            {currentQuestion.diagramImgURL && currentQuestion.diagramImgURL.length > 0 && (
+                              <div className="border border-gray-200 rounded-lg p-4 bg-gray-50 h-full">
+                                <h3 className="font-semibold text-gray-700 mb-3">Upload Diagram</h3>
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  ref={diagramFileInputRef}
+                                  onChange={handleDiagramUpload}
+                                  className="hidden"
+                                  disabled={isUploading}
+                                />
+                                <button
+                                  onClick={() => diagramFileInputRef.current?.click()}
+                                  disabled={isUploading}
+                                  className="w-full flex items-center justify-center gap-2 text-sm bg-white border border-gray-300 text-gray-700 font-medium py-2 px-4 rounded-md hover:bg-gray-100 transition-colors disabled:opacity-50"
+                                >
+                                  {isUploading ? (
+                                    <>
+                                      <Loader size="small"/>
+                                      <span>Uploading...</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none"
+                                           viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                        <path strokeLinecap="round" strokeLinejoin="round"
+                                              d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                                      </svg>
+                                      <span>Upload Diagram</span>
+                                    </>
+                                  )}
+                                </button>
+
+                                <div className="mt-4">
+                                  {currentDiagramUploads.length > 0 ? (
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                                      {currentDiagramUploads.map((image, index) => (
+                                        <div key={index} className="relative group">
+                                          <div className="w-full h-24 bg-gray-100 rounded-lg overflow-hidden border-2 border-transparent group-hover:border-indigo-500 transition-all duration-200">
+                                            <img src={image.url} alt={image.fileName} className="w-full h-full object-cover" />
+                                          </div>
+                                          <p className="mt-1 text-xs text-center text-gray-700 truncate" title={image.fileName}>{image.fileName}</p>
+                                          <button
+                                            onClick={() => handleRemoveDiagram(image.fileName)}
+                                            className="absolute top-1 right-1 h-6 w-6 bg-red-600 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                                            aria-label="Remove diagram"
+                                          >
+                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                            </svg>
+                                          </button>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  ) : (
+                                    <div className="text-center py-2">
+                                      <p className="text-xs text-gray-500">No diagram uploaded.</p>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+
                             <div className="border border-gray-200 rounded-lg p-4 bg-gray-50 h-full">
-                              <h3 className="font-semibold text-gray-700 mb-3">Attach Images (Optional)</h3>
+                              <h3 className="font-semibold text-gray-700 mb-3">Attach Images</h3>
                               <input
                                 type="file"
                                 accept="image/*"
@@ -835,30 +913,20 @@ export default function ExamsPage() {
                                 )}
                               </button>
 
-                              {/* Multiple Image Preview Area */}
                               <div className="mt-4">
                                 {currentImageUploads.length > 0 ? (
-                                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                                     {currentImageUploads.map((image, index) => (
                                       <div key={index} className="relative group">
-                                        {/* Larger image preview */}
-                                        <div className="w-full h-32 bg-gray-100 rounded-lg overflow-hidden border-2 border-transparent group-hover:border-indigo-500 transition-all duration-200">
-                                          <img
-                                            src={image.url}
-                                            alt={image.fileName}
-                                            className="w-full h-full object-cover"
-                                          />
+                                        <div className="w-full h-24 bg-gray-100 rounded-lg overflow-hidden border-2 border-transparent group-hover:border-indigo-500 transition-all duration-200">
+                                          <img src={image.url} alt={image.fileName} className="w-full h-full object-cover"/>
                                         </div>
-
-                                        {/* File name below the image */}
-                                        <p className="mt-2 text-xs text-center text-gray-700 truncate" title={image.fileName}>
+                                        <p className="mt-1 text-xs text-center text-gray-700 truncate" title={image.fileName}>
                                           {image.fileName}
                                         </p>
-
-                                        {/* Remove button */}
                                         <button
                                           onClick={() => handleRemoveImage(image.fileName)}
-                                          className="absolute top-2 right-2 h-6 w-6 bg-red-600 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 transform scale-75 group-hover:scale-100"
+                                          className="absolute top-1 right-1 h-6 w-6 bg-red-600 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200"
                                           aria-label="Remove image"
                                         >
                                           <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -869,7 +937,7 @@ export default function ExamsPage() {
                                     ))}
                                   </div>
                                 ) : (
-                                  <div className="text-center py-4">
+                                  <div className="text-center py-2">
                                     <p className="text-xs text-gray-500">No images uploaded.</p>
                                   </div>
                                 )}
@@ -881,7 +949,7 @@ export default function ExamsPage() {
 
                       <div className="flex justify-between mt-6 pt-6 border-t flex-wrap gap-2">
                         <button
-                          onClick={handlePrevious} // Use the new handler function
+                          onClick={handlePrevious}
                           disabled={currentQuestionIndex === 0}
                           className="px-5 py-2 border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors font-medium"
                         >
@@ -903,8 +971,7 @@ export default function ExamsPage() {
               </>
             ) : (
               <div className="text-center p-10">
-                <div
-                  className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" fill="none" viewBox="0 0 24 24"
                        stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7"/>

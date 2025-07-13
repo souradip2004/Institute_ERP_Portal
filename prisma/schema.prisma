@@ -480,6 +480,7 @@ model Question {
   marks           Float          @default(0)
   difficultyLevel String         @map("difficulty_level")
   correctAnswer   Json           @map("correct_answer")
+  diagramImgURL   String[]
   options         Json?
   createdById     String         @map("created_by")
   createdAt       DateTime       @default(now()) @map("created_at")
@@ -724,7 +725,7 @@ model FeesCollection {
   updatedAt     DateTime      @updatedAt @map("updated_at")
 
   classFee ClassFee @relation(fields: [classFeeId], references: [id])
-  student  Student  @relation(fields: [studentId], references: [id]) // This `student` relation needs an inverse on `Student`
+  student  Student  @relation(fields: [studentId], references: [id])
 
   @@map("fees_collections")
 }
@@ -767,6 +768,7 @@ model AnswerScript {
   id               String             @id @default(cuid())
   examSubmissionId String             @map("exam_submission_id")
   questionId       String             @map("question_id")
+  diagramImgURL    String[]
   answerImgURL     String[]
   studentAnswer    String             @map("student_answer")
   obtainedMarks    Float              @default(0) @map("obtained_marks")
