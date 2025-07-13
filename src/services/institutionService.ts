@@ -6,7 +6,15 @@ export class InstitutionService {
     console.log("Fetching all institutions");
     return prisma.institution.findMany();
   }
-
+async getAdminByInstitutionId(id: string) {
+    console.log("Fetching admin by institution ID:", id);
+    return prisma.user.findFirst({
+      where: {
+        institutionId: id,
+        role: 'ADMIN',
+      },
+    });
+  }
   async createInstitution(data: any) {
     console.log("Creating institution:", data);
     fs.writeFileSync("institution.json", JSON.stringify(data, null, 2));

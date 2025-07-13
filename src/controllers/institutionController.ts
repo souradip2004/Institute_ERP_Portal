@@ -22,7 +22,17 @@ export class InstitutionController {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
   }
-
+async getadminByInstitutionId(id: string) {
+    try {
+      const admin = await institutionService.getAdminByInstitutionId(id);
+      if (!admin) {
+        return NextResponse.json({ error: 'Admin not found' }, { status: 404 });
+      }
+      return NextResponse.json(admin);
+    } catch (error: any) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+  }
   async getInstitutionById(id: string) {
     try {
       const institution = await institutionService.getInstitutionById(id);
