@@ -9,6 +9,7 @@ import {Calendar, Clock, CheckCheck, X, FileText, BookOpen, GraduationCap, XCirc
 import {forceLogout as logoutAndRedirect} from "@/lib/logout-utils";
 import {FaCopy} from "react-icons/fa";
 import {useRouter} from "next/navigation";
+import {uploadImageToCloudinary} from "@/utils/uploadImageToCloudinary";
 
 // Updated Question Interface
 interface Question {
@@ -17,6 +18,7 @@ interface Question {
   options?: string[]; // Options are still part of the interface as manual entry can be MCQ
   isSelected: boolean;
   questionType: 'MCQ' | 'LONG_ANSWER' | "Both"; // Added questionType
+  diagramImgURL?: string[];
 }
 
 interface TeacherClassSection {
@@ -62,7 +64,7 @@ interface TeacherClassSection {
   } | null;
 }
 
-interface Exam {
+/*interface Exam {
   id: string;
   title: string;
   status: string;
@@ -118,6 +120,40 @@ interface Exam {
   examType?: {
     name: string;
   };
+}*/
+
+interface Exam {
+  id: string;
+  title: string;
+  status: string;
+  durationMinutes: number;
+  totalMarks: number;
+  passingMarks: number;
+  examDate: string;
+  startTime: string;
+  endTime: string;
+  questions: Array<{
+    id: string;
+    examId: string;
+    questionText: string;
+    questionType?: string; // This will now correctly reflect 'MCQ' or 'LONG_ANSWER'
+    marks: number;
+    options?: string[];
+    correctAnswer?: string[];
+    difficultyLevel?: string;
+    diagramImgURL?: string[];
+  }>;
+  classSection: {
+    batch: {
+      name: string;
+    };
+    semester: {
+      name: string;
+    };
+  };
+  examType?: {
+    name: string;
+  };
 }
 
 export default function ExamsPage() {
@@ -153,13 +189,13 @@ export default function ExamsPage() {
   const [loadingExamDetails, setLoadingExamDetails] = useState(false);
   const [creditsData, setcreditsData] = useState<any>(null);
 
-  const [difficulty, setDifficulty] = useState<'Easy' | 'Medium' | 'Hard'>("Medium");
+  const [difficulty, setDifficulty] = useState<'Easy' | 'Medium' | 'Hard'>("Hard");
 
   // const [aiQuestionType, setAiQuestionType] = useState<Array<AiQuestionType>>([]);
   // NEW: Holds the page numbers after the user clicks "Apply Range"
   const [selectedPages, setSelectedPages] = useState<number[]>([]);
 
-// NEW: Holds the single question type for the entire selected range
+  // NEW: Holds the single question type for the entire selected range
   const [selectedQuestionType, setSelectedQuestionType] = useState<'MCQ' | 'LONG_ANSWER' | 'Both'>('MCQ');
 
   const [pdfPageImages, setPdfPageImages] = useState<string[]>([]);
@@ -167,9 +203,12 @@ export default function ExamsPage() {
   const [startPage, setStartPage] = useState<string>('1');
   const [endPage, setEndPage] = useState<string>('');
 
+  const [uploadingDiagram, setUploadingDiagram] = useState(false);
+  const [selectedQuestionForDiagram, setSelectedQuestionForDiagram] = useState<number | null>(null);
+
   useEffect(() => {
-    console.log("All exams: ", exams);
-  }, [exams]);
+    console.log("All questions: ", questions);
+  }, [questions]);
 
   useEffect(() => {
     const startDate = new Date(`${examDate}T${startTime}`);
@@ -606,7 +645,13 @@ export default function ExamsPage() {
   const handleCreateExam = async () => {
     setError("");
     const selectedQuestions = questions.filter((q) => q.isSelected)
-    .map(({question, answer, options, questionType}) => ({question, answer, options, questionType})); // Include questionType
+    .map(({question, answer, options, questionType, diagramImgURL}) => ({
+      question,
+      answer,
+      options,
+      questionType,
+      diagramImgURL
+    }));
 
     if (selectedQuestions.length === 0) {
       setError("Please select at least one question");
@@ -926,7 +971,13 @@ export default function ExamsPage() {
   const handleCreateAiExams = async () => {
     try {
       const selectedQuestions = questions.filter((q) => q.isSelected)
-      .map(({question, answer, options, questionType}) => ({question, answer, options, questionType})); // Include questionType
+      .map(({question, answer, options, questionType, diagramImgURL}) => ({
+        question,
+        answer,
+        options,
+        questionType,
+        diagramImgURL
+      })); // Include questionType
 
       if (selectedQuestions.length === 0) {
         setError("Please select at least one question");
@@ -1073,6 +1124,42 @@ export default function ExamsPage() {
       }
       return newQuestions;
     });
+  };
+
+  const handleDiagramUpload = async (event: React.ChangeEvent<HTMLInputElement>, questionIndex: number) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setUploadingDiagram(true);
+    setSelectedQuestionForDiagram(questionIndex);
+
+    try {
+      const imageUrl = await uploadImageToCloudinary(file);
+      setQuestions(prevQuestions => prevQuestions.map((q, idx) => {
+        if (idx === questionIndex) {
+          const diagramImgURL = [...(q.diagramImgURL || []), imageUrl];
+          return {...q, diagramImgURL};
+        }
+        return q;
+      }));
+    } catch (error) {
+      console.error("Failed to upload diagram:", error);
+      setError("Failed to upload diagram. Please try again.");
+    } finally {
+      setUploadingDiagram(false);
+      setSelectedQuestionForDiagram(null);
+      event.target.value = ''; // Reset file input
+    }
+  };
+
+  const handleRemoveDiagram = (questionIndex: number, diagramIndex: number) => {
+    setQuestions(prevQuestions => prevQuestions.map((q, idx) => {
+      if (idx === questionIndex && q.diagramImgURL) {
+        const diagramImgURL = q.diagramImgURL.filter((_, i) => i !== diagramIndex);
+        return {...q, diagramImgURL};
+      }
+      return q;
+    }));
   };
 
   const handleQuestionTypeChange = (qIndex: number, type: 'MCQ' | 'LONG_ANSWER') => {
@@ -1537,6 +1624,7 @@ export default function ExamsPage() {
                   <h3 className="font-medium text-gray-700 mb-3">Manual Question Entry</h3>
                   <div className="space-y-4">
                     {questions.map((q, idx) => (
+
                       <div key={idx} className="bg-white p-4 rounded-md shadow-sm border border-gray-200">
                         <div className="flex justify-between items-center mb-3">
                           <label className="block text-sm font-medium text-gray-700">
@@ -1680,24 +1768,23 @@ export default function ExamsPage() {
                     </div>
                   </div>
                   <div className="max-h-80 overflow-y-auto">
-                    {questions.map((q, index) => (
+                    {questions.map((q: Question, index) => (
                       <div
                         key={index}
                         className={`p-4 transition-colors border-b border-gray-200 last:border-b-0 ${q.isSelected ? "bg-purple-50" : "hover:bg-gray-50"}`}
                       >
-                        <label className="flex items-start gap-3 cursor-pointer">
+                        <label className="flex items-start gap-3 cursor-pointer w-full">
                           <input
                             type="checkbox"
                             checked={q.isSelected}
                             onChange={() => toggleQuestionSelection(index)}
                             className="mt-1 h-4 w-4 text-purple-600 rounded border-gray-300 focus:ring-purple-500"
                           />
-                          <div>
+                          <div className="w-full">
                             <p className="font-medium text-gray-800">Q{index + 1}: {q.question}</p>
-                            <p
-                              className="text-sm text-gray-500 italic">Type: {q.questionType.replace('_', ' ')}
-                            </p>
+                            <p className="text-sm text-gray-500 italic">Type: {q.questionType.replace('_', ' ')}</p>
 
+                            {/* Existing MCQ options display */}
                             {q.questionType === 'MCQ' && q.options && q.options.length > 0 && (
                               <div className="text-sm text-gray-600 mt-1 pl-4">
                                 <span className="font-medium">Options: </span>
@@ -1708,24 +1795,67 @@ export default function ExamsPage() {
                                 </ul>
                               </div>
                             )}
+
+                            {/* Existing Answer display */}
                             <div className="text-sm text-gray-600 mt-1 pl-4">
                               <span className="font-medium">Answer: </span>
                               {q.answer ? (
-                                Array.isArray(q.answer) ? (
-                                  <ul className="list-disc pl-5 mt-1 space-y-1">
-                                    {q.answer.map((ans, i) => (
-                                      <li key={i}>{ans}</li>
-                                    ))}
-                                  </ul>
-                                ) : typeof q.answer === "string" ? (
-                                  <p className="pl-2 border-l-2 border-gray-300 mt-1">{q.answer}</p>
-                                ) : (
-                                  <span className="italic">No answer available</span>
-                                )
+                                <p className="pl-2 border-l-2 border-gray-300 mt-1">{q.answer}</p>
                               ) : (
                                 <span className="italic">No answer available</span>
                               )}
                             </div>
+
+                            {/* --- NEW: Diagram Upload Section --- */}
+                            {q.questionType === 'LONG_ANSWER' && (
+                              <div className="mt-4 pl-4">
+                                <div className="flex items-center gap-4">
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.preventDefault(); // Prevent label click from toggling checkbox
+                                      setSelectedQuestionForDiagram(index);
+                                      document.getElementById(`diagram-upload-${index}`)?.click();
+                                    }}
+                                    disabled={uploadingDiagram && selectedQuestionForDiagram === index}
+                                    className="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50"
+                                  >
+                                    {uploadingDiagram && selectedQuestionForDiagram === index ? 'Uploading...' : 'Add Diagram'}
+                                  </button>
+                                  <input
+                                    type="file"
+                                    id={`diagram-upload-${index}`}
+                                    className="hidden"
+                                    accept="image/*"
+                                    onChange={(e) => handleDiagramUpload(e, index)}
+                                  />
+                                </div>
+
+                                {/* Diagram Previews */}
+                                {q.diagramImgURL && q.diagramImgURL.length > 0 && (
+                                  <div className="mt-3 flex flex-wrap gap-3">
+                                    {q.diagramImgURL.map((url, i) => (
+                                      <div key={i} className="relative group">
+                                        <img src={url} alt={`Diagram ${i + 1}`}
+                                             className="h-24 w-24 object-cover rounded-lg border-2 border-purple-200"/>
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.preventDefault();
+                                            handleRemoveDiagram(index, i)
+                                          }}
+                                          className="absolute top-0 right-0 transform translate-x-1/2 -translate-y-1/2 bg-red-600 text-white rounded-full h-5 w-5 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity focus:outline-none"
+                                        >
+                                          &times;
+                                        </button>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                            {/* --- END: Diagram Upload Section --- */}
+
                           </div>
                         </label>
                       </div>
@@ -1752,7 +1882,8 @@ export default function ExamsPage() {
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
                                 strokeWidth="4"></circle>
                         <path className="opacity-75" fill="currentColor"
-                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                        </path>
                       </svg>
                       {/* Text */}
                       <span>{questions && questions.length > 0 ? "Creating Exam..." : isProcessingPdf ? "Processing pdf..." : "Generating Questions....."}</span>
