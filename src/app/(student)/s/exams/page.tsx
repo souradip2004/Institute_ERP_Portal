@@ -300,10 +300,10 @@ export default function ExamsPage() {
 
     setIsUploading(true);
     try {
-      // 1. Call the new function
       const publicUrl = await uploadImageToCloudinary(file);
 
-      // 2. Use the returned URL and the original file name to update state
+      // When an image is added, clear the text answer and add the image
+      setCurrentAnswer(''); // <-- CLEAR TEXT
       setCurrentImageUploads(prev => [...prev, { url: publicUrl, fileName: file.name }]);
 
       console.log('Upload successful:', publicUrl);
@@ -389,6 +389,16 @@ export default function ExamsPage() {
       if (diagramFileInputRef.current) {
         diagramFileInputRef.current.value = "";
       }
+    }
+  };
+
+  const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newText = e.target.value;
+    setCurrentAnswer(newText);
+
+    // If user starts typing, clear any attached images
+    if (newText.trim() !== '' && currentImageUploads.length > 0) {
+      setCurrentImageUploads([]);
     }
   };
 
@@ -807,10 +817,13 @@ export default function ExamsPage() {
                           {/* Left Column: Text Area */}
                           <div>
                       <textarea
-                        className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all text-base"
-                        rows={24} // Increased rows to better fit the layout
+                        className={`w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all text-base
+                        ${currentImageUploads.length > 0 && 'cursor-not-allowed bg-gray-100'}`}
+                        rows={24}
+                        onChange={handleTextChange}
                         value={currentAnswer}
-                        onChange={(e) => setCurrentAnswer(e.target.value)}
+                        disabled={currentImageUploads.length > 0}
+                        /*onChange={(e) => setCurrentAnswer(e.target.value)}*/
                         placeholder="Write your answer here..."
                       />
                           </div>
@@ -832,7 +845,8 @@ export default function ExamsPage() {
                                 <button
                                   onClick={() => diagramFileInputRef.current?.click()}
                                   disabled={isUploading}
-                                  className="w-full flex items-center justify-center gap-2 text-sm bg-white border border-gray-300 text-gray-700 font-medium py-2 px-4 rounded-md hover:bg-gray-100 transition-colors disabled:opacity-50"
+                                  className={`w-full flex items-center justify-center gap-2 text-sm bg-white border border-gray-300 text-gray-700 font-medium py-2 px-4 rounded-md hover:bg-gray-100 transition-colors disabled:opacity-50
+                                 `}
                                 >
                                   {isUploading ? (
                                     <>
@@ -893,8 +907,10 @@ export default function ExamsPage() {
                               />
                               <button
                                 onClick={() => fileInputRef.current?.click()}
-                                disabled={isUploading}
-                                className="w-full flex items-center justify-center gap-2 text-sm bg-white border border-gray-300 text-gray-700 font-medium py-2 px-4 rounded-md hover:bg-gray-100 transition-colors disabled:opacity-50"
+                                disabled={isUploading && currentAnswer.trim() !== ''}
+                                className={`w-full flex items-center justify-center gap-2 text-sm bg-white border border-gray-300 text-gray-700 font-medium py-2 px-4 rounded-md hover:bg-gray-100 transition-colors disabled:opacity-50
+                                
+                                ${(isUploading || currentAnswer.trim() !== '') && 'cursor-not-allowed bg-gray-400'}`}
                               >
                                 {isUploading ? (
                                   <>

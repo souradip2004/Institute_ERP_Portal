@@ -745,7 +745,7 @@ export default function ExamsPage() {
       return;
     }
 
-    //coin things
+    /*//coin things
     console.log('instituteid --- ', instituteId);
     try {
       const instResponse = await axios.get(`/api/institutions/${instituteId}/getadmin`);
@@ -773,7 +773,7 @@ export default function ExamsPage() {
 
     } catch (err) {
       console.log(err);
-    }
+    }*/
 
     try {
       setLoading(true);
