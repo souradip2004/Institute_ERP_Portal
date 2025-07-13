@@ -777,6 +777,7 @@ export default function ExamsPage() {
         setNumLongQuestions("2");
         setError("");
         setActiveTab('view');
+        
         fetchExams();
       }
     } catch (err: any) {

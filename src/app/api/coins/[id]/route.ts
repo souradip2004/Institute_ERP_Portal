@@ -14,5 +14,5 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
   const coinsParam = req.nextUrl.searchParams.get('coins');
   console.log(coinsParam, id);
 
-  return examSubmissionController.updatecoins(id, coinsParam ? parseInt(coinsParam, 10) : 0);
+  return examSubmissionController.updatecoins(id, coinsParam ? parseFloat(coinsParam) : 0);
 }
