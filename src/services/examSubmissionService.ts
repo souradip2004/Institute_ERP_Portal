@@ -16,10 +16,11 @@ export class ExamSubmissionService {
 
     // Use .map() to correctly transform the array of answers
     const answerScripts = data.answers.map((answer: any) => ({
-      questionId: answer.questionId, // Correctly access the questionId from each object
+      questionId: answer.questionId,
       studentAnswer: answer.studentAnswer,
       answerImgURL: answer.answerImgURL,
-      status: data.status, // You can also use answer.status if it's part of the answer object
+      diagramImgURL: answer.diagramImgURL,
+      status: data.status
     }));
 
     console.log("Corrected Answer Scripts: ", answerScripts);
