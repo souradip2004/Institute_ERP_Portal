@@ -285,13 +285,13 @@ education-management-platform/
 │   │   │   ├── 2fa-enable.ts  # POST /api/auth/2fa/enable
 │   │   │   └── 2fa-verify.ts  # POST /api/auth/2fa/verify
 │   │   ├── institutions/      # Institution-related routes
-│   │   │   ├── index.ts       # GET /api/institutions, POST /api/institutions
+│   │   │   ├── route.ts       # GET /api/institutions, POST /api/institutions
 │   │   │   └── [id].ts        # GET /api/institutions/:id, PUT /api/institutions/:id, DELETE /api/institutions/:id
 │   │   ├── departments/       # Department-related routes
-│   │   │   ├── index.ts       # GET /api/departments, POST /api/departments
+│   │   │   ├── route.ts       # GET /api/departments, POST /api/departments
 │   │   │   └── [id].ts        # GET /api/departments/:id, PUT /api/departments/:id, DELETE /api/departments/:id
 │   │   ├── courses/           # Course-related routes
-│   │   │   ├── index.ts       # GET /api/courses, POST /api/courses
+│   │   │   ├── route.ts       # GET /api/courses, POST /api/courses
 │   │   │   └── [id].ts        # GET /api/courses/:id, PUT /api/courses/:id, DELETE /api/courses/:id
 │   │   ├── attendance/        # Attendance-related routes
 │   │   │   ├── sessions.ts    # GET /api/attendance-sessions, POST /api/attendance-sessions
@@ -302,7 +302,7 @@ education-management-platform/
 │   │   ├── exams/             # Exam-related routes
 │   │   │   ├── types.ts       # GET /api/exam-types, POST /api/exam-types
 │   │   │   ├── types/[id].ts  # PUT /api/exam-types/:id, DELETE /api/exam-types/:id
-│   │   │   ├── index.ts       # GET /api/exams, POST /api/exams
+│   │   │   ├── route.ts       # GET /api/exams, POST /api/exams
 │   │   │   ├── [id].ts        # GET /api/exams/:id, PUT /api/exams/:id, DELETE /api/exams/:id
 │   │   │   ├── questions.ts   # GET /api/questions, POST /api/questions
 │   │   │   ├── questions/[id].ts # PUT /api/questions/:id, DELETE /api/questions/:id
@@ -319,7 +319,7 @@ education-management-platform/
 │   │   ├── subscriptions/     # Subscription and billing routes
 │   │   │   ├── plans.ts       # GET /api/subscription-plans, POST /api/subscription-plans
 │   │   │   ├── plans/[id].ts  # PUT /api/subscription-plans/:id, DELETE /api/subscription-plans/:id
-│   │   │   ├── index.ts       # GET /api/subscriptions, POST /api/subscriptions
+│   │   │   ├── route.ts       # GET /api/subscriptions, POST /api/subscriptions
 │   │   │   ├── [id].ts        # PUT /api/subscriptions/:id
 │   │   │   ├── credits.ts     # GET /api/credits, POST /api/credits
 │   │   │   ├── credit-transactions.ts # GET /api/credit-transactions
@@ -329,12 +329,12 @@ education-management-platform/
 │   │   │   ├── teacher-metrics.ts # GET /api/teacher-metrics, POST /api/teacher-metrics
 │   │   │   └── student-metrics.ts # GET /api/student-metrics, POST /api/student-metrics
 │   │   ├── notifications/     # Notifications and announcements routes
-│   │   │   ├── index.ts       # GET /api/notifications, POST /api/notifications
+│   │   │   ├── route.ts       # GET /api/notifications, POST /api/notifications
 │   │   │   ├── [id].ts        # PUT /api/notifications/:id
 │   │   │   ├── announcements.ts # GET /api/announcements, POST /api/announcements
 │   │   │   └── announcements/[id].ts # PUT /api/announcements/:id, DELETE /api/announcements/:id
 │   │   └── settings/          # System settings routes
-│   │       └── index.ts       # GET /api/system-settings, PUT /api/system-settings
+│   │       └── route.ts       # GET /api/system-settings, PUT /api/system-settings
 │   ├── controllers/           # Backend: Business logic for each route
 │   │   ├── authController.ts  # Auth-related logic
 │   │   ├── institutionController.ts # Institution-related logic

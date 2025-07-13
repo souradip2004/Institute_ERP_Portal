@@ -35,7 +35,7 @@ my-app/
 │   │   │    └── *.resolver.ts
 │   │   ├── typeDefs/
 │   │   │    └── *.graphql
-│   │   └── index.ts
+│   │   └── route.ts
 │   │
 │   ├── queues/
 │   │   ├── exam.queue.ts

@@ -943,7 +943,6 @@ export default function ExamsPage() {
                                 )}
                               </div>
                             </div>
-                            {/* --- END: OPTIONAL IMAGE UPLOADER --- */}
                           </div>
                         </div>
                       )}
