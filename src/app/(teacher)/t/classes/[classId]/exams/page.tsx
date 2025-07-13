@@ -703,11 +703,11 @@ export default function ExamsPage() {
     //coin things
     console.log('instituteid --- ', instituteId);
     try {
-      const instResponse = await axios.get(`http://localhost:3000/api/institutions/${instituteId}/getadmin`);
+      const instResponse = await axios.get(`/api/institutions/${instituteId}/getadmin`);
       console.log('instResponse ---', instResponse);
       console.log('instResponse id ---', instResponse?.data?.id);
 
-      const coinRes = await axios.get(`http://localhost:3000/api/coins/${instResponse?.data?.id}`);
+      const coinRes = await axios.get(`/api/coins/${instResponse?.data?.id}`);
       console.log('coinRes ---', coinRes);
 
       let coinsToDeduct = selectedQuestions.length * 0.2;
@@ -723,7 +723,7 @@ export default function ExamsPage() {
         }
       });
 
-      const coinRes2 = await axios.get(`http://localhost:3000/api/coins/${instResponse?.data?.id}`);
+      const coinRes2 = await axios.get(`/api/coins/${instResponse?.data?.id}`);
       console.log('coinRes ---', coinRes2);
 
     } catch (err) {
@@ -777,7 +777,7 @@ export default function ExamsPage() {
         setNumLongQuestions("2");
         setError("");
         setActiveTab('view');
-        
+
         fetchExams();
       }
     } catch (err: any) {
@@ -953,11 +953,11 @@ export default function ExamsPage() {
       //coin things
       console.log('instituteid --- ', instituteId);
       try {
-        const instResponse = await axios.get(`http://localhost:3000/api/institutions/${instituteId}/getadmin`);
+        const instResponse = await axios.get(`/api/institutions/${instituteId}/getadmin`);
         console.log('instResponse ---', instResponse);
         console.log('instResponse id ---', instResponse?.data?.id);
 
-        const coinRes = await axios.get(`http://localhost:3000/api/coins/${instResponse?.data?.id}`);
+        const coinRes = await axios.get(`/api/coins/${instResponse?.data?.id}`);
         console.log('coinRes ---', coinRes);
 
         let coinsToDeduct = allQuestions.length * 0.2;
@@ -973,7 +973,7 @@ export default function ExamsPage() {
           }
         });
 
-        const coinRes2 = await axios.get(`http://localhost:3000/api/coins/${instResponse?.data?.id}`);
+        const coinRes2 = await axios.get(`/api/coins/${instResponse?.data?.id}`);
         console.log('coinRes ---', coinRes2);
 
       } catch (err) {

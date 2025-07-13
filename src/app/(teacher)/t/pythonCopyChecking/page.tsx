@@ -6,6 +6,7 @@ import hardcodedResponse from '@/lib/pythonCopyCheckingResponseHardCoded.json';
 import { METHODS } from 'node:http';
 import { set } from 'date-fns';
 import jsPDF from 'jspdf';
+import axios from 'axios';
 
 export default function TeacherPage({ params }: { params: { id: string } }) {
   const [uploadedFileUrl, setUploadedFileUrl] = useState<string | null>(null);
@@ -237,6 +238,44 @@ export default function TeacherPage({ params }: { params: { id: string } }) {
 
   // New: upload all files for a student
   const handleUploadStudentFiles = async (studentId: string) => {
+
+    //coin logic
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      const userData = JSON.parse(storedUser);
+      const instituteId = userData?.institutionId;
+
+      console.log('instituteid --- ', instituteId);
+      try {
+        const instResponse = await axios.get(`/api/institutions/${instituteId}/getadmin`);
+        console.log('instResponse ---', instResponse);
+        console.log('instResponse id ---', instResponse?.data?.id);
+
+        const coinRes = await axios.get(`/api/coins/${instResponse?.data?.id}`);
+        console.log('coinRes ---', coinRes);
+
+        let coinsToDeduct = 4;
+
+        if (coinRes.data.coins < coinsToDeduct) {
+          alert('Institute dosenot have enough Coins! Please Contact Institute Admin.');
+          return;
+        }
+
+        const resul1 = await axios.post(`/api/coins/${instResponse?.data?.id}?coins=${coinsToDeduct}`, null, {
+          headers: {
+            "Content-Type": "application/json"
+          }
+        });
+
+        const coinRes2 = await axios.get(`/api/coins/${instResponse?.data?.id}`);
+        console.log('coinRes ---', coinRes2);
+
+      } catch (err) {
+        console.log(err);
+      }
+    }
+
+
     const files = studentFiles[studentId];
     if (!files || files.length === 0) return;
     setIsUploading(true);

@@ -366,6 +366,48 @@ const StructuredBreakdown: React.FC = () => {
     }
   }, [scrollToToday]);
 
+
+  const watchVideo = async () => {
+    //coin logic
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      const userData = JSON.parse(storedUser);
+      const instituteId = userData?.institutionId;
+
+      console.log('instituteid --- ', instituteId);
+      try {
+        const instResponse = await axios.get(`/api/institutions/${instituteId}/getadmin`);
+        console.log('instResponse ---', instResponse);
+        console.log('instResponse id ---', instResponse?.data?.id);
+
+        const coinRes = await axios.get(`/api/coins/${instResponse?.data?.id}`);
+        console.log('coinRes ---', coinRes);
+
+        let coinsToDeduct = 0.083;
+
+        if (coinRes.data.coins < coinsToDeduct) {
+          alert('Institute dosenot have enough Coins! Please Contact Institute Admin.');
+          return;
+        }
+
+        const resul1 = await axios.post(`/api/coins/${instResponse?.data?.id}?coins=${coinsToDeduct}`, null, {
+          headers: {
+            "Content-Type": "application/json"
+          }
+        });
+
+        const coinRes2 = await axios.get(`/api/coins/${instResponse?.data?.id}`);
+        console.log('coinRes ---', coinRes2);
+
+        router.push("/t/smart-resources/video-section");
+
+      } catch (err) {
+        console.log(err);
+      }
+    }
+  };
+
+
   if (loading) {
     return (
       <div className="bg-[#F8FBFF] w-full h-64 flex items-center justify-center">
@@ -488,7 +530,8 @@ const StructuredBreakdown: React.FC = () => {
                               whileTap={{ scale: 0.95 }}
                               onClick={() => {
                                 handelDataStorage(wbStrId || '', topic.topicId, videoDuration);
-                                router.push("/t/smart-resources/video-section");
+
+                                watchVideo();
                               }}
                             >
                               {translator("Watch Now", "अभी देखें")}
