@@ -62,7 +62,7 @@ export async function GET(request: Request) {
     const {searchParams} = new URL(request.url);
     const institutionId = searchParams.get('institutionId') as string;
 
-    const instituteFeeDetail = await prisma.fees.findFirst({
+    const instituteFeeDetail = await prisma.fees.findUnique({
       where: {
         institutionId: institutionId
       }
