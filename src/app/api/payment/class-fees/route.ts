@@ -8,6 +8,7 @@ export async function POST(request: Request) {
     const { globalFeesId, classSectionIds } = body;
 
     if (!globalFeesId || !classSectionIds || !Array.isArray(classSectionIds) || classSectionIds.length === 0) {
+
       return NextResponse.json(
         { error: '`globalFeesId` (string) and `classSectionIds` (non-empty array) are required.' },
         { status: 400 }

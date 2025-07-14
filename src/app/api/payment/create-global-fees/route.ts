@@ -10,7 +10,7 @@ export async function POST(request: Request) {
       amount,
       taxPercentage,
       paymentterms,
-      penalty = 0, // Set default value
+      penalty = 0,
       institutionId,
       motherClassId,
     } = body;
@@ -43,7 +43,7 @@ export async function POST(request: Request) {
           // Create a ClassFee for each section found
           classFees: {
             create: classSections.map((section) => ({
-              classSectionId: section.id,
+              classSectionId: section.id
             })),
           },
         },

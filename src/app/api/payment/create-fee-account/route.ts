@@ -33,7 +33,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // --- Create Fees Record in Database ---
     const newFees = await prisma.fees.create({
       data: {
         institutionId,
@@ -125,12 +124,14 @@ export async function PATCH(request: Request) {
       }
     })
 
-    return NextResponse.json(updatedFeesDetail, {status: 204})
+    console.log("Updated Fees Detail: ", updatedFeesDetail);
+
+    return NextResponse.json(updatedFeesDetail, {status: 200});
 
 
   } catch (e: any) {
 
-    console.error("Error in PATCH: ", e.message);
+    console.error("Error in PATCH: ", e);
 
     return NextResponse.json({
       error: "An internal server error occurred."
