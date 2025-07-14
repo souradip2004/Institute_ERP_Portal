@@ -3,8 +3,45 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 
+// TypeScript interfaces and types
+interface FormFieldProps {
+    label: string;
+    name: string;
+    value: string;
+    onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+    isEditing: boolean;
+    type?: string;
+}
+
+interface Fee {
+    id: string | number;
+    name: string;
+    amount: number;
+}
+
+interface SectionFeeData {
+    id: number;
+    sectionName: string;
+    globalFees: Fee[];
+}
+
+interface Receipt {
+    name: string;
+}
+
+interface Student {
+    id: number;
+    name: string;
+    roll: string;
+    status: 'cleared' | 'pending';
+    receipt: Receipt | File | null;
+    variableFees: Fee[];
+}
+
+type StudentData = Record<number, Student[]>;
+
 // A reusable FormField component (from your original code)
-const FormField = ({ label, name, value, onChange, isEditing, type = "text" }) => (
+const FormField: React.FC<FormFieldProps> = ({ label, name, value, onChange, isEditing, type = "text" }) => (
     <div>
         <label htmlFor={name} className="block text-sm font-medium text-slate-700 mb-1">
             {label}
@@ -24,73 +61,71 @@ const FormField = ({ label, name, value, onChange, isEditing, type = "text" }) =
 );
 
 
-// --- UPDATED --- Sample Data for the Fees Table with new structure ---
-const initialFeesData = [
+// --- UPDATED --- Sample Data for the Fees Table (section-level, only globalFees) ---
+const initialFeesData: SectionFeeData[] = [
     {
         id: 1, sectionName: 'CSE 1',
         globalFees: [
             { id: 'g1', name: 'Tuition Fee', amount: 100000 },
             { id: 'g2', name: 'Development Fee', amount: 20000 }
-        ],
-        variableFees: [
-            { id: 'v1', name: 'Lab Fee', amount: 15000 }
         ]
     },
     {
         id: 2, sectionName: 'CSE 2',
         globalFees: [
             { id: 'g3', name: 'Tuition Fee', amount: 20000 }
-        ],
-        variableFees: [
-            { id: 'v2', name: 'Sports Fee', amount: 5000 }
         ]
     },
     {
         id: 3, sectionName: 'CSE 3',
         globalFees: [
             { id: 'g4', name: 'Tuition Fee', amount: 5000 }
-        ],
-        variableFees: []
+        ]
     },
     {
         id: 4, sectionName: 'CSE 4',
         globalFees: [
             { id: 'g5', name: 'Tuition Fee', amount: 7500 }
-        ],
-        variableFees: [
-            { id: 'v3', name: 'Library Fine', amount: 2500 }
         ]
     },
     {
         id: 5, sectionName: 'CSE 5',
         globalFees: [
             { id: 'g6', name: 'Base Fee', amount: 10000 }
-        ],
-        variableFees: [
-            { id: 'v4', name: 'Extra-Curricular', amount: 1000 }
         ]
     }
 ];
 
-// --- Sample Data for the Student List (Unchanged) ---
-const initialStudentData = {
+// --- UPDATED --- Sample Data for the Student List (each student has variableFees) ---
+const initialStudentData: StudentData = {
     1: [
-        { id: 101, name: 'Aarav Sharma', roll: 'CSE-1-001', status: 'cleared', receipt: null },
-        { id: 102, name: 'Diya Patel', roll: 'CSE-1-002', status: 'pending', receipt: null },
-        { id: 103, name: 'Rohan Mehta', roll: 'CSE-1-003', status: 'cleared', receipt: { name: 'rohan_receipt.pdf' } },
+        { id: 101, name: 'Aarav Sharma', roll: 'CSE-1-001', status: 'cleared', receipt: null, variableFees: [{ id: 'v1', name: 'Lab Fee', amount: 15000 }] },
+        { id: 102, name: 'Diya Patel', roll: 'CSE-1-002', status: 'pending', receipt: null, variableFees: [] },
+        { id: 103, name: 'Rohan Mehta', roll: 'CSE-1-003', status: 'cleared', receipt: { name: 'rohan_receipt.pdf' }, variableFees: [] },
     ],
     2: [
-        { id: 201, name: 'Ishaan Singh', roll: 'CSE-2-001', status: 'pending', receipt: null },
-        { id: 202, name: 'Ananya Gupta', roll: 'CSE-2-002', status: 'pending', receipt: null },
+        { id: 201, name: 'Ishaan Singh', roll: 'CSE-2-001', status: 'pending', receipt: null, variableFees: [{ id: 'v2', name: 'Sports Fee', amount: 5000 }] },
+        { id: 202, name: 'Ananya Gupta', roll: 'CSE-2-002', status: 'pending', receipt: null, variableFees: [] },
     ],
     3: [
-        { id: 301, name: 'Vivaan Reddy', roll: 'CSE-3-001', status: 'cleared', receipt: { name: 'vivaan_fee.jpg' } },
+        { id: 301, name: 'Vivaan Reddy', roll: 'CSE-3-001', status: 'cleared', receipt: { name: 'vivaan_fee.jpg' }, variableFees: [] },
     ],
 };
 
 // --- NEW --- Fee Editor Modal Component ---
-const FeeEditorModal = ({ isOpen, onClose, onSave, details }) => {
-    const [currentFees, setCurrentFees] = useState([]);
+
+interface FeeEditorModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    onSave: (fees: Fee[]) => void;
+    details: {
+        title: string;
+        fees: Fee[];
+    };
+}
+
+const FeeEditorModal: React.FC<FeeEditorModalProps> = ({ isOpen, onClose, onSave, details }) => {
+    const [currentFees, setCurrentFees] = useState<Fee[]>([]);
 
     useEffect(() => {
         // Deep copy the fees to edit them in isolation
@@ -101,24 +136,32 @@ const FeeEditorModal = ({ isOpen, onClose, onSave, details }) => {
 
     if (!isOpen) return null;
 
-    const handleFeeChange = (index, field, value) => {
+
+    const handleFeeChange = (index: number, field: keyof Fee, value: string | number) => {
         const updatedFees = [...currentFees];
-        updatedFees[index][field] = field === 'amount' ? parseFloat(value) || 0 : value;
+        if (field === 'amount') {
+            updatedFees[index][field] = typeof value === 'number' ? value : parseFloat(value as string) || 0;
+        } else {
+            updatedFees[index][field] = value as string;
+        }
         setCurrentFees(updatedFees);
     };
+
 
     const handleAddFee = () => {
         setCurrentFees([...currentFees, { id: `new_${Date.now()}`, name: '', amount: 0 }]);
     };
 
-    const handleRemoveFee = (index) => {
+
+    const handleRemoveFee = (index: number) => {
         const updatedFees = currentFees.filter((_, i) => i !== index);
         setCurrentFees(updatedFees);
     };
 
+
     const handleSave = () => {
         // Filter out any fees with empty names before saving
-        const validFees = currentFees.filter(fee => fee.name.trim() !== '');
+        const validFees = currentFees.filter((fee) => fee.name.trim() !== '');
         onSave(validFees);
     };
 
@@ -179,27 +222,40 @@ export default function Home() {
         ifsc: "SBIN420420420420420",
         link: "https://stripe.com/in/paytm_pay11204"
     });
-    const [instituteData, SetInstituteData] = useState();
+    interface InstituteData {
+        logoUrl?: string;
+        name?: string;
+        email?: string;
+        phone?: string;
+        city?: string;
+        state?: string;
+        country?: string;
+    }
+    const [instituteData, SetInstituteData] = useState<InstituteData | null>(null);
 
     // --- State for the Fees Table ---
     const [feesData, setFeesData] = useState(initialFeesData);
     // --- NEW --- State for Fee Editor Modal ---
     const [isFeeEditorOpen, setIsFeeEditorOpen] = useState(false);
-    const [editingFeeDetails, setEditingFeeDetails] = useState({ rowId: null, field: '', title: '', fees: [] });
+    // For section global fees editing
+    const [editingFeeDetails, setEditingFeeDetails] = useState<{ rowId: number | null, field: string, title: string, fees: Fee[] }>({ rowId: null, field: '', title: '', fees: [] });
+    // For student variable fees editing
+    const [editingStudentFee, setEditingStudentFee] = useState<{ sectionId: number | null, studentId: number | null, title: string, fees: Fee[] }>({ sectionId: null, studentId: null, title: '', fees: [] });
+    const [isStudentFeeEditorOpen, setIsStudentFeeEditorOpen] = useState(false);
 
-    const [selectedSectionId, setSelectedSectionId] = useState(null);
+    const [selectedSectionId, setSelectedSectionId] = useState<number | null>(null);
     const [studentData, setStudentData] = useState(initialStudentData);
 
 
     useEffect(() => {
         const user = localStorage.getItem('user');
-        const data = JSON.parse(user);
+        if (!user) return;
+        const data = JSON.parse(user as string);
 
         const fetchInstituteData = async () => {
             try {
                 const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/institutions/${data.institutionId}`);
                 SetInstituteData(response.data);
-
             } catch (err) {
                 console.log("error fetching institute data", err);
             }
@@ -209,7 +265,7 @@ export default function Home() {
     }, []);
 
     // --- Handlers for the Payment Details Form (Unchanged) ---
-    const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, [e.target.name]: e.target.value });
     const handleEdit = () => setIsEditing(true);
     const handleSave = () => {
         setIsEditing(false);
@@ -217,16 +273,16 @@ export default function Home() {
     };
 
     // --- NEW --- Handlers for the Fee Editor Modal ---
-    const handleOpenFeeEditor = (rowId, field, sectionName) => {
+    // For section global fees
+    const handleOpenFeeEditor = (rowId: number, field: 'globalFees', sectionName: string) => {
         const row = feesData.find(r => r.id === rowId);
         if (!row) return;
-
-        const title = `Editing ${field === 'globalFees' ? 'Global' : 'Variable'} Fees for ${sectionName}`;
+        const title = `Editing Global Fees for ${sectionName}`;
         setEditingFeeDetails({
-            rowId,
-            field,
-            title,
-            fees: row[field]
+            rowId: rowId,
+            field: field,
+            title: title,
+            fees: row.globalFees
         });
         setIsFeeEditorOpen(true);
     };
@@ -236,11 +292,12 @@ export default function Home() {
         setEditingFeeDetails({ rowId: null, field: '', title: '', fees: [] });
     };
 
-    const handleSaveFees = (updatedFees) => {
+    const handleSaveFees = (updatedFees: Fee[]) => {
         const { rowId, field } = editingFeeDetails;
-        const updatedData = feesData.map(row => {
+        if (rowId === null || !field) return;
+        const updatedData = feesData.map((row: SectionFeeData) => {
             if (row.id === rowId) {
-                return { ...row, [field]: updatedFees };
+                return { ...row, globalFees: updatedFees };
             }
             return row;
         });
@@ -248,22 +305,50 @@ export default function Home() {
         handleCloseFeeEditor();
     };
 
+    // For student variable fees
+    const handleOpenStudentFeeEditor = (sectionId: number, studentId: number, studentName: string) => {
+        const student = studentData[sectionId]?.find(s => s.id === studentId);
+        if (!student) return;
+        setEditingStudentFee({
+            sectionId: sectionId,
+            studentId: studentId,
+            title: `Editing Variable Fees for ${studentName}`,
+            fees: student.variableFees || []
+        });
+        setIsStudentFeeEditorOpen(true);
+    };
+
+    const handleCloseStudentFeeEditor = () => {
+        setIsStudentFeeEditorOpen(false);
+        setEditingStudentFee({ sectionId: null, studentId: null, title: '', fees: [] });
+    };
+
+    const handleSaveStudentFees = (updatedFees: Fee[]) => {
+        const { sectionId, studentId } = editingStudentFee;
+        if (sectionId === null || studentId === null) return;
+        const updatedStudents = studentData[sectionId].map((student: Student) =>
+            student.id === studentId ? { ...student, variableFees: updatedFees } : student
+        );
+        setStudentData({ ...studentData, [sectionId]: updatedStudents });
+        handleCloseStudentFeeEditor();
+    };
+
     // --- Handlers for Section Selection and Student Data (Unchanged) ---
-    const handleSectionSelect = (sectionId) => {
+    const handleSectionSelect = (sectionId: number) => {
         setSelectedSectionId(prevId => (prevId === sectionId ? null : sectionId));
     };
 
-    const handleStatusChange = (studentId, newStatus) => {
+    const handleStatusChange = (studentId: number, newStatus: 'cleared' | 'pending') => {
         if (!selectedSectionId) return;
-        const updatedStudents = studentData[selectedSectionId].map(student =>
+        const updatedStudents = studentData[selectedSectionId].map((student: Student) =>
             student.id === studentId ? { ...student, status: newStatus } : student
         );
         setStudentData({ ...studentData, [selectedSectionId]: updatedStudents });
     };
 
-    const handleReceiptUpload = (studentId, file) => {
+    const handleReceiptUpload = (studentId: number, file: File) => {
         if (!file || !selectedSectionId) return;
-        const updatedStudents = studentData[selectedSectionId].map(student =>
+        const updatedStudents = studentData[selectedSectionId].map((student: Student) =>
             student.id === studentId ? { ...student, receipt: file } : student
         );
         setStudentData({ ...studentData, [selectedSectionId]: updatedStudents });
@@ -271,7 +356,7 @@ export default function Home() {
     };
 
     // --- Helper function to calculate sum of fees from an array ---
-    const calculateFeeSum = (feesArray) => feesArray.reduce((sum, fee) => sum + fee.amount, 0);
+    const calculateFeeSum = (feesArray: Fee[]): number => feesArray.reduce((sum: number, fee: Fee) => sum + fee.amount, 0);
 
     const selectedSectionName = feesData.find(sec => sec.id === selectedSectionId)?.sectionName;
 
@@ -334,16 +419,11 @@ export default function Home() {
                                     <tr>
                                         <th scope="col" className="px-6 py-3">Section Name</th>
                                         <th scope="col" className="px-6 py-3">Global Fees</th>
-                                        <th scope="col" className="px-6 py-3">Variable Fees</th>
-                                        <th scope="col" className="px-6 py-3">Total Fees</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {feesData.map((row) => {
                                         const globalFeesTotal = calculateFeeSum(row.globalFees);
-                                        const variableFeesTotal = calculateFeeSum(row.variableFees);
-                                        const totalFees = globalFeesTotal + variableFeesTotal;
-
                                         return (
                                             <tr key={row.id}
                                                 className={`border-b last:border-b-0 cursor-pointer transition-colors ${selectedSectionId === row.id ? 'bg-indigo-50 hover:bg-indigo-100' : 'bg-white hover:bg-slate-50'}`}
@@ -352,7 +432,7 @@ export default function Home() {
                                                 <th scope="row" className="px-6 py-4 font-medium text-slate-900 whitespace-nowrap">
                                                     {row.sectionName}
                                                 </th>
-                                                {/* --- UPDATED --- Fee Cells with Details and Edit Button --- */}
+                                                {/* --- Fee Cells with Details and Edit Button --- */}
                                                 <td className="px-6 py-4">
                                                     <div className="flex justify-between items-start">
                                                         <div>
@@ -370,26 +450,6 @@ export default function Home() {
                                                         </button>
                                                     </div>
                                                 </td>
-                                                <td className="px-6 py-4">
-                                                    <div className="flex justify-between items-start">
-                                                        <div>
-                                                            {row.variableFees.length > 0 ? (
-                                                                row.variableFees.map(fee => (
-                                                                    <div key={fee.id} className="text-xs text-slate-600">{fee.name}: ₹{fee.amount.toFixed(2)}</div>
-                                                                ))
-                                                            ) : (
-                                                                <div className="text-xs text-slate-400">No variable fees</div>
-                                                            )}
-                                                            <div className="font-semibold mt-1">Total: ₹{variableFeesTotal.toFixed(2)}</div>
-                                                        </div>
-                                                        <button onClick={(e) => { e.stopPropagation(); handleOpenFeeEditor(row.id, 'variableFees', row.sectionName); }} className="p-1 text-slate-500 rounded-full hover:bg-slate-200 hover:text-slate-800">
-                                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L14.732 3.732z" /></svg>
-                                                        </button>
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-4 font-semibold text-slate-900">
-                                                    ₹{totalFees.toFixed(2)}
-                                                </td>
                                             </tr>
                                         );
                                     })}
@@ -399,7 +459,7 @@ export default function Home() {
                     </div>
                 </div>
 
-                {/* --- Student Details Section (Unchanged logic) --- */}
+                {/* --- Student Details Section (with per-student variable fees) --- */}
                 {selectedSectionId && (
                     <div className="mt-8">
                         <h2 className="text-2xl font-semibold text-slate-800 mb-6">Student List: {selectedSectionName}</h2>
@@ -411,58 +471,90 @@ export default function Home() {
                                             <th scope="col" className="px-6 py-3">Student Name</th>
                                             <th scope="col" className="px-6 py-3">Roll No.</th>
                                             <th scope="col" className="px-6 py-3">Status</th>
+                                            <th scope="col" className="px-6 py-3">Variable Fees</th>
+                                            <th scope="col" className="px-6 py-3">Total Fees</th>
                                             <th scope="col" className="px-6 py-3">Receipt</th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {(studentData[selectedSectionId] || []).map((student) => (
-                                            <tr key={student.id} className="bg-white border-b last:border-b-0 hover:bg-slate-50">
-                                                <td className="px-6 py-4 font-medium text-slate-900 whitespace-nowrap">
-                                                    {student.name}
-                                                </td>
-                                                <td className="px-6 py-4">{student.roll}</td>
-                                                <td className="px-6 py-4">
-                                                    <select
-                                                        value={student.status}
-                                                        onChange={(e) => handleStatusChange(student.id, e.target.value)}
-                                                        className={`text-xs font-semibold rounded-full px-3 py-1 border ${student.status === 'cleared'
-                                                            ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
-                                                            : 'bg-amber-100 text-amber-800 border-amber-200'
-                                                            } focus:ring-2 focus:ring-indigo-500 focus:outline-none`}
-                                                    >
-                                                        <option value="cleared">Cleared</option>
-                                                        <option value="pending">Pending</option>
-                                                    </select>
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    {student.receipt ? (
-                                                        <div className="flex items-center gap-2 text-slate-600">
-                                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                                                            <span>{student.receipt.name}</span>
+                                        {(studentData[selectedSectionId] || []).map((student) => {
+                                            const section = feesData.find(sec => sec.id === selectedSectionId);
+                                            const globalFeesTotal = section ? calculateFeeSum(section.globalFees) : 0;
+                                            const variableFeesTotal = calculateFeeSum(student.variableFees || []);
+                                            const totalFees = globalFeesTotal + variableFeesTotal;
+                                            return (
+                                                <tr key={student.id} className="bg-white border-b last:border-b-0 hover:bg-slate-50">
+                                                    <td className="px-6 py-4 font-medium text-slate-900 whitespace-nowrap">
+                                                        {student.name}
+                                                    </td>
+                                                    <td className="px-6 py-4">{student.roll}</td>
+                                                    <td className="px-6 py-4">
+                                                        <select
+                                                            value={student.status}
+                                                            onChange={(e) => handleStatusChange(student.id, e.target.value as 'cleared' | 'pending')}
+                                                            className={`text-xs font-semibold rounded-full px-3 py-1 border ${student.status === 'cleared'
+                                                                ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
+                                                                : 'bg-amber-100 text-amber-800 border-amber-200'
+                                                                } focus:ring-2 focus:ring-indigo-500 focus:outline-none`}
+                                                        >
+                                                            <option value="cleared">Cleared</option>
+                                                            <option value="pending">Pending</option>
+                                                        </select>
+                                                    </td>
+                                                    <td className="px-6 py-4">
+                                                        <div className="flex justify-between items-start">
+                                                            <div>
+                                                                {student.variableFees && student.variableFees.length > 0 ? (
+                                                                    student.variableFees.map(fee => (
+                                                                        <div key={fee.id} className="text-xs text-slate-600">{fee.name}: ₹{fee.amount.toFixed(2)}</div>
+                                                                    ))
+                                                                ) : (
+                                                                    <div className="text-xs text-slate-400">No variable fees</div>
+                                                                )}
+                                                                <div className="font-semibold mt-1">Total: ₹{variableFeesTotal.toFixed(2)}</div>
+                                                            </div>
+                                                            <button onClick={() => handleOpenStudentFeeEditor(selectedSectionId, student.id, student.name)} className="p-1 text-slate-500 rounded-full hover:bg-slate-200 hover:text-slate-800 ml-2">
+                                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L14.732 3.732z" /></svg>
+                                                            </button>
                                                         </div>
-                                                    ) : (
-                                                        <>
-                                                            <input
-                                                                type="file"
-                                                                id={`receipt-upload-${student.id}`}
-                                                                className="hidden"
-                                                                accept="image/*,application/pdf"
-                                                                onChange={(e) => handleReceiptUpload(student.id, e.target.files[0])}
-                                                            />
-                                                            <label
-                                                                htmlFor={`receipt-upload-${student.id}`}
-                                                                className="cursor-pointer inline-flex items-center px-3 py-1 bg-slate-600 text-white text-xs font-semibold rounded-md hover:bg-slate-700 transition-colors"
-                                                            >
-                                                                Upload File
-                                                            </label>
-                                                        </>
-                                                    )}
-                                                </td>
-                                            </tr>
-                                        ))}
+                                                    </td>
+                                                    <td className="px-6 py-4 font-semibold text-slate-900">
+                                                        ₹{totalFees.toFixed(2)}
+                                                    </td>
+                                                    <td className="px-6 py-4">
+                                                        {student.receipt ? (
+                                                            <div className="flex items-center gap-2 text-slate-600">
+                                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                                                                <span>{student.receipt.name}</span>
+                                                            </div>
+                                                        ) : (
+                                                            <>
+                                                                <input
+                                                                    type="file"
+                                                                    id={`receipt-upload-${student.id}`}
+                                                                    className="hidden"
+                                                                    accept="image/*,application/pdf"
+                                                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                                                                        if (e.target.files && e.target.files.length > 0) {
+                                                                            handleReceiptUpload(student.id, e.target.files[0]);
+                                                                        }
+                                                                    }}
+                                                                />
+                                                                <label
+                                                                    htmlFor={`receipt-upload-${student.id}`}
+                                                                    className="cursor-pointer inline-flex items-center px-3 py-1 bg-slate-600 text-white text-xs font-semibold rounded-md hover:bg-slate-700 transition-colors"
+                                                                >
+                                                                    Upload File
+                                                                </label>
+                                                            </>
+                                                        )}
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
                                         {(studentData[selectedSectionId] || []).length === 0 && (
                                             <tr className="bg-white">
-                                                <td colSpan="4" className="text-center py-8 text-slate-500">
+                                                <td colSpan={6} className="text-center py-8 text-slate-500">
                                                     No student data available for this section.
                                                 </td>
                                             </tr>
@@ -475,12 +567,19 @@ export default function Home() {
                 )}
             </div>
 
-            {/* --- NEW --- Fee Editor Modal Render --- */}
+            {/* --- Fee Editor Modal Render (for section global fees) --- */}
             <FeeEditorModal
                 isOpen={isFeeEditorOpen}
                 onClose={handleCloseFeeEditor}
                 onSave={handleSaveFees}
                 details={editingFeeDetails}
+            />
+            {/* --- Fee Editor Modal Render (for student variable fees) --- */}
+            <FeeEditorModal
+                isOpen={isStudentFeeEditorOpen}
+                onClose={handleCloseStudentFeeEditor}
+                onSave={handleSaveStudentFees}
+                details={editingStudentFee}
             />
         </main>
     );
