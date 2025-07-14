@@ -1,6 +1,6 @@
-import {NextRequest, NextResponse} from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import {undefined} from "zod";
+import { undefined } from "zod";
 
 export async function POST(request: Request) {
   try {
@@ -28,8 +28,8 @@ export async function POST(request: Request) {
       !password
     ) {
       return NextResponse.json(
-        {error: 'Missing required fields'},
-        {status: 400}
+        { error: 'Missing required fields' },
+        { status: 400 }
       );
     }
 
@@ -47,19 +47,19 @@ export async function POST(request: Request) {
       },
     });
 
-    return NextResponse.json(newFees, {status: 201});
+    return NextResponse.json(newFees, { status: 201 });
   } catch (error) {
     console.error('Error creating fees:', error);
     return NextResponse.json(
-      {error: 'An internal server error occurred.'},
-      {status: 500}
+      { error: 'An internal server error occurred.' },
+      { status: 500 }
     );
   }
 }
 
 export async function GET(request: Request) {
   try {
-    const {searchParams} = new URL(request.url);
+    const { searchParams } = new URL(request.url);
     const institutionId = searchParams.get('institutionId') as string;
 
     const instituteFeeDetail = await prisma.fees.findUnique({
@@ -69,16 +69,16 @@ export async function GET(request: Request) {
     })
 
     if (!instituteFeeDetail) {
-      return NextResponse.json({error: "Institute fee detail not found."}, {status: 404});
+      return NextResponse.json({ error: "Institute fee detail not found." }, { status: 404 });
     }
 
-    return NextResponse.json(instituteFeeDetail, {status: 200});
+    return NextResponse.json(instituteFeeDetail, { status: 200 });
   } catch (e: any) {
     console.log("Error in GET: ", e.message);
 
     return NextResponse.json(
-      {error: "An internal server error occurred."},
-      {status: 500}
+      { error: "An internal server error occurred." },
+      { status: 500 }
     )
   }
 }
@@ -105,8 +105,8 @@ export async function PATCH(request: Request) {
       !branchName
     ) {
       return NextResponse.json(
-        {error: 'Missing required fields'},
-        {status: 400}
+        { error: 'Missing required fields' },
+        { status: 400 }
       );
     }
 
@@ -126,7 +126,7 @@ export async function PATCH(request: Request) {
 
     console.log("Updated Fees Detail: ", updatedFeesDetail);
 
-    return NextResponse.json(updatedFeesDetail, {status: 200});
+    return NextResponse.json(updatedFeesDetail, { status: 200 });
 
 
   } catch (e: any) {
@@ -135,6 +135,32 @@ export async function PATCH(request: Request) {
 
     return NextResponse.json({
       error: "An internal server error occurred."
-    }, {status: 500})
+    }, { status: 500 })
   }
 }
+
+// export async function DELETE(request: Request) {
+//   try {
+//     const { searchParams } = new URL(request.url);
+//     const institutionId = searchParams.get('institutionId') as string;
+
+//     const instituteFeeDetail = await prisma.fees.delete({
+//       where: {
+//         id: institutionId
+//       }
+//     })
+
+//     if (!instituteFeeDetail) {
+//       return NextResponse.json({ error: "Institute fee detail not found." }, { status: 404 });
+//     }
+
+//     return NextResponse.json(instituteFeeDetail, { status: 200 });
+//   } catch (e: any) {
+//     console.log("Error in GET: ", e.message);
+
+//     return NextResponse.json(
+//       { error: "An internal server error occurred." },
+//       { status: 500 }
+//     )
+//   }
+// }
