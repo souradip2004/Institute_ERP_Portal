@@ -5,8 +5,6 @@ import axios from "axios";
 
 function Page() {
 
-    const userdata = localStorage.getItem('user');
-
     const [instituteData, SetInstituteData] = React.useState<any>(null);
 
     useEffect(() => {
