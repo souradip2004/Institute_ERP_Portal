@@ -1,16 +1,17 @@
 "use client";
 
-import React, {useState, useEffect,Suspense} from 'react';
+import React, {useState, useEffect, Suspense} from 'react';
 import {useSearchParams} from "next/navigation";
-import {Loader2, AlertCircle, FileText, CheckCircle, MessageSquare, KeyRound, BookOpenCheck, XCircle, X} from 'lucide-react';
+import {Loader2, AlertCircle, FileText, CheckCircle, MessageSquare, KeyRound, BookOpenCheck, XCircle, X, Eye} from 'lucide-react';
 
-// --- INTERFACES ---
+// --- INTERFACES (MODIFIED) ---
 interface Question {
   questionText: string;
   questionType: 'LONG_ANSWER' | 'MCQ' | 'SHORT_ANSWER';
   correctAnswer: string[];
   options: string[],
   marks: number;
+  diagramImgURL: string[]; // Added field
 }
 
 interface AnswerScript {
@@ -20,6 +21,7 @@ interface AnswerScript {
   obtainedMarks: number | null;
   remarks: string | null;
   answerImgURL: string[];
+  diagramImgURL: string[]; // Added field
 }
 
 interface ExamSubmission {
@@ -196,6 +198,29 @@ function Page() {
 
                   <p className="mb-4 text-gray-800 font-medium text-base">{script.question.questionText}</p>
 
+                  {/* === NEW: Display Question Diagram(s) === */}
+                  {script.question.diagramImgURL && script.question.diagramImgURL.length > 0 && (
+                    <div className="mb-5">
+                      <label className="font-semibold text-gray-800 flex items-center">
+                        <FileText className="w-4 h-4 mr-2 text-gray-500"/>Question Diagram(s):
+                      </label>
+                      <div className="mt-2 flex flex-wrap gap-3">
+                        {script.question.diagramImgURL.map((url, imgIndex) => (
+                          <div key={imgIndex} className="relative group cursor-pointer" onClick={() => setPreviewImageUrl(url)}>
+                            <img
+                              src={url}
+                              alt={`Question diagram ${imgIndex + 1}`}
+                              className="w-24 h-24 object-cover rounded-md border-2 border-gray-200 transition-transform transform group-hover:scale-105 group-hover:shadow-md"
+                            />
+                            <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-md">
+                              <Eye className="w-7 h-7 text-white"/>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   {script.question.questionType === 'MCQ' && (
                     <div className="mb-5 space-y-1">
                       <label className="font-semibold text-gray-800">Options:</label>
@@ -226,7 +251,6 @@ function Page() {
                     </div>
                   )}
 
-                  {/* === MODIFIED: Show text answer and images for LONG_ANSWER === */}
                   {script.question.questionType !== 'MCQ' && (
                     <div className="mb-5 space-y-4">
                       <div>
@@ -250,11 +274,40 @@ function Page() {
                                   className="w-24 h-24 object-cover rounded-md border-2 border-gray-200 transition-transform transform group-hover:scale-105 group-hover:shadow-md"
                                 />
                                 <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-md">
-                                  <BookOpenCheck className="w-7 h-7 text-white"/>
+                                  <Eye className="w-7 h-7 text-white"/>
                                 </div>
                               </div>
                             ))}
                           </div>
+                        </div>
+                      )}
+
+                      {/* === NEW: Display Student's Diagram Submission === */}
+                      {script.question.diagramImgURL && script.question.diagramImgURL.length > 0 && (
+                        <div>
+                          <label className="font-semibold text-gray-800 flex items-center">
+                            <FileText className="w-4 h-4 mr-2 text-gray-500" />Your Diagram Submission:
+                          </label>
+                          {script.diagramImgURL && script.diagramImgURL.length > 0 ? (
+                            <div className="mt-2 flex flex-wrap gap-3">
+                              {script.diagramImgURL.map((url, imgIndex) => (
+                                <div key={imgIndex} className="relative group cursor-pointer" onClick={() => setPreviewImageUrl(url)}>
+                                  <img
+                                    src={url}
+                                    alt={`Your submitted diagram ${imgIndex + 1}`}
+                                    className="w-24 h-24 object-cover rounded-md border-2 border-gray-200 transition-transform transform group-hover:scale-105 group-hover:shadow-md"
+                                  />
+                                  <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-md">
+                                    <Eye className="w-7 h-7 text-white" />
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="mt-1 bg-gray-50 border-l-4 border-gray-300 text-gray-500 p-4 rounded-r-lg italic">
+                              You did not submit a diagram.
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>

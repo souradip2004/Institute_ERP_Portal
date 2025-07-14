@@ -5,7 +5,7 @@ import {Button} from "@/components/ui/button";
 import ViewPaper from '../../components/teacher/ViewPaper';
 import axios from "axios";
 import {Exam} from "@/types/exam";
-import {Loader, Loader2} from "lucide-react";
+import {Loader2} from "lucide-react";
 
 export function StudentSubmittedExams({submittedExam, setSubmittedExam}: {
   submittedExam: Exam;
@@ -112,7 +112,7 @@ export function StudentSubmittedExams({submittedExam, setSubmittedExam}: {
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <span className="font-medium text-gray-800">
-                        {(submission.obtainedMarks) ? submission.obtainedMarks : submission.status === 'GRADED' ? Number((submission.obtainedMarks).toFixed(2)) : "-"}/{ Number((submission.examTotalMarks).toFixed(2))}
+                        {(submission.obtainedMarks) ? submission.obtainedMarks : submission.status === 'GRADED' ? Number((submission.obtainedMarks).toFixed(2)) : "-"}/{Number((submission.examTotalMarks).toFixed(2))}
                       </span>
                     </div>
                   </TableCell>

@@ -34,7 +34,6 @@ export async function GET(
       return NextResponse.json({error: "Student record not found"}, {status: 403});
     }
 
-    // Fetch the submission with a guaranteed order for the answer scripts.
     const examSubmission = await prisma.examSubmission.findUnique({
       where: {
         id: id,
@@ -52,6 +51,7 @@ export async function GET(
             id: true,
             studentAnswer: true,
             answerImgURL: true,
+            diagramImgURL: true,
             status: true,
             question: {
               select: {
@@ -90,9 +90,9 @@ export async function GET(
       const studentAns: Record<string, string[][]> = {};
       const configJson: Record<string, [number, string, number, number]> = {};
 
-      // Prepare the payload for the AI service.
+
       longAnswerScripts.forEach((script, index) => {
-        const key = String(index + 1); // The AI service requires a 1-based index as a key.
+        const key = String(index + 1);
         modelAns[key] = [[script.question.correctAnswer[0] || ""]];
         studentAns[key] = [[script.studentAnswer || ""]];
         configJson[key] = [
@@ -116,7 +116,7 @@ export async function GET(
           headers: {
             'Content-Type': 'application/json',
             'Authorization': 'Bearer cpxjIHGyDUggeCZSEgd7TSs_xuIaJLxQyplSlPcpEv35qftljIUmetr9Drtj_MUyC9PUSJLvV1vbjljWohB8Sw=='
-          },
+          }
         }
       );
 
@@ -131,8 +131,6 @@ export async function GET(
       });
     }
 
-    // Step 3: Iterate through the ORIGINAL, SORTED answer scripts to calculate marks
-    // and create update promises in the correct order.
     let totalMarks = 0;
     const updatePromises = examSubmission.answerScripts.map(script => {
       let score = 0;
