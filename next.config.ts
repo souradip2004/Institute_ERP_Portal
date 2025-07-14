@@ -41,13 +41,16 @@ const nextConfig: NextConfig = {
     ],
   },
   output: "standalone",
-  webpack: (config) => {
+ /* webpack: (config) => {
     config.module.rules.push({
       test: /\.(png|jpe?g|gif|svg)$/i,
       type: "asset/resource",
     });
 
     return config;
+  },*/
+  turbopack: {
+    resolveExtensions: ['.mdx', '.tsx', '.ts', '.jsx', '.js', '.mjs', '.json'],
   },
 };
 
