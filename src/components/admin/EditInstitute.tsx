@@ -11,14 +11,16 @@ export default function EditDashboardPage({ instituteID, name, email, phone, web
     // The `|| ''` ensures that if a prop is null or undefined, it defaults to an empty string.
     const [form, setForm] = useState({
         name: name || "",
-        email: email || "",
-        phone: phone || "",
-        website: website || "",
+        type: type || "",
         address: address || "",
         city: city || "",
         state: state || "",
         country: country || "",
-        type: type || "",
+        postalCode: "",
+        phone: phone || "",
+        email: email || "",
+        website: website || "",
+        logoUrl: "",
         primaryColor: primaryColor || "",
     });
 
@@ -27,29 +29,46 @@ export default function EditDashboardPage({ instituteID, name, email, phone, web
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
 
-    const handleChange = (e) => {
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         setForm({ ...form, [e.target.name]: e.target.value });
     };
 
-    const handleSubmit = async (e) => {
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-
-        // The submission logic remains the same.
         setSubmitting(true);
         setError("");
         setSuccess("");
         try {
+            // Only send fields that are part of the schema
+            const payload = {
+                name: form.name,
+                type: form.type,
+                address: form.address,
+                city: form.city,
+                state: form.state,
+                country: form.country,
+                postalCode: form.postalCode,
+                phone: form.phone,
+                email: form.email,
+                website: form.website,
+                logoUrl: form.logoUrl,
+                primaryColor: form.primaryColor,
+            };
+            // Remove empty optional fields
+            Object.keys(payload).forEach(key => {
+                if ((payload as any)[key] === "") delete (payload as any)[key];
+            });
             const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/institutions/${instituteID}`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(form),
+                body: JSON.stringify(payload),
             });
             if (!res.ok) {
                 const errorData = await res.json();
                 throw new Error(errorData.message || "Failed to update institute");
             }
             setSuccess("Institute updated successfully!");
-        } catch (e) {
+        } catch (e: any) {
             setError(e.message);
         } finally {
             setSubmitting(false);
@@ -92,6 +111,10 @@ export default function EditDashboardPage({ instituteID, name, email, phone, web
                             <label htmlFor="address" className="block font-medium mb-1">Address</label>
                             <input id="address" name="address" value={form.address} onChange={handleChange} className="w-full p-2 border rounded" />
                         </div>
+                        <div>
+                            <label htmlFor="postalCode" className="block font-medium mb-1">Postal Code</label>
+                            <input id="postalCode" name="postalCode" value={form.postalCode} onChange={handleChange} className="w-full p-2 border rounded" />
+                        </div>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div>
                                 <label htmlFor="city" className="block font-medium mb-1">City</label>
@@ -120,6 +143,17 @@ export default function EditDashboardPage({ instituteID, name, email, phone, web
                                 <option value="School">School</option>
                                 <option value="College">College</option>
                             </select>
+                        </div>
+                        <div>
+                            <label htmlFor="logoUrl" className="block font-medium mb-1">Logo URL</label>
+                            <input
+                                id="logoUrl"
+                                name="logoUrl"
+                                value={form.logoUrl}
+                                onChange={handleChange}
+                                className="w-full p-2 border rounded"
+                                placeholder="https://example.com/logo.png"
+                            />
                         </div>
                         <div>
                             <label htmlFor="primaryColor" className="block font-medium mb-1">Primary Color</label>
