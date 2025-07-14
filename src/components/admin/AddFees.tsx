@@ -1,6 +1,7 @@
 "use client";
 import React, { useState } from 'react';
 import { S3Utils } from "@/utils/s3Utils";
+import axios from 'axios';
 
 // Define the type for the form data, matching your Prisma schema
 interface FeesFormData {
@@ -78,7 +79,15 @@ const FeesForm: React.FC<FeesFormProps> = ({ id }) => {
       console.log('Form Data Submitted:', formData);
 
       // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      //await new Promise((resolve) => setTimeout(resolve, 1500));
+
+      try {
+        const response = await axios.post('/api/payment/create-fee-account', formData);
+        console.log('Response from API:', response);
+      }
+      catch (error) {
+        console.error('Error :', error);
+      }
 
       setMessage('Fees details submitted successfully!');
       setMessageType('success');
@@ -110,9 +119,8 @@ const FeesForm: React.FC<FeesFormProps> = ({ id }) => {
 
         {message && (
           <div
-            className={`p-3 mb-4 rounded-md text-sm ${
-              messageType === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-            }`}
+            className={`p-3 mb-4 rounded-md text-sm ${messageType === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+              }`}
             role="alert"
           >
             {message}
@@ -121,7 +129,7 @@ const FeesForm: React.FC<FeesFormProps> = ({ id }) => {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Institution ID */}
-          
+
 
           {/* Account Holder */}
           <div>
@@ -260,9 +268,8 @@ const FeesForm: React.FC<FeesFormProps> = ({ id }) => {
           <button
             type="submit"
             disabled={isSubmitting}
-            className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-lg font-semibold text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-150 ease-in-out ${
-              isSubmitting ? 'opacity-60 cursor-not-allowed' : ''
-            }`}
+            className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-lg font-semibold text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-150 ease-in-out ${isSubmitting ? 'opacity-60 cursor-not-allowed' : ''
+              }`}
           >
             {isSubmitting ? (
               <svg

@@ -216,12 +216,17 @@ const FeeEditorModal: React.FC<FeeEditorModalProps> = ({ isOpen, onClose, onSave
 export default function Home() {
     // --- State for the Payment Details Form ---
     const [isEditing, setIsEditing] = useState(false);
-    const [formData, setFormData] = useState({
-        name: "Vijay Mallya",
-        branch: "State Bank of India, Mumbai Central Andheri West",
-        ifsc: "SBIN420420420420420",
-        link: "https://stripe.com/in/paytm_pay11204"
+    // Payment details state
+    const [paymentDetails, setPaymentDetails] = useState({
+        id: '',
+        accountHolder: '',
+        accountNumber: '',
+        ifscCode: '',
+        bankName: '',
+        branchName: '',
+        upiqrCode: '',
     });
+    const [isSavingPayment, setIsSavingPayment] = useState(false);
     interface InstituteData {
         logoUrl?: string;
         name?: string;
@@ -261,15 +266,57 @@ export default function Home() {
             }
         };
 
+        const fetchPaymentDetails = async () => {
+            try {
+                const res = await axios.get(`/api/payment/create-fee-account?institutionId=cmct6a6ln00024hkyamjz5zwt`);
+                if (res.data) {
+                    setPaymentDetails({
+                        id: res.data.id || '',
+                        accountHolder: res.data.accountHolder || '',
+                        accountNumber: res.data.accountNumber || '',
+                        ifscCode: res.data.ifscCode || '',
+                        bankName: res.data.bankName || '',
+                        branchName: res.data.branchName || '',
+                        upiqrCode: res.data.upiqrCode || '',
+                    });
+                }
+            } catch (err) {
+                console.log("error fetching payment details", err);
+            }
+        };
+
         fetchInstituteData();
+        fetchPaymentDetails();
     }, []);
 
-    // --- Handlers for the Payment Details Form (Unchanged) ---
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, [e.target.name]: e.target.value });
+    // --- Handlers for the Payment Details Form ---
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setPaymentDetails({ ...paymentDetails, [e.target.name]: e.target.value });
+    };
     const handleEdit = () => setIsEditing(true);
-    const handleSave = () => {
-        setIsEditing(false);
-        console.log("Saving data:", formData);
+    const handleSave = async () => {
+        setIsSavingPayment(true);
+        try {
+            // PATCH API call to update payment details
+            const payload = {
+                id: paymentDetails.id,
+                accountHolder: paymentDetails.accountHolder,
+                accountNumber: paymentDetails.accountNumber,
+                ifscCode: paymentDetails.ifscCode,
+                bankName: paymentDetails.bankName,
+                branchName: paymentDetails.branchName,
+                upiqrCode: paymentDetails.upiqrCode,
+            };
+            await axios.patch('/api/payment/create-fee-account', payload, {
+                headers: { 'Content-Type': 'application/json' },
+            });
+            setIsEditing(false);
+        } catch (err) {
+            console.error('Failed to update payment details', err);
+            // Optionally show error to user
+        } finally {
+            setIsSavingPayment(false);
+        }
     };
 
     // --- NEW --- Handlers for the Fee Editor Modal ---
@@ -376,21 +423,26 @@ export default function Home() {
 
                 <hr className="my-8 border-t border-slate-200" />
 
-                {/* --- Payment Details Section (Unchanged) --- */}
+                {/* --- Payment Details Section (Now dynamic from API) --- */}
                 <div>
                     <h2 className="text-2xl font-semibold text-slate-800 mb-6">Payment Details</h2>
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                         <div className="lg:col-span-1 bg-white p-6 rounded-xl shadow-sm flex flex-col items-center justify-center text-center">
-                            <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=upi://pay?pa=your-upi-id@oksbi" alt="UPI QR Code" className="w-40 h-40 object-cover mb-4 border-4 border-slate-100 rounded-lg" />
+                            {paymentDetails.upiqrCode ? (
+                                <img src={paymentDetails.upiqrCode} alt="UPI QR Code" className="w-40 h-40 object-cover mb-4 border-4 border-slate-100 rounded-lg" />
+                            ) : (
+                                <div className="w-40 h-40 flex items-center justify-center bg-slate-100 mb-4 rounded-lg text-slate-400">No QR</div>
+                            )}
                             <a href="#" className="font-semibold text-indigo-600 hover:text-indigo-800 transition-colors">Scan to Pay with UPI</a>
                         </div>
                         <div className="lg:col-span-2 bg-white p-6 rounded-xl shadow-sm">
                             <h3 className="text-lg font-semibold text-slate-700 mb-4">Banking Details</h3>
                             <div className="space-y-4">
-                                <FormField label="Account Holder Name" name="name" value={formData.name} onChange={handleChange} isEditing={isEditing} />
-                                <FormField label="Bank Name and Branch Location" name="branch" value={formData.branch} onChange={handleChange} isEditing={isEditing} />
-                                <FormField label="Bank IFSC Code" name="ifsc" value={formData.ifsc} onChange={handleChange} isEditing={isEditing} />
-                                <FormField label="Alternate Payment Link" name="link" value={formData.link} onChange={handleChange} isEditing={isEditing} type="url" />
+                                <FormField label="Account Holder Name" name="accountHolder" value={paymentDetails.accountHolder} onChange={handleChange} isEditing={isEditing} />
+                                <FormField label="Bank Name" name="bankName" value={paymentDetails.bankName} onChange={handleChange} isEditing={isEditing} />
+                                <FormField label="Branch Location" name="branchName" value={paymentDetails.branchName} onChange={handleChange} isEditing={isEditing} />
+                                <FormField label="Bank IFSC Code" name="ifscCode" value={paymentDetails.ifscCode} onChange={handleChange} isEditing={isEditing} />
+                                <FormField label="Account Number" name="accountNumber" value={paymentDetails.accountNumber} onChange={handleChange} isEditing={isEditing} />
                             </div>
                             <div className="mt-6 flex justify-end">
                                 {!isEditing ? (
@@ -398,8 +450,8 @@ export default function Home() {
                                         Edit
                                     </button>
                                 ) : (
-                                    <button onClick={handleSave} className="py-2 px-5 bg-emerald-500 text-white font-semibold rounded-md shadow-md hover:bg-emerald-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-all">
-                                        Save Changes
+                                    <button onClick={handleSave} disabled={isSavingPayment} className={`py-2 px-5 bg-emerald-500 text-white font-semibold rounded-md shadow-md hover:bg-emerald-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-all ${isSavingPayment ? 'opacity-60 cursor-not-allowed' : ''}`}>
+                                        {isSavingPayment ? 'Saving...' : 'Save Changes'}
                                     </button>
                                 )}
                             </div>

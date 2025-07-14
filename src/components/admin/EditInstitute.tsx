@@ -108,11 +108,30 @@ export default function EditDashboardPage({ instituteID, name, email, phone, web
                         </div>
                         <div>
                             <label htmlFor="type" className="block font-medium mb-1">Type</label>
-                            <input id="type" name="type" value={form.type} onChange={handleChange} className="w-full p-2 border rounded" />
+                            <select
+                                id="type"
+                                name="type"
+                                value={form.type}
+                                onChange={handleChange}
+                                className="w-full p-2 border rounded"
+                                required
+                            >
+                                <option value="">Select type</option>
+                                <option value="School">School</option>
+                                <option value="College">College</option>
+                            </select>
                         </div>
                         <div>
                             <label htmlFor="primaryColor" className="block font-medium mb-1">Primary Color</label>
-                            <input id="primaryColor" name="primaryColor" value={form.primaryColor} onChange={handleChange} className="w-full p-2 border rounded" placeholder="#123456 or bg-blue-500" />
+                            <input
+                                id="primaryColor"
+                                name="primaryColor"
+                                type="color"
+                                value={form.primaryColor}
+                                onChange={handleChange}
+                                className="w-16 h-10 p-1 border rounded cursor-pointer"
+                                style={{ background: form.primaryColor }}
+                            />
                         </div>
 
                         {/* Error and Success messages for the submission */}
