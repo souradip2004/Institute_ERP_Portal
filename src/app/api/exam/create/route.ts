@@ -8,7 +8,6 @@ const SECRET_KEY = process.env.JWT_SECRET || 'your-secret-key';
 
 export async function POST(req: NextRequest) {
   try {
-    // Get auth token from cookie
 
     const {
       userId,
@@ -25,27 +24,11 @@ export async function POST(req: NextRequest) {
       isAiGenerated
     } = await req.json();
     console.log("Request body:", userId);
-
-    // For better security and consistency, it's recommended to extract user
-    // information from a properly authenticated session/token instead of
-    // sending `userId` directly in the request body as a full object.
-    // Assuming `userId` here refers to the user object from the frontend's
-    // localStorage, which contains an `id` property.
     const user = userId;
-
-    // Validate user role and existence via API call if userId.id is a user ID
-    // Note: The original code's fetch to localhost:3000/api/users/${userId.id}
-    // is problematic in a Vercel/production environment as localhost won't resolve.
-    // It's better to verify the user directly with Prisma if you have the user's ID,
-    // or rely on a proper authentication middleware that populates the request with user data.
-    // For now, I'll adapt to the existing fetch but strongly recommend a robust auth solution.
 
     let userDataFromDb;
     if (user && user.id) {
       try {
-        // In a real application, you'd verify the JWT token
-        // and then fetch user details from the database using prisma.
-        // For demonstration, let's directly use prisma based on userId.id
         userDataFromDb = await prisma.user.findUnique({
           where: { id: user.id },
           select: { role: true, institutionId: true }
@@ -144,17 +127,18 @@ export async function POST(req: NextRequest) {
         endTime: new Date(endTime),
       },
     });
-
+    console.log("Questions payload:", questions);
     const marks = parseFloat((parseFloat(totalMarks) / questions.length).toFixed(2));
     // Then create questions for the exam
     await prisma.question.createMany({
       data: questions.map((q: any) => ({
         examId: exam.id,
         questionText: q.question,
-        questionType: q.questionType, // Assuming all are MCQs now, or you can make this dynamic
+        questionType: q.questionType,
+        diagramImgURL: q.diagramImgURL,
         correctAnswer: Array.isArray(q.answer) ? q.answer : [q.answer],
-        marks, // Default marks, can be dynamic if needed
-        difficultyLevel, // Default difficulty, can be dynamic if needed
+        marks,
+        difficultyLevel,
         createdById: teacher.id,
         options: q.options || [], // Store options for MCQs
       }))

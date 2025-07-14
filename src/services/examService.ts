@@ -265,6 +265,7 @@ export class ExamService {
             questionText: true,
             marks: true,
             options: true,
+            diagramImgURL: true
           },
         },
         examType: {

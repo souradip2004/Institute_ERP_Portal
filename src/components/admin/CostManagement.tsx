@@ -1,23 +1,23 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-
+import axios from 'axios';
 
 
 type CostDetail = {
-    id: string;
-    institutionId: string;
-    videoCreditsBalance: number;
-    questionPaperCreditsBalance: number;
-    assignmentCreditsBalane:number;
-    copyCheckingCreditsBalance: number;
-    attendanceCreditsBalance: number;
-    total: number;
-    lastUpdated: string;
-    studentLimit: number;
-    classSectionLimit: number;
-    reserveLimit: number;
-    sectionCreditsBalance:number;
+  id: string;
+  institutionId: string;
+  videoCreditsBalance: number;
+  questionPaperCreditsBalance: number;
+  assignmentCreditsBalane: number;
+  copyCheckingCreditsBalance: number;
+  attendanceCreditsBalance: number;
+  total: number;
+  lastUpdated: string;
+  studentLimit: number;
+  classSectionLimit: number;
+  reserveLimit: number;
+  sectionCreditsBalance: number;
 };
 
 
@@ -52,6 +52,39 @@ const CostManagementPage: React.FC<ViewCost> = ({ id }) => {
   const [loading, setLoading] = useState(true);
   const [selectedMonth, setSelectedMonth] = useState<number>(now.getMonth());
   const [selectedYear, setSelectedYear] = useState<number>(now.getFullYear());
+  const [creditsRemaining, setCreditsRemaining] = useState(0);
+
+  useEffect(() => {
+
+    const getCoins = async () => {
+      //coin logic
+      const storedUser = localStorage.getItem('user');
+      if (storedUser) {
+        const userData = JSON.parse(storedUser);
+        const instituteId = userData?.institutionId;
+
+        console.log('instituteid --- ', instituteId);
+        try {
+          const instResponse = await axios.get(`/api/institutions/${instituteId}/getadmin`);
+          console.log('instResponse ---', instResponse);
+          console.log('instResponse id ---', instResponse?.data?.id);
+
+          const coinRes = await axios.get(`/api/coins/${instResponse?.data?.id}`);
+          console.log('coinRes ---', coinRes);
+
+          setCreditsRemaining(coinRes.data.coins);
+
+        } catch (err) {
+          console.log(err);
+        }
+      }
+    };
+
+    getCoins();
+
+
+  }, [])
+
 
   useEffect(() => {
     setLoading(true);
@@ -126,6 +159,11 @@ const CostManagementPage: React.FC<ViewCost> = ({ id }) => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
         <CreditCard
+          title="Credits Remaning"
+          balance={creditsRemaining}
+          color="#3b82f6"
+        />
+        {/* <CreditCard
           title="Video Credits Used"
           balance={costDetails.videoCreditsBalance}
           color="#3b82f6"
@@ -145,15 +183,14 @@ const CostManagementPage: React.FC<ViewCost> = ({ id }) => {
           balance={costDetails.attendanceCreditsBalance}
           color="#ef4444"
         />
-         <CreditCard
-          title="Section Creation
-Credits Used"
+        <CreditCard
+          title="Section Creation Credits Used"
           balance={costDetails.sectionCreditsBalance}
           color="#10b981"
-        />
+        /> */}
       </div>
 
-      <div className="bg-white rounded-lg shadow p-6 flex flex-col md:flex-row justify-between items-center">
+      {/* <div className="bg-white rounded-lg shadow p-6 flex flex-col md:flex-row justify-between items-center">
         <div>
           <div className="text-lg font-semibold text-gray-700">Total Credits Used</div>
           <div className="text-4xl font-bold text-blue-600">{costDetails.total}</div>
@@ -164,8 +201,9 @@ Credits Used"
             {new Date(costDetails.lastUpdated).toLocaleString()}
           </div>
         </div>
-      </div>
-{/*
+      </div> */}
+
+      {/*
       <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
         <EditableLimitCard
           label="Student Daily Limit"
@@ -195,94 +233,94 @@ Credits Used"
 
 
 type EditableLimitCardProps = {
-    label: string;
-    value: number;
-    field: keyof CostDetail;
-    costDetails: CostDetail;
-    setCostDetails: React.Dispatch<React.SetStateAction<CostDetail | null>>;
+  label: string;
+  value: number;
+  field: keyof CostDetail;
+  costDetails: CostDetail;
+  setCostDetails: React.Dispatch<React.SetStateAction<CostDetail | null>>;
 };
 
 const EditableLimitCard: React.FC<EditableLimitCardProps> = ({
-    label,
-    value,
-    field,
-    costDetails,
-    setCostDetails,
+  label,
+  value,
+  field,
+  costDetails,
+  setCostDetails,
 }) => {
-    const [editing, setEditing] = useState(false);
-    const [inputValue, setInputValue] = useState(value);
-    const [saving, setSaving] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [inputValue, setInputValue] = useState(value);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-    useEffect(() => {
-        setInputValue(value);
-    }, [value]);
+  useEffect(() => {
+    setInputValue(value);
+  }, [value]);
 
-    const handleSave = async () => {
-        setSaving(true);
-        setError(null);
-        try {
-            // Replace with your API endpoint for updating limits
-            const res = await fetch(`/api/credits/${costDetails.id}/updateLimit`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ field, value: inputValue }),
-            });
-            if (!res.ok) throw new Error('Failed to update limit');
-            setCostDetails(prev =>
-                prev ? { ...prev, [field]: inputValue } : prev
-            );
-            setEditing(false);
-        } catch (err: any) {
-            setError(err.message || 'Error updating limit');
-        } finally {
-            setSaving(false);
-        }
-    };
+  const handleSave = async () => {
+    setSaving(true);
+    setError(null);
+    try {
+      // Replace with your API endpoint for updating limits
+      const res = await fetch(`/api/credits/${costDetails.id}/updateLimit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ field, value: inputValue }),
+      });
+      if (!res.ok) throw new Error('Failed to update limit');
+      setCostDetails(prev =>
+        prev ? { ...prev, [field]: inputValue } : prev
+      );
+      setEditing(false);
+    } catch (err: any) {
+      setError(err.message || 'Error updating limit');
+    } finally {
+      setSaving(false);
+    }
+  };
 
-    return (
-        <div className="bg-white rounded-lg shadow p-4 flex flex-col items-center">
-            <div className="text-md font-semibold mb-2">{label}</div>
-            {editing ? (
-                <div className="flex flex-col items-center">
-                    <input
-                        type="number"
-                        className="border rounded px-2 py-1 w-20 text-center mb-2"
-                        value={inputValue}
-                        onChange={e => setInputValue(Number(e.target.value))}
-                        min={0}
-                    />
-                    <div className="flex gap-2">
-                        <button
-                            className="bg-blue-500 text-white px-3 py-1 rounded text-sm"
-                            onClick={handleSave}
-                            disabled={saving}
-                        >
-                            {saving ? 'Saving...' : 'Save'}
-                        </button>
-                        <button
-                            className="bg-gray-300 text-gray-700 px-3 py-1 rounded text-sm"
-                            onClick={() => { setEditing(false); setInputValue(value); }}
-                            disabled={saving}
-                        >
-                            Cancel
-                        </button>
-                    </div>
-                    {error && <div className="text-red-500 text-xs mt-1">{error}</div>}
-                </div>
-            ) : (
-                <>
-                    <div className="text-2xl font-bold mb-2">{value}</div>
-                    <button
-                        className="bg-blue-500 text-white px-3 py-1 rounded text-sm"
-                        onClick={() => setEditing(true)}
-                    >
-                        Edit
-                    </button>
-                </>
-            )}
+  return (
+    <div className="bg-white rounded-lg shadow p-4 flex flex-col items-center">
+      <div className="text-md font-semibold mb-2">{label}</div>
+      {editing ? (
+        <div className="flex flex-col items-center">
+          <input
+            type="number"
+            className="border rounded px-2 py-1 w-20 text-center mb-2"
+            value={inputValue}
+            onChange={e => setInputValue(Number(e.target.value))}
+            min={0}
+          />
+          <div className="flex gap-2">
+            <button
+              className="bg-blue-500 text-white px-3 py-1 rounded text-sm"
+              onClick={handleSave}
+              disabled={saving}
+            >
+              {saving ? 'Saving...' : 'Save'}
+            </button>
+            <button
+              className="bg-gray-300 text-gray-700 px-3 py-1 rounded text-sm"
+              onClick={() => { setEditing(false); setInputValue(value); }}
+              disabled={saving}
+            >
+              Cancel
+            </button>
+          </div>
+          {error && <div className="text-red-500 text-xs mt-1">{error}</div>}
         </div>
-    );
+      ) : (
+        <>
+          <div className="text-2xl font-bold mb-2">{value}</div>
+          <button
+            className="bg-blue-500 text-white px-3 py-1 rounded text-sm"
+            onClick={() => setEditing(true)}
+          >
+            Edit
+          </button>
+        </>
+      )}
+    </div>
+  );
 };
 
 export default CostManagementPage;

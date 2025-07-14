@@ -8,6 +8,7 @@ interface Question {
   questionText: string;
   questionType: 'LONG_ANSWER' | 'MCQ' | 'SHORT_ANSWER';
   correctAnswer: string[];
+  diagramImgURL: string[];
   marks: number;
   difficultyLevel: string;
 }
@@ -19,6 +20,7 @@ interface AnswerScript {
   obtainedMarks: number | null;
   remarks: string | null;
   answerImgURL: string[];
+  diagramImgURL: string[];
 }
 
 interface ExamSubmission {
@@ -273,6 +275,29 @@ const AnswerScriptGrader = ({id, studentId, setSubmittedExam, setViewPaperOpen}:
               </div>
               <p className="mb-4 text-gray-800 font-medium">{script.question.questionText}</p>
 
+              {/* ============== DISPLAY QUESTION DIAGRAM(S) ============== */}
+              {script.question.diagramImgURL && script.question.diagramImgURL.length > 0 && (
+                <div className="mb-5">
+                  <label className="font-semibold text-gray-800 flex items-center mb-2">
+                    <FileText className="w-4 h-4 mr-2 text-blue-600" /> Question Diagram(s):
+                  </label>
+                  <div className="mt-2 flex flex-wrap gap-4">
+                    {script.question.diagramImgURL.map((url, imgIndex) => (
+                      <div key={imgIndex} className="relative group" onClick={() => setPreviewImageUrl(url)}>
+                        <img
+                          src={url}
+                          alt={`Question diagram ${imgIndex + 1}`}
+                          className="w-28 h-28 object-cover rounded-md border-2 border-gray-300 cursor-pointer transition-transform transform hover:scale-105"
+                        />
+                        <div className="absolute inset-0 bg-black bg-opacity-60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer rounded-md">
+                          <Eye className="w-8 h-8 text-white"/>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div className="mb-5">
                 <label className="font-semibold text-gray-800">Student's Answer:</label>
                 <div className="mt-2 bg-green-50 border-l-4 border-green-400 text-green-900 p-4 rounded-r-lg">
@@ -302,6 +327,35 @@ const AnswerScriptGrader = ({id, studentId, setSubmittedExam, setViewPaperOpen}:
                   </div>
                 )}
               </div>
+
+              {/* ============== DISPLAY STUDENT'S DIAGRAM ANSWER(S) ============== */}
+              {script.question.diagramImgURL && script.question.diagramImgURL.length > 0 && (
+                <div className="mb-5">
+                  <label className="font-semibold text-gray-800 flex items-center mb-2">
+                    <FileText className="w-4 h-4 mr-2 text-purple-600" /> Student's Diagram Submission:
+                  </label>
+                  {script.diagramImgURL && script.diagramImgURL.length > 0 ? (
+                    <div className="mt-2 flex flex-wrap gap-4">
+                      {script.diagramImgURL.map((url, imgIndex) => (
+                        <div key={imgIndex} className="relative group" onClick={() => setPreviewImageUrl(url)}>
+                          <img
+                            src={url}
+                            alt={`Student diagram ${imgIndex + 1}`}
+                            className="w-28 h-28 object-cover rounded-md border-2 border-gray-300 cursor-pointer transition-transform transform hover:scale-105"
+                          />
+                          <div className="absolute inset-0 bg-black bg-opacity-60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer rounded-md">
+                            <Eye className="w-8 h-8 text-white" />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="mt-2 bg-gray-50 border-l-4 border-gray-300 text-gray-600 p-4 rounded-r-lg italic">
+                      No diagram was submitted by the student.
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div className="mb-5">
                 <label className="font-semibold text-gray-800 flex items-center">

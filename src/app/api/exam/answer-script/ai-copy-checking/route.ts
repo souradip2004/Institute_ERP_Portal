@@ -18,46 +18,32 @@ export async function GET(
       );
     }
 
-    const teacher = await prisma.teacher.findUnique({
-      where: {id: teacherId}
-    });
-
+    const teacher = await prisma.teacher.findUnique({where: {id: teacherId}});
     if (!teacher) {
       return NextResponse.json({error: "Teacher record not found"}, {status: 403});
     }
-
-    const student = await prisma.student.findFirst({
-      where: {id: studentId}
-    });
-
+    const student = await prisma.student.findFirst({where: {id: studentId}});
     if (!student) {
       return NextResponse.json({error: "Student record not found"}, {status: 403});
     }
 
-    // Fetch the submission with a guaranteed order for the answer scripts.
     const examSubmission = await prisma.examSubmission.findUnique({
-      where: {
-        id: id,
-        studentId: studentId,
-      },
+      where: {id, studentId},
       include: {
         answerScripts: {
-          orderBy: {
-            question: {
-              // This orderBy is crucial for maintaining order.
-              id: 'asc'
-            }
-          },
+          orderBy: {question: {id: 'asc'}},
           select: {
             id: true,
             studentAnswer: true,
             answerImgURL: true,
+            diagramImgURL: true,
             status: true,
             question: {
               select: {
                 id: true,
                 questionText: true,
                 questionType: true,
+                diagramImgURL: true,
                 correctAnswer: true,
                 marks: true,
                 difficultyLevel: true
@@ -71,116 +57,200 @@ export async function GET(
     if (!examSubmission) {
       return NextResponse.json({error: "Exam submission not found"}, {status: 404});
     }
-
     if (examSubmission.status === 'GRADED') {
       return NextResponse.json({error: "Exam already graded"}, {status: 400});
     }
 
-    // Step 1: Isolate long-answer scripts to prepare the AI payload.
     const longAnswerScripts = examSubmission.answerScripts.filter(
       script => script.question.questionType === 'LONG_ANSWER'
     );
 
-    // This map will hold the AI-calculated scores, keyed by the answer script's ID for accuracy.
     const aiScores = new Map<string, number>();
 
-    // Step 2: If there are long-answer questions, send them to the AI service.
     if (longAnswerScripts.length > 0) {
-      const modelAns: Record<string, string[][]> = {};
-      const studentAns: Record<string, string[][]> = {};
-      const configJson: Record<string, [number, string, number, number]> = {};
+      const scriptsForAIGrading = [];
+      for (const script of longAnswerScripts) {
+        if (script.answerImgURL && script.answerImgURL.length > 0) {
+          try {
+            const ocrResponse = await axios.post('https://py.aiclassroom.in/imgs2ocr2/', {
+              file_url_list: script.answerImgURL
+            });
+            script.studentAnswer = ocrResponse.data["OCR DATA"] || "";
+          } catch (ocrError) {
+            console.error("Error during OCR processing for script ID:", script.id, ocrError);
+            script.studentAnswer = "";
+          }
+        }
+        if (!script.studentAnswer) {
+          aiScores.set(script.id, 0);
+        } else {
+          scriptsForAIGrading.push(script);
+        }
+      }
 
-      // Prepare the payload for the AI service.
-      longAnswerScripts.forEach((script, index) => {
-        const key = String(index + 1); // The AI service requires a 1-based index as a key.
-        modelAns[key] = [[script.question.correctAnswer[0] || ""]];
-        studentAns[key] = [[script.studentAnswer || ""]];
-        configJson[key] = [
-          script.question.marks || 0,
-          script.question.difficultyLevel || "Hard",
-          0,
-          0
-        ];
-      });
+      const textOnlyScripts = scriptsForAIGrading.filter(s => !s.question.diagramImgURL || s.question.diagramImgURL.length === 0);
+      const diagramScripts = scriptsForAIGrading.filter(s => s.question.diagramImgURL && s.question.diagramImgURL.length > 0);
 
-      const payload = {
-        model_json_anskey: JSON.stringify(modelAns),
-        student_json_ans: JSON.stringify(studentAns),
-        config_json: JSON.stringify(configJson)
-      };
+      if (textOnlyScripts.length > 0) {
+        // This part remains the same as before
+        const modelAns: Record<string, string[][]> = {};
+        const studentAns: Record<string, string[][]> = {};
+        const configJson: Record<string, [number, string, number, number]> = {};
 
-      const response = await axios.post(
-        'https://answer-checking-4-dad1d16-v3.app.beam.cloud',
-        payload,
-        {
+        textOnlyScripts.forEach((script, index) => {
+          const key = String(index + 1);
+          modelAns[key] = [[script.question.correctAnswer[0] || ""]];
+          studentAns[key] = [[script.studentAnswer || ""]];
+          configJson[key] = [script.question.marks || 0, script.question.difficultyLevel || "Hard", 0, 0];
+        });
+
+        const payload = {
+          model_json_anskey: JSON.stringify(modelAns),
+          student_json_ans: JSON.stringify(studentAns),
+          config_json: JSON.stringify(configJson)
+        };
+        const response = await axios.post('https://answer-checking-4-dad1d16-v3.app.beam.cloud', payload, {
           headers: {
             'Content-Type': 'application/json',
             'Authorization': 'Bearer cpxjIHGyDUggeCZSEgd7TSs_xuIaJLxQyplSlPcpEv35qftljIUmetr9Drtj_MUyC9PUSJLvV1vbjljWohB8Sw=='
-          },
+          }
+        });
+
+        const rawResults = response.data.final_results_data;
+        const parsedScores = JSON.parse(rawResults[2]);
+        textOnlyScripts.forEach((script, index) => {
+          const key = String(index + 1);
+          const score = Number((parsedScores[key]?.[`Updated_Score (?/${script.question.marks})`] ?? 0).toFixed(2));
+          aiScores.set(script.id, score);
+        });
+      }
+
+      if (diagramScripts.length > 0) {
+        const modelAns: Record<string, string[][]> = {};
+        const studentAns: Record<string, string[][]> = {};
+        const configJson: Record<string, [number, string, number, number]> = {};
+
+        diagramScripts.forEach((script, index) => {
+          const key = String(index + 1);
+          const halfMarks = (script.question.marks || 0) * 0.5;
+          modelAns[key] = [[script.question.correctAnswer[0] || ""]];
+          studentAns[key] = [[script.studentAnswer || ""]];
+          configJson[key] = [halfMarks, script.question.difficultyLevel || "Hard", 0, 0];
+        });
+
+        const initialPayload = {
+          model_json_anskey: JSON.stringify(modelAns),
+          student_json_ans: JSON.stringify(studentAns),
+          config_json: JSON.stringify(configJson)
+        };
+
+        const initialResponse = await axios.post('https://answer-checking-4-dad1d16-v3.app.beam.cloud',
+          initialPayload,
+          {
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer cpxjIHGyDUggeCZSEgd7TSs_xuIaJLxQyplSlPcpEv35qftljIUmetr9Drtj_MUyC9PUSJLvV1vbjljWohB8Sw=='
+            }
+          });
+
+        const initialRawResults = initialResponse.data.final_results_data;
+        const parsedInitialScores = JSON.parse(initialRawResults[2]);
+
+        // Step B: Call diagram API for each script with retry logic
+        for (const [index, script] of diagramScripts.entries()) {
+          if (!script.diagramImgURL || script.diagramImgURL.length === 0) {
+            aiScores.set(script.id, 0);
+            continue;
+          }
+
+          const key = String(index + 1);
+          const initialScoreObject = parsedInitialScores[key];
+          const halfMarks = (script.question.marks || 0) * 0.5;
+
+          const diagramPayload = {
+            question_no: 1,
+            student_img_url: script.diagramImgURL[0],
+            ans_key_json: JSON.stringify({"1": [[script.question.correctAnswer[0] || ""]]}),
+            diagram_data: {
+              "1": {
+                text: [[script.question.correctAnswer[0] || ""]],
+                diagram: script.question.diagramImgURL
+              }
+            },
+            updated_scores_json: JSON.stringify({"1": initialScoreObject}),
+            config_json: JSON.stringify({"1": [halfMarks, script.question.difficultyLevel || "Hard", 0, halfMarks, "FigBased_y"]})
+          };
+
+          let finalScore = 0;
+          for (let attempt = 1; attempt <= 2; attempt++) {
+            if (attempt === 2) {
+              const delay = Math.random() * 2000 + 4000; // 4 to 6 seconds
+              await new Promise(resolve => setTimeout(resolve, delay));
+            }
+
+            try {
+              const diagramResponse = await axios.post('https://answer-and-diagram-checking-5-v2-41923a7-v1.app.beam.cloud',
+                diagramPayload,
+                {
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer cpxjIHGyDUggeCZSEgd7TSs_xuIaJLxQyplSlPcpEv35qftljIUmetr9Drtj_MUyC9PUSJLvV1vbjljWohB8Sw=='
+                  }
+                }
+              );
+
+              const finalResult = JSON.parse(diagramResponse.data.final_RESULT_JSON);
+              const score = finalResult["1"]?.[`Diagram Final Score (?/${halfMarks})`];
+
+              if (score !== undefined && score !== null) {
+                finalScore = Number(score);
+                break;
+              }
+            } catch (apiError) {
+              console.error(`Attempt ${attempt} failed for diagram API call for script ${script.id}:`, apiError);
+            }
+          }
+          aiScores.set(script.id, finalScore);
         }
-      );
-
-      const rawResults = response.data.final_results_data;
-      const parsedScores = JSON.parse(rawResults[2]);
-
-      // Map the AI results back to our answer scripts using their original order and unique ID.
-      longAnswerScripts.forEach((script, index) => {
-        const key = String(index + 1);
-        const score = Number((parsedScores[key]?.[`Updated_Score (?/${script.question.marks})`] ?? 0).toFixed(2));
-        aiScores.set(script.id, score); // Use the script's unique ID as the key in our map.
-      });
+      }
     }
 
-    // Step 3: Iterate through the ORIGINAL, SORTED answer scripts to calculate marks
-    // and create update promises in the correct order.
     let totalMarks = 0;
     const updatePromises = examSubmission.answerScripts.map(script => {
       let score = 0;
-      const isAiGraded = true;
+      let isAiGraded = false;
 
-      if (script.question.questionType === 'LONG_ANSWER') {
-        score = aiScores.get(script.id) || 0;
-      } else if (script.question.questionType === 'MCQ') {
-        if (script.question.correctAnswer.includes(script.studentAnswer)) {
-          score = script.question.marks;
-        }
+      switch (script.question.questionType) {
+        case 'LONG_ANSWER':
+          score = aiScores.get(script.id) || 0;
+          isAiGraded = true;
+          break;
+        case 'MCQ':
+          if (script.question.correctAnswer.includes(script.studentAnswer)) {
+            score = script.question.marks;
+          }
+          break;
       }
-      // You can add more grading logic for other question types here.
-
       totalMarks += score;
 
-      // Return the promise for this update.
       return prisma.answerScript.update({
-        where: { id: script.id },
-        data: {
-          obtainedMarks: score,
-          status: "GRADED",
-          isAiGraded: isAiGraded,
-          gradedById: teacherId,
-          gradedAt: new Date()
-        },
+        where: {id: script.id},
+        data: {obtainedMarks: score, status: "GRADED", isAiGraded, gradedById: teacherId, gradedAt: new Date()},
       });
     });
 
-    // Step 4: Execute all database updates.
     await Promise.all(updatePromises);
 
-    // Step 5: Finalize the submission with the total marks.
-    totalMarks = Number(totalMarks.toFixed(2));
     const updatedSubmission = await prisma.examSubmission.update({
-      where: {
-        id: examSubmission.id,
-      },
+      where: {id: examSubmission.id},
       data: {
-        obtainedMarks: totalMarks,
+        obtainedMarks: Number(totalMarks.toFixed(2)),
         status: "GRADED",
         gradedById: teacherId,
         gradedAt: new Date()
       },
     });
 
-    // Note: The frontend must re-fetch the submission data after grading.
-    // To see the correct order, it must use the same 'orderBy' clause used in this function.
     return NextResponse.json(updatedSubmission, {status: 200});
 
   } catch (error: any) {

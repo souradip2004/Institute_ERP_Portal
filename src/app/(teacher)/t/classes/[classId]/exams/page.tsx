@@ -1,14 +1,15 @@
 // pages/teacher/exams.tsx (frontend page)
 "use client";
-import React, {useState, useEffect} from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
-import {v4 as uuidV4} from "uuid";
-import {format} from "date-fns";
+import { v4 as uuidV4 } from "uuid";
+import { format } from "date-fns";
 import Loader from '@/components/ui/Loader';
 import {Calendar, Clock, CheckCheck, X, FileText, BookOpen, GraduationCap, XCircle, PlusCircle} from 'lucide-react';
 import {forceLogout as logoutAndRedirect} from "@/lib/logout-utils";
 import {FaCopy} from "react-icons/fa";
 import {useRouter} from "next/navigation";
+import {uploadImageToCloudinary} from "@/utils/uploadImageToCloudinary";
 
 // Updated Question Interface
 interface Question {
@@ -17,6 +18,7 @@ interface Question {
   options?: string[]; // Options are still part of the interface as manual entry can be MCQ
   isSelected: boolean;
   questionType: 'MCQ' | 'LONG_ANSWER' | "Both"; // Added questionType
+  diagramImgURL?: string[];
 }
 
 interface TeacherClassSection {
@@ -62,7 +64,7 @@ interface TeacherClassSection {
   } | null;
 }
 
-interface Exam {
+/*interface Exam {
   id: string;
   title: string;
   status: string;
@@ -118,6 +120,40 @@ interface Exam {
   examType?: {
     name: string;
   };
+}*/
+
+interface Exam {
+  id: string;
+  title: string;
+  status: string;
+  durationMinutes: number;
+  totalMarks: number;
+  passingMarks: number;
+  examDate: string;
+  startTime: string;
+  endTime: string;
+  questions: Array<{
+    id: string;
+    examId: string;
+    questionText: string;
+    questionType?: string; // This will now correctly reflect 'MCQ' or 'LONG_ANSWER'
+    marks: number;
+    options?: string[];
+    correctAnswer?: string[];
+    difficultyLevel?: string;
+    diagramImgURL?: string[];
+  }>;
+  classSection: {
+    batch: {
+      name: string;
+    };
+    semester: {
+      name: string;
+    };
+  };
+  examType?: {
+    name: string;
+  };
 }
 
 export default function ExamsPage() {
@@ -153,23 +189,28 @@ export default function ExamsPage() {
   const [loadingExamDetails, setLoadingExamDetails] = useState(false);
   const [creditsData, setcreditsData] = useState<any>(null);
 
-  const [difficulty, setDifficulty] = useState<'Easy' | 'Medium' | 'Hard'>("Medium");
+  const [difficulty, setDifficulty] = useState<'Easy' | 'Medium' | 'Hard'>("Hard");
 
   // const [aiQuestionType, setAiQuestionType] = useState<Array<AiQuestionType>>([]);
   // NEW: Holds the page numbers after the user clicks "Apply Range"
   const [selectedPages, setSelectedPages] = useState<number[]>([]);
 
-// NEW: Holds the single question type for the entire selected range
+  // NEW: Holds the single question type for the entire selected range
   const [selectedQuestionType, setSelectedQuestionType] = useState<'MCQ' | 'LONG_ANSWER' | 'Both'>('MCQ');
 
   const [pdfPageImages, setPdfPageImages] = useState<string[]>([]);
   const [isProcessingPdf, setIsProcessingPdf] = useState(false);
   const [startPage, setStartPage] = useState<string>('1');
   const [endPage, setEndPage] = useState<string>('');
+  const [instituteId, setInstituteId] = useState();
+  const [instituteAdminId, setInstituteAdminId] = useState();
+
+  const [uploadingDiagram, setUploadingDiagram] = useState(false);
+  const [selectedQuestionForDiagram, setSelectedQuestionForDiagram] = useState<number | null>(null);
 
   useEffect(() => {
-    console.log("All exams: ", exams);
-  }, [exams]);
+    console.log("All questions: ", questions);
+  }, [questions]);
 
   useEffect(() => {
     const startDate = new Date(`${examDate}T${startTime}`);
@@ -306,7 +347,7 @@ export default function ExamsPage() {
       setPdfPageImages(pageImages);
 
       // MODIFIED: Set the new state variables to default to the full document range.
-      const allPageNumbers = Array.from({length: pageImages.length}, (_, i) => i + 1);
+      const allPageNumbers = Array.from({ length: pageImages.length }, (_, i) => i + 1);
       setSelectedPages(allPageNumbers);
       setSelectedQuestionType('MCQ'); // Reset question type to default
 
@@ -325,7 +366,7 @@ export default function ExamsPage() {
     }
   };
 
-// --- NEW: Function to apply the user-defined page range ---
+  // --- NEW: Function to apply the user-defined page range ---
   const handleApplyPageRange = () => {
     const start = parseInt(startPage, 10);
     const end = parseInt(endPage, 10);
@@ -456,6 +497,7 @@ export default function ExamsPage() {
         try {
           const userData = JSON.parse(storedUser);
           teacherId = userData?.teacherId;
+          setInstituteId(userData?.institutionId)
           if (!teacherId) {
             setError("Teacher ID not found");
             return;
@@ -545,7 +587,7 @@ export default function ExamsPage() {
 
   const today = new Date().toISOString().split('T')[0];
 
-// NEW: Handler for when the duration is changed
+  // NEW: Handler for when the duration is changed
   const handleDurationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newDuration = e.target.value;
     setDurationMinutes(newDuration);
@@ -562,7 +604,7 @@ export default function ExamsPage() {
     }
   };
 
-// NEW: Handler for when the start time is changed
+  // NEW: Handler for when the start time is changed
   const handleStartTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newStartTime = e.target.value;
     setStartTime(newStartTime);
@@ -579,7 +621,7 @@ export default function ExamsPage() {
     }
   };
 
-// NEW: Handler for when the end time is changed
+  // NEW: Handler for when the end time is changed
   const handleEndTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newEndTime = e.target.value;
     setEndTime(newEndTime);
@@ -604,9 +646,41 @@ export default function ExamsPage() {
   };
 
   const handleCreateExam = async () => {
+    // console.log('instituteid --- ', instituteId);
+    // try {
+    //   const instResponse = await axios.get(`http://localhost:3000/api/institutions/${instituteId}/getadmin`);
+    //   console.log('instResponse ---', instResponse);
+    //   console.log('instResponse id ---', instResponse?.data?.id);
+
+    //   const coinRes = await axios.get(`http://localhost:3000/api/coins/${instResponse?.data?.id}`);
+    //   console.log('coinRes ---', coinRes);
+
+    //   const resul1 = await axios.post(`/api/coins/${instResponse?.data?.id}?coins=4`, null, {
+    //     headers: {
+    //       "Content-Type": "application/json"
+    //     }
+    //   });
+
+    //   const coinRes2 = await axios.get(`http://localhost:3000/api/coins/${instResponse?.data?.id}`);
+    //   console.log('coinRes ---', coinRes2);
+
+    // } catch (err) {
+    //   console.log(err);
+    // }
+
+
+    // alert("failed create exam");
+    // return;
+
     setError("");
     const selectedQuestions = questions.filter((q) => q.isSelected)
-    .map(({question, answer, options, questionType}) => ({question, answer, options, questionType})); // Include questionType
+    .map(({question, answer, options, questionType, diagramImgURL}) => ({
+      question,
+      answer,
+      options,
+      questionType,
+      diagramImgURL
+    }));
 
     if (selectedQuestions.length === 0) {
       setError("Please select at least one question");
@@ -671,6 +745,36 @@ export default function ExamsPage() {
       return;
     }
 
+    /*//coin things
+    console.log('instituteid --- ', instituteId);
+    try {
+      const instResponse = await axios.get(`/api/institutions/${instituteId}/getadmin`);
+      console.log('instResponse ---', instResponse);
+      console.log('instResponse id ---', instResponse?.data?.id);
+
+      const coinRes = await axios.get(`/api/coins/${instResponse?.data?.id}`);
+      console.log('coinRes ---', coinRes);
+
+      let coinsToDeduct = selectedQuestions.length * 0.2;
+
+      if (coinRes.data.coins < coinsToDeduct) {
+        alert('Institute dosenot have enough Coins! Please Contact Institute Admin.');
+        return;
+      }
+
+      const resul1 = await axios.post(`/api/coins/${instResponse?.data?.id}?coins=${coinsToDeduct}`, null, {
+        headers: {
+          "Content-Type": "application/json"
+        }
+      });
+
+      const coinRes2 = await axios.get(`/api/coins/${instResponse?.data?.id}`);
+      console.log('coinRes ---', coinRes2);
+
+    } catch (err) {
+      console.log(err);
+    }*/
+
     try {
       setLoading(true);
       // updateCoins(questions.length)
@@ -718,7 +822,7 @@ export default function ExamsPage() {
         setNumLongQuestions("2");
         setError("");
         setActiveTab('view');
-        
+
         fetchExams();
       }
     } catch (err: any) {
@@ -813,6 +917,9 @@ export default function ExamsPage() {
 
   // --- MODIFIED handleGenerateAiQuestions function ---
   const handleGenerateAiQuestions = async () => {
+    // console.log('instituteId -- ', instituteId)
+    // alert('failed');
+    // return;
     try {
       setError("");
       // All previous validations remain
@@ -859,7 +966,7 @@ export default function ExamsPage() {
       let mcqPageImages: string[] = [];
       let longPageImages: string[] = [];
 
-// Check the single dropdown's value to decide which lists to populate
+      // Check the single dropdown's value to decide which lists to populate
       if (selectedQuestionType === 'MCQ' || selectedQuestionType === 'Both') {
         // Get image URLs for all selected pages for MCQs
         mcqPageImages = selectedPages.map(pgNum => pdfPageImages[pgNum - 1]);
@@ -886,6 +993,38 @@ export default function ExamsPage() {
         });
         allQuestions = [...allQuestions, ...mapApiResponseToQuestions(generateMcqQuestions.data)];
       }
+
+
+      //coin things
+      console.log('instituteid --- ', instituteId);
+      try {
+        const instResponse = await axios.get(`/api/institutions/${instituteId}/getadmin`);
+        console.log('instResponse ---', instResponse);
+        console.log('instResponse id ---', instResponse?.data?.id);
+
+        const coinRes = await axios.get(`/api/coins/${instResponse?.data?.id}`);
+        console.log('coinRes ---', coinRes);
+
+        let coinsToDeduct = allQuestions.length * 0.2;
+
+        if (coinRes.data.coins < coinsToDeduct) {
+          alert('Institute dosenot have enough Coins! Please Contact Institute Admin.');
+          return;
+        }
+
+        const resul1 = await axios.post(`/api/coins/${instResponse?.data?.id}?coins=${coinsToDeduct}`, null, {
+          headers: {
+            "Content-Type": "application/json"
+          }
+        });
+
+        const coinRes2 = await axios.get(`/api/coins/${instResponse?.data?.id}`);
+        console.log('coinRes ---', coinRes2);
+
+      } catch (err) {
+        console.log(err);
+      }
+
 
       // Generate Long Answer questions if pages were selected for it
       if (longPageImages.length > 0) {
@@ -925,9 +1064,18 @@ export default function ExamsPage() {
   }
 
   const handleCreateAiExams = async () => {
+    // console.log('instituteid --- ', instituteId);
+    // alert("failed ai exam");
+    // return;
     try {
       const selectedQuestions = questions.filter((q) => q.isSelected)
-      .map(({question, answer, options, questionType}) => ({question, answer, options, questionType})); // Include questionType
+      .map(({question, answer, options, questionType, diagramImgURL}) => ({
+        question,
+        answer,
+        options,
+        questionType,
+        diagramImgURL
+      })); // Include questionType
 
       if (selectedQuestions.length === 0) {
         setError("Please select at least one question");
@@ -1040,7 +1188,7 @@ export default function ExamsPage() {
   const toggleQuestionSelection = (index: number) => {
     setQuestions(
       questions.map((q, i) =>
-        i === index ? {...q, isSelected: !q.isSelected} : q
+        i === index ? { ...q, isSelected: !q.isSelected } : q
       )
     );
   };
@@ -1074,6 +1222,42 @@ export default function ExamsPage() {
       }
       return newQuestions;
     });
+  };
+
+  const handleDiagramUpload = async (event: React.ChangeEvent<HTMLInputElement>, questionIndex: number) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setUploadingDiagram(true);
+    setSelectedQuestionForDiagram(questionIndex);
+
+    try {
+      const imageUrl = await uploadImageToCloudinary(file);
+      setQuestions(prevQuestions => prevQuestions.map((q, idx) => {
+        if (idx === questionIndex) {
+          const diagramImgURL = [...(q.diagramImgURL || []), imageUrl];
+          return {...q, diagramImgURL};
+        }
+        return q;
+      }));
+    } catch (error) {
+      console.error("Failed to upload diagram:", error);
+      setError("Failed to upload diagram. Please try again.");
+    } finally {
+      setUploadingDiagram(false);
+      setSelectedQuestionForDiagram(null);
+      event.target.value = ''; // Reset file input
+    }
+  };
+
+  const handleRemoveDiagram = (questionIndex: number, diagramIndex: number) => {
+    setQuestions(prevQuestions => prevQuestions.map((q, idx) => {
+      if (idx === questionIndex && q.diagramImgURL) {
+        const diagramImgURL = q.diagramImgURL.filter((_, i) => i !== diagramIndex);
+        return {...q, diagramImgURL};
+      }
+      return q;
+    }));
   };
 
   const handleQuestionTypeChange = (qIndex: number, type: 'MCQ' | 'LONG_ANSWER') => {
@@ -1135,10 +1319,10 @@ export default function ExamsPage() {
             className={`px-4 py-2 rounded-md font-medium transition-colors ${activeTab === 'view'
               ? 'bg-purple-100 text-purple-700'
               : 'text-gray-600 hover:bg-gray-100'
-            }`}
+              }`}
           >
             <span className="flex items-center gap-2">
-              <BookOpen className="h-5 w-5"/>
+              <BookOpen className="h-5 w-5" />
               View Exams
             </span>
           </button>
@@ -1147,10 +1331,10 @@ export default function ExamsPage() {
             className={`px-4 py-2 rounded-md font-medium transition-colors ${activeTab === 'create'
               ? 'bg-purple-100 text-purple-700'
               : 'text-gray-600 hover:bg-gray-100'
-            }`}
+              }`}
           >
             <span className="flex items-center gap-2">
-              <FileText className="h-5 w-5"/>
+              <FileText className="h-5 w-5" />
               Create Exam
             </span>
           </button>
@@ -1163,7 +1347,7 @@ export default function ExamsPage() {
             `}>
 
             <span className="flex items-center gap-2">
-              <FaCopy className="h-5 w-5"/>
+              <FaCopy className="h-5 w-5" />
               Copy Check
             </span>
           </button>
@@ -1173,7 +1357,7 @@ export default function ExamsPage() {
       {error && (
         <div className="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded-md shadow-sm">
           <div className="flex items-start">
-            <X className="h-5 w-5 mr-2 mt-0.5"/>
+            <X className="h-5 w-5 mr-2 mt-0.5" />
             <p>{error}</p>
           </div>
         </div>
@@ -1194,9 +1378,9 @@ export default function ExamsPage() {
                 }}
                 className={`inline-flex items-center px-4 py-2 rounded-md font-medium transition-colors shadow-sm border
                   ${!questionMode
-                  ? "bg-indigo-600 text-white hover:bg-indigo-700 border-indigo-600"
-                  : "bg-white text-indigo-700 hover:bg-indigo-50 border-indigo-300"
-                }`}
+                    ? "bg-indigo-600 text-white hover:bg-indigo-700 border-indigo-600"
+                    : "bg-white text-indigo-700 hover:bg-indigo-50 border-indigo-300"
+                  }`}
               >
                 {!questionMode ? "Switch to Manual Entry" : "Switch to AI Generator"}
               </button>
@@ -1244,7 +1428,7 @@ export default function ExamsPage() {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     <span className="flex items-center gap-1">
-                      <Clock className="h-4 w-4"/>
+                      <Clock className="h-4 w-4" />
                       Duration (minutes)
                     </span>
                   </label>
@@ -1262,7 +1446,7 @@ export default function ExamsPage() {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     <span className="flex items-center gap-1">
-                      <GraduationCap className="h-4 w-4"/>
+                      <GraduationCap className="h-4 w-4" />
                       Total Marks
                     </span>
                   </label>
@@ -1277,7 +1461,7 @@ export default function ExamsPage() {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     <span className="flex items-center gap-1">
-                      <CheckCheck className="h-4 w-4"/>
+                      <CheckCheck className="h-4 w-4" />
                       Passing Marks
                     </span>
                   </label>
@@ -1294,7 +1478,7 @@ export default function ExamsPage() {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     <span className="flex items-center gap-1">
-                      <Calendar className="h-4 w-4"/>
+                      <Calendar className="h-4 w-4" />
                       Exam Date
                     </span>
                   </label>
@@ -1309,10 +1493,10 @@ export default function ExamsPage() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                      <span className="flex items-center gap-1">
-                        <Clock className="h-4 w-4"/>
-                        Start Time
-                      </span>
+                    <span className="flex items-center gap-1">
+                      <Clock className="h-4 w-4" />
+                      Start Time
+                    </span>
                   </label>
                   <input
                     type="time"
@@ -1326,7 +1510,7 @@ export default function ExamsPage() {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     <span className="flex items-center gap-1">
-                      <Clock className="h-4 w-4"/>
+                      <Clock className="h-4 w-4" />
                       End Time
                     </span>
                   </label>
@@ -1447,14 +1631,16 @@ export default function ExamsPage() {
                   {/* --- NEW UI: PDF Preview and Page Configuration --- */}
                   {isProcessingPdf && (
                     <div className="text-center p-4 my-4 bg-white rounded-lg border">
-                      <Loader size="medium"/>
-                      <p className="mt-2 text-gray-600 animate-pulse">Processing your PDF, please wait...</p>
+                      <Loader size="medium" />
+                      <p className="mt-2 text-gray-600 animate-pulse">Processing your PDF, please
+                        wait...</p>
                     </div>
                   )}
 
                   {pdfPageImages.length > 0 && (
                     <div className="mt-6 border-t pt-6">
-                      <h3 className="text-lg font-semibold text-gray-800 mb-4 text-center">PDF Preview & Page
+                      <h3 className="text-lg font-semibold text-gray-800 mb-4 text-center">PDF
+                        Preview & Page
                         Configuration</h3>
                       <div className="grid grid-cols-12 gap-6 min-h-[500px] max-h-[80vh]">
                         {/* Left Side: PDF Preview (No changes here) */}
@@ -1462,8 +1648,10 @@ export default function ExamsPage() {
                           className="col-span-12 md:col-span-7 lg:col-span-8 bg-white p-4 border rounded-lg max-h-[75vh] shadow-inner overflow-y-scroll">
                           <div className="space-y-4">
                             {pdfPageImages.map((imgSrc, index) => (
-                              <div key={index} id={`page-preview-${index + 1}`} className="border rounded-lg p-2">
-                                <img src={imgSrc} alt={`Page ${index + 1}`} className="w-full h-auto rounded shadow"/>
+                              <div key={index} id={`page-preview-${index + 1}`}
+                                className="border rounded-lg p-2">
+                                <img src={imgSrc} alt={`Page ${index + 1}`}
+                                  className="w-full h-auto rounded shadow" />
                                 <p className="text-center text-sm font-medium text-gray-600 mt-2">Page {index + 1}</p>
                               </div>
                             ))}
@@ -1471,11 +1659,14 @@ export default function ExamsPage() {
                         </div>
 
                         {/* Right Side: Page Configuration (Updated) */}
-                        <div className="col-span-12 md:col-span-5 lg:col-span-4 flex flex-col gap-4">
+                        <div
+                          className="col-span-12 md:col-span-5 lg:col-span-4 flex flex-col gap-4">
                           {/* --- Page Range and Type Selection UI --- */}
-                          <div className="p-4 bg-gray-50 border rounded-lg shadow-sm space-y-4">
+                          <div
+                            className="p-4 bg-gray-50 border rounded-lg shadow-sm space-y-4">
                             <div>
-                              <h4 className="font-semibold text-gray-700 mb-3">Select Page Range</h4>
+                              <h4 className="font-semibold text-gray-700 mb-3">Select Page
+                                Range</h4>
                               <div className="flex items-center gap-2 mb-3">
                                 <input
                                   type="number"
@@ -1503,22 +1694,25 @@ export default function ExamsPage() {
                               </button>
                               {selectedPages.length > 0 && (
                                 <p className="text-sm text-center text-green-700 mt-2">
-                                  Active range: Page {selectedPages[0]} to {selectedPages[selectedPages.length - 1]}
+                                  Active range:
+                                  Page {selectedPages[0]} to {selectedPages[selectedPages.length - 1]}
                                 </p>
                               )}
                             </div>
 
-                            <hr/>
+                            <hr />
 
                             <div>
-                              <h4 className="font-semibold text-gray-700 mb-3">Select Question Type</h4>
+                              <h4 className="font-semibold text-gray-700 mb-3">Select
+                                Question Type</h4>
                               <select
                                 value={selectedQuestionType}
                                 onChange={(e) => setSelectedQuestionType(e.target.value as 'MCQ' | 'LONG_ANSWER' | 'Both')}
                                 className="w-full px-3 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-purple-500"
                               >
                                 <option value="MCQ">MCQ Questions</option>
-                                <option value="LONG_ANSWER">Long Answer Questions</option>
+                                <option value="LONG_ANSWER">Long Answer Questions
+                                </option>
                                 <option value="Both">Both MCQ and Long Answer</option>
                               </select>
                             </div>
@@ -1538,6 +1732,7 @@ export default function ExamsPage() {
                   <h3 className="font-medium text-gray-700 mb-3">Manual Question Entry</h3>
                   <div className="space-y-4">
                     {questions.map((q, idx) => (
+
                       <div key={idx} className="bg-white p-4 rounded-md shadow-sm border border-gray-200">
                         <div className="flex justify-between items-center mb-3">
                           <label className="block text-sm font-medium text-gray-700">
@@ -1548,7 +1743,7 @@ export default function ExamsPage() {
                             className="text-red-500 hover:text-red-700"
                             onClick={() => setQuestions(questions.filter((_, i) => i !== idx))}
                           >
-                            <X className="h-5 w-5"/>
+                            <X className="h-5 w-5" />
                           </button>
                         </div>
                         <input
@@ -1581,7 +1776,8 @@ export default function ExamsPage() {
                         {/* Options for MCQ - conditionally rendered */}
                         {q.questionType === 'MCQ' && (
                           <div className="space-y-2 mb-3">
-                            <label className="block text-sm font-medium text-gray-700">Options:</label>
+                            <label
+                              className="block text-sm font-medium text-gray-700">Options:</label>
                             {q.options?.map((option, oIndex) => (
                               <div key={oIndex} className="flex items-center gap-2">
                                 <input
@@ -1596,7 +1792,7 @@ export default function ExamsPage() {
                                   className="text-red-500 hover:text-red-700"
                                   onClick={() => handleRemoveOption(idx, oIndex)}
                                 >
-                                  <X className="h-5 w-5"/>
+                                  <X className="h-5 w-5" />
                                 </button>
                               </div>
                             ))}
@@ -1605,7 +1801,7 @@ export default function ExamsPage() {
                               onClick={() => handleAddOption(idx)}
                               className="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                             >
-                              <PlusCircle className="h-4 w-4 mr-2"/> Add Option
+                              <PlusCircle className="h-4 w-4 mr-2" /> Add Option
                             </button>
                           </div>
                         )}
@@ -1674,31 +1870,33 @@ export default function ExamsPage() {
                       </h3>
                       <button
                         className="text-xs text-purple-700 hover:text-purple-900"
-                        onClick={() => setQuestions(questions.map(q => ({...q, isSelected: true})))}
+                        onClick={() => setQuestions(questions.map(q => ({
+                          ...q,
+                          isSelected: true
+                        })))}
                       >
                         Select All
                       </button>
                     </div>
                   </div>
                   <div className="max-h-80 overflow-y-auto">
-                    {questions.map((q, index) => (
+                    {questions.map((q: Question, index) => (
                       <div
                         key={index}
                         className={`p-4 transition-colors border-b border-gray-200 last:border-b-0 ${q.isSelected ? "bg-purple-50" : "hover:bg-gray-50"}`}
                       >
-                        <label className="flex items-start gap-3 cursor-pointer">
+                        <label className="flex items-start gap-3 cursor-pointer w-full">
                           <input
                             type="checkbox"
                             checked={q.isSelected}
                             onChange={() => toggleQuestionSelection(index)}
                             className="mt-1 h-4 w-4 text-purple-600 rounded border-gray-300 focus:ring-purple-500"
                           />
-                          <div>
+                          <div className="w-full">
                             <p className="font-medium text-gray-800">Q{index + 1}: {q.question}</p>
-                            <p
-                              className="text-sm text-gray-500 italic">Type: {q.questionType.replace('_', ' ')}
-                            </p>
+                            <p className="text-sm text-gray-500 italic">Type: {q.questionType.replace('_', ' ')}</p>
 
+                            {/* Existing MCQ options display */}
                             {q.questionType === 'MCQ' && q.options && q.options.length > 0 && (
                               <div className="text-sm text-gray-600 mt-1 pl-4">
                                 <span className="font-medium">Options: </span>
@@ -1709,24 +1907,67 @@ export default function ExamsPage() {
                                 </ul>
                               </div>
                             )}
+
+                            {/* Existing Answer display */}
                             <div className="text-sm text-gray-600 mt-1 pl-4">
                               <span className="font-medium">Answer: </span>
                               {q.answer ? (
-                                Array.isArray(q.answer) ? (
-                                  <ul className="list-disc pl-5 mt-1 space-y-1">
-                                    {q.answer.map((ans, i) => (
-                                      <li key={i}>{ans}</li>
-                                    ))}
-                                  </ul>
-                                ) : typeof q.answer === "string" ? (
-                                  <p className="pl-2 border-l-2 border-gray-300 mt-1">{q.answer}</p>
-                                ) : (
-                                  <span className="italic">No answer available</span>
-                                )
+                                <p className="pl-2 border-l-2 border-gray-300 mt-1">{q.answer}</p>
                               ) : (
                                 <span className="italic">No answer available</span>
                               )}
                             </div>
+
+                            {/* --- NEW: Diagram Upload Section --- */}
+                            {q.questionType === 'LONG_ANSWER' && (
+                              <div className="mt-4 pl-4">
+                                <div className="flex items-center gap-4">
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.preventDefault(); // Prevent label click from toggling checkbox
+                                      setSelectedQuestionForDiagram(index);
+                                      document.getElementById(`diagram-upload-${index}`)?.click();
+                                    }}
+                                    disabled={uploadingDiagram && selectedQuestionForDiagram === index}
+                                    className="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50"
+                                  >
+                                    {uploadingDiagram && selectedQuestionForDiagram === index ? 'Uploading...' : 'Add Diagram'}
+                                  </button>
+                                  <input
+                                    type="file"
+                                    id={`diagram-upload-${index}`}
+                                    className="hidden"
+                                    accept="image/*"
+                                    onChange={(e) => handleDiagramUpload(e, index)}
+                                  />
+                                </div>
+
+                                {/* Diagram Previews */}
+                                {q.diagramImgURL && q.diagramImgURL.length > 0 && (
+                                  <div className="mt-3 flex flex-wrap gap-3">
+                                    {q.diagramImgURL.map((url, i) => (
+                                      <div key={i} className="relative group">
+                                        <img src={url} alt={`Diagram ${i + 1}`}
+                                             className="h-24 w-24 object-cover rounded-lg border-2 border-purple-200"/>
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.preventDefault();
+                                            handleRemoveDiagram(index, i)
+                                          }}
+                                          className="absolute top-0 right-0 transform translate-x-1/2 -translate-y-1/2 bg-red-600 text-white rounded-full h-5 w-5 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity focus:outline-none"
+                                        >
+                                          &times;
+                                        </button>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                            {/* --- END: Diagram Upload Section --- */}
+
                           </div>
                         </label>
                       </div>
@@ -1748,12 +1989,15 @@ export default function ExamsPage() {
                   {loading ? (
                     <>
                       {/* SVG Spinner */}
-                      <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg"
-                           fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
-                                strokeWidth="4"></circle>
+                      <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"></circle>
                         <path className="opacity-75" fill="currentColor"
-                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                        </path>
                       </svg>
                       {/* Text */}
                       <span>{questions && questions.length > 0 ? "Creating Exam..." : isProcessingPdf ? "Processing pdf..." : "Generating Questions....."}</span>
@@ -1768,7 +2012,7 @@ export default function ExamsPage() {
                   disabled={loading}
                   className="w-full sm:w-auto bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-6 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 disabled:opacity-50 transition-colors flex items-center justify-center"
                 >
-                  {loading ? <Loader size="small"/> : "Create Exam"}
+                  {loading ? <Loader size="small" /> : "Create Exam"}
                 </button>
               )}
             </div>
@@ -1781,12 +2025,13 @@ export default function ExamsPage() {
         <div>
           {loadingExams ? (
             <div className="flex items-center justify-center h-64">
-              {activeTab === 'view' && (<Loader size="large" message="Loading exams..."/>)}
-              {activeTab === 'copy-check' && (<Loader size="large" message="Fetching submitted exams..."/>)}
+              {activeTab === 'view' && (<Loader size="large" message="Loading exams..." />)}
+              {activeTab === 'copy-check' && (
+                <Loader size="large" message="Fetching submitted exams..." />)}
             </div>
           ) : exams.length === 0 ? (
             <div className="bg-white rounded-lg shadow-md p-8 text-center">
-              <FileText className="h-16 w-16 mx-auto text-gray-400 mb-4"/>
+              <FileText className="h-16 w-16 mx-auto text-gray-400 mb-4" />
               <h3 className="text-xl font-medium text-gray-700 mb-2">No exams created yet</h3>
               <p className="text-gray-500 mb-6">Start by creating your first exam for this class</p>
               <button
@@ -1814,7 +2059,7 @@ export default function ExamsPage() {
                             : exam.status === "COMPLETED"
                               ? "bg-blue-100 text-blue-800"
                               : "bg-gray-100 text-gray-800"
-                        }`}
+                          }`}
                       >
                         {exam.status}
                       </span>
@@ -1822,7 +2067,7 @@ export default function ExamsPage() {
 
                     <div className="space-y-3">
                       <div className="flex items-center text-gray-600">
-                        <GraduationCap className="h-5 w-5 mr-2 text-gray-500"/>
+                        <GraduationCap className="h-5 w-5 mr-2 text-gray-500" />
                         <span>
                           {exam.classSection.batch.name} | {exam.classSection.semester.name}
                         </span>
@@ -1830,7 +2075,7 @@ export default function ExamsPage() {
 
                       <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
                         <div className="flex items-center text-gray-600">
-                          <Clock className="h-4 w-4 mr-1 text-gray-500"/>
+                          <Clock className="h-4 w-4 mr-1 text-gray-500" />
                           <span>{exam.durationMinutes} minutes</span>
                         </div>
 
@@ -1852,12 +2097,12 @@ export default function ExamsPage() {
 
                       <div className="pt-2 border-t border-gray-100">
                         <div className="flex items-center text-gray-600">
-                          <Calendar className="h-4 w-4 mr-1 text-gray-500"/>
+                          <Calendar className="h-4 w-4 mr-1 text-gray-500" />
                           <span>{format(new Date(exam.examDate), "PPP")}</span>
                         </div>
 
                         <div className="flex items-center text-gray-600 mt-1">
-                          <Clock className="h-4 w-4 mr-1 text-gray-500"/>
+                          <Clock className="h-4 w-4 mr-1 text-gray-500" />
                           <span>
                             {format(new Date(exam.startTime), "p")} - {format(new Date(exam.endTime), "p")}
                           </span>
@@ -1869,19 +2114,19 @@ export default function ExamsPage() {
                   <div className="px-6 py-3 bg-gray-50 border-t border-gray-200">
                     <div className="flex space-x-2 justify-end">
                       {activeTab === 'view' && (<button
-                          onClick={() => fetchExamDetails(exam.id)}
-                          className="px-3 py-1 bg-white border border-gray-300 rounded text-gray-600 text-sm hover:bg-gray-50 transition-colors"
-                        >
-                          View Details
-                        </button>
+                        onClick={() => fetchExamDetails(exam.id)}
+                        className="px-3 py-1 bg-white border border-gray-300 rounded text-gray-600 text-sm hover:bg-gray-50 transition-colors"
+                      >
+                        View Details
+                      </button>
                       )}
 
                       {activeTab === 'copy-check' && (<button
-                          className="px-3 py-1 bg-white border border-gray-300 rounded text-gray-600 text-sm hover:bg-gray-50 transition-colors"
-                          onClick={() => router.push(`exams/submissions?examId=${exam.id}&teacherId=${JSON.parse(localStorage.getItem('user')!).id}`)}
-                        >
-                          View Submissions
-                        </button>
+                        className="px-3 py-1 bg-white border border-gray-300 rounded text-gray-600 text-sm hover:bg-gray-50 transition-colors"
+                        onClick={() => router.push(`exams/submissions?examId=${exam.id}&teacherId=${JSON.parse(localStorage.getItem('user')!).id}`)}
+                      >
+                        View Submissions
+                      </button>
                       )}
                     </div>
                   </div>
@@ -1898,14 +2143,15 @@ export default function ExamsPage() {
 */}
       {selectedExam && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+          <div
+            className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
             <div className="p-6 border-b border-gray-200 flex justify-between items-center">
               <h2 className="text-2xl font-bold text-gray-800">{selectedExam.title}</h2>
               <button
                 onClick={closeExamDetails}
                 className="text-gray-500 hover:text-gray-700"
               >
-                <XCircle className="h-6 w-6"/>
+                <XCircle className="h-6 w-6" />
               </button>
             </div>
 
@@ -1913,17 +2159,17 @@ export default function ExamsPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <div className="flex items-center text-gray-600 mb-2">
-                    <GraduationCap className="h-5 w-5 mr-2 text-gray-500"/>
+                    <GraduationCap className="h-5 w-5 mr-2 text-gray-500" />
                     <span>
                       {selectedExam.classSection.batch.name} | {selectedExam.classSection.semester.name}
                     </span>
                   </div>
                   <div className="flex items-center text-gray-600 mb-2">
-                    <Calendar className="h-4 w-4 mr-1 text-gray-500"/>
+                    <Calendar className="h-4 w-4 mr-1 text-gray-500" />
                     <span>{format(new Date(selectedExam.examDate), "PPP")}</span>
                   </div>
                   <div className="flex items-center text-gray-600">
-                    <Clock className="h-4 w-4 mr-1 text-gray-500"/>
+                    <Clock className="h-4 w-4 mr-1 text-gray-500" />
                     <span>
                       {format(new Date(selectedExam.startTime), "p")} - {format(new Date(selectedExam.endTime), "p")}
                     </span>
@@ -1931,7 +2177,7 @@ export default function ExamsPage() {
                 </div>
                 <div>
                   <div className="flex items-center text-gray-600 mb-2">
-                    <Clock className="h-4 w-4 mr-1 text-gray-500"/>
+                    <Clock className="h-4 w-4 mr-1 text-gray-500" />
                     <span>{selectedExam.durationMinutes} minutes</span>
                   </div>
                   <div className="flex items-center text-gray-600 mb-2">
@@ -1949,7 +2195,7 @@ export default function ExamsPage() {
             <div className="flex-1 overflow-y-auto p-6">
               {loadingExamDetails ? (
                 <div className="flex items-center justify-center h-64">
-                  <Loader size="medium" message="Loading exam details..."/>
+                  <Loader size="medium" message="Loading exam details..." />
                 </div>
               ) : (
                 <div className="space-y-6">
@@ -1957,7 +2203,8 @@ export default function ExamsPage() {
                     ({selectedExam.questions.length})</h3>
 
                   {selectedExam.questions.map((question, index) => (
-                    <div key={question.id} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+                    <div key={question.id}
+                      className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
                       <div className="mb-2 flex justify-between">
                         <h4 className="font-medium text-gray-800">Question {index + 1}</h4>
                         <span className="text-sm text-gray-500">
@@ -1983,13 +2230,15 @@ export default function ExamsPage() {
 
                       {question.correctAnswer && question.correctAnswer.length > 0 && (
                         <div className="mt-3 pt-2 border-t border-gray-100">
-                          <p className="text-sm font-medium text-gray-700 mb-1">Correct Answer:</p>
+                          <p className="text-sm font-medium text-gray-700 mb-1">Correct
+                            Answer:</p>
                           {question.correctAnswer.length === 1 ? (
                             <p className="text-sm text-gray-800">{question.correctAnswer[0]}</p>
                           ) : (
                             <ul className="space-y-1 ml-5 list-disc">
                               {question.correctAnswer.map((answer, i) => (
-                                <li key={i} className="text-sm text-gray-800">{answer}</li>
+                                <li key={i}
+                                  className="text-sm text-gray-800">{answer}</li>
                               ))}
                             </ul>
                           )}

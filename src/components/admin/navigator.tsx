@@ -175,7 +175,7 @@ const Navigator = ({ id, userId, logo, name, primaryColor, verified, coins }: Na
       component: "Attendance",
       icon: <CalendarCheck2 size={18} />,
     },
-    
+
     {
       name: "Fees Management",
       component: "Fees",
@@ -300,18 +300,23 @@ const Navigator = ({ id, userId, logo, name, primaryColor, verified, coins }: Na
           <div className="p-5 border-t border-gray-200">
             {verified ? (<div className="flex items-center justify-between mb-4">
               <span className="text-sm text-gray-600">Coins:</span>
-              <span className="text-lg font-semibold text-blue-600">
-                {coins}
-              </span>
+              <div className="flex items-center">
+                <span className="text-lg font-semibold text-blue-600">
+                  {coins}
+                </span>
+                <img src="/coin.png" alt="coin" className="h-6 ml-1" />
+              </div>
             </div>) : (
-              <div className="flex items-center justify-between mb-4">
-                <span className="text-sm text-gray-600">Coins:</span>
-                <span className="text-lg font-semibold text-red-600">
-                  Not Verified
-                </span>
-                <span className="text-sm text-gray-500">
-                  Please wait for verification to earn coins.
-                </span>
+              <div className="p-4 border rounded-lg bg-white max-w-xs shadow">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-sm text-gray-600">Coins:</span>
+                  <span className="text-lg font-semibold text-red-600">Not Verified</span>
+                </div>
+                <div>
+                  <span className="text-sm text-gray-500">
+                    Please wait for verification to earn coins.
+                  </span>
+                </div>
               </div>
             )}
 

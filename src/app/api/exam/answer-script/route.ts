@@ -44,6 +44,7 @@ export async function GET(
             obtainedMarks: true,
             remarks: true,
             answerImgURL: true,
+            diagramImgURL: true,
             question: {
               select: {
                 questionText: true,
@@ -51,7 +52,8 @@ export async function GET(
                 correctAnswer: true,
                 options: true,
                 marks: true,
-                difficultyLevel: true
+                difficultyLevel: true,
+                diagramImgURL: true
               }
             }
           }

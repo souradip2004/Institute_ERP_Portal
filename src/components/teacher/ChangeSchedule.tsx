@@ -252,6 +252,43 @@ const ChangeScheduleContent = () => {
 
       console.log("Payload: ", payload);
 
+      //coin logic
+      const storedUser = localStorage.getItem('user');
+      if (storedUser) {
+        const userData = JSON.parse(storedUser);
+        const instituteId = userData?.institutionId;
+
+        console.log('instituteid --- ', instituteId);
+        try {
+          const instResponse = await axios.get(`/api/institutions/${instituteId}/getadmin`);
+          console.log('instResponse ---', instResponse);
+          console.log('instResponse id ---', instResponse?.data?.id);
+
+          const coinRes = await axios.get(`/api/coins/${instResponse?.data?.id}`);
+          console.log('coinRes ---', coinRes);
+
+          let coinsToDeduct = 3;
+
+          if (coinRes.data.coins < coinsToDeduct) {
+            alert('Institute dosenot have enough Coins! Please Contact Institute Admin.');
+            return;
+          }
+
+          const resul1 = await axios.post(`/api/coins/${instResponse?.data?.id}?coins=${coinsToDeduct}`, null, {
+            headers: {
+              "Content-Type": "application/json"
+            }
+          });
+
+          const coinRes2 = await axios.get(`/api/coins/${instResponse?.data?.id}`);
+          console.log('coinRes ---', coinRes2);
+
+        } catch (err) {
+          console.log(err);
+        }
+      }
+
+
       try {
         await axios.patch(`${process.env.NEXT_PUBLIC_BACKEND_1_SERVER_URL}/planner/rescheduleStudyPlan`, payload);
         router.replace("/t/smart-resources/structure-breakdown");
@@ -272,9 +309,9 @@ const ChangeScheduleContent = () => {
         <div className="bg-gradient-to-r from-[#A78BFA] to-[#818CF8] p-4 sm:p-6 text-white">
           <div className='flex gap-4 '>
             <button className=" text-white opacity-80 hover:opacity-100 z-10"
-                    onClick={() => {
-                      window.history.back()
-                    }}
+              onClick={() => {
+                window.history.back()
+              }}
             >
               <TbArrowBackUp className="w-6 h-6" />
             </button>
@@ -299,8 +336,8 @@ const ChangeScheduleContent = () => {
                   <div className="w-full py-2 px-3 border border-gray-300 rounded-lg text-sm sm:text-base focus:outline-none focus:ring-1 focus:ring-indigo-500 flex justify-between items-center">
                     <span>{startDate && isValid(startDate) ? format(startDate, 'yyyy-MM-dd') : 'Select Date'}</span>
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"
-                         viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-                         strokeLinecap="round" strokeLinejoin="round">
+                      viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                      strokeLinecap="round" strokeLinejoin="round">
                       <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
                       <line x1="16" y1="2" x2="16" y2="6"></line>
                       <line x1="8" y1="2" x2="8" y2="6"></line>
@@ -367,8 +404,8 @@ const ChangeScheduleContent = () => {
                   <div className="w-full py-2 px-3 border border-gray-300 rounded-lg text-sm sm:text-base focus:outline-none focus:ring-1 focus:ring-indigo-500 flex justify-between items-center">
                     <span>{endDate && isValid(endDate) ? format(endDate, 'yyyy-MM-dd') : 'Select Date'}</span>
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"
-                         viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-                         strokeLinecap="round" strokeLinejoin="round">
+                      viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                      strokeLinecap="round" strokeLinejoin="round">
                       <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
                       <line x1="16" y1="2" x2="16" y2="6"></line>
                       <line x1="8" y1="2" x2="8" y2="6"></line>
@@ -447,7 +484,7 @@ const ChangeScheduleContent = () => {
                         className="w-4 h-4 rounded border-2 accent-indigo-600 transition-transform duration-200 hover:scale-110"
                       />
                       <label htmlFor={`day-${day}`}
-                             className="capitalize text-xs sm:text-sm cursor-pointer">
+                        className="capitalize text-xs sm:text-sm cursor-pointer">
                         {translator(day,
                           day === "monday" ? "सोमवार" :
                             day === "tuesday" ? "मंगलवार" :
@@ -469,7 +506,7 @@ const ChangeScheduleContent = () => {
               <div className="flex flex-col lg:flex-row gap-6 mt-4">
                 <div className="flex flex-col space-x-2">
                   <label htmlFor="language-select"
-                         className="text-lg text-left mb-2 font-semibold text-gray-800">
+                    className="text-lg text-left mb-2 font-semibold text-gray-800">
                     {translator("Choose Your Preferred Language", "अपनी पसंदीदा भाषा चुनें")}{" "}
                   </label>
                   <select

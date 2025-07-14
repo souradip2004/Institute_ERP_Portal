@@ -2,6 +2,7 @@
 import { useState, useEffect, JSX } from "react";
 import { useAddClass } from "@/hooks/useAddClass"; // Assuming this hook can handle arrays for teachers and courses
 import { X } from "lucide-react";
+import axios from "axios";
 
 interface AddClassProps {
   id: string; // Institution ID
@@ -64,67 +65,65 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
     department: "", // Holds department name for dropdown selection
     institutionId: id,
   });
-  const [creditsData, setcreditsData]=useState(null)
-  useEffect(()=>{
-    if(localStorage.getItem("user")){
-    const getData=async()=>{
-      const now = new Date();
-      const month = now.getMonth() + 1; // getMonth() is zero-based
-      const year = now.getFullYear();
-   const result= await fetch(`/api/credits/${id}?month=${month}&year=${year}`,{
-      method:"GET",
-      headers:{
-        "Content-Type":"application/json"
+  const [creditsData, setcreditsData] = useState(null)
+  useEffect(() => {
+    if (localStorage.getItem("user")) {
+      const getData = async () => {
+        const now = new Date();
+        const month = now.getMonth() + 1; // getMonth() is zero-based
+        const year = now.getFullYear();
+        const result = await fetch(`/api/credits/${id}?month=${month}&year=${year}`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json"
+          }
+        })
+        if (result.ok) {
+          const res = await result.json();
+          setcreditsData(res);
+          console.log(res);
+        }
       }
-    })
-    if(result.ok){
-      const res=await result.json();
-      setcreditsData(res);
-      console.log(res);
+      getData()
     }
-    }
-    getData()
-  }
-  },[])
-  const updateCoins=async()=>{
+  }, [])
+  const updateCoins = async () => {
     const now = new Date();
-      const month = now.getMonth() + 1; // getMonth() is zero-based
-      const year = now.getFullYear();
-      console.log("Current Credit Balance",creditsData)
+    const month = now.getMonth() + 1; // getMonth() is zero-based
+    const year = now.getFullYear();
+    console.log("Current Credit Balance", creditsData)
 
-    const result=await fetch(`/api/credits/${id}?month=${month}&year=${year}`,{
-      method:"POST",
-            headers:{
-        "Content-Type":"application/json"
+    const result = await fetch(`/api/credits/${id}?month=${month}&year=${year}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
       },
-      body:JSON.stringify({
+      body: JSON.stringify({
         sectionCreditsBalance:
-        creditsData ? creditsData?.sectionCreditsBalance+200
-         : 0,
-        total:creditsData?creditsData?.total+200:0
+          creditsData ? creditsData?.sectionCreditsBalance + 200
+            : 0,
+        total: creditsData ? creditsData?.total + 200 : 0
       })
 
     })
-    if(result.ok){
-      const res=await result.json();
-      const id1=
-      JSON.parse(localStorage.getItem("user") || "{}")?.id;
-      const resul1=await fetch(`/api/coins/${
-        id1
-      }?coins=200`,{
-      method:"POST",
-      headers:{
-        "Content-Type":"application/json"
-      }
-    })
-      if(resul1.ok){
-        const res1=await resul1.json();
-        console.log("Updated Coins",res1)
-      }else{
+    if (result.ok) {
+      const res = await result.json();
+      const id1 = JSON.parse(localStorage.getItem("user") || "{}")?.id;
+      const resul1 = await fetch(`/api/coins/${id1
+        }?coins=200`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        }
+      })
+      if (resul1.ok) {
+        const res1 = await resul1.json();
+        console.log("Updated Coins", res1)
+      } else {
         console.error("Failed to update coins")
       }
-      console.log("Updated Credits",res);
-    }else{
+      console.log("Updated Credits", res);
+    } else {
     }
   }
   // States for selected IDs (arrays for multi-select)
@@ -270,13 +269,13 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
   // --- Form Submission Handler ---
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-        const verified = JSON.parse(localStorage.getItem("verified") || "false"); // Get verification status from localStorage
+    const verified = JSON.parse(localStorage.getItem("verified") || "false"); // Get verification status from localStorage
 
- if(!verified){
+    if (!verified) {
       alert("You are not yet verified to perform this action. Please wait for verification");
       return;
     }
-    updateCoins()
+
     // Find IDs for submission based on selected names
     const departmentIdToSubmit = allDepartments.find((dept) => dept.name === classData.department)?.id;
     const batchIdToSubmit = batchData.find((batch) => batch.batchName === classData.batch)?.id;
@@ -298,6 +297,19 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
       alert("Please ensure all required fields (Section Name, Max Students, Department, Batch, Semester, at least one Teacher, and at least one Course assigned to a teacher) are selected/filled.");
       return;
     }
+
+    const id1 = JSON.parse(localStorage.getItem("user") || "{}")?.id;
+
+    const coinRes = await axios.get(`/api/coins/${id1}`);
+    console.log('coinRes ---', coinRes)
+
+    if (coinRes.data.coins < 200) {
+      alert('Institute dosenot have enough Coins! Please Contact Institute Admin.');
+      return;
+    }
+
+    updateCoins()
+
 
     // Prepare the payload for `addClass`
     // Flatten teacherCourseAssignments into an array of objects suitable for backend (e.g., a join table)

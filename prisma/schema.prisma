@@ -134,9 +134,8 @@ model Institution {
   subscriptions       Subscription[]
   users               User[]
   checkSessions       checkSession[]
-  fees                Fees[]
+  fees                Fees?
   globalFees          GlobalFees[]
-  localFees           LocalFees[]
 
   @@map("institutions")
 }
@@ -480,6 +479,7 @@ model Question {
   marks           Float          @default(0)
   difficultyLevel String         @map("difficulty_level")
   correctAnswer   Json           @map("correct_answer")
+  diagramImgURL   String[]
   options         Json?
   createdById     String         @map("created_by")
   createdAt       DateTime       @default(now()) @map("created_at")
@@ -630,7 +630,7 @@ model StudentQuestionAnswer {
 
 model Fees {
   id            String   @id @default(cuid())
-  institutionId String   @map("institution_id")
+  institutionId String   @unique @map("institution_id")
   accountHolder String   @map("account_holder")
   accountNumber String   @map("account_number")
   ifscCode      String   @map("ifsc_code")
@@ -670,43 +670,41 @@ model GlobalFees {
 }
 
 model LocalFees {
-  id            String   @id @default(cuid())
-  name          String
-  description   String?
-  amount        Float
-  taxPercentage Float    @map("tax_percentage")
-  paymentterms  String   @map("payment_terms")
-  penalty       Float    @default(0)
-  institutionId String   @map("institution_id")
-  // Removed StudentIds String[] for M-N relationship
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
-
-  institution Institution @relation(fields: [institutionId], references: [id])
-  // Removed direct M-N relation field. It will be managed by LocalFeesOnStudent.
-
+  id                String               @id @default(cuid())
+  // institutionId String   @map("institution_id")
+  name              String
+  description       String?
+  amount            Float
+  taxPercentage     Float                @map("tax_percentage")
+  paymentterms      String               @map("payment_terms")
+  penalty           Float                @default(0)
+  createdAt         DateTime             @default(now()) @map("created_at")
+  updatedAt         DateTime             @updatedAt @map("updated_at")
   classFees         ClassFee[]
-  // New relation for the M-N join table
   studentsLocalFees LocalFeesOnStudent[]
+
+  // Institution       Institution?         @relation(fields: [institutionId], references: [id])
 
   @@map("local_fees") // Added map for consistency
 }
 
 model ClassFee {
-  id             String   @id @default(cuid())
-  classSectionId String   @map("class_section_id")
-  globalFeesId   String?  @map("global_fees_id")
-  localFeesId    String?  @map("local_fees_id")
-  createdAt      DateTime @default(now()) @map("created_at")
-  updatedAt      DateTime @updatedAt @map("updated_at")
+  id           String   @id @default(cuid())
+  // classSectionId String   @map("class_section_id")
+  globalFeesId String?  @map("global_fees_id")
+  localFeesId  String?  @map("local_fees_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
 
-  classSection ClassSection @relation(fields: [classSectionId], references: [id])
-  globalFees   GlobalFees?  @relation(fields: [globalFeesId], references: [id])
-  localFees    LocalFees?   @relation(fields: [localFeesId], references: [id])
+  // classSection ClassSection @relation(fields: [classSectionId], references: [id])
+  globalFees GlobalFees? @relation(fields: [globalFeesId], references: [id])
+  localFees  LocalFees?  @relation(fields: [localFeesId], references: [id])
 
   feesCollections FeesCollection[]
-  feeCategory     Fees?            @relation(fields: [feeCategoryId], references: [id]) // Inverse relation for Fees.classFees
-  feeCategoryId   String?          @map("fee_category_id") // Add foreign key field for Fees relation
+  feeCategory     Fees?            @relation(fields: [feeCategoryId], references: [id])
+  feeCategoryId   String?          @map("fee_category_id")
+  ClassSection    ClassSection?    @relation(fields: [classSectionId], references: [id])
+  classSectionId  String?
 
   @@map("class_fees")
 }
@@ -724,7 +722,7 @@ model FeesCollection {
   updatedAt     DateTime      @updatedAt @map("updated_at")
 
   classFee ClassFee @relation(fields: [classFeeId], references: [id])
-  student  Student  @relation(fields: [studentId], references: [id]) // This `student` relation needs an inverse on `Student`
+  student  Student  @relation(fields: [studentId], references: [id])
 
   @@map("fees_collections")
 }
@@ -767,6 +765,7 @@ model AnswerScript {
   id               String             @id @default(cuid())
   examSubmissionId String             @map("exam_submission_id")
   questionId       String             @map("question_id")
+  diagramImgURL    String[]
   answerImgURL     String[]
   studentAnswer    String             @map("student_answer")
   obtainedMarks    Float              @default(0) @map("obtained_marks")
