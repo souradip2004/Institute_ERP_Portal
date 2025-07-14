@@ -15,7 +15,7 @@ model User {
   emailVerified      DateTime?              @map("email_verified")
   image              String?
   isVerified         Boolean                @default(false)
-  coins              Int                    @default(0)
+  coins              Float                    @default(0)
   password           String?
   gender             String?
   dateOfBirth        DateTime?              @map("date_of_birth") @db.Date
