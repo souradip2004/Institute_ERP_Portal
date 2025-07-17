@@ -12,7 +12,7 @@ export async function POST(request: Request) {
       paymentDate,
       paymentMethod,
       transactionId,
-      status,
+      status
     } = body;
 
     if (!classFeeId || !studentId || !amount || !paymentDate || !paymentMethod || !status) {
@@ -21,6 +21,26 @@ export async function POST(request: Request) {
 
     if (!Object.values(PaymentStatus).includes(status)) {
       return NextResponse.json({error: `Invalid status. Must be one of: ${Object.values(PaymentStatus).join(', ')}`}, {status: 400});
+    }
+
+    const studentExists = await prisma.fees.findUnique({
+      where: {
+        id: studentId
+      }
+    });
+
+    if (!studentExists) {
+      return NextResponse.json({error: "Student not found"}, {status: 400})
+    }
+
+    const classFeeDetail = await prisma.fees.findUnique({
+      where: {
+        id: classFeeId
+      }
+    });
+
+    if (!classFeeDetail) {
+      return NextResponse.json({error: "Unable to find relevant details"}, {status: 400});
     }
 
     const newFeesCollection = await prisma.feesCollection.create({
@@ -55,7 +75,7 @@ export async function POST(request: Request) {
 
 export async function GET(request: Request) {
   try {
-    const { searchParams } = new URL(request.url);
+    const {searchParams} = new URL(request.url);
     const classFeeId = searchParams.get('classFeeId');
     const studentId = searchParams.get('studentId');
 
@@ -73,9 +93,9 @@ export async function GET(request: Request) {
       where
     });
 
-    return NextResponse.json(feesCollections, { status: 200 });
+    return NextResponse.json(feesCollections, {status: 200});
   } catch (error) {
     console.error('Error fetching fees collections:', error);
-    return NextResponse.json({ error: 'An internal server error occurred.' }, { status: 500 });
+    return NextResponse.json({error: 'An internal server error occurred.'}, {status: 500});
   }
 }

@@ -1,6 +1,6 @@
 import {NextResponse} from "next/server";
 import prisma from "@/lib/prisma";
-import { Prisma } from "@prisma/client";
+import {Prisma} from "@prisma/client";
 
 export async function POST(request: Request) {
   try {
@@ -18,7 +18,7 @@ export async function POST(request: Request) {
     } = body;
 
     if (!name || amount == null || taxPercentage == null || !paymentterms || !institutionId || !motherClassId) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+      return NextResponse.json({error: 'Missing required fields'}, {status: 400});
     }
 
     const result = await prisma.$transaction(async (tx) => {
@@ -30,7 +30,7 @@ export async function POST(request: Request) {
       })
 
       if (!motherClass) {
-        return  NextResponse.json({error: "Class details not found"}, {status: 400});
+        return NextResponse.json({error: "Class details not found"}, {status: 400});
       }
 
       const globalFees = await tx.globalFees.create({
@@ -41,13 +41,12 @@ export async function POST(request: Request) {
           taxPercentage,
           paymentterms,
           penalty,
-          institutionId,
-          motherClassId
+          institutionId
         }
       });
 
       const instituteFeesDetail = await tx.fees.findUnique({
-        where:{
+        where: {
           institutionId
         }
       });
@@ -58,11 +57,11 @@ export async function POST(request: Request) {
 
 
       const classFees = await tx.classFee.create({
-          data: {
-            globalFeesId: globalFees.id,
-            motherClassId: motherClassId,
-            feeCategoryId: feesId
-          }
+        data: {
+          globalFeesId: globalFees.id,
+          motherClassId: motherClassId,
+          feeCategoryId: feesId
+        }
       })
 
       return {
@@ -72,7 +71,7 @@ export async function POST(request: Request) {
 
     });
 
-    return NextResponse.json(result, { status: 201 });
+    return NextResponse.json(result, {status: 201});
 
   } catch (error) {
     console.error('Error creating class fees:', error);
@@ -83,16 +82,16 @@ export async function POST(request: Request) {
         case 'P2002':
           // Unique constraint failed (e.g., the fee for this class section already exists)
           return NextResponse.json(
-            { error: 'One or more of these class fees already exist.' },
-            { status: 409 } // 409 Conflict is the appropriate status code
+            {error: 'One or more of these class fees already exist.'},
+            {status: 409} // 409 Conflict is the appropriate status code
           );
 
         case 'P2003':
           // Foreign key constraint failed (e.g., `globalFeesId` or a `classSectionId` does not exist)
           const fieldName = (error.meta as { field_name?: string })?.field_name;
           return NextResponse.json(
-            { error: `Failed to create records. An invalid ID was provided for the '${fieldName}' field.` },
-            { status: 400 }
+            {error: `Failed to create records. An invalid ID was provided for the '${fieldName}' field.`},
+            {status: 400}
           );
 
         default:
@@ -105,8 +104,8 @@ export async function POST(request: Request) {
 
     // Fallback for all other errors (including unhandled Prisma errors)
     return NextResponse.json(
-      { error: 'An internal server error occurred.' },
-      { status: 500 }
+      {error: 'An internal server error occurred.'},
+      {status: 500}
     );
   }
 

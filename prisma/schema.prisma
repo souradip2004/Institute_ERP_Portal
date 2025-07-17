@@ -717,6 +717,7 @@ model FeesCollection {
   classFee ClassFee @relation(fields: [classFeeId], references: [id])
   student  Student  @relation(fields: [studentId], references: [id])
 
+  @@unique([classFeeId, studentId])
   @@map("fees_collections")
 }
 
