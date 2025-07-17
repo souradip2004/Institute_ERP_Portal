@@ -309,6 +309,7 @@ model MotherClass {
   sectionName   String         @map("section_name")
   classSections ClassSection[]
   globalFees    GlobalFees[]
+  classfee      ClassFee?
 }
 
 model ClassSection {
@@ -340,7 +341,7 @@ model ClassSection {
   motherClassId                 String?                        @map("mother_class_id") // Foreign key to MotherClass
   motherClass                   MotherClass?                   @relation(fields: [motherClassId], references: [id])
   copyChecks                    copyCheck[]
-  classFees                     ClassFee[]
+  // classFees                     ClassFee[]
 
   @@map("class_sections")
 }
@@ -689,22 +690,24 @@ model LocalFees {
 }
 
 model ClassFee {
-  id           String   @id @default(cuid())
-  // classSectionId String   @map("class_section_id")
-  globalFeesId String?  @map("global_fees_id")
-  localFeesId  String?  @map("local_fees_id")
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
+  id            String   @id @default(cuid())
+  globalFeesId  String?  @map("global_fees_id")
+  motherClassId String   @unique @map("mother_class_id")
+  localFeesId   String?  @map("local_fees_id")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
 
-  // classSection ClassSection @relation(fields: [classSectionId], references: [id])
   globalFees GlobalFees? @relation(fields: [globalFeesId], references: [id])
   localFees  LocalFees?  @relation(fields: [localFeesId], references: [id])
 
   feesCollections FeesCollection[]
   feeCategory     Fees?            @relation(fields: [feeCategoryId], references: [id])
   feeCategoryId   String?          @map("fee_category_id")
-  ClassSection    ClassSection?    @relation(fields: [classSectionId], references: [id])
-  classSectionId  String?
+  motherClass     MotherClass      @relation(fields: [motherClassId], references: [id])
+  /**
+   * ClassSection    ClassSection?    @relation(fields: [classSectionId], references: [id])
+   * classSectionId  String
+   */
 
   @@map("class_fees")
 }
