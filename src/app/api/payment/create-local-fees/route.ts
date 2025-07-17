@@ -1,9 +1,10 @@
-import {NextResponse} from "next/server";
-import prisma from "@/lib/prisma";
-import {Prisma} from "@prisma/client";
+import {NextResponse} from 'next/server';
+import {Prisma, PaymentStatus} from '@prisma/client';
+import prisma from '@/lib/prisma';
 
 export async function POST(request: Request) {
   try {
+
     const body = await request.json();
     const {
       name,
@@ -13,10 +14,10 @@ export async function POST(request: Request) {
       paymentterms,
       penalty = 0,
       institutionId,
-      motherClassId
+      motherClassId,
     } = body;
 
-    if (!name || amount == null || taxPercentage == null || !paymentterms || !institutionId || !motherClassId) {
+    if (!name || !amount || !taxPercentage || !paymentterms || !institutionId || !motherClassId) {
       return NextResponse.json({error: 'Missing required fields'}, {status: 400});
     }
 
@@ -31,7 +32,6 @@ export async function POST(request: Request) {
       if (!motherClass) {
         return NextResponse.json({error: "Class details not found"}, {status: 400});
       }
-
       const instituteFeesDetail = await tx.fees.findUnique({
         where: {
           institutionId
@@ -42,7 +42,8 @@ export async function POST(request: Request) {
         throw new Error("Institute fee detail not found.");
       }
 
-      const globalFees = await tx.globalFees.create({
+
+      const localFees = await tx.localFees.create({
         data: {
           name,
           description,
@@ -50,7 +51,6 @@ export async function POST(request: Request) {
           taxPercentage,
           paymentterms,
           penalty,
-          institutionId,
           classFees: {
             create: [{
               motherClassId: motherClassId,
@@ -61,17 +61,14 @@ export async function POST(request: Request) {
         include: {
           classFees: true
         }
-      });
+      })
 
-      return globalFees;
+      return localFees;
+    })
 
-    });
 
     return NextResponse.json(result, {status: 201});
-
   } catch (error) {
-    console.error('Error creating class fees:', error);
-
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
       // Use a switch statement to handle multiple known error codes
       switch (error.code) {
@@ -98,7 +95,6 @@ export async function POST(request: Request) {
       }
     }
 
-    // Fallback for all other errors (including unhandled Prisma errors)
     return NextResponse.json(
       {error: 'An internal server error occurred.'},
       {status: 500}
@@ -111,16 +107,16 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const motherClassId = searchParams.get('motherClassId') as string;
 
-    const globalClassFee = prisma.classFee.findUnique({
+    const localFees = prisma.classFee.findUnique({
       where: {
         motherClassId
       },
       include: {
-        globalFees: true
+        localFees: true
       }
     })
 
-    return NextResponse.json({globalClassFees: globalClassFee}, {status: 200});
+    return NextResponse.json({globalClassFees: localFees}, {status: 200});
 
   } catch (e) {
 

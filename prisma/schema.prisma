@@ -664,7 +664,7 @@ model GlobalFees {
 
   classFees ClassFee[]
 
-  @@map("global_fees") // Added map for consistency
+  @@map("global_fees")
 }
 
 model LocalFees {
