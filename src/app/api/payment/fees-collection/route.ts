@@ -4,8 +4,10 @@ import prisma from '@/lib/prisma';
 
 export async function POST(request: Request) {
   try {
+
     const body = await request.json();
     const {
+      institutionId,
       classFeeId,
       studentId,
       amount,
@@ -15,7 +17,8 @@ export async function POST(request: Request) {
       status
     } = body;
 
-    if (!classFeeId || !studentId || !amount || !paymentDate || !paymentMethod || !status) {
+    if (!institutionId || !classFeeId || !studentId || !amount || !paymentDate || !paymentMethod || !status) {
+
       return NextResponse.json({error: 'Missing required fields'}, {status: 400});
     }
 
@@ -23,7 +26,7 @@ export async function POST(request: Request) {
       return NextResponse.json({error: `Invalid status. Must be one of: ${Object.values(PaymentStatus).join(', ')}`}, {status: 400});
     }
 
-    const studentExists = await prisma.fees.findUnique({
+    const studentExists = await prisma.student.findUnique({
       where: {
         id: studentId
       }
@@ -33,13 +36,13 @@ export async function POST(request: Request) {
       return NextResponse.json({error: "Student not found"}, {status: 400})
     }
 
-    const classFeeDetail = await prisma.fees.findUnique({
+    const feeDetail = await prisma.fees.findUnique({
       where: {
-        id: classFeeId
+        institutionId
       }
     });
 
-    if (!classFeeDetail) {
+    if (!feeDetail) {
       return NextResponse.json({error: "Unable to find relevant details"}, {status: 400});
     }
 
@@ -51,7 +54,7 @@ export async function POST(request: Request) {
         paymentDate: new Date(paymentDate),
         paymentMethod,
         transactionId,
-        status,
+        status
       },
     });
 
@@ -90,7 +93,11 @@ export async function GET(request: Request) {
     }
 
     const feesCollections = await prisma.feesCollection.findMany({
-      where
+      where,
+      include: {
+        student: true,
+        classFee: true
+      }
     });
 
     return NextResponse.json(feesCollections, {status: 200});

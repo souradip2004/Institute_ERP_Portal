@@ -13,23 +13,26 @@ export async function POST(request: Request) {
       paymentterms,
       penalty = 0,
       institutionId,
-      motherClassId
+      motherClassIds
     } = body;
 
-    if (!name || amount == null || taxPercentage == null || !paymentterms || !institutionId || !motherClassId) {
+    if (!name || amount == null || taxPercentage == null || !paymentterms || !institutionId || !Array.isArray(motherClassIds) || motherClassIds.length === 0 || motherClassIds.some(id => !id) || motherClassIds.some(id => typeof id !== 'string')) {
       return NextResponse.json({error: 'Missing required fields'}, {status: 400});
     }
 
     const result = await prisma.$transaction(async (tx) => {
       // Find all class sections belonging to the specified mother class
-      const motherClass = await tx.motherClass.findUnique({
-        where: {
-          id: motherClassId,
-        }
-      })
 
-      if (!motherClass) {
-        return NextResponse.json({error: "Class details not found"}, {status: 400});
+      const motherClasses = await tx.motherClass.findMany({
+        where: {
+          id: {
+            in: motherClassIds
+          }
+        }
+      });
+
+      if (motherClasses.length !== motherClassIds.length) {
+        return NextResponse.json({error: "One or more class details not found"}, {status: 400});
       }
 
       const instituteFeesDetail = await tx.fees.findUnique({
@@ -52,10 +55,10 @@ export async function POST(request: Request) {
           penalty,
           institutionId,
           classFees: {
-            create: [{
-              motherClassId: motherClassId,
+            create: motherClassIds.map(motherClassId => ({
+              motherClassId,
               feeCategoryId: instituteFeesDetail.id
-            }]
+            }))
           }
         },
         include: {
