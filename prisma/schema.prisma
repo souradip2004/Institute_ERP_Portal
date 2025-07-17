@@ -15,7 +15,7 @@ model User {
   emailVerified      DateTime?              @map("email_verified")
   image              String?
   isVerified         Boolean                @default(false)
-  coins              Int                    @default(0)
+  coins              Float                  @default(0)
   password           String?
   gender             String?
   dateOfBirth        DateTime?              @map("date_of_birth") @db.Date
@@ -308,7 +308,6 @@ model MotherClass {
   institutionId String?        @map("institution_id")
   sectionName   String         @map("section_name")
   classSections ClassSection[]
-  globalFees    GlobalFees[]
   classfee      ClassFee?
 }
 
@@ -658,12 +657,10 @@ model GlobalFees {
   paymentterms  String   @map("payment_terms")
   penalty       Float    @default(0)
   institutionId String   @map("institution_id")
-  motherClassId String   @map("mother_class_id")
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
 
   institution Institution @relation(fields: [institutionId], references: [id])
-  motherClass MotherClass @relation(fields: [motherClassId], references: [id])
 
   classFees ClassFee[]
 
@@ -672,7 +669,6 @@ model GlobalFees {
 
 model LocalFees {
   id                String               @id @default(cuid())
-  // institutionId String   @map("institution_id")
   name              String
   description       String?
   amount            Float
@@ -683,8 +679,6 @@ model LocalFees {
   updatedAt         DateTime             @updatedAt @map("updated_at")
   classFees         ClassFee[]
   studentsLocalFees LocalFeesOnStudent[]
-
-  // Institution       Institution?         @relation(fields: [institutionId], references: [id])
 
   @@map("local_fees") // Added map for consistency
 }
@@ -704,10 +698,6 @@ model ClassFee {
   feeCategory     Fees?            @relation(fields: [feeCategoryId], references: [id])
   feeCategoryId   String?          @map("fee_category_id")
   motherClass     MotherClass      @relation(fields: [motherClassId], references: [id])
-  /**
-   * ClassSection    ClassSection?    @relation(fields: [classSectionId], references: [id])
-   * classSectionId  String
-   */
 
   @@map("class_fees")
 }

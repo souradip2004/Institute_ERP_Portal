@@ -15,17 +15,6 @@ export async function POST(request: Request) {
       );
     }
 
-    const dataToCreate = classSectionIds.map((sectionId: string) => ({
-      globalFeesId: globalFeesId,
-      classSectionId: sectionId,
-    }));
-
-    const result = await prisma.classFee.createMany({
-      data: dataToCreate,
-      skipDuplicates: true,
-    });
-
-    return NextResponse.json(result, { status: 201 });
 
   } catch (error) {
     console.error('Error creating class fees:', error);
