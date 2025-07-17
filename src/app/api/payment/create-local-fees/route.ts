@@ -15,9 +15,10 @@ export async function POST(request: Request) {
       penalty = 0,
       institutionId,
       motherClassId,
+      studentIds,
     } = body;
 
-    if (!name || !amount || !taxPercentage || !paymentterms || !institutionId || !motherClassId) {
+    if (!name || !amount || !taxPercentage || !paymentterms || !institutionId || !motherClassId || !Array.isArray(studentIds) || studentIds.length === 0) {
       return NextResponse.json({error: 'Missing required fields'}, {status: 400});
     }
 
@@ -56,10 +57,16 @@ export async function POST(request: Request) {
               motherClassId: motherClassId,
               feeCategoryId: instituteFeesDetail.id
             }]
+          },
+          studentsLocalFees: {
+            create: studentIds.map(studentId => ({
+              studentId,
+            }))
           }
         },
         include: {
-          classFees: true
+          classFees: true,
+          studentsLocalFees: true
         }
       })
 
@@ -104,7 +111,7 @@ export async function POST(request: Request) {
 
 export async function GET(request: Request) {
   try {
-    const { searchParams } = new URL(request.url);
+    const {searchParams} = new URL(request.url);
     const motherClassId = searchParams.get('motherClassId') as string;
 
     const localFees = prisma.classFee.findUnique({
@@ -112,7 +119,11 @@ export async function GET(request: Request) {
         motherClassId
       },
       include: {
-        localFees: true
+        localFees: {
+          include: {
+            studentsLocalFees: true
+          }
+        }
       }
     })
 
