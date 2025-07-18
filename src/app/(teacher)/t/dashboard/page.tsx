@@ -1,8 +1,9 @@
 "use client";
-import React, { useEffect, useState } from 'react';
+import React, {useEffect, useState} from 'react';
 import Link from "next/link";
-import { LogoutButton } from "@/components/auth/logout-button";
+import {LogoutButton} from "@/components/auth/logout-button";
 import Loader from '@/components/ui/Loader';
+import axios from "axios";
 
 interface Notification {
   id: string;
@@ -10,7 +11,9 @@ interface Notification {
   message: string;
   notificationType: string;
   isRead: boolean;
+  replyText?: string;
   createdAt: string;
+  replyExists: boolean;
 }
 
 interface Assignment {
@@ -47,11 +50,11 @@ export default function TeacherDashboardPage() {
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [exams, setExams] = useState<Exam[]>([]);
   const [teacherName, setTeacherName] = useState('John Mathew');
-  const [credits, setCredits] = useState(600);
   const [teacherAttendance, setTeacherAttendance] = useState(97); // Default non-zero value to match UI
   const [classAttendance, setClassAttendance] = useState<ClassAttendance[]>([]);
   const [teacherId, setTeacherId] = useState<string | null>(null);
   const [classSectionId, setClassSectionId] = useState<string | null>(null);
+  const [replyInputs, setReplyInputs] = useState<{ [key: string]: string }>({});
 
   let user: { classSectionId?: string } | null = null;
   let classId: string | undefined = undefined;
@@ -79,10 +82,8 @@ export default function TeacherDashboardPage() {
             if (parsedUserData.teacherId) {
               console.log('Setting teacher ID from teacherId:', parsedUserData.teacherId);
               setTeacherId(parsedUserData.teacherId);
-            } else if (parsedUserData.id) {
-              console.log('Setting teacher ID from id:', parsedUserData.id);
-              setTeacherId(parsedUserData.id);
             } else {
+              setTeacherId(null);
               console.log('No teacher ID found in user data');
             }
 
@@ -172,50 +173,101 @@ export default function TeacherDashboardPage() {
 
       const data = await response.json();
       console.log('Received notifications:', data);
-      setNotifications(data);
+      const processedNotifications = data.map((notification: Notification) => ({
+        ...notification,
+        replyExists: !!notification.replyText?.trim() // Set true if replyText is a non-empty string
+      }));
+
+      setNotifications(processedNotifications);
+
     } catch (error) {
       console.error('Error in fetchNotifications:', error);
       setNotifications([]);
     }
   };
 
+
+  const handleReplyChange = (notificationId: string, text: string) => {
+    setNotifications(prevState => prevState.map(notification =>
+      notification.id === notificationId
+        ? {...notification, replyText: text}
+        : notification
+    ))
+  };
+
+  const handleReplySubmit = async (notificationId: string) => {
+    // 1. Find the specific notification from the state
+    const notification = notifications.find(n => n.id === notificationId);
+
+    // 2. Check if the replyText exists and is not just empty spaces
+    if (notification?.replyText?.trim()) {
+      try {
+        const response = await axios.put(
+          '/api/notifications/saveReply',
+          {
+            notificationId,
+            teacherId,
+            replyText: notification.replyText // 3. Use the correct replyText from the notification object
+          }
+        );
+
+        // 4. Correctly update state with the API response
+        if (response.data && response.data.notifications) {
+          const updatedNotifications = response.data.notifications.map((n: Notification) => ({
+            ...n,
+            replyExists: !!n.replyText?.trim()
+          }));
+          setNotifications(updatedNotifications);
+        }
+      } catch (err) {
+        console.error("Failed to submit reply:", err);
+        // Optionally, show an error message to the user
+      }
+    }
+  };
   const markNotificationsAsRead = async (notificationIds: string[]) => {
     try {
       if (teacherId) {
         try {
-          const response = await fetch('/api/notifications', {
-            method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            credentials: 'include',
-            body: JSON.stringify({ notificationIds, teacherId })
-          });
+          setNotifications(prevNotifications =>
+            prevNotifications.map(notification => {
+              if (notificationIds.includes(notification.id)) {
+                return {
+                  ...notification,
+                  isRead: true
+                }
+              }
 
-          if (response.ok) {
-            // Update local state after successful API call
-            setNotifications(prevNotifications =>
-              prevNotifications.map(notification =>
-                notificationIds.includes(notification.id)
-                  ? { ...notification, isRead: true }
-                  : notification
-              )
-            );
-            return;
+              return notification;
+            })
+          )
+
+          const response = await axios.put(
+            '/api/notifications',
+            {
+              notificationIds,
+              teacherId
+            }
+          );
+
+          // Update local state after successful API call
+          console.log("Notification update response:", response.data);
+          if (response.data && response.data.notifications) {
+            const updatedNotificationsFromServer = response.data.notifications;
+
+            const processedNotifications = updatedNotificationsFromServer.map((n: Notification) => ({
+              ...n,
+              replyExists: !!n.replyText?.trim()
+            }));
+
+            setNotifications(processedNotifications);
           }
+
         } catch (apiError) {
           console.error('API update error:', apiError);
         }
       }
 
-      // Fallback if API fails
-      setNotifications(prevNotifications =>
-        prevNotifications.map(notification =>
-          notificationIds.includes(notification.id)
-            ? { ...notification, isRead: true }
-            : notification
-        )
-      );
     } catch (error) {
       console.error('Error marking notifications as read:', error);
     }
@@ -320,9 +372,9 @@ export default function TeacherDashboardPage() {
       // If no classes were found from the API, use fallback classes
       if (classes.length === 0) {
         classes = [
-          { id: "class1", name: "Mathematics", section: "Section A" },
-          { id: "class2", name: "Physics", section: "Section B" },
-          { id: "class3", name: "Chemistry", section: "Section C" }
+          {id: "class1", name: "Mathematics", section: "Section A"},
+          {id: "class2", name: "Physics", section: "Section B"},
+          {id: "class3", name: "Chemistry", section: "Section C"}
         ];
       }
 
@@ -367,9 +419,9 @@ export default function TeacherDashboardPage() {
       // Use fallback data if no valid attendance data was found
       if (validAttendance.length === 0) {
         validAttendance = [
-          { id: "class1", name: "Mathematics", sectionName: "Section A", percentage: 95 },
-          { id: "class2", name: "Physics", sectionName: "Section B", percentage: 88 },
-          { id: "class3", name: "Chemistry", sectionName: "Section C", percentage: 92 }
+          {id: "class1", name: "Mathematics", sectionName: "Section A", percentage: 95},
+          {id: "class2", name: "Physics", sectionName: "Section B", percentage: 88},
+          {id: "class3", name: "Chemistry", sectionName: "Section C", percentage: 92}
         ];
       }
 
@@ -382,12 +434,22 @@ export default function TeacherDashboardPage() {
       return {
         teacherAttendance: 97,
         classAttendance: [
-          { id: "class1", name: "Mathematics", sectionName: "Section A", percentage: 95 },
-          { id: "class2", name: "Physics", sectionName: "Section B", percentage: 88 },
-          { id: "class3", name: "Chemistry", sectionName: "Section C", percentage: 92 }
+          {id: "class1", name: "Mathematics", sectionName: "Section A", percentage: 95},
+          {id: "class2", name: "Physics", sectionName: "Section B", percentage: 88},
+          {id: "class3", name: "Chemistry", sectionName: "Section C", percentage: 92}
         ]
       };
     }
+  };
+
+  const handleMarkSelectedAsRead = () => {
+
+    if (notifications.length > 0) {
+
+      markNotificationsAsRead(notifications.map(notification => notification.id));
+
+    }
+
   };
 
   const getTimeAgo = (dateString: string) => {
@@ -417,7 +479,7 @@ export default function TeacherDashboardPage() {
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
-        <Loader size='large' />
+        <Loader size='large'/>
       </div>
     );
   }
@@ -443,37 +505,89 @@ export default function TeacherDashboardPage() {
           <div className="flex items-center">
             <div className="bg-gray-100 rounded-full px-4 py-2 mr-4">
             </div>
-            <LogoutButton />
+            <LogoutButton/>
           </div>
         </div>
 
         {/* Notifications Section */}
         <div className="bg-white p-6 rounded-lg shadow-sm">
-          <h2 className="text-xl font-semibold mb-4">Notifications</h2>
+          {/*<h2 className="text-xl font-semibold mb-4">Notifications</h2>*/}
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-semibold">Notifications</h2>
+            {notifications.length > 0 && notifications.some(notification => !notification.isRead) && <button
+							onClick={handleMarkSelectedAsRead}
+							className="px-4 py-2 text-sm font-medium text-black bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+						>
+							Mark all as Read ({notifications.length})
+						</button>}
+
+
+          </div>
           <div className="space-y-4">
             {notifications.length > 0 ? (
               notifications.map((notification) => (
-                <div
-                  key={notification.id}
-                  className="p-4 border-b last:border-0"
-                  onClick={() => {
-                    if (!notification.isRead) {
-                      markNotificationsAsRead([notification.id]);
-                    }
-                  }}
-                >
-                  <div className="flex items-start">
-                    <div className="mr-4 mt-1 text-2xl">
-                      {getNotificationIcon(notification.notificationType)}
-                    </div>
+                <div key={notification.id} className="p-4 border-b last:border-0">
+                  <div className="flex items-start space-x-4">
+                    {/* Checkbox */}
+
+                    {/* Icon and Content */}
                     <div className="flex-1">
-                      <div className="flex justify-between items-start mb-1">
-                        <h3 className="font-medium">{notification.title}</h3>
-                        <span className="text-sm text-gray-500">
-                          {getTimeAgo(notification.createdAt)}
+                      <div className="flex items-start">
+                        <div className="mr-4 mt-1 text-2xl">
+                          {getNotificationIcon(notification.notificationType)}
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex justify-between items-start mb-1">
+                            <div className={"flex space-x-4"}>
+                              <h3 id={`notification-title-${notification.id}`}
+                                  className="font-medium">{notification.title}</h3>
+
+                              <div className={"flex items-center space-x-2"}>
+                                <input
+                                  type="checkbox"
+                                  className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 border-2"
+                                  checked={notification.isRead}
+                                  disabled={notification.isRead}
+                                  onChange={() => markNotificationsAsRead([notification.id])}
+                                  aria-labelledby={`notification-title-${notification.id}`}
+                                />
+                                <span className={""}>Mark as read</span>
+                              </div>
+                            </div>
+                            <span className="text-sm text-gray-500">
+                            {getTimeAgo(notification.createdAt)}
                         </span>
+                          </div>
+                          <p className="text-gray-600 mb-3">"{notification.message}"</p>
+
+                          {notification.replyExists ? (
+                            // If a reply IS saved, display it as text
+                            <div className="mt-2 p-2 bg-gray-100 rounded-md">
+                              <p className="text-sm font-medium text-gray-800">Your reply:</p>
+                              <p className="text-sm text-gray-600">"{notification.replyText}"</p>
+                            </div>
+                          ) : (
+                            // If NO reply is saved, show the input field and button
+                            <div className="flex items-center space-x-2">
+                              <input
+                                type="text"
+                                placeholder="Type your reply..."
+                                value={notification.replyText || ''}
+                                onChange={(e) => handleReplyChange(notification.id, e.target.value)}
+                                className="flex-grow p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                              />
+                              <button
+                                onClick={() => handleReplySubmit(notification.id)}
+                                disabled={!notification.replyText?.trim()} // Disable button if input is empty
+                                className="px-4 py-2 text-sm font-medium text-white bg-gray-700 rounded-lg hover:bg-gray-800 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                              >
+                                Reply
+                              </button>
+                            </div>
+                          )}
+
+                        </div>
                       </div>
-                      <p className="text-gray-600">"{notification.message}"</p>
                     </div>
                   </div>
                 </div>
@@ -561,36 +675,36 @@ export default function TeacherDashboardPage() {
           <div className="overflow-x-auto">
             <table className="min-w-full">
               <thead>
-                <tr className="border-b">
-                  <th className="text-left py-3">Title</th>
-                  <th className="text-left py-3">Class</th>
-                  <th className="text-left py-3">Subject</th>
-                  <th className="text-left py-3">Due Date</th>
-                  <th className="text-left py-3">Submissions</th>
-                  <th className="text-left py-3">Status</th>
+              <tr className="border-b">
+                <th className="text-left py-3">Title</th>
+                <th className="text-left py-3">Class</th>
+                <th className="text-left py-3">Subject</th>
+                <th className="text-left py-3">Due Date</th>
+                <th className="text-left py-3">Submissions</th>
+                <th className="text-left py-3">Status</th>
 
-                </tr>
+              </tr>
               </thead>
               <tbody>
-                {assignments.length > 0 ? (
-                  assignments.map((assignment) => (
-                    <tr key={assignment.id} className="border-b hover:bg-gray-50">
-                      <td className="py-3">{assignment.title}</td>
-                      <td className="py-3">{assignment.class}</td>
-                      <td className="py-3">{assignment.subject}</td>
-                      <td className="py-3">{assignment.dueDate}</td>
-                      <td className="py-3">{assignment.submissions}</td>
-                      <td className="py-3">{assignment.status}</td>
+              {assignments.length > 0 ? (
+                assignments.map((assignment) => (
+                  <tr key={assignment.id} className="border-b hover:bg-gray-50">
+                    <td className="py-3">{assignment.title}</td>
+                    <td className="py-3">{assignment.class}</td>
+                    <td className="py-3">{assignment.subject}</td>
+                    <td className="py-3">{assignment.dueDate}</td>
+                    <td className="py-3">{assignment.submissions}</td>
+                    <td className="py-3">{assignment.status}</td>
 
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={7} className="py-6 text-center text-gray-500">
-                      No assignments found
-                    </td>
                   </tr>
-                )}
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={7} className="py-6 text-center text-gray-500">
+                    No assignments found
+                  </td>
+                </tr>
+              )}
               </tbody>
             </table>
           </div>
@@ -610,32 +724,32 @@ export default function TeacherDashboardPage() {
           <div className="overflow-x-auto">
             <table className="min-w-full">
               <thead>
-                <tr className="border-b">
-                  <th className="text-left py-3">Title</th>
-                  <th className="text-left py-3">Class</th>
-                  <th className="text-left py-3">Subject</th>
-                  <th className="text-left py-3">Date</th>
-                  <th className="text-left py-3">Status</th>
-                </tr>
+              <tr className="border-b">
+                <th className="text-left py-3">Title</th>
+                <th className="text-left py-3">Class</th>
+                <th className="text-left py-3">Subject</th>
+                <th className="text-left py-3">Date</th>
+                <th className="text-left py-3">Status</th>
+              </tr>
               </thead>
               <tbody>
-                {exams.length > 0 ? (
-                  exams.map((exam) => (
-                    <tr key={exam.id} className="border-b hover:bg-gray-50">
-                      <td className="py-3">{exam.title}</td>
-                      <td className="py-3">{exam.class}</td>
-                      <td className="py-3">{exam.subject}</td>
-                      <td className="py-3">{exam.date}</td>
-                      <td className="py-3">{exam.status}</td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={6} className="py-6 text-center text-gray-500">
-                      No exams found
-                    </td>
+              {exams.length > 0 ? (
+                exams.map((exam) => (
+                  <tr key={exam.id} className="border-b hover:bg-gray-50">
+                    <td className="py-3">{exam.title}</td>
+                    <td className="py-3">{exam.class}</td>
+                    <td className="py-3">{exam.subject}</td>
+                    <td className="py-3">{exam.date}</td>
+                    <td className="py-3">{exam.status}</td>
                   </tr>
-                )}
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={6} className="py-6 text-center text-gray-500">
+                    No exams found
+                  </td>
+                </tr>
+              )}
               </tbody>
             </table>
           </div>

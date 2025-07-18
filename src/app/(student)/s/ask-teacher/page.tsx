@@ -1,6 +1,6 @@
 "use client";
-import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import React, {useState, useEffect} from 'react';
+import {useRouter} from 'next/navigation';
 import Link from 'next/link';
 import Loader from '@/components/ui/Loader';
 
@@ -16,7 +16,7 @@ interface Teacher {
   department?: {
     name: string;
   };
-  teacherCode:string;
+  teacherCode: string;
 }
 
 interface Message {
@@ -29,7 +29,7 @@ interface Message {
 export default function AskTeacherPage() {
   const router = useRouter();
   const [teachers, setTeachers] = useState<Teacher[]>([]);
-  const [teacherCode,setTeacherCode]=useState<any[]>([]);
+  const [teacherCode, setTeacherCode] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedTeacher, setSelectedTeacher] = useState<Teacher | null>(null);
@@ -41,35 +41,35 @@ export default function AskTeacherPage() {
     const fetchUserData = async () => {
       try {
         // Fetch teachers
-        const user=localStorage.getItem("user")
-  const userData = JSON.parse(user);  
-              const classdetails=await fetch(`/api/students/${userData.studentId}`,{
-                method:"GET",
- headers: {
-          'Content-Type': 'application/json',
-        },
-              })
-              if(!classdetails.ok){
-                alert("no classes found")
-                return;
+        const user = localStorage.getItem("user")
+        const userData = JSON.parse(user);
+        const classdetails = await fetch(`/api/students/${userData.studentId}`, {
+          method: "GET",
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        })
+        if (!classdetails.ok) {
+          alert("no classes found")
+          return;
+        }
+        const classes = await classdetails.json();
+        const classenrollments = classes?.classEnrollments;
+        const classd = []
+        for (let i = 0; i < classenrollments.length; i++) {
+          const teacher = await fetch(`/api/class-sections/${classenrollments[i].classSectionId}`, {
+              method: "GET",
+              headers: {
+                'Content-Type': 'application/json',
               }
-const classes=await classdetails.json();
-const classenrollments=classes?.classEnrollments
-const classd=[]
-for(let i=0;i<classenrollments.length;i++){
-  const teacher=await fetch(`/api/class-sections/${classenrollments[i].classSectionId}`,{
-                method:"GET",
- headers: {
-          'Content-Type': 'application/json',
-        }}
-      
-      )
-      if(teacher.ok){
-        const teachers=await teacher.json();
-        classd.push(teachers?.teacher?.teacherCode)
-      }
-}
-setTeacherCode(classd)
+            }
+          )
+          if (teacher.ok) {
+            const teachers = await teacher.json();
+            classd.push(teachers?.teacher?.teacherCode)
+          }
+        }
+        setTeacherCode(classd)
         await fetchTeachers();
       } catch (error) {
         console.error("Error fetching user data:", error);
@@ -99,7 +99,7 @@ setTeacherCode(classd)
       }
 
       const data = await response.json();
-      console.log("teachers",data)
+      console.log("teachers", data)
       setTeachers(data);
       setLoading(false);
     } catch (err) {
@@ -134,23 +134,24 @@ setTeacherCode(classd)
         sender: 'student',
         timestamp: new Date(),
       };
+
       newMessageId = newMessage.id;
       setMessages(prev => [...prev, newMessage]);
 
       // Clear input
       setMessageInput('');
-      const user=JSON.parse(localStorage.getItem("user"))
+      const user = JSON.parse(localStorage.getItem("user"))
       // Send message to API
       const response = await fetch(`/api/chat/send-message?user=${user.id}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        credentials: 'include', // Include cookies in the request
+        credentials: 'include',
         body: JSON.stringify({
           message: currentMessage,
           teacherId: selectedTeacher.id
-        }),
+        })
       });
 
       if (!response.ok) {
@@ -178,7 +179,7 @@ setTeacherCode(classd)
     return (
 
       <div className="flex items-center justify-center min-h-[calc(100vh-64px)]">
-        <Loader size="large" />
+        <Loader size="large"/>
       </div>
 
     );
@@ -219,7 +220,8 @@ setTeacherCode(classd)
                 ←
               </button>
               <div className="flex items-center">
-                <div className="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center text-purple-600 font-bold">
+                <div
+                  className="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center text-purple-600 font-bold">
                   {selectedTeacher.user.name.charAt(0)}
                 </div>
                 <div className="ml-3">
@@ -237,7 +239,7 @@ setTeacherCode(classd)
                     className={`${msg.sender === 'student'
                       ? 'self-end bg-purple-100'
                       : 'self-start bg-white shadow-sm'
-                      } p-3 rounded-lg max-w-xs`}
+                    } p-3 rounded-lg max-w-xs`}
                   >
                     <p>{msg.content}</p>
                     <span className="text-xs text-gray-500 mt-1">
@@ -289,7 +291,7 @@ setTeacherCode(classd)
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {teachers.length > 0 ? (
-          teachers.filter(teacher=>teacherCode.includes(teacher.teacherCode)).map((teacher) => (
+          teachers.filter(teacher => teacherCode.includes(teacher.teacherCode)).map((teacher) => (
             <div key={teacher.id} className="bg-white p-4 rounded-lg shadow-sm">
               <h3 className="text-lg font-medium mb-3 text-purple-700">
                 {teacher.department?.name}
@@ -298,7 +300,8 @@ setTeacherCode(classd)
                 className="flex items-center p-2 hover:bg-gray-100 rounded-md cursor-pointer"
                 onClick={() => handleTeacherClick(teacher)}
               >
-                <div className="h-10 w-10 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 font-bold mr-3">
+                <div
+                  className="h-10 w-10 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 font-bold mr-3">
                   {teacher.user.name.charAt(0)}
                 </div>
                 <span className="text-gray-700">{teacher.user.name}</span>
