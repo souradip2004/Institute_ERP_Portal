@@ -31,7 +31,7 @@ import {
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { ChevronLeft, Search, Upload, Trash2, Download, Edit,Film } from 'lucide-react';
+import { ChevronLeft, Search, Upload, Trash2, Download, Edit, Film } from 'lucide-react';
 import Link from 'next/link';
 import NotesViewer from './NotesViewer/index';
 import { getLocalVideoData, storeVideoDataLocally } from './NotesViewer/utils';
@@ -577,11 +577,13 @@ const NotesManagement: React.FC<NotesManagementProps> = ({
                         <p className="text-white/80 text-sm text-center">Add new PDF notes for students</p>
                     </div>
 
-                    <div className="bg-gradient-to-br from-emerald-500 to-teal-600 p-6 rounded-xl text-white shadow-md hover:shadow-lg transition-shadow cursor-pointer flex flex-col items-center justify-center h-48">
+                    <div className="bg-gradient-to-br from-emerald-500 to-teal-600 p-6 rounded-xl text-white shadow-md hover:shadow-lg transition-shadow cursor-pointer flex flex-col items-center justify-center h-48"
+                        onClick={() => redirect(`/t/smart-resources`)}
+                    >
                         <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center mb-4">
                             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M7 12h14"></path><path d="M7 5h14"></path><path d="M7 19h14"></path><path d="M3 5a1 1 0 1 0 0 1 1 1 0 0 0 0-1"></path><path d="M3 19a1 1 0 1 0 0 1 1 1 0 0 0 0-1"></path><rect x="1" y="10" width="4" height="4" rx="1"></rect></svg>
                         </div>
-                        <h3 className="text-xl font-semibold mb-1">Smart Resourse</h3>
+                        <h3 className="text-xl font-semibold mb-1">Smart Resource</h3>
                         <p className="text-white/80 text-sm text-center">Find Guided Youtube Videos from the Web</p>
                     </div>
 
@@ -684,7 +686,7 @@ const NotesManagement: React.FC<NotesManagementProps> = ({
                                             <TableCell>{formatDate(note.createdAt)}</TableCell>
                                             <TableCell className="text-right">
                                                 <div className="flex justify-end gap-2">
-                                                    
+
                                                     <Button
                                                         variant="ghost"
                                                         size="icon"
@@ -725,9 +727,10 @@ const NotesManagement: React.FC<NotesManagementProps> = ({
                                                                         })
                                                                     });
                                                                     if (response.ok) {
-   setTimeout(()=>{
-                                                                                window.open(`https://aiclassroom.in/share?id=${randomCode}`, '_blank');
-                                                                                },2000)                                                                    }
+                                                                        setTimeout(() => {
+                                                                            window.open(`https://aiclassroom.in/share?id=${randomCode}`, '_blank');
+                                                                        }, 2000)
+                                                                    }
                                                                 }}
                                                                 className="h-8 w-8 rounded-full hover:bg-yellow-50 hover:text-yellow-700"
                                                                 title="Share video link"
@@ -840,7 +843,7 @@ const NotesManagement: React.FC<NotesManagementProps> = ({
                                 )}
                             />
 
-                            
+
 
                             <div className="space-y-2">
                                 <Label htmlFor="file">Attachment (Optional)</Label>
