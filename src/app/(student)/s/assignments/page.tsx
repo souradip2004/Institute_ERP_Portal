@@ -194,14 +194,14 @@ export default function AssignmentsPage() {
 
     const ongoing = processedAssignments.filter((assignment) => {
       const submission = assignment.submissions?.find(sub => sub.studentId === studentId);
-      return !submission ;
+      return !submission;
     });
 
     const submitted = processedAssignments.filter((assignment) => {
       const submission = assignment.submissions?.find(sub => sub.studentId == studentId);
       console.log(assignment.submissions)
       console.log(studentId)
-      return submission ;
+      return submission;
     });
 
     const graded = processedAssignments.filter((assignment) => {
@@ -513,9 +513,9 @@ export default function AssignmentsPage() {
                 <th className="px-4 py-3 text-left text-xs sm:text-sm font-semibold text-gray-600 bg-gray-50 min-w-[100px]">
                   Status
                 </th>
-                <th className="px-4 py-3 text-left text-xs sm:text-sm font-semibold text-gray-600 bg-gray-50 min-w-[120px]">
+                {/* <th className="px-4 py-3 text-left text-xs sm:text-sm font-semibold text-gray-600 bg-gray-50 min-w-[120px]">
                   Actions
-                </th>
+                </th> */}
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -571,7 +571,7 @@ export default function AssignmentsPage() {
                           {getStatusDisplay(assignment)}
                         </span>
                       </td>
-                      <td className="px-4 py-3">{getActionButton(assignment)}</td>
+                      {/* <td className="px-4 py-3">{getActionButton(assignment)}</td> */}
                     </tr>
                   );
                 })
