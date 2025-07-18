@@ -1,32 +1,32 @@
-import { NextRequest, NextResponse } from "next/server";
+import {NextRequest, NextResponse} from "next/server";
 import prisma from "@/lib/prisma";
 import jwt from 'jsonwebtoken';
 
 export async function POST(request: NextRequest) {
   try {
     // Get auth token from cookie
-     
+
     const body = await request.json();
     const userId = request.nextUrl.searchParams.get("user");
 
     console.log("Received request body:", body);
     console.log("user id:", userId);
 
-    const { message, teacherId } = body;
+    const {message, teacherId} = body;
 
     if (!message || !teacherId) {
-      console.log("Missing required fields:", { message, teacherId });
+      console.log("Missing required fields:", {message, teacherId});
       return NextResponse.json(
-        { error: "Message and teacher ID are required" },
-        { status: 400 }
+        {error: "Message and teacher ID are required"},
+        {status: 400}
       );
     }
 
     if (!userId) {
       console.log("Missing userId (classSectionId) in query params");
       return NextResponse.json(
-        { error: "User ID (classSectionId) is required in query params" },
-        { status: 400 }
+        {error: "User ID (classSectionId) is required in query params"},
+        {status: 400}
       );
     }
 
@@ -34,15 +34,15 @@ export async function POST(request: NextRequest) {
 
     // Verify that the teacher exists
     const teacher = await prisma.teacher.findUnique({
-      where: { id: teacherId },
-      include: { user: true }
+      where: {id: teacherId},
+      include: {user: true}
     });
 
     if (!teacher) {
       console.log("Teacher not found with ID:", teacherId);
       return NextResponse.json(
-        { error: "Teacher not found" },
-        { status: 404 }
+        {error: "Teacher not found"},
+        {status: 404}
       );
     }
 
@@ -54,15 +54,15 @@ export async function POST(request: NextRequest) {
 
     // Get student data
     const student = await prisma.student.findFirst({
-      where: { userId: userId},
-      include: { user: true }
+      where: {userId: userId},
+      include: {user: true}
     });
 
     if (!student) {
       console.log("Student not found for userId:", userId);
       return NextResponse.json(
-        { error: "Student not found" },
-        { status: 404 }
+        {error: "Student not found"},
+        {status: 404}
       );
     }
 
@@ -106,7 +106,7 @@ export async function POST(request: NextRequest) {
         details: error instanceof Error ? error.message : String(error),
         stack: error instanceof Error ? error.stack : undefined
       },
-      { status: 500 }
+      {status: 500}
     );
   }
 }
