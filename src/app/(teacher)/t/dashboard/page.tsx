@@ -144,7 +144,7 @@ export default function TeacherDashboardPage() {
         return;
       }
 
-      // First get the teacher's user ID
+    /*  // First get the teacher's user ID
       const teacherResponse = await fetch(`/api/teachers/${teacherId}`, {
         credentials: 'include'
       });
@@ -160,10 +160,11 @@ export default function TeacherDashboardPage() {
       if (!teacherData.userId) {
         console.error('No userId found in teacher data');
         return;
-      }
+        console.log('Fetching notifications for userId:', teacherData.userId);
+      }*/
 
-      console.log('Fetching notifications for userId:', teacherData.userId);
-      const response = await fetch(`/api/notifications?teacherId=${teacherData.userId}`);
+
+      const response = await fetch(`/api/notifications?teacherId=${teacherId}`);
 
       if (!response.ok) {
         const errorData = await response.json();

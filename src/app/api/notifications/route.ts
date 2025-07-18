@@ -3,23 +3,35 @@ import prisma from "@/lib/prisma";
 import jwt from 'jsonwebtoken';
 
 export async function GET(request: NextRequest) {
+
   try {
     // Get auth token from cookie
 
     // Get teacherId from query parameters
     const {searchParams} = new URL(request.url);
-    const userId = searchParams.get('teacherId');
-    console.log('Fetching notifications for userId:', userId);
+    const teacherId = searchParams.get('teacherId') as string;
+    console.log('Fetching notifications for userId:', teacherId);
 
-    if (!userId) {
+    if (!teacherId) {
       console.log('No userId provided in query params');
       return NextResponse.json({error: 'User ID is required'}, {status: 400});
+    }
+    const teacherExists = await prisma.teacher.findUnique({
+      where: {
+        id: teacherId
+      }
+    })
+
+    console.log('Found teacher:', teacherExists);
+
+    if (!teacherExists) {
+      return NextResponse.json({error: "No teacher found"}, {status: 404});
     }
 
     // Get notifications for the specific teacher
     const notifications = await prisma.notification.findMany({
       where: {
-        userId: userId
+        userId: teacherExists.userId,
       },
       orderBy: {
         createdAt: 'desc'

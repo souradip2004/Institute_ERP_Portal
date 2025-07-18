@@ -7,7 +7,7 @@ export async function PUT(request: NextRequest) {
     const body = await request.json();
     const {notificationId, replyText, teacherId} = body;
 
-    if (!notificationId || !replyText.trim()|| !teacherId) {
+    if (!notificationId || !replyText.trim() || !teacherId) {
       return NextResponse.json(
         {error: "Invalid notification IDs"},
         {status: 400}
