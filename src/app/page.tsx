@@ -7,6 +7,7 @@ import { Menu, X } from 'lucide-react';
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Sparkles, MessageSquare, BarChart2, Zap, TrendingUp, ShieldCheck, LifeBuoy } from 'lucide-react';
 import { Building, Briefcase, Users, UserCheck, CalendarCheck } from 'lucide-react';
+import HeroA from '@/components/HeroA';
 
 import {
     Instagram,
@@ -350,15 +351,15 @@ export default function LandingPage() {
                     </Swiper>
                 </div>
             </section>
-            <div className="min-h-screen bg-white text-gray-900 font-inter flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+            <div className="h-[80%] bg-gradient-to-r from-[#F1F5FF] to-[#7A67FF] text-gray-900 font-inter flex items-center justify-center md:w-[90%] rounded-4xl py-10">
                 <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
                     {/* Image Section */}
                     <div className="flex justify-center lg:justify-end">
                         {/* Using a placeholder image for the devices. In a real app, you'd replace this with your actual image. */}
                         <img
-                            src="/iconer.png"
+                            src="/iconer2.png"
                             alt="Dashboard on Tablet and Phone"
-                            className="w-full max-w-md md:max-w-lg lg:max-w-xl rounded-xl shadow-2xl"
+                            className="w-full max-w-md md:max-w-lg lg:max-w-xl"
                             onError={(e) => {
                                 e.target.onerror = null;
                                 e.target.src = "https://placehold.co/600x400/F8F0FF/2D0065?text=Image+Not+Found";
@@ -409,7 +410,8 @@ export default function LandingPage() {
                     </div>
                 </div>
             </div>
-            <div className="min-h-screen bg-white font-inter flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+
+            <div className="md:hidden min-h-screen bg-white font-inter flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
                 <div className="max-w-4xl mx-auto bg-purple-50 rounded-3xl shadow-xl p-8 md:p-12 lg:p-16 text-center">
                     <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-purple-900 leading-tight mb-4">
                         Built For All Your <br className="sm:hidden" />Administrative Needs
@@ -425,6 +427,38 @@ export default function LandingPage() {
                     </div>
                 </div>
             </div>
+
+
+            {/* <div className='flex flex-row  bg-[#e0dcff7c]'>
+                <div className='flex flex-col items-start justify-center h-[600px] w-[40%]'>
+                    <div className="text-3xl sm:text-4xl lg:text-5xl h-[50%] w-[90%] flex flex-col justify-center font-extrabold bg-purple-400 text-white leading-tight mb-4 rounded-r-[250px] pl-8">
+                        <div>
+                            <div>Smart</div>
+                            <div>Classroom</div>
+                        </div>
+                    </div>
+                </div>
+                <div className='flex flex-col items-center justify-center h-[600px] w-[60%]'>
+                    <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-purple-900 leading-tight mb-4">
+                        Built For All Your <br className="sm:hidden" />Administrative Needs
+                    </h1>
+                    <p className="text-md sm:text-lg text-purple-700 mb-12">
+                        AI Powered Institution Management Solution For You!
+                    </p>
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-8">
+                        {features1.map((feature, index) => (
+                            <FeatureCard key={index} icon={feature.icon} title={feature.title} />
+                        ))}
+                    </div>
+                </div>
+
+            </div> */}
+
+            <div className='hidden md:block mt-10'>
+                <HeroA />
+            </div>
+
+
             <FAQ />
             {/* Footer */}
             <footer className="border-t bg-gray-100 pt-8">
