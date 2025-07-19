@@ -119,7 +119,7 @@ export default function AskTeacherPage() {
     const fetchMessages = async () => {
       setLoadingMessages(true);
 
-      const studentId = JSON.parse(localStorage.getItem("user")).studentId;
+      const studentId = JSON.parse(localStorage.getItem("user")!).studentId;
       try {
         const response = await fetch(`/api/notifications?teacherId=${selectedTeacher.id}&studentId=${studentId}`, {
           method: 'GET',

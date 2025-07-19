@@ -60,7 +60,6 @@ export async function POST(request: NextRequest) {
 
     console.log("Creating notification for teacher:", teacher.id);
 
-    // Create notification for the teacher
     const notification = await prisma.notification.create({
       data: {
         teacherId: teacher.id,

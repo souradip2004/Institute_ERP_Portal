@@ -54,7 +54,6 @@ export default function TeacherDashboardPage() {
   const [classAttendance, setClassAttendance] = useState<ClassAttendance[]>([]);
   const [teacherId, setTeacherId] = useState<string | null>(null);
   const [classSectionId, setClassSectionId] = useState<string | null>(null);
-  const [replyInputs, setReplyInputs] = useState<{ [key: string]: string }>({});
 
   let user: { classSectionId?: string } | null = null;
   let classId: string | undefined = undefined;
@@ -188,7 +187,7 @@ export default function TeacherDashboardPage() {
           {
             notificationId,
             teacherId,
-            replyText: notification.replyText // 3. Use the correct replyText from the notification object
+            replyText: notification.replyText
           }
         );
 
@@ -198,11 +197,11 @@ export default function TeacherDashboardPage() {
             ...n,
             replyExists: !!n.replyText?.trim()
           }));
+
           setNotifications(updatedNotifications);
         }
       } catch (err) {
         console.error("Failed to submit reply:", err);
-        // Optionally, show an error message to the user
       }
     }
   };

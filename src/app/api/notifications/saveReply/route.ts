@@ -41,7 +41,7 @@ export async function PUT(request: NextRequest) {
 
     const notifications = await prisma.notification.findMany({
       where: {
-        teacherId: teacherExists.userId,
+        teacherId: teacherExists.id,
       },
       orderBy: {
         createdAt: 'desc'
