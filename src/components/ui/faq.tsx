@@ -82,7 +82,7 @@ export default function FAQ() {
           Popular Questions
         </h1>
 
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 mb-12">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mb-12">
           <CustomAccordion>
             <CustomAccordionItem value="item-1">
               <CustomAccordionTrigger
