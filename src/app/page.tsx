@@ -240,7 +240,7 @@ export default function LandingPage() {
                     <div className="block md:hidden w-[80%] h-[80%] object-cover z-10">
                         <img src="/mainscreen.png" alt="Hero" className="object-cover" />
                     </div>
-                    <div className="relative container mx-auto flex px-6 py-6 sm:py-32 z-10 ml-24">
+                    <div className="relative container mx-auto flex px-6 py-6 sm:py-32 z-10 md:ml-24">
                         <div className="max-w-2xl text-left">
                             <div className="flex flex-col items-start gap-2">
                                 <h2 className="text-2xl md:text-3xl font-medium text-gray-800">Smart</h2>
