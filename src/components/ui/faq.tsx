@@ -41,7 +41,7 @@ const CustomAccordionTrigger = ({ children, isOpen, onClick }) => (
     {isOpen ? (
       <ChevronUp className="h-7 w-7 text-purple-900 hover:text-purple-700 transition-colors duration-200" />
     ) : (
-      <ChevronDown className="h-7 w-7 text-purple-900 hover:text-purple-700 transition-colors duration-200" /> 
+      <ChevronDown className="h-7 w-7 text-purple-900 hover:text-purple-700 transition-colors duration-200" />
     )}
   </button>
 );

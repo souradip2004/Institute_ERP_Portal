@@ -109,12 +109,15 @@ function HeroA() {
                 <div className="flex justify-between gap-12 w-screen items-center">
                     {/* Left side - Brand */}
                     <div className="space-y-8 flex-1">
-                        <div className="space-y-4 w-[400px] h-[300px] bg-gradient-to-br from-purple-500 to-purple-600 rounded-r-[250px] flex items-center justify-center">
-                            <h1 className="text-6xl lg:text-5xl font-bold text-white leading-tight ">
-                                Smart
-                                <br />
-                                Classroom
-                            </h1>
+                        <div className="space-y-4 w-[550px] h-[500px] bg-gradient-to-br from-[#DDC8FF] to-[#A771FF] rounded-r-[250px] flex items-center justify-start">
+                            <div className="flex flex-col items-start ml-4">
+                                <h2 className="text-[60px] font-normal text-white leading-tight text-left">
+                                    Smart
+                                </h2>
+                                <h1 className="text-[90px] font-bold text-white leading-tight text-left">
+                                    Classroom
+                                </h1>
+                            </div>
                         </div>
                     </div>
 
@@ -191,7 +194,7 @@ function HeroA() {
                         </div>
 
                         {/* Progress indicator */}
-                        <div className="flex justify-center space-x-2">
+                        {/* <div className="flex justify-center space-x-2">
                             {features.map((feature, index) => (
                                 <div
                                     key={feature.id}
@@ -207,7 +210,7 @@ function HeroA() {
                                     }}
                                 ></div>
                             ))}
-                        </div>
+                        </div> */}
                     </div>
                 </div>
             </div>

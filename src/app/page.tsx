@@ -280,11 +280,74 @@ export default function LandingPage() {
                 </div>
             </section>
 
+            {/* Features Section */}
+            <div className='flex justify-end bg-white mt-10'>
+                <div className="bg-[#dad4ff] p-8 md:bg-gradient-to-l from-[#F1F5FF] to-[#EDECFF] text-gray-900 font-inter flex items-center justify-center md:w-[90%] rounded-l-[114px] py-10 border-1 border-purple-200">
+                    <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                        {/* Image Section */}
+                        <div className="flex justify-center lg:justify-end">
+                            {/* Using a placeholder image for the devices. In a real app, you'd replace this with your actual image. */}
+                            <img
+                                src="/iconer2.png"
+                                alt="Dashboard on Tablet and Phone"
+                                className="w-full max-w-md md:max-w-lg"
+                                onError={(e) => {
+                                    e.target.onerror = null;
+                                    e.target.src = "https://placehold.co/600x400/F8F0FF/2D0065?text=Image+Not+Found";
+                                }}
+                            />
+                        </div>
+
+                        {/* Content Section */}
+                        <div className="flex flex-col items-center lg:items-start text-center lg:text-left">
+                            <h2 className="text-lg font-semibold text-purple-700 uppercase tracking-wider mb-2">
+                                Smart Features
+                            </h2>
+                            <h1 className="text-4xl font-bold text-purple-900 leading-tight mb-8">
+                                At Your Fingertips
+                            </h1>
+
+                            {/* Features List */}
+                            <ul className="space-y-3 max-w-md lg:max-w-none">
+                                <FeatureItem
+                                    icon={Sparkles}
+                                    title="Personalized Theme: Lorem Ipsum,"
+                                />
+                                <FeatureItem
+                                    icon={MessageSquare}
+                                    title="Multi-Channel Communication: Lorem Ipsum,"
+                                />
+                                <FeatureItem
+                                    icon={BarChart2}
+                                    title="Real-Time Analytics: Track performance live."
+                                />
+                                <FeatureItem
+                                    icon={Zap}
+                                    title="Real-Time Response: Lorem Ipsum."
+                                />
+                                <FeatureItem
+                                    icon={TrendingUp}
+                                    title="Scalability: Handles high traffic effortlessly."
+                                />
+                                <FeatureItem
+                                    icon={ShieldCheck}
+                                    title="Secure Data: Advanced encryption and compliance."
+                                />
+                                <FeatureItem
+                                    icon={LifeBuoy}
+                                    title="24/7 Support: Always available, uninterrupted service."
+                                />
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             {/* Features Carousel */}
             <section className="bg-gradient-to-b from-gray-50 to-white py-20 lg:py-24 overflow-hidden">
                 <div className="container mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="text-center mb-16">
-                        <h2 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-gray-900 leading-tight tracking-tight">
+                        <h2 className="text-4xl font-bold text-gray-900 leading-tight tracking-tight">
                             Experience the <span className="text-indigo-600">Ease of Teaching</span> with <br /> <span className="text-indigo-800">AI Classroom</span>
                         </h2>
                         <p className="mt-4 text-lg text-gray-600 max-w-2xl mx-auto">
@@ -351,65 +414,8 @@ export default function LandingPage() {
                     </Swiper>
                 </div>
             </section>
-            <div className="h-[80%] bg-[#dad4ff] p-8 mx-4 md:bg-gradient-to-r from-[#F1F5FF] to-[#7A67FF] text-gray-900 font-inter flex items-center justify-center md:w-[90%] rounded-4xl py-10">
-                <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-                    {/* Image Section */}
-                    <div className="flex justify-center lg:justify-end">
-                        {/* Using a placeholder image for the devices. In a real app, you'd replace this with your actual image. */}
-                        <img
-                            src="/iconer2.png"
-                            alt="Dashboard on Tablet and Phone"
-                            className="w-full max-w-md md:max-w-lg lg:max-w-xl"
-                            onError={(e) => {
-                                e.target.onerror = null;
-                                e.target.src = "https://placehold.co/600x400/F8F0FF/2D0065?text=Image+Not+Found";
-                            }}
-                        />
-                    </div>
 
-                    {/* Content Section */}
-                    <div className="flex flex-col items-center lg:items-start text-center lg:text-left">
-                        <h2 className="text-lg font-semibold text-purple-700 uppercase tracking-wider mb-2">
-                            Smart Features
-                        </h2>
-                        <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-purple-900 leading-tight mb-8">
-                            At Your Fingertips
-                        </h1>
 
-                        {/* Features List */}
-                        <ul className="space-y-6 max-w-md lg:max-w-none">
-                            <FeatureItem
-                                icon={Sparkles}
-                                title="Personalized Theme: Lorem Ipsum,"
-                            />
-                            <FeatureItem
-                                icon={MessageSquare}
-                                title="Multi-Channel Communication: Lorem Ipsum,"
-                            />
-                            <FeatureItem
-                                icon={BarChart2}
-                                title="Real-Time Analytics: Track performance live."
-                            />
-                            <FeatureItem
-                                icon={Zap}
-                                title="Real-Time Response: Lorem Ipsum."
-                            />
-                            <FeatureItem
-                                icon={TrendingUp}
-                                title="Scalability: Handles high traffic effortlessly."
-                            />
-                            <FeatureItem
-                                icon={ShieldCheck}
-                                title="Secure Data: Advanced encryption and compliance."
-                            />
-                            <FeatureItem
-                                icon={LifeBuoy}
-                                title="24/7 Support: Always available, uninterrupted service."
-                            />
-                        </ul>
-                    </div>
-                </div>
-            </div>
 
             <div className="md:hidden min-h-screen bg-white font-inter flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
                 <div className="max-w-4xl mx-auto bg-purple-50 rounded-3xl shadow-xl p-8 md:p-12 lg:p-16 text-center">
