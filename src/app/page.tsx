@@ -351,7 +351,7 @@ export default function LandingPage() {
                     </Swiper>
                 </div>
             </section>
-            <div className="h-[80%] bg-gradient-to-r from-[#F1F5FF] to-[#7A67FF] text-gray-900 font-inter flex items-center justify-center md:w-[90%] rounded-4xl py-10">
+            <div className="h-[80%] bg-[#dad4ff] p-8 mx-4 md:bg-gradient-to-r from-[#F1F5FF] to-[#7A67FF] text-gray-900 font-inter flex items-center justify-center md:w-[90%] rounded-4xl py-10">
                 <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
                     {/* Image Section */}
                     <div className="flex justify-center lg:justify-end">

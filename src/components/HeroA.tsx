@@ -103,14 +103,14 @@ function HeroA() {
     return (
         <div className="min-h-screen bg-gradient-to-br from-purple-100 via-purple-50 to-white relative overflow-hidden">
             {/* Purple blob background */}
-            <div className="absolute left-40 top-50 w-[600px] h-[600px] bg-gradient-to-br from-purple-500 to-purple-600 rounded-full transform -translate-x-48 -translate-y-48"></div>
+            {/* <div className="absolute left-40 top-80 w-[600px] h-[400px] bg-gradient-to-br from-purple-500 to-purple-600 rounded-[250px] transform -translate-x-48 -translate-y-48"></div> */}
 
-            <div className="relative z-10 container mx-auto px-6 py-16">
-                <div className="grid lg:grid-cols-2 gap-12 items-center">
+            <div className="z-10 container w-screen py-16">
+                <div className="flex justify-between gap-12 w-screen items-center">
                     {/* Left side - Brand */}
-                    <div className="space-y-8">
-                        <div className="space-y-4">
-                            <h1 className="text-6xl lg:text-7xl font-bold text-white leading-tight">
+                    <div className="space-y-8 flex-1">
+                        <div className="space-y-4 w-[400px] h-[300px] bg-gradient-to-br from-purple-500 to-purple-600 rounded-r-[250px] flex items-center justify-center">
+                            <h1 className="text-6xl lg:text-5xl font-bold text-white leading-tight ">
                                 Smart
                                 <br />
                                 Classroom
@@ -119,7 +119,7 @@ function HeroA() {
                     </div>
 
                     {/* Right side - Content */}
-                    <div className="space-y-12">
+                    <div className="space-y-12 flex-1 mr-12">
                         {/* Dynamic heading */}
                         <div className="space-y-4">
                             <h2
