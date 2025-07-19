@@ -32,11 +32,11 @@ model User {
   Authenticator      Authenticator[]
   calendarEvents     CalendarEvent[]        @relation("CreatedByUser")
   creditTransactions CreditTransaction[]    @relation("PerformedByUser")
-  notifications      Notification[]
-  sessions           Session[]
-  student            Student?
-  teacher            Teacher?
-  institution        Institution?           @relation(fields: [institutionId], references: [id], onDelete: Restrict)
+
+  sessions    Session[]
+  student     Student?
+  teacher     Teacher?
+  institution Institution? @relation(fields: [institutionId], references: [id], onDelete: Restrict)
 
   @@map("users")
 }
@@ -164,6 +164,7 @@ model Department {
 model Student {
   id                    String                     @id @default(cuid())
   userId                String                     @unique @map("user_id")
+  notifications         Notification[]
   studentRoll           String                     @map("student_roll")
   parentGuardianName    String?                    @map("parent_guardian_name")
   parentGuardianPhone   String?                    @map("parent_guardian_phone")
@@ -228,6 +229,7 @@ model Teacher {
   teacherCourseSectionRelations TeacherCourseSectionRelation[]
   copyChecks                    copyCheck[]
   gradedQuestions               StudentQuestionAnswer[]        @relation("GradedQuestionByTeacher")
+  notifications                 Notification[]
 
   @@unique([departmentId, teacherCode])
   @@index([teacherCode])
@@ -341,7 +343,6 @@ model ClassSection {
   motherClass                   MotherClass?                   @relation(fields: [motherClassId], references: [id])
   copyChecks                    copyCheck[]
   // classFees                     ClassFee[]
-
   @@map("class_sections")
 }
 
@@ -1004,7 +1005,6 @@ model StudentPerformanceMetric {
 
 model Notification {
   id               String    @id @default(cuid())
-  userId           String    @map("user_id")
   title            String
   message          String
   notificationType String    @map("notification_type")
@@ -1014,8 +1014,13 @@ model Notification {
   channel          String?   @map("channel")
   templateId       String?   @map("template_id")
   replyText        String?   @map("reply-message")
+  broadcastMessage Boolean   @default(false)
   createdAt        DateTime  @default(now()) @map("created_at")
-  user             User      @relation(fields: [userId], references: [id])
+
+  teacherId String?  @map("teacher-id")
+  teacher   Teacher? @relation(fields: [teacherId], references: [id])
+  student   Student? @relation(fields: [studentId], references: [id])
+  studentId String?  @map("student-id")
 
   @@map("notifications")
 }

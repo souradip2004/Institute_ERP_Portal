@@ -1,6 +1,5 @@
 import {NextRequest, NextResponse} from "next/server";
 import prisma from "@/lib/prisma";
-import jwt from 'jsonwebtoken';
 
 export async function GET(request: NextRequest) {
 
@@ -10,12 +9,26 @@ export async function GET(request: NextRequest) {
     // Get teacherId from query parameters
     const {searchParams} = new URL(request.url);
     const teacherId = searchParams.get('teacherId') as string;
+    const studentId = searchParams.get('studentId');
     console.log('Fetching notifications for userId:', teacherId);
 
     if (!teacherId) {
       console.log('No userId provided in query params');
       return NextResponse.json({error: 'User ID is required'}, {status: 400});
     }
+
+    if (studentId) {
+      const studentExists = await prisma.student.findUnique({
+        where: {
+          id: studentId
+        }
+      })
+
+      if (!studentExists) {
+        return NextResponse.json({error: "Student not found "}, {status: 404});
+      }
+    }
+
     const teacherExists = await prisma.teacher.findUnique({
       where: {
         id: teacherId
@@ -31,16 +44,22 @@ export async function GET(request: NextRequest) {
     // Get notifications for the specific teacher
     const notifications = await prisma.notification.findMany({
       where: {
-        userId: teacherExists.userId,
+        teacherId: teacherExists.id,
+        studentId: studentId ? studentId : undefined
       },
       orderBy: {
         createdAt: 'desc'
       },
       include: {
-        user: {
+        teacher: {
           select: {
             id: true,
-            name: true
+            user: {
+              select: {
+                name: true,
+                email: true
+              }
+            }
           }
         }
       }
@@ -61,21 +80,6 @@ export async function GET(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    // Get auth token from cookie
-    /*   const token = request.cookies.get('auth_token')?.value;
-
-       if (!token) {
-         return NextResponse.json({error: "Not authenticated"}, {status: 401});
-       }
-
-       // Verify token
-       const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key') as any;
-
-       console.log('Decoded token:', decoded);
-       if (!decoded || !decoded.id) {
-         return NextResponse.json({error: "Invalid token"}, {status: 401});
-       }*/
-
     const body = await request.json();
     const {notificationIds, teacherId} = body;
 
@@ -104,7 +108,7 @@ export async function PUT(request: NextRequest) {
         id: {
           in: notificationIds
         },
-        userId: teacherExists.userId
+        teacherId: teacherExists.id
       },
       data: {
         isRead: true,
@@ -114,16 +118,21 @@ export async function PUT(request: NextRequest) {
 
     const notifications = await prisma.notification.findMany({
       where: {
-        userId: teacherExists.userId,
+        teacherId: teacherExists.id
       },
       orderBy: {
         createdAt: 'desc'
       },
       include: {
-        user: {
+        teacher: {
           select: {
             id: true,
-            name: true
+            user: {
+              select: {
+                name: true,
+                email: true
+              }
+            }
           }
         }
       }
