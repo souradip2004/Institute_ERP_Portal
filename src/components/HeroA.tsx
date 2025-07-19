@@ -126,7 +126,7 @@ function HeroA() {
                         {/* Dynamic heading */}
                         <div className="space-y-4">
                             <h2
-                                className={`text-4xl lg:text-5xl font-bold text-purple-900 leading-tight transition-all duration-500 ${isTransitioning ? 'opacity-0 transform translate-y-4' : 'opacity-100 transform translate-y-0'
+                                className={`text-4xl font-bold text-purple-900 leading-tight transition-all duration-500 ${isTransitioning ? 'opacity-0 transform translate-y-4' : 'opacity-100 transform translate-y-0'
                                     }`}
                             >
                                 {currentTexts.main}

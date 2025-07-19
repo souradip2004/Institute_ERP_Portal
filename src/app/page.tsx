@@ -282,15 +282,15 @@ export default function LandingPage() {
 
             {/* Features Section */}
             <div className='flex justify-end bg-white mt-10'>
-                <div className="bg-[#dad4ff] p-8 md:bg-gradient-to-l from-[#F1F5FF] to-[#EDECFF] text-gray-900 font-inter flex items-center justify-center md:w-[90%] rounded-l-[114px] py-10 border-1 border-purple-200">
-                    <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                <div className="bg-[#dad4ff] p-8 md:bg-gradient-to-l from-[#F1F5FF] to-[#EDECFF] text-gray-900 font-inter flex items-center justify-center md:w-[85%] rounded-l-[114px] py-10 border-1 border-purple-200">
+                    <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-40 items-center">
                         {/* Image Section */}
                         <div className="flex justify-center lg:justify-end">
                             {/* Using a placeholder image for the devices. In a real app, you'd replace this with your actual image. */}
                             <img
                                 src="/iconer2.png"
                                 alt="Dashboard on Tablet and Phone"
-                                className="w-full max-w-md md:max-w-lg"
+                                className="w-full max-w-lg"
                                 onError={(e) => {
                                     e.target.onerror = null;
                                     e.target.src = "https://placehold.co/600x400/F8F0FF/2D0065?text=Image+Not+Found";
