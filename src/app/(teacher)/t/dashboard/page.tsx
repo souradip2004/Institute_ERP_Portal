@@ -54,7 +54,6 @@ export default function TeacherDashboardPage() {
   const [classAttendance, setClassAttendance] = useState<ClassAttendance[]>([]);
   const [teacherId, setTeacherId] = useState<string | null>(null);
   const [classSectionId, setClassSectionId] = useState<string | null>(null);
-  const [replyInputs, setReplyInputs] = useState<{ [key: string]: string }>({});
 
   let user: { classSectionId?: string } | null = null;
   let classId: string | undefined = undefined;
@@ -144,26 +143,6 @@ export default function TeacherDashboardPage() {
         return;
       }
 
-    /*  // First get the teacher's user ID
-      const teacherResponse = await fetch(`/api/teachers/${teacherId}`, {
-        credentials: 'include'
-      });
-
-      if (!teacherResponse.ok) {
-        console.error('Failed to fetch teacher data:', await teacherResponse.json());
-        return;
-      }
-
-      const teacherData = await teacherResponse.json();
-      console.log('Fetched teacher data:', teacherData);
-
-      if (!teacherData.userId) {
-        console.error('No userId found in teacher data');
-        return;
-        console.log('Fetching notifications for userId:', teacherData.userId);
-      }*/
-
-
       const response = await fetch(`/api/notifications?teacherId=${teacherId}`);
 
       if (!response.ok) {
@@ -208,7 +187,7 @@ export default function TeacherDashboardPage() {
           {
             notificationId,
             teacherId,
-            replyText: notification.replyText // 3. Use the correct replyText from the notification object
+            replyText: notification.replyText
           }
         );
 
@@ -218,11 +197,11 @@ export default function TeacherDashboardPage() {
             ...n,
             replyExists: !!n.replyText?.trim()
           }));
+
           setNotifications(updatedNotifications);
         }
       } catch (err) {
         console.error("Failed to submit reply:", err);
-        // Optionally, show an error message to the user
       }
     }
   };

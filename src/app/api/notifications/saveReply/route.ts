@@ -30,7 +30,7 @@ export async function PUT(request: NextRequest) {
     await prisma.notification.update({
       where: {
         id: notificationId,
-        userId: teacherExists.userId
+        teacherId: teacherExists.id
       },
       data: {
         isRead: true,
@@ -41,16 +41,21 @@ export async function PUT(request: NextRequest) {
 
     const notifications = await prisma.notification.findMany({
       where: {
-        userId: teacherExists.userId,
+        teacherId: teacherExists.id,
       },
       orderBy: {
         createdAt: 'desc'
       },
       include: {
-        user: {
+        teacher: {
           select: {
             id: true,
-            name: true
+            user: {
+              select: {
+                name: true,
+                email: true
+              }
+            }
           }
         }
       }

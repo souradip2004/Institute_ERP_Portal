@@ -4,33 +4,19 @@ import jwt from 'jsonwebtoken';
 
 export async function POST(request: NextRequest) {
   try {
-    // Get auth token from cookie
-
     const body = await request.json();
-    const userId = request.nextUrl.searchParams.get("user");
 
     console.log("Received request body:", body);
-    console.log("user id:", userId);
 
-    const {message, teacherId} = body;
+    const {message, teacherId, studentId} = body;
 
-    if (!message || !teacherId) {
-      console.log("Missing required fields:", {message, teacherId});
+    if (!message || !teacherId || !studentId) {
+      console.log("Missing required fields:", {message, teacherId, studentId});
       return NextResponse.json(
         {error: "Message and teacher ID are required"},
         {status: 400}
       );
     }
-
-    if (!userId) {
-      console.log("Missing userId (classSectionId) in query params");
-      return NextResponse.json(
-        {error: "User ID (classSectionId) is required in query params"},
-        {status: 400}
-      );
-    }
-
-    console.log("Received teacherId:", teacherId);
 
     // Verify that the teacher exists
     const teacher = await prisma.teacher.findUnique({
@@ -53,13 +39,13 @@ export async function POST(request: NextRequest) {
     });
 
     // Get student data
-    const student = await prisma.student.findFirst({
-      where: {userId: userId},
+    const student = await prisma.student.findUnique({
+      where: {id: studentId},
       include: {user: true}
     });
 
     if (!student) {
-      console.log("Student not found for userId:", userId);
+      console.log("Student not found for userId:", studentId);
       return NextResponse.json(
         {error: "Student not found"},
         {status: 404}
@@ -74,10 +60,10 @@ export async function POST(request: NextRequest) {
 
     console.log("Creating notification for teacher:", teacher.id);
 
-    // Create notification for the teacher
     const notification = await prisma.notification.create({
       data: {
-        userId: teacher.userId,
+        teacherId: teacher.id,
+        studentId: student.id,
         title: `Message from ${student.user.name}`,
         message: message,
         notificationType: 'message',
@@ -88,7 +74,7 @@ export async function POST(request: NextRequest) {
 
     console.log('Created notification:', {
       id: notification.id,
-      userId: notification.userId,
+      teacherId: notification.teacherId,
       title: notification.title,
       message: notification.message
     });

@@ -4,20 +4,31 @@ import {useRouter} from 'next/navigation';
 import Link from 'next/link';
 import Loader from '@/components/ui/Loader';
 
-// Interface for the API response from /api/notifications
+// CORRECTED: Updated Notification interface to match the new API response
 interface Notification {
   id: string;
-  userId: string;
+  title: string;
   message: string;
+  notificationType: string;
   isRead: boolean;
   readAt: string | null;
+  actionUrl: string;
+  channel: string;
+  templateId: string | null;
   replyText: string | null;
+  broadcastMessage: boolean;
   createdAt: string;
-  user: {
+  teacherId: string;
+  studentId: string | null;
+  teacher: {
     id: string;
-    name: string;
+    user: {
+      name: string;
+      email: string;
+    };
   };
 }
+
 
 interface Teacher {
   id: string;
@@ -51,18 +62,23 @@ export default function AskTeacherPage() {
   const [selectedTeacher, setSelectedTeacher] = useState<Teacher | null>(null);
   const [messageInput, setMessageInput] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
-  const [loadingMessages, setLoadingMessages] = useState(false); // State for loading chat history
+  const [loadingMessages, setLoadingMessages] = useState(false);
+  const [studentId, setStudentId] = useState<string>();
 
   useEffect(() => {
     const fetchUserData = async () => {
       try {
         const user = localStorage.getItem("user")
+        if (!user) {
+          router.push('/login');
+          return;
+        }
         const userData = JSON.parse(user);
         const classdetails = await fetch(`/api/students/${userData.studentId}`, {
           method: "GET",
           headers: {
             'Content-Type': 'application/json',
-          },
+          }
         })
         if (!classdetails.ok) {
           alert("no classes found")
@@ -102,8 +118,10 @@ export default function AskTeacherPage() {
 
     const fetchMessages = async () => {
       setLoadingMessages(true);
+
+      const studentId = JSON.parse(localStorage.getItem("user")!).studentId;
       try {
-        const response = await fetch(`/api/notifications?teacherId=${selectedTeacher.id}`, {
+        const response = await fetch(`/api/notifications?teacherId=${selectedTeacher.id}&studentId=${studentId}`, {
           method: 'GET',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include'
@@ -115,7 +133,6 @@ export default function AskTeacherPage() {
 
         const notifications: Notification[] = await response.json();
 
-        // Transform notifications into a sorted list of messages
         const chatMessages = notifications.flatMap(notification => {
           const studentMessage: Message = {
             id: notification.id,
@@ -132,7 +149,6 @@ export default function AskTeacherPage() {
               id: `${notification.id}-reply`,
               content: notification.replyText,
               sender: 'teacher',
-              // Use readAt for reply time, fallback to createdAt
               timestamp: new Date(notification.readAt || notification.createdAt),
             };
             conversation.push(teacherMessage);
@@ -200,21 +216,22 @@ export default function AskTeacherPage() {
       content: currentMessage,
       sender: 'student',
       timestamp: new Date(),
-      isRead: false, // New messages are initially not read
+      isRead: false,
     };
 
     setMessages(prev => [...prev, newMessage]);
     setMessageInput('');
 
     try {
-      const user = JSON.parse(localStorage.getItem("user"));
-      const response = await fetch(`/api/chat/send-message?user=${user.id}`, {
+      const studentId = JSON.parse(localStorage.getItem("user")!).studentId;
+      const response = await fetch(`/api/notifications/send-message`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({
           message: currentMessage,
-          teacherId: selectedTeacher.id
+          teacherId: selectedTeacher.id,
+          studentId: studentId,
         })
       });
 
@@ -224,16 +241,16 @@ export default function AskTeacherPage() {
       }
 
       await response.json();
-      // Optionally, you could update the message ID and status from the server response here
 
     } catch (error) {
       console.error('Error sending message:', error);
-      // Revert optimistic update on failure
       setMessageInput(currentMessage);
       setMessages(prev => prev.filter(msg => msg.id !== tempId));
       alert(error instanceof Error ? error.message : 'Failed to send message.');
     }
   };
+
+  // --- The rest of your JSX rendering logic remains the same ---
 
   if (loading) {
     return (
