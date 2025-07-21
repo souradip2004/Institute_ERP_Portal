@@ -60,6 +60,15 @@ export default function Home() {
     // State for student data, which can change when a receipt is uploaded
     const [studentData, setStudentData] = useState(initialStudentData);
     const [instituteData, setInstituteData] = useState(null);
+    const [paymentDetails, setPaymentDetails] = useState({
+        id: '',
+        accountHolder: '',
+        accountNumber: '',
+        ifscCode: '',
+        bankName: '',
+        branchName: '',
+        upiqrCode: ''
+    });
 
     // --- Data Derivation for the Logged-in Student ---
     const studentDetails = useMemo(() => {
@@ -97,7 +106,28 @@ export default function Home() {
             }
         };
 
+
+        const fetchPaymentDetails = async () => {
+            try {
+                const res = await axios.get(`/api/payment/create-fee-account?institutionId=${data.institutionId}`);
+                if (res.data) {
+                    setPaymentDetails({
+                        id: res.data.id || '',
+                        accountHolder: res.data.accountHolder || '',
+                        accountNumber: res.data.accountNumber || '',
+                        ifscCode: res.data.ifscCode || '',
+                        bankName: res.data.bankName || '',
+                        branchName: res.data.branchName || '',
+                        upiqrCode: res.data.upiqrCode || '',
+                    });
+                }
+            } catch (err) {
+                console.log("error fetching payment details", err);
+            }
+        };
+
         fetchInstituteData();
+        fetchPaymentDetails();
     }, []);
 
     // --- Handler for student to upload their payment receipt ---
@@ -211,13 +241,15 @@ export default function Home() {
                             <div className="bg-white p-6 rounded-xl shadow-sm">
                                 <h3 className="text-lg font-semibold text-slate-700 mb-4">Payment Options</h3>
                                 <div className="flex flex-col sm:flex-row gap-6 items-center">
-                                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=upi://pay?pa=your-upi-id@oksbi" alt="UPI QR Code" className="w-36 h-36 object-cover border-4 border-slate-100 rounded-lg" />
+                                    <img src={paymentDetails.upiqrCode} alt="UPI QR Code" className="w-36 h-36 object-cover border-4 border-slate-100 rounded-lg" />
                                     <div>
                                         <p className="font-semibold text-indigo-600 mb-3">Scan to Pay with any UPI App</p>
                                         <p className="text-sm font-semibold text-slate-700 mt-2">Or use Bank Transfer:</p>
-                                        <p className="text-sm text-slate-600">A/C Name: Vijay Mallya</p>
-                                        <p className="text-sm text-slate-600">IFSC: SBIN420420</p>
-                                        <p className="text-sm text-slate-600">Bank: SBI, Mumbai</p>
+                                        <p className="text-sm text-slate-600">A/C Name: {paymentDetails.accountHolder}</p>
+                                        <p className="text-sm text-slate-600">IFSC: {paymentDetails.ifscCode}</p>
+                                        <p className="text-sm text-slate-600">Bank: {paymentDetails.bankName}</p>
+                                        <p className="text-sm text-slate-600">Branch: {paymentDetails.branchName}</p>
+                                        <p className="text-sm text-slate-600">A/C No: {paymentDetails.accountNumber}</p>
                                     </div>
                                 </div>
                             </div>

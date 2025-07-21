@@ -84,7 +84,7 @@ export default async function DashboardPage() {
                 <Image
                   src={institutionData?.logoUrl ? institutionData.logoUrl : "/placeholder.png"}
                   alt={userData?.name || "Avatar"}
-                  className="rounded-full object-cover border-4 border-white dark:border-gray-800"
+                  className="rounded-full object-cover border-4 border-white dark:border-gray-800 h-50 w-50"
                   fill
                   style={{ objectFit: "cover" }}
                   priority

@@ -35,34 +35,40 @@ import "swiper/css/effect-coverflow";
 
 const features = [
     {
-        title: "Access to Materials",
+        title: "One-Click Access to Study Materials",
         description:
-            "Access curated notes, videos, and resources aligned with your syllabus.",
-        icon: "./access.png",
+            "Access curated notes, textbooks, and resources tailored to your syllabus.",
+        icon: "./a5.png",
     },
     {
         title: "Multi-Device Seamless Sync",
         description:
             "Learn on-the-go with full sync between mobile, tablet, and desktop platforms.",
-        icon: "./mobile.png",
+        icon: "./a4.png",
     },
     {
         title: "AI POWERED VIDEO GENERATION",
         description:
             "Convert any PDF or notes into engaging, AI-generated explainer videos in seconds.",
-        icon: "./pdfvideo.png",
+        icon: "./a1.png",
     },
     {
         title: "LIVE DOUBT SOLVING WITH AI AND MENTORS",
         description:
             "Real-time chat support from AI tutors and human mentors for instant problem-solving.",
-        icon: "/mentorai.png",
+        icon: "/a2.png",
     },
     {
         title: "Personalized Dashboard",
         description:
             "Track your progress and manage upcoming tasks with an intuitive planner.",
-        icon: "./aidash.png",
+        icon: "./a3.png",
+    },
+    {
+        title: "Gamified Learning Interface",
+        description:
+            "Earn badges, rewards, and motivation boosts as you complete learning modules.",
+        icon: "./a6.png",
     },
 ];
 type FeatureItemProps = {
@@ -345,7 +351,7 @@ export default function LandingPage() {
 
             {/* Features Carousel */}
             <section className="bg-gradient-to-b from-gray-50 to-white py-20 lg:py-24 overflow-hidden">
-                <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div className="container mx-auto px-4 sm:px-6 lg:px-8 p-10">
                     <div className="text-center mb-16">
                         <h2 className="text-4xl font-bold text-gray-900 leading-tight tracking-tight">
                             Experience the <span className="text-indigo-600">Ease of Teaching</span> with <br /> <span className="text-indigo-800">AI Classroom</span>
@@ -384,14 +390,14 @@ export default function LandingPage() {
                     >
                         {features.map((feature, index) => (
                             <SwiperSlide key={index}>
-                                <div className={`rounded-3xl p-8 shadow-lg transition-all duration-500 ease-in-out transform
+                                <div className={`rounded-3xl p-16 shadow-lg transition-all duration-500 ease-in-out transform
         h-[400px] min-h-[320px] flex flex-col items-center text-center border border-gray-100
-        ${index === activeIndex ? 'bg-gradient-to-b from-[#C4D9FF] to-[#C5BAFF]' : 'bg-white hover:shadow-xl hover:-translate-y-2'}
+        ${index === activeIndex ? 'shadow-4xl shadow-purple-400 border-1 border-purple-400' : 'bg-white hover:shadow-xl hover:-translate-y-2'}
       `}>
                                     <h3 className="text-2xl font-bold text-[#3A1078] mb-3">{feature.title}</h3>
                                     <p className="text-black mt-4 text-base leading-relaxed">{feature.description}</p>
-                                    <div className="w-20 h-20 bg-indigo-50 rounded-full flex items-center justify-center mt-auto mb-6 shadow-md p-2">
-                                        <img src={feature.icon} alt={feature.title} className="w-full h-full object-cover rounded-full" />
+                                    <div className="h-20 mt-auto mb-4">
+                                        <img src={feature.icon} alt={feature.title} className="w-full h-full object-cover" />
                                     </div>
                                 </div>
                             </SwiperSlide>
@@ -411,7 +417,9 @@ export default function LandingPage() {
 
                         {/* Custom Pagination Dots */}
                         <div className="swiper-pagination-custom mt-8 flex justify-center space-x-2 absolute bottom-4 left-0 right-0"></div>
+                        <div className="h-10"></div>
                     </Swiper>
+
                 </div>
             </section>
 

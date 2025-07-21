@@ -268,7 +268,7 @@ export default function Home() {
 
         const fetchPaymentDetails = async () => {
             try {
-                const res = await axios.get(`/api/payment/create-fee-account?institutionId=cmct6a6ln00024hkyamjz5zwt`);
+                const res = await axios.get(`/api/payment/create-fee-account?institutionId=${data.institutionId}`);
                 if (res.data) {
                     setPaymentDetails({
                         id: res.data.id || '',
