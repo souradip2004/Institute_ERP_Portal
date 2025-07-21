@@ -252,7 +252,8 @@ export default function AddStudentModal({id, isOpen, onClose, onSuccess}: AddStu
       }
     } else {
       const rollNumbers = studentData.rollNumber.split(",").map((roll) => roll.trim());
-      const emails = studentData.email.split(",").map((email) => email.trim());
+      const emails = studentData.email.split(",").map((email) => email.trim()).filter(Boolean);
+
       const names=studentData.name.split(",").map((name)=>name.trim());
       if (rollNumbers.length !== emails.length) {
         setError("Roll numbers and emails count do not match");

@@ -159,6 +159,7 @@ const AddTeacherModal = ({ id, isOpen, onClose, onSuccess }: AddTeacherProps) =>
     } else {
       // Logic for adding multiple teachers
       const emails = teacherData.email.split(",").map((email) => email.trim()).filter(Boolean); // Filter out empty strings
+      const names = teacherData.name.split(",").map((name) => name.trim()).filter(Boolean); // Filter out empty strings
       const employeeCodes = teacherData.employeeCode.split(",").map((code) => code.trim()).filter(Boolean); // Filter out empty strings
 
       if (emails.length === 0 || employeeCodes.length === 0) {
@@ -171,7 +172,11 @@ const AddTeacherModal = ({ id, isOpen, onClose, onSuccess }: AddTeacherProps) =>
         setIsSubmitting(false);
         return;
       }
-
+if(emails.length !== names.length) {
+        alert("Number of emails and names must match.");
+        setIsSubmitting(false);
+        return;
+      }
       try {
         const departmentId = departmentData.find(
           (department) => department.name === teacherData.department
@@ -180,12 +185,11 @@ const AddTeacherModal = ({ id, isOpen, onClose, onSuccess }: AddTeacherProps) =>
         if (!departmentId) {
           throw new Error("Selected department not found.");
         }
-
         // Use Promise.allSettled to allow some failures without stopping others
         const results = await Promise.allSettled(
           emails.map(async (email, index) => {
             const randomPassword = Math.random().toString(36).slice(-8);
-            const teacherName = email.split("@")[0] || `Teacher_${index + 1}`; // Default name if email format is odd
+            const teacherName = names[index]  // Default name if email format is odd
 
             // Create user
             const userResponse = await fetch("/api/users", {
@@ -357,6 +361,21 @@ const AddTeacherModal = ({ id, isOpen, onClose, onSuccess }: AddTeacherProps) =>
                 </Button>
 
                 {/* Single Teacher Fields */}
+                {isMultiple && 
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Enter Teacher Names 
+                      <span className="text-gray-500 text-xs">(separated by commas)</span>
+                      </label>
+                      <input 
+                        type="text"
+                        placeholder="John Doe, Jane Smith"
+                        value={teacherData.name}
+                        onChange={(e) => setTeacherData({ ...teacherData, name: e.target.value })}
+                        className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      />
+                      </div>
+                } 
                 {!isMultiple && (
                   <>
                     <div>

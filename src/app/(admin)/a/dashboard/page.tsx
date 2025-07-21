@@ -84,7 +84,7 @@ export default async function DashboardPage() {
                 <Image
                   src={institutionData?.logoUrl ? institutionData.logoUrl : "/placeholder.png"}
                   alt={userData?.name || "Avatar"}
-                  className="rounded-full object-cover border-4 border-white dark:border-gray-800 h-50 w-50"
+                  className="rounded-full object-cover border-4 border-white dark:border-gray-800"
                   fill
                   style={{ objectFit: "cover" }}
                   priority
@@ -168,7 +168,7 @@ export default async function DashboardPage() {
                     </h3>
                     <div className="flex gap-6">
                       <span className="px-3 py-1 text-xs font-medium text-indigo-800 bg-indigo-100 rounded-full self-start ">
-                        {institutionData.type}
+                        {institutionData.type==="university"?"School":"College"}
                       </span>
                       <span>
                         <Link
