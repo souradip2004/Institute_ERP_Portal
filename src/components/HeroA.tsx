@@ -148,7 +148,7 @@ function HeroA() {
                                     <div
                                         key={feature.id}
                                         className={`group relative p-6 rounded-2xl transition-all duration-700 cursor-pointer ${isHighlighted
-                                            ? 'bg-purple-200 border-2 border-purple-300 shadow-lg transform scale-105'
+                                            ? 'bg-purple-100 border-2 border-purple-300 shadow-lg transform scale-105'
                                             : 'bg-purple-100/50 border border-purple-200 hover:bg-purple-100 hover:shadow-md hover:transform hover:scale-102'
                                             }`}
                                         onClick={() => {
