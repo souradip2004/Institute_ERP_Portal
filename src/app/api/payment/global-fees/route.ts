@@ -111,10 +111,14 @@ export async function POST(request: Request) {
 
 export async function GET(request: Request) {
   try {
-    const { searchParams } = new URL(request.url);
+    const {searchParams} = new URL(request.url);
     const motherClassId = searchParams.get('motherClassId') as string;
 
-    const globalClassFee = prisma.classFee.findUnique({
+    if (!motherClassId) {
+      return NextResponse.json({error: "Missing required fields"}, {status: 400})
+    }
+
+    const globalClassFee = await prisma.classFee.findUnique({
       where: {
         motherClassId
       },
@@ -123,9 +127,12 @@ export async function GET(request: Request) {
       }
     })
 
+    console.log("globalClassFee: ", globalClassFee)
+
     return NextResponse.json({globalClassFees: globalClassFee}, {status: 200});
 
   } catch (e) {
+    console.log("Error in GET: ", e);
 
     return NextResponse.json({error: "Internal server error. Please try again later."}, {status: 500});
   }

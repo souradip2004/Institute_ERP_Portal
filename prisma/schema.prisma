@@ -310,7 +310,7 @@ model MotherClass {
   institutionId String?        @map("institution_id")
   sectionName   String         @map("section_name")
   classSections ClassSection[]
-  classfee      ClassFee?
+  classfee      ClassFee[]
 }
 
 model ClassSection {
@@ -342,6 +342,7 @@ model ClassSection {
   motherClassId                 String?                        @map("mother_class_id") // Foreign key to MotherClass
   motherClass                   MotherClass?                   @relation(fields: [motherClassId], references: [id])
   copyChecks                    copyCheck[]
+
   // classFees                     ClassFee[]
   @@map("class_sections")
 }
@@ -687,7 +688,7 @@ model LocalFees {
 model ClassFee {
   id            String   @id @default(cuid())
   globalFeesId  String?  @map("global_fees_id")
-  motherClassId String   @unique @map("mother_class_id")
+  motherClassId String   @map("mother_class_id")
   localFeesId   String?  @map("local_fees_id")
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
