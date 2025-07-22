@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import { Card } from "@/components/ui/card";
-import StudentsList, { Student } from '@/components/admin/StudentsListComponent';
-import StudentDetail, { StudentDetail as StudentDetailType } from '@/components/admin/StudentdetailComponent';
+import React, {useState, useEffect} from 'react';
+import {Card} from "@/components/ui/card";
+import StudentsList, {Student} from '@/components/admin/StudentsListComponent';
+import StudentDetail, {StudentDetail as StudentDetailType} from '@/components/admin/StudentdetailComponent';
 import Loader from '@/components/ui/Loader';
 import AddStudentModal from '@/components/admin/AddStudent';
 
@@ -11,7 +11,7 @@ interface ViewStudentsProps {
   id: string;
 }
 
-export default function ViewStudentsComponent({ id }: ViewStudentsProps) {
+export default function ViewStudentsComponent({id}: ViewStudentsProps) {
   // State for storing all students
   const [students, setStudents] = useState<Student[]>([]);
   // State for tracking which view to show
@@ -31,11 +31,11 @@ export default function ViewStudentsComponent({ id }: ViewStudentsProps) {
       setIsLoading(true);
       // Replace with your actual API endpoint
       const response = await fetch('/api/students');
-      
+
       if (!response.ok) {
         throw new Error('Failed to fetch students');
       }
-      
+
       const data = await response.json();
       const filteredStudents = data.filter((student: Student) => student?.user?.institutionId === id);
       setStudents(filteredStudents);
@@ -75,7 +75,7 @@ export default function ViewStudentsComponent({ id }: ViewStudentsProps) {
 
   // Render loading state
   if (isLoading && students.length === 0) {
-    return <Loader size="large" message="Loading students..." fullScreen={false} />;
+    return <Loader size="large" message="Loading students..." fullScreen={false}/>;
   }
 
   // Render error state
@@ -95,20 +95,20 @@ export default function ViewStudentsComponent({ id }: ViewStudentsProps) {
           onClick={() => setIsAddStudentModalOpen(true)}
           className="px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors"
         >
-        Add Student      
+          Add Student
         </button>
       </div>
-      
+
       {activeSection === "viewStudents" && (
         <Card className="shadow-lg">
           {isLoading ? (
             <div className="p-8">
-              <Loader size="medium" message="Refreshing..." fullScreen={false} />
+              <Loader size="medium" message="Refreshing..." fullScreen={false}/>
             </div>
           ) : (
-            <StudentsList 
-              students={students} 
-              onViewStudent={handleViewStudent} 
+            <StudentsList
+              students={students}
+              onViewStudent={handleViewStudent}
             />
           )}
         </Card>
@@ -116,9 +116,9 @@ export default function ViewStudentsComponent({ id }: ViewStudentsProps) {
 
       {activeSection === "viewStudentDetail" && selectedStudent && (
         <Card className="shadow-lg">
-          <StudentDetail 
-            student={selectedStudent} 
-            onBack={handleBackToList} 
+          <StudentDetail
+            student={selectedStudent}
+            onBack={handleBackToList}
           />
         </Card>
       )}

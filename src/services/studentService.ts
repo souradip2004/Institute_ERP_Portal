@@ -6,6 +6,17 @@ export class StudentService {
     return prisma.student.findMany({
       include: {
         user: true,
+        department: {
+          select: {
+            name: true,
+          }
+        },
+        batch: {
+          select: {
+            batchName: true,
+            year: true,
+          }
+        }
       },
     });
   }

@@ -107,7 +107,6 @@ export async function POST(request: Request) {
             {error: 'One or more of these class fees already exist.'},
             {status: 409}
           );
-
         case 'P2003':
           // Foreign key constraint failed (e.g., `globalFeesId` or a `classSectionId` does not exist)
           const fieldName = (error.meta as { field_name?: string })?.field_name;
@@ -115,7 +114,6 @@ export async function POST(request: Request) {
             {error: `Failed to create records. An invalid ID was provided for the '${fieldName}' field.`},
             {status: 400}
           );
-
         default:
           // For any other known Prisma error, log the code for debugging
           // and fall through to the generic 500 error.

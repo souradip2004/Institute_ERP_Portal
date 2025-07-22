@@ -108,8 +108,8 @@ export default function StudentDetail({ student, onBack }: StudentDetailProps) {
                 label="Batch" 
                 value={student.batch ? `${student.batch.batchName} (${student.batch.year})` : 'Not available'} 
               />
-              <InfoItem label="Current Semester" value={student.currentSemester} />
-              <InfoItem label="Current Year" value={student.currentYear} />
+             {/* <InfoItem label="Current Semester" value={student.currentSemester} />
+              <InfoItem label="Current Year" value={student.currentYear} />*/}
               <InfoItem label="Enrollment Status" value={student.enrollmentStatus} />
             </InfoSection>
             
