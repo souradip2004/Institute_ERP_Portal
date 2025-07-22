@@ -1,7 +1,7 @@
 "use client";
-import { useState, useEffect, JSX } from "react";
-import { useAddClass } from "@/hooks/useAddClass"; // Assuming this hook can handle arrays for teachers and courses
-import { X } from "lucide-react";
+import {useState, useEffect, JSX} from "react";
+import {useAddClass} from "@/hooks/useAddClass"; // Assuming this hook can handle arrays for teachers and courses
+import {X} from "lucide-react";
 import axios from "axios";
 
 interface AddClassProps {
@@ -55,7 +55,7 @@ const namedCourse = (id: string, courses: Course[]): string | undefined => {
   return found?.name;
 };
 
-export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassProps): JSX.Element | null {
+export default function AddClassModal({id, userid, isOpen, onClose}: AddClassProps): JSX.Element | null {
   // State for class section data
   const [classData, setClassData] = useState({
     sectionName: "",
@@ -110,7 +110,7 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
       const res = await result.json();
       const id1 = JSON.parse(localStorage.getItem("user") || "{}")?.id;
       const resul1 = await fetch(`/api/coins/${id1
-        }?coins=200`, {
+      }?coins=200`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -155,8 +155,8 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
   const [endDate, setEndDate] = useState("");
   const [courseCode, setCourseCode] = useState("");
   const [courseDescription, setCourseDescription] = useState("");
-  const [courseCredits, setCourseCredits] = useState(0);
-  const [showInput, setShowInput] = useState({ semester: false, batch: false, course: false, department: false });
+  const [courseCredits, setCourseCredits] = useState(1);
+  const [showInput, setShowInput] = useState({semester: false, batch: false, course: false, department: false});
 
   // State to hold the ID of the currently selected department for filtering related data
   const [selectedDepartmentId, setSelectedDepartmentId] = useState<string | null>(null);
@@ -166,34 +166,34 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
   useEffect(() => {
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/departments`, {
       method: "GET",
-      headers: { "Content-Type": "application/json" },
+      headers: {"Content-Type": "application/json"},
     })
-      .then((res) => res.json())
-      .then((data) => {
-        const filteredDepartments = data.filter((department: Department) => department.institutionId === id);
-        setDepartmentOptions(filteredDepartments.map((department: Department) => department.name));
-        setAllDepartments(filteredDepartments);
-      })
-      .catch((error) => {
-        console.error("Error fetching departments:", error);
-      });
+    .then((res) => res.json())
+    .then((data) => {
+      const filteredDepartments = data.filter((department: Department) => department.institutionId === id);
+      setDepartmentOptions(filteredDepartments.map((department: Department) => department.name));
+      setAllDepartments(filteredDepartments);
+    })
+    .catch((error) => {
+      console.error("Error fetching departments:", error);
+    });
   }, [id, toggler]);
 
   // Fetch Semesters
   useEffect(() => {
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/semesters`, {
       method: "GET",
-      headers: { "Content-Type": "application/json" },
+      headers: {"Content-Type": "application/json"},
     })
-      .then((res) => res.json())
-      .then((data) => {
-        const filteredSemesters = data.filter((semester: Semester) => semester.institutionId === id);
-        setSemesterData(filteredSemesters);
-        setSemesterOptions(filteredSemesters.map((semester: Semester) => semester.name));
-      })
-      .catch((error) => {
-        console.error("Error fetching semesters:", error);
-      });
+    .then((res) => res.json())
+    .then((data) => {
+      const filteredSemesters = data.filter((semester: Semester) => semester.institutionId === id);
+      setSemesterData(filteredSemesters);
+      setSemesterOptions(filteredSemesters.map((semester: Semester) => semester.name));
+    })
+    .catch((error) => {
+      console.error("Error fetching semesters:", error);
+    });
   }, [id, toggler]);
 
   // Fetch Batches based on selectedDepartmentId
@@ -201,43 +201,43 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
     if (!selectedDepartmentId) {
       setBatchOptions([]);
       setBatchData([]);
-      setClassData(prev => ({ ...prev, batch: "" })); // Clear selected batch when department changes
+      setClassData(prev => ({...prev, batch: ""})); // Clear selected batch when department changes
       return;
     }
 
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/batches`, {
       method: "GET",
-      headers: { "Content-Type": "application/json" },
+      headers: {"Content-Type": "application/json"},
     })
-      .then((res) => res.json())
-      .then((data) => {
-        const filteredBatches = data.filter((batch: Batch) => batch.department?.id === selectedDepartmentId);
-        setBatchData(filteredBatches);
-        setBatchOptions(filteredBatches.map((batch: Batch) => batch.batchName));
-      })
-      .catch((error) => {
-        console.error("Error fetching batches:", error);
-      });
+    .then((res) => res.json())
+    .then((data) => {
+      const filteredBatches = data.filter((batch: Batch) => batch.department?.id === selectedDepartmentId);
+      setBatchData(filteredBatches);
+      setBatchOptions(filteredBatches.map((batch: Batch) => batch.batchName));
+    })
+    .catch((error) => {
+      console.error("Error fetching batches:", error);
+    });
   }, [selectedDepartmentId, toggler]);
 
   // Fetch Teachers
   useEffect(() => {
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/teachers`, {
       method: "GET",
-      headers: { "Content-Type": "application/json" },
+      headers: {"Content-Type": "application/json"},
     })
-      .then((res) => res.json())
-      .then((data) => {
-        console.log(data)
-        console.log(id)
-        const filteredTeachers = data.filter((teacher: Teacher) => teacher.user.institutionId === id);
-        setTeacherData(filteredTeachers);
-        console.log("here are filtered Teachers", filteredTeachers)
+    .then((res) => res.json())
+    .then((data) => {
+      console.log(data)
+      console.log(id)
+      const filteredTeachers = data.filter((teacher: Teacher) => teacher.user.institutionId === id);
+      setTeacherData(filteredTeachers);
+      console.log("here are filtered Teachers", filteredTeachers)
 
-      })
-      .catch((error) => {
-        console.error("Error fetching teachers:", error);
-      });
+    })
+    .catch((error) => {
+      console.error("Error fetching teachers:", error);
+    });
   }, [id, toggler]);
 
   // Fetch Courses based on selectedDepartmentId
@@ -250,21 +250,21 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
 
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/courses`, {
       method: "GET",
-      headers: { "Content-Type": "application/json" },
+      headers: {"Content-Type": "application/json"},
     })
-      .then((res) => res.json())
-      .then((data) => {
-        const filteredCourses = data.filter((course: Course) => course.department?.id === selectedDepartmentId);
-        setCourseData(filteredCourses);
-        setCourseOptions(filteredCourses.map((course: Course) => course.name));
-      })
-      .catch((error) => {
-        console.error("Error fetching courses:", error);
-      });
+    .then((res) => res.json())
+    .then((data) => {
+      const filteredCourses = data.filter((course: Course) => course.department?.id === selectedDepartmentId);
+      setCourseData(filteredCourses);
+      setCourseOptions(filteredCourses.map((course: Course) => course.name));
+    })
+    .catch((error) => {
+      console.error("Error fetching courses:", error);
+    });
   }, [selectedDepartmentId, toggler]);
 
   // --- Add Class Hook ---
-  const { addClass, loading, error } = useAddClass();
+  const {addClass, loading, error} = useAddClass();
 
   // --- Form Submission Handler ---
   const handleSubmit = async (e: React.FormEvent) => {
@@ -329,7 +329,7 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
     try {
       const motherClassResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/motherclass`, { // Assuming this endpoint exists
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {"Content-Type": "application/json"},
         body: JSON.stringify({
           sectionName: classData.sectionName,
           institution: JSON.parse(localStorage.getItem("user") || "{}")?.institutionId // Assuming user data in localStorage
@@ -383,17 +383,17 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
   // --- Dropdown Change Handlers ---
   const handleDropdownChange = (type: string, value: string) => {
     if (value === "add-new") {
-      setShowInput({ ...showInput, [type]: true });
+      setShowInput({...showInput, [type]: true});
     } else {
-      setClassData({ ...classData, [type]: value });
-      setShowInput({ ...showInput, [type]: false });
+      setClassData({...classData, [type]: value});
+      setShowInput({...showInput, [type]: false});
 
       // Special handling for Department to filter other dropdowns
       if (type === "department") {
         const selectedDept = allDepartments.find((dept) => dept.name === value);
         setSelectedDepartmentId(selectedDept ? selectedDept.id : null);
         // Clear dependent selections when department changes
-        setClassData(prev => ({ ...prev, batch: "" }));
+        setClassData(prev => ({...prev, batch: ""}));
         // Reset teacherCourseAssignments when department changes, as courses/teachers might change
         setSelectedTeacherIds([]);
         setTeacherCourseAssignments([]);
@@ -407,7 +407,7 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
     if (e.target.checked) {
       setSelectedTeacherIds(prev => [...prev, teacherId]);
       // Initialize with an empty 'courses' array
-      setTeacherCourseAssignments(prev => [...prev, { teacherId, courses: [] }]);
+      setTeacherCourseAssignments(prev => [...prev, {teacherId, courses: []}]);
     } else {
       setSelectedTeacherIds(prev => prev.filter(id => id !== teacherId));
       setTeacherCourseAssignments(prev => prev.filter(assignment => assignment.teacherId !== teacherId)); // Remove assignment for deselected teacher
@@ -420,9 +420,9 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
       return prevAssignments.map(assignment => {
         if (assignment.teacherId === teacherId) {
           const updatedCourses = isChecked
-            ? [...assignment.courses, { courseId, isOptional: false }] // Default to not optional
+            ? [...assignment.courses, {courseId, isOptional: false}] // Default to not optional
             : assignment.courses.filter(c => c.courseId !== courseId);
-          return { ...assignment, courses: updatedCourses };
+          return {...assignment, courses: updatedCourses};
         }
         return assignment;
       });
@@ -435,9 +435,9 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
       return prevAssignments.map(assignment => {
         if (assignment.teacherId === teacherId) {
           const updatedCourses = assignment.courses.map(course =>
-            course.courseId === courseId ? { ...course, isOptional: isOptional } : course
+            course.courseId === courseId ? {...course, isOptional: isOptional} : course
           );
-          return { ...assignment, courses: updatedCourses };
+          return {...assignment, courses: updatedCourses};
         }
         return assignment;
       });
@@ -461,7 +461,7 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
             onClick={onClose}
             className="text-gray-400 hover:text-gray-500 focus:outline-none"
           >
-            <X className="h-6 w-6" />
+            <X className="h-6 w-6"/>
           </button>
         </div>
 
@@ -470,12 +470,13 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
           {/* Section Name */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Section Name</label>
-            <p className="text-xs text-gray-500 mb-2">A unique name for this class section (e.g., "Section A", "Morning Batch").</p>
+            <p className="text-xs text-gray-500 mb-2">A unique name for this class section (e.g., "Section A", "Morning
+              Batch").</p>
             <input
               type="text"
               placeholder="Section Name"
               value={classData.sectionName}
-              onChange={(e) => setClassData({ ...classData, sectionName: e.target.value })}
+              onChange={(e) => setClassData({...classData, sectionName: e.target.value})}
               className="w-full p-2.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               required
             />
@@ -489,7 +490,7 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
               type="number"
               placeholder="Max Students"
               value={classData.maxStudents}
-              onChange={(e) => setClassData({ ...classData, maxStudents: Number(e.target.value) })}
+              onChange={(e) => setClassData({...classData, maxStudents: Number(e.target.value)})}
               className="w-full p-2.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               required
             />
@@ -528,12 +529,12 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
                     if (!newDepartmentName.trim()) return;
                     await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/departments`, {
                       method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ name: newDepartmentName, institutionId: id }),
+                      headers: {"Content-Type": "application/json"},
+                      body: JSON.stringify({name: newDepartmentName, institutionId: id}),
                     }).then((res) => {
                       if (res.ok) {
                         setToggler(!toggler);
-                        setShowInput({ ...showInput, department: false });
+                        setShowInput({...showInput, department: false});
                         setNewDepartmentName("");
                       } else {
                         alert("Error adding department");
@@ -550,14 +551,17 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
 
           {/* Teachers (Checkbox List) */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Select Teachers for this Class Section</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Select Teachers for this Class
+              Section</label>
             <p className="text-xs text-gray-500 mb-2">Choose all teachers who will teach in this class section.</p>
-            <div className={`border p-2 rounded-md h-32 overflow-y-auto ${!isDepartmentSelected ? 'bg-gray-100 text-gray-400' : 'bg-white'}`}>
+            <div
+              className={`border p-2 rounded-md h-32 overflow-y-auto ${!isDepartmentSelected ? 'bg-gray-100 text-gray-400' : 'bg-white'}`}>
               {teacherData.filter((c) => {
                 const departmentIdToSubmit = allDepartments.find((dept) => dept.name === classData.department)?.id;
                 return c.departmentId == departmentIdToSubmit
               }).map((teacher) => (
-                <label key={teacher.id} className={`flex items-center space-x-2 py-1 ${!isDepartmentSelected ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
+                <label key={teacher.id}
+                       className={`flex items-center space-x-2 py-1 ${!isDepartmentSelected ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
                   <input
                     type="checkbox"
                     value={teacher.id}
@@ -571,14 +575,16 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
               ))}
             </div>
             {selectedTeacherIds.length > 0 && (
-              <p className="text-xs text-gray-600 mt-1">Overall Selected Teachers: {selectedTeacherIds.map(id => teacherData.find(t => t.id === id)?.user.name).join(', ')}</p>
+              <p className="text-xs text-gray-600 mt-1">Overall Selected
+                Teachers: {selectedTeacherIds.map(id => teacherData.find(t => t.id === id)?.user.name).join(', ')}</p>
             )}
           </div>
 
           {/* Semester */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Semester</label>
-            <p className="text-xs text-gray-500 mb-2">Choose the academic semester for this class. Requires Department selection.</p>
+            <p className="text-xs text-gray-500 mb-2">Choose the academic semester for this class. Requires Department
+              selection.</p>
             <select
               value={classData.semester}
               onChange={(e) => handleDropdownChange("semester", e.target.value)}
@@ -633,12 +639,18 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
                     }
                     await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/semesters`, {
                       method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ name: newSemesterName, startDate, endDate, institutionId: id, isCurrent: true }),
+                      headers: {"Content-Type": "application/json"},
+                      body: JSON.stringify({
+                        name: newSemesterName,
+                        startDate,
+                        endDate,
+                        institutionId: id,
+                        isCurrent: true
+                      }),
                     }).then((res) => {
                       if (res.ok) {
                         setToggler(!toggler);
-                        setShowInput({ ...showInput, semester: false });
+                        setShowInput({...showInput, semester: false});
                         setNewSemesterName("");
                         setStartDate("");
                         setEndDate("");
@@ -658,7 +670,8 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
           {/* Batch */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Batch Year</label>
-            <p className="text-xs text-gray-500 mb-2">Select the student batch (e.g., 2025) for this class. Requires Department and Semester selections.</p>
+            <p className="text-xs text-gray-500 mb-2">Select the student batch (e.g., 2025) for this class. Requires
+              Department and Semester selections.</p>
             <select
               value={classData.batch}
               onChange={(e) => handleDropdownChange("batch", e.target.value)}
@@ -692,7 +705,7 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
                     }
                     fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/batches`, {
                       method: "POST",
-                      headers: { "Content-Type": "application/json" },
+                      headers: {"Content-Type": "application/json"},
                       body: JSON.stringify({
                         batchName: newBatchName,
                         institutionId: id,
@@ -703,7 +716,7 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
                     }).then((res) => {
                       if (res.ok) {
                         setToggler(!toggler);
-                        setShowInput({ ...showInput, batch: false });
+                        setShowInput({...showInput, batch: false});
                         setNewBatchName("");
                       } else {
                         alert("Error adding batch");
@@ -722,7 +735,8 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
           {selectedTeacherIds.length > 0 && isDepartmentSelected && isBatchSelected && (
             <div className="space-y-4 border p-4 rounded-md bg-gray-50">
               <h3 className="text-lg font-semibold text-gray-800">Assign Courses to Teachers</h3>
-              <p className="text-xs text-gray-500 mb-2">For each selected teacher, choose the specific courses they will teach in this class section. This section is enabled after Department and Batch are selected.</p>
+              <p className="text-xs text-gray-500 mb-2">For each selected teacher, choose the specific courses they will
+                teach in this class section. This section is enabled after Department and Batch are selected.</p>
               {selectedTeacherIds.map((teacherId) => {
                 const teacher = teacherData.find(t => t.id === teacherId);
                 const assignedCourses = teacherCourseAssignments.find(a => a.teacherId === teacherId)?.courses || [];
@@ -730,8 +744,10 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
                 return (
                   <div key={teacherId} className="border p-3 rounded-md bg-white">
                     <h4 className="font-medium text-gray-700 mb-2">{teacher?.user.name || "Unknown Teacher"}</h4>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Courses for {teacher?.user.name}</label>
-                    <div className={`border p-2 rounded-md h-28 overflow-y-auto ${!isDepartmentSelected || !isBatchSelected ? 'bg-gray-100 text-gray-400' : 'bg-white'}`}>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Courses
+                      for {teacher?.user.name}</label>
+                    <div
+                      className={`border p-2 rounded-md h-28 overflow-y-auto ${!isDepartmentSelected || !isBatchSelected ? 'bg-gray-100 text-gray-400' : 'bg-white'}`}>
                       {courseData.map((course) => {
                         // Check if this course is assigned to ANY OTHER teacher
                         const isCourseAssignedToAnotherTeacher = teacherCourseAssignments.some(
@@ -749,7 +765,8 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
 
                         return (
                           <div key={course.id} className="flex items-center justify-between space-x-2 py-1">
-                            <label className={`flex items-center space-x-2 flex-grow ${isDisabledCourseSelection ? 'cursor-not-allowed text-gray-400' : 'cursor-pointer'}`}>
+                            <label
+                              className={`flex items-center space-x-2 flex-grow ${isDisabledCourseSelection ? 'cursor-not-allowed text-gray-400' : 'cursor-pointer'}`}>
                               <input
                                 type="checkbox"
                                 value={course.id}
@@ -785,15 +802,16 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
                       })}
                     </div>
                     {assignedCourses.length > 0 && (
-                      <p className="text-xs text-gray-600 mt-1">Assigned: {assignedCourses.map(ac => `${courseData.find(c => c.id === ac.courseId)?.name}${ac.isOptional ? ' (Optional)' : ''}`).join(', ')}</p>
+                      <p
+                        className="text-xs text-gray-600 mt-1">Assigned: {assignedCourses.map(ac => `${courseData.find(c => c.id === ac.courseId)?.name}${ac.isOptional ? ' (Optional)' : ''}`).join(', ')}</p>
                     )}
                   </div>
                 );
               })}
-              {/* Global "Add New Course" button moved here for better visibility in relation to courses */}
+
               <button
                 type="button"
-                onClick={() => setShowInput({ ...showInput, course: true })}
+                onClick={() => setShowInput({...showInput, course: true})}
                 className="mt-4 w-full p-2 bg-green-600 text-white rounded-md hover:bg-green-700"
                 disabled={!isDepartmentSelected || !isBatchSelected}
               >
@@ -829,14 +847,23 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
                 className="w-full p-2.5 border border-gray-300 rounded-md"
                 required
               />
-              <input
-                type="number"
-                placeholder="Course Credits"
-                value={courseCredits}
-                onChange={(e) => setCourseCredits(Number(e.target.value))}
-                className="w-full p-2.5 border border-gray-300 rounded-md"
-                required
-              />
+              {/* --- MODIFIED SECTION --- */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-medium text-gray-600 whitespace-nowrap mt-2 ">
+                  Course Credits/Marks  <span className={"text-red-500"}>*</span>
+                </label>
+                <input
+                  type="number"
+                  placeholder="Course Credits"
+                  value={courseCredits}
+                  min={1}
+                  onChange={(e) => setCourseCredits(Number(e.target.value))}
+                  className="w-full p-2.5 border border-gray-300 rounded-md"
+                  required
+                />
+
+              </div>
+              {/* --- END MODIFIED SECTION --- */}
               <button
                 type="button"
                 onClick={() => {
@@ -859,7 +886,7 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
                   })
                   fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/courses`, {
                     method: "POST",
-                    headers: { "Content-Type": "application/json" },
+                    headers: {"Content-Type": "application/json"},
                     body: JSON.stringify({
                       name: newCourseName,
                       courseCode,
@@ -872,7 +899,7 @@ export default function AddClassModal({ id, userid, isOpen, onClose }: AddClassP
                   }).then((res) => {
                     if (res.ok) {
                       setToggler(!toggler);
-                      setShowInput({ ...showInput, course: false });
+                      setShowInput({...showInput, course: false});
                       setNewCourseName("");
                       setCourseCode("");
                       setCourseDescription("");

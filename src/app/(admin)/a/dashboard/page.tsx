@@ -238,14 +238,14 @@ export default async function DashboardPage() {
                         </div>
                       </div>
 
-                      <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700 flex justify-end">
+                      <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700 flex justify-center md:justify-end">
                         {institutionData && (
                           <div className="mt-2 sm:mt-0">
                             <Link
                               href={`${process.env.NEXT_PUBLIC_API_URL}/a`}
                               className={cn(
                                 buttonVariants({ variant: "outline", size: "sm" }),
-                                "text-indigo-600 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800 hover:bg-indigo-50 dark:hover:bg-indigo-950 relative"
+                                "text-indigo-600 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800 hover:bg-indigo-50 dark:hover:bg-indigo-950 relative w-full"
                               )}
                             >
                               <span className="absolute inset-0 rounded-lg bg-gradient-to-r from-indigo-200 to-purple-200 dark:from-indigo-900 dark:to-purple-900 opacity-60 pointer-events-none animate-pulse"></span>

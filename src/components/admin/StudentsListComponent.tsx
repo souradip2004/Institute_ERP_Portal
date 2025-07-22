@@ -72,9 +72,9 @@ export default function StudentsList({ students, onViewStudent }: StudentsListPr
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Email
                 </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                {/*<th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Semester
-                </th>
+                </th>*/}
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Status
                 </th>
@@ -95,9 +95,9 @@ export default function StudentsList({ students, onViewStudent }: StudentsListPr
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                     {student.user.email}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                  {/*<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                     {student.currentSemester} ({student.currentYear})
-                  </td>
+                  </td>*/}
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${STATUS_STYLES[student.enrollmentStatus]}`}>
                       {student.enrollmentStatus}
