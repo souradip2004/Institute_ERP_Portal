@@ -1,10 +1,17 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import {MessageCircle, Mic, Send, Maximize2, Download} from "lucide-react"
+import { MessageCircle, Mic, Send, Maximize2, Download } from "lucide-react"
 import "./mentorship.css" // Assuming you have a CSS file for styling
+import * as SpeechSDK from "microsoft-cognitiveservices-speech-sdk";
+import React from "react";
+
 
 const Mentorship = () => {
+
+  const SPEECH_KEY = "5cgtafcR3A0Cl6szTwjHr48KtVTXTHJLfaK2z8Rhh5KAD10yxjpMJQQJ99AKACYeBjFXJ3w3AAAYACOGXOKF";      // or a hard-coded test key
+  const SPEECH_REGION = "eastus"; // e.g. "eastus"
+
   const [activeTab, setActiveTab] = useState("Week")
   const [message, setMessage] = useState("")
   const [loading, setLoading] = useState(false)
@@ -12,6 +19,10 @@ const Mentorship = () => {
   const [chatHistory, setChatHistory] = useState([
     { role: "assistant", content: "Hi, I am your AI Mentor." },
   ])
+  const [micActive, setMicActive] = useState(false);
+  const [input, setInput] = useState("");
+  const recognizerRef = React.useRef(null);
+  const autoSendTimeoutRef = React.useRef(null);
   const timeTabs = ["Week", "Month", "All Time"]
 
   useEffect(() => {
@@ -132,30 +143,106 @@ const Mentorship = () => {
     }
   })()
 
-  const handleSendMessage = async () => {
-    if (!message.trim()) return
 
-    const newHistory = [...chatHistory, { role: "user", content: message }]
-    setChatHistory(newHistory)
-    setMessage("")
-    setLoading(true)
+  /* ───── 3. Azure Speech Recognition logic ───────────────────────────── */
+  const startAzureMic = () => {
+    const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(
+      SPEECH_KEY!,
+      SPEECH_REGION!
+    );
+    speechConfig.speechRecognitionLanguage = "en-IN";
 
+    const audioConfig = SpeechSDK.AudioConfig.fromDefaultMicrophoneInput();
+    const recognizer = new SpeechSDK.SpeechRecognizer(speechConfig, audioConfig);
+
+    recognizer.recognizing = (_, e) => {
+      setInput(e.result.text);
+      if (autoSendTimeoutRef.current) {
+        clearTimeout(autoSendTimeoutRef.current);
+        autoSendTimeoutRef.current = null;
+      }
+    };
+
+    recognizer.recognized = (_, e) => {
+      if (e.result.reason === SpeechSDK.ResultReason.RecognizedSpeech) {
+        const finalText = e.result.text.trim();
+        setInput(finalText);
+        if (finalText) {
+          autoSendTimeoutRef.current = setTimeout(() => {
+            handleSendMessage(finalText);
+            setInput("");
+            autoSendTimeoutRef.current = null;
+            setMicActive(false);
+          }, 1000); // 1 second delay
+        }
+      }
+    };
+
+    recognizer.canceled = (_, e) => {
+      console.error("Recognition canceled:", e);
+      recognizer.stopContinuousRecognitionAsync();
+      setMicActive(false);
+      if (autoSendTimeoutRef.current) {
+        clearTimeout(autoSendTimeoutRef.current);
+        autoSendTimeoutRef.current = null;
+      }
+    };
+
+    recognizer.sessionStopped = () => {
+      recognizer.stopContinuousRecognitionAsync();
+      setMicActive(false);
+      if (autoSendTimeoutRef.current) {
+        clearTimeout(autoSendTimeoutRef.current);
+        autoSendTimeoutRef.current = null;
+      }
+    };
+
+    recognizer.startContinuousRecognitionAsync();
+    recognizerRef.current = recognizer;
+  };
+
+  const stopAzureMic = () => {
+    recognizerRef.current?.stopContinuousRecognitionAsync(() => {
+      recognizerRef.current?.close();
+      recognizerRef.current = null;
+    });
+    if (autoSendTimeoutRef.current) {
+      clearTimeout(autoSendTimeoutRef.current);
+      autoSendTimeoutRef.current = null;
+    }
+  };
+
+  useEffect(() => {
+    if (micActive) startAzureMic();
+    else stopAzureMic();
+    return stopAzureMic;
+  }, [micActive]);
+
+
+
+
+  const handleSendMessage = async (text) => {
+    const msgToSend = typeof text === "string" ? text : message;
+    if (!msgToSend.trim()) return;
+    const newHistory = [...chatHistory, { role: "user", content: msgToSend }];
+    setChatHistory(newHistory);
+    setMessage("");
+    setLoading(true);
     try {
       const res = await fetch("/api/ai-mentor-chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ messages: newHistory }),
-      })
-
-      const data = await res.json()
-      setChatHistory((prev) => [...prev, { role: "assistant", content: data.reply }])
+      });
+      const data = await res.json();
+      setChatHistory((prev) => [...prev, { role: "assistant", content: data.reply }]);
     } catch (err) {
-      console.error("Chat error:", err)
-      setChatHistory((prev) => [...prev, { role: "assistant", content: "Sorry, I couldn't process that. Please try again." }])
+      console.error("Chat error:", err);
+      setChatHistory((prev) => [...prev, { role: "assistant", content: "Sorry, I couldn't process that. Please try again." }]);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <div className="mentorship-container">
@@ -171,11 +258,10 @@ const Mentorship = () => {
           {timeTabs.map((tab) => (
             <button
               key={tab}
-              className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-950 ${
-                activeTab === tab
-                  ? 'bg-gray-900 text-white shadow'
-                  : 'text-gray-500 hover:bg-gray-200 hover:text-gray-800'
-              }`}
+              className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-950 ${activeTab === tab
+                ? 'bg-gray-900 text-white shadow'
+                : 'text-gray-500 hover:bg-gray-200 hover:text-gray-800'
+                }`}
               onClick={() => setActiveTab(tab)}
             >
               {tab}
@@ -380,18 +466,35 @@ const Mentorship = () => {
 
         {/* Chat Input (Functionality is preserved) */}
         <div className="p-4 bg-white border-t border-slate-200 flex items-center gap-3 rounded-b-lg">
-          <button className="bg-indigo-600 text-white p-3 rounded-full hover:bg-indigo-700 transition-colors">
+          <button
+            className={`bg-indigo-600 text-white p-3 rounded-full hover:bg-indigo-700 transition-colors ${micActive ? "animate-pulse" : ""}`}
+            onClick={() => setMicActive((prev) => !prev)}
+            title={micActive ? "Stop Recording" : "Start Recording"}
+          >
             <Mic size={20} />
           </button>
           <input
             type="text"
-            placeholder="Ask your question..."
+            placeholder={micActive ? "Listening..." : "Ask your question..."}
             className="flex-1 bg-transparent focus:outline-none placeholder:text-slate-500"
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
+            value={micActive ? input : message}
+            onChange={(e) => {
+              if (micActive) setInput(e.target.value);
+              else setMessage(e.target.value);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                if (micActive) handleSendMessage(input);
+                else handleSendMessage();
+              }
+            }}
+            disabled={loading}
           />
-          <button className="text-indigo-600 p-2 rounded-full hover:bg-indigo-100 transition-colors" onClick={handleSendMessage}>
+          <button
+            className="text-indigo-600 p-2 rounded-full hover:bg-indigo-100 transition-colors"
+            onClick={() => micActive ? handleSendMessage(input) : handleSendMessage()}
+            disabled={loading}
+          >
             <Send size={22} />
           </button>
         </div>

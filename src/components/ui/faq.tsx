@@ -164,7 +164,7 @@ export default function FAQ() {
             </div>
             <button
               className="w-full bg-purple-900 hover:bg-purple-800 text-white text-lg px-8 py-4 rounded-xl transition-colors duration-200" // Added w-full, increased text size, px, py, rounded
-              onClick={() => window.location.href = "https://aiclassroom.in/contact"}
+              onClick={() => window.location.href = "https://commercial.aiclassroom.in/contact"}
             >
               Help desk
             </button>

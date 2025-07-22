@@ -13,6 +13,7 @@ import CostManagementPage from "./CostManagement";
 import CreateAttendance from "./CreateAttendance";
 import FeesManagement from "./AddFees"
 import axios from "axios";
+import FeesPage from "./FeesPage";
 // Lucide Icons
 import {
   BookOpenCheck,
@@ -47,6 +48,7 @@ const Navigator = ({ id, userId, logo, name, primaryColor, verified, coins }: Na
   const hasShownPopup = useRef(false); // Ref to track if popup has been shown in current session
   const pathname = usePathname();
   const [color, setColor] = useState<string>(primaryColor);
+  const [feesAvailable, setFeesAvailable] = useState<boolean>(false);
 
   useEffect(() => {
     localStorage.setItem('primaryColor', primaryColor);
@@ -56,6 +58,28 @@ const Navigator = ({ id, userId, logo, name, primaryColor, verified, coins }: Na
       setColor(temp);
     }
   },);
+
+  useEffect(() => {
+    // Check if fees are available for the institution
+    const user = localStorage.getItem('user');
+    if (!user) return;
+    const data = JSON.parse(user as string);
+
+    const checkFeesAvailability = async () => {
+      try {
+        const response = await axios.get(`/api/payment/create-fee-account?institutionId=${data.institutionId}`);
+        if (response.data.id) {
+          setFeesAvailable(true);
+        } else {
+          setFeesAvailable(false);
+        }
+      } catch (error) {
+        console.error("Error fetching fees availability:", error);
+      }
+    };
+
+    checkFeesAvailability();
+  }, []); // Run this effect only once when the component mounts
 
   useEffect(() => {
     localStorage.setItem("verified", JSON.stringify(verified));
@@ -135,7 +159,8 @@ const Navigator = ({ id, userId, logo, name, primaryColor, verified, coins }: Na
       case "Fees":
         return (
           <div className="space-y-6">
-            <FeesManagement id={id} />
+            {feesAvailable ? (<FeesPage />) : (<FeesManagement id={id} />)}
+            {/* <FeesManagement id={id} /> */}
           </div>
         );
       default:

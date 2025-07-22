@@ -167,7 +167,7 @@ const FeeEditorModal: React.FC<FeeEditorModalProps> = ({ isOpen, onClose, onSave
     const handleSave = () => {
         // Filter out any fees with empty names before saving
         const validFees = currentFees.filter((fee) => fee.name.trim() !== '');
-
+        console.log("Saving fees:", validFees);
         onSave(validFees);
     };
 
@@ -225,16 +225,16 @@ const FeeEditorModal: React.FC<FeeEditorModalProps> = ({ isOpen, onClose, onSave
                                     <option value="">Select</option>
                                     <option value="Monthly">Monthly</option>
                                     <option value="3 Months">3 Months</option>
-                                    <option value="5 Months">5 Months</option>
+                                    <option value="6 Months">6 Months</option>
                                     <option value="12 Months">12 Months</option>
                                 </select>
-                                <input
+                                {/* <input
                                     type="text"
                                     placeholder="Custom Terms"
                                     value={['Monthly', '3 Months', '5 Months', '12 Months'].includes(fee.paymentterms || '') ? '' : (fee.paymentterms ?? '')}
                                     onChange={(e) => handleFeeChange(index, 'paymentterms', e.target.value)}
                                     className="px-2 py-1 border border-slate-300 rounded-md text-xs flex-1"
-                                />
+                                /> */}
                             </div>
                             <button onClick={() => handleRemoveFee(index)} className="col-span-2 p-2 text-slate-500 hover:text-red-600 hover:bg-red-100 rounded-full transition-colors w-fit ml-auto">
                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
