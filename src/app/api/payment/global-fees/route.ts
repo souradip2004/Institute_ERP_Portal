@@ -2,76 +2,98 @@ import {NextResponse} from "next/server";
 import prisma from "@/lib/prisma";
 import {Prisma} from "@prisma/client";
 
+interface GlobalFee {
+  name: string;
+  description?: string;
+  amount: number;
+  taxPercentage: number;
+  paymentterms: string;
+  penalty: number;
+  motherClassIds: string[];
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
     const {
-      name,
-      description,
-      amount,
-      taxPercentage,
-      paymentterms,
-      penalty = 0,
-      institutionId,
-      motherClassIds
+      globalFees,
+      institutionId
+    }: {
+      globalFees: GlobalFee[];
+      institutionId: string;
     } = body;
 
-    if (!name || amount == null || taxPercentage == null || !paymentterms || !institutionId || !Array.isArray(motherClassIds) || motherClassIds.length === 0 || motherClassIds.some(id => !id) || motherClassIds.some(id => typeof id !== 'string')) {
-      return NextResponse.json({error: 'Missing required fields'}, {status: 400});
+    for (const globalFee of globalFees) {
+      const {
+        name,
+        amount,
+        taxPercentage,
+        paymentterms,
+        motherClassIds
+      } = globalFee;
+
+      if (!name || amount == null || taxPercentage == null || !paymentterms || !institutionId || !Array.isArray(motherClassIds) || motherClassIds.length === 0 || motherClassIds.some(id => !id)) {
+
+        return NextResponse.json({error: 'Missing required fields'}, {status: 400});
+      }
     }
 
     const result = await prisma.$transaction(async (tx) => {
-      // Find all class sections belonging to the specified mother class
 
-      const motherClasses = await tx.motherClass.findMany({
-        where: {
-          id: {
-            in: motherClassIds
-          }
-        }
+      const allMotherClassIds = new Set<string>();
+      globalFees.forEach(fee => fee.motherClassIds.forEach(id => allMotherClassIds.add(id)));
+
+      const existingMotherClasses = await tx.motherClass.findMany({
+        where: {id: {in: Array.from(allMotherClassIds)}},
+        select: {id: true},
       });
 
-      if (motherClasses.length !== motherClassIds.length) {
-        return NextResponse.json({error: "One or more class details not found"}, {status: 400});
+      if (existingMotherClasses.length !== allMotherClassIds.size) {
+        throw new Error("One or more motherClassIds provided do not exist.");
       }
 
-      const instituteFeesDetail = await tx.fees.findUnique({
+      const globalFeeDataToCreate = globalFees.map(fee => ({
+        name: fee.name,
+        description: fee.description,
+        amount: fee.amount,
+        taxPercentage: fee.taxPercentage,
+        paymentterms: fee.paymentterms,
+        penalty: fee.penalty,
+        institutionId,
+      }));
+
+      await tx.globalFees.createMany({
+        data: globalFeeDataToCreate,
+      });
+
+      const createdGlobalFees = await tx.globalFees.findMany({
         where: {
           institutionId
-        }
+        },
       });
 
-      if (!instituteFeesDetail) {
-        throw new Error("Institute fee detail not found.");
+      const classFeeLinksToCreate: { globalFeesId: string; motherClassId: string }[] = [];
+      for (const fee of globalFees) {
+
+        const createdFee = createdGlobalFees.find(gf => gf.name === fee.name);
+        if (createdFee) {
+          fee.motherClassIds.forEach(motherClassId => {
+            classFeeLinksToCreate.push({
+              globalFeesId: createdFee.id,
+              motherClassId: motherClassId
+            });
+          });
+        }
       }
 
-      const globalFees = await tx.globalFees.create({
-        data: {
-          name,
-          description,
-          amount,
-          taxPercentage,
-          paymentterms,
-          penalty,
-          institutionId,
-          classFees: {
-            create: motherClassIds.map(motherClassId => ({
-              motherClassId,
-              feeCategoryId: instituteFeesDetail.id
-            }))
-          }
-        },
-        include: {
-          classFees: true
-        }
+      await tx.classFee.createMany({
+        data: classFeeLinksToCreate
       });
 
-      return globalFees;
-
+      return createdGlobalFees;
     });
 
     return NextResponse.json(result, {status: 201});
-
   } catch (error) {
     console.error('Error creating class fees:', error);
 
@@ -118,7 +140,7 @@ export async function GET(request: Request) {
       return NextResponse.json({error: "Missing required fields"}, {status: 400})
     }
 
-    const globalClassFee = await prisma.classFee.findUnique({
+    const globalClassFee = await prisma.classFee.findMany({
       where: {
         motherClassId
       },
