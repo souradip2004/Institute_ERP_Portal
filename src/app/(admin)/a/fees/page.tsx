@@ -289,6 +289,30 @@ export default function Home() {
         fetchPaymentDetails();
     }, []);
 
+
+
+    useEffect(() => {
+        // Fetch fees data from API
+        const user = localStorage.getItem('user');
+        if (!user) return;
+        const data = JSON.parse(user as string);
+        const institutionId = data.institutionId;
+
+        const fetchFeesData = async () => {
+            try {
+                const response = await axios.get(`/api/payment/get-all-global-fees?institutionId=${institutionId}`);
+                console.log("Fetched fees data:", response.data?.motherClass);
+                // setFeesData(response.data);
+            } catch (err) {
+                console.log("error fetching fees data", err);
+            }
+        };
+
+        fetchFeesData();
+    }, []);
+
+
+
     // --- Handlers for the Payment Details Form ---
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setPaymentDetails({ ...paymentDetails, [e.target.name]: e.target.value });
