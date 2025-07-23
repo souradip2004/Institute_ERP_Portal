@@ -2,37 +2,63 @@ import {NextResponse} from 'next/server';
 import {Prisma, PaymentStatus} from '@prisma/client';
 import prisma from '@/lib/prisma';
 
+interface LocalFee {
+  name: string;
+  description?: string;
+  amount: number;
+  taxPercentage: number;
+  paymentterms: string;
+  penalty: number;
+  motherClassId: string;
+  studentIds: string[];
+}
+
 export async function POST(request: Request) {
   try {
 
     const body = await request.json();
     const {
-      name,
-      description,
-      amount,
-      taxPercentage,
-      paymentterms,
-      penalty = 0,
-      institutionId,
-      motherClassId,
-      studentIds,
+      localFees,
+      institutionId
+    }: {
+      localFees: LocalFee[];
+      institutionId: string;
     } = body;
 
-    if (!name || !amount || !taxPercentage || !paymentterms || !institutionId || !motherClassId || !Array.isArray(studentIds) || studentIds.length === 0) {
-      return NextResponse.json({error: 'Missing required fields'}, {status: 400});
+    if (!institutionId) {
+      return NextResponse.json({error: "Institution id required"}, {status: 400});
+    }
+
+    for (const localFee of localFees) {
+      const {
+        name,
+        amount,
+        taxPercentage,
+        paymentterms,
+        motherClassId,
+        studentIds,
+        penalty
+      } = localFee as LocalFee;
+
+      if (!name || !amount || !taxPercentage || !paymentterms || !institutionId || !motherClassId || !Array.isArray(studentIds) || studentIds.length === 0) {
+        return NextResponse.json({error: 'Missing required fields'}, {status: 400});
+      }
     }
 
     const result = await prisma.$transaction(async (tx) => {
-      // Find all class sections belonging to the specified mother class
-      const motherClass = await tx.motherClass.findUnique({
-        where: {
-          id: motherClassId,
-        }
-      })
 
-      if (!motherClass) {
-        return NextResponse.json({error: "Class details not found"}, {status: 400});
+      const allMotherClassIds = new Set<string>();
+      localFees.forEach(fee => allMotherClassIds.add(fee.motherClassId));
+
+      const existingMotherClasses = await tx.motherClass.findMany({
+        where: {id: {in: Array.from(allMotherClassIds)}},
+        select: {id: true}
+      });
+
+      if (existingMotherClasses.length !== allMotherClassIds.size) {
+        return NextResponse.json({error: "One or more motherClassIds provided do not exist."}, {status: 404});
       }
+
       const instituteFeesDetail = await tx.fees.findUnique({
         where: {
           institutionId
@@ -44,7 +70,7 @@ export async function POST(request: Request) {
       }
 
 
-      const localFees = await tx.localFees.create({
+      const localFees = await tx.localFees.createMany({
         data: {
           name,
           description,
@@ -70,7 +96,6 @@ export async function POST(request: Request) {
         }
       })
 
-      return localFees;
     })
 
 
@@ -114,7 +139,7 @@ export async function GET(request: Request) {
     const {searchParams} = new URL(request.url);
     const motherClassId = searchParams.get('motherClassId') as string;
 
-    const localFees = prisma.classFee.findUnique({
+    const localFees = prisma.classFee.findMany({
       where: {
         motherClassId
       },

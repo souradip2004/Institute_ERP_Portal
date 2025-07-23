@@ -682,7 +682,7 @@ model LocalFees {
   classFees         ClassFee[]
   studentsLocalFees LocalFeesOnStudent[]
 
-  @@map("local_fees") // Added map for consistency
+  @@map("local_fees")
 }
 
 model ClassFee {
@@ -693,8 +693,8 @@ model ClassFee {
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
 
-  globalFees GlobalFees? @relation(fields: [globalFeesId], references: [id])
-  localFees  LocalFees?  @relation(fields: [localFeesId], references: [id])
+  globalFees GlobalFees? @relation(fields: [globalFeesId], references: [id], onDelete: Cascade)
+  localFees  LocalFees?  @relation(fields: [localFeesId], references: [id], onDelete: Cascade)
 
   feesCollections FeesCollection[]
   feeCategory     Fees?            @relation(fields: [feeCategoryId], references: [id])
@@ -716,7 +716,7 @@ model FeesCollection {
   createdAt     DateTime      @default(now()) @map("created_at")
   updatedAt     DateTime      @updatedAt @map("updated_at")
 
-  classFee ClassFee @relation(fields: [classFeeId], references: [id])
+  classFee ClassFee @relation(fields: [classFeeId], references: [id], onDelete: Cascade)
   student  Student  @relation(fields: [studentId], references: [id])
 
   @@unique([classFeeId, studentId])
@@ -733,7 +733,7 @@ model LocalFeesOnStudent {
   localFees LocalFees @relation(fields: [localFeesId], references: [id])
   student   Student   @relation(fields: [studentId], references: [id])
 
-  @@unique([localFeesId, studentId]) // Ensure unique pairing
+  @@unique([localFeesId, studentId])
   @@map("local_fees_on_student")
 }
 
