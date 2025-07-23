@@ -74,6 +74,7 @@ export async function POST(request: Request) {
       */
 
       const classFeeLinksToCreate: { globalFeesId: string; motherClassId: string }[] = [];
+
       for (const fee of globalFees) {
 
         const createdFee = createdGlobalFees.find(gf => gf.name === fee.name);
@@ -217,6 +218,33 @@ export async function PATCH(request: Request) {
       {error: 'An internal server error occurred.'},
       {status: 500}
     );
+  }
+}
+
+export async function DELETE(request: Request) {
+  try {
+
+    const {searchParams} = new URL(request.url);
+    const globalFeesId = searchParams.get('globalFeesId') as string;
+
+    if (!globalFeesId) {
+      return NextResponse.json({error: "GlobalFeesId required"}, {status: 404});
+    }
+
+    const deleted = await prisma.globalFees.delete({
+      where: {
+        id: globalFeesId
+      }
+    });
+    console.log("deleted: ", deleted);
+
+    return NextResponse.json(deleted, {status: 200});
+
+
+  } catch (e) {
+    console.log("Error in GET: ", e);
+
+    return NextResponse.json({error: "Internal server error. Please try again later."}, {status: 500});
   }
 }
 
