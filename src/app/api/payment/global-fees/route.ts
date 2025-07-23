@@ -38,19 +38,19 @@ export async function POST(request: Request) {
       }
     }
 
+    const allMotherClassIds = new Set<string>();
+    globalFees.forEach(fee => fee.motherClassIds.forEach(id => allMotherClassIds.add(id)));
+
+    const existingMotherClasses = await prisma.motherClass.findMany({
+      where: {id: {in: Array.from(allMotherClassIds)}},
+      select: {id: true}
+    });
+
+    if (existingMotherClasses.length !== allMotherClassIds.size) {
+      return NextResponse.json({error: "One or more motherClassIds provided do not exist."}, {status: 404});
+    }
+
     const result = await prisma.$transaction(async (tx) => {
-
-      const allMotherClassIds = new Set<string>();
-      globalFees.forEach(fee => fee.motherClassIds.forEach(id => allMotherClassIds.add(id)));
-
-      const existingMotherClasses = await tx.motherClass.findMany({
-        where: {id: {in: Array.from(allMotherClassIds)}},
-        select: {id: true}
-      });
-
-      if (existingMotherClasses.length !== allMotherClassIds.size) {
-        return NextResponse.json({error: "One or more motherClassIds provided do not exist."}, {status: 404});
-      }
 
       const globalFeeDataToCreate = globalFees.map(fee => ({
         name: fee.name,
@@ -66,12 +66,6 @@ export async function POST(request: Request) {
         data: globalFeeDataToCreate,
       });
 
-      /* const createdGlobalFees = await tx.globalFees.findMany({
-          where: {
-            institutionId
-          },
-        });
-      */
 
       const classFeeLinksToCreate: { globalFeesId: string; motherClassId: string }[] = [];
 
@@ -158,18 +152,18 @@ export async function PATCH(request: Request) {
       return NextResponse.json({error: 'Every fee object in the update array must have an ID.'}, {status: 400});
     }
 
+    const instituteExists = await prisma.institution.findUnique({
+      where: {
+        id: globalFeesToUpdate[0].institutionId
+      }
+    });
+
+    if (!instituteExists) {
+      return NextResponse.json({error: "Institute doesn't exists."}, {status: 404});
+    }
+
     const updatedFees = await prisma.$transaction(async (tx) => {
       const results = [];
-
-      const instituteExists = await tx.institution.findUnique({
-        where: {
-          id: globalFeesToUpdate[0].institutionId
-        }
-      });
-
-      if (!instituteExists) {
-        return NextResponse.json({error: "Institute doesn't exists."}, {status: 404});
-      }
 
       for (const fee of globalFeesToUpdate) {
         const {id, institutionId, ...dataToUpdate} = fee;

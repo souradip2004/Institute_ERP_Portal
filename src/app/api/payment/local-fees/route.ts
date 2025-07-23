@@ -1,6 +1,7 @@
 import {NextResponse} from 'next/server';
 import {Prisma, PaymentStatus} from '@prisma/client';
 import prisma from '@/lib/prisma';
+import {error} from "console";
 
 interface LocalFee {
   name: string;
@@ -161,12 +162,80 @@ export async function POST(request: Request) {
   }
 }
 
+interface UpdateLocalFeePayload {
+  id: string;
+  name?: string;
+  description?: string;
+  amount?: number;
+  taxPercentage?: number;
+  paymentterms?: string;
+  penalty?: number;
+}
+
+export async function PATCH(request: Request) {
+  try {
+    const body = await request.json();
+    const {localFees}: { localFees: UpdateLocalFeePayload[] } = body;
+
+    if (!localFees || !Array.isArray(localFees) || localFees.length === 0) {
+      return NextResponse.json(
+        {error: 'An array of localFees to update is required.'},
+        {status: 400}
+      );
+    }
+
+    const result = await prisma.$transaction(async (tx) => {
+
+      const updatePromises = localFees.map((fee) => {
+        const {id, ...dataToUpdate} = fee;
+
+        if (!id) {
+          throw new Error('Each fee object in the array must have an ID.');
+        }
+
+        return tx.localFees.update({
+          where: {id},
+          data: dataToUpdate
+        });
+      });
+
+      const updatedFees = await Promise.all(updatePromises);
+      return updatedFees;
+    });
+
+    return NextResponse.json(result, {status: 200});
+
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+
+      if (error.code === 'P2025') {
+        const errorMessage = (error.meta as { cause?: string })?.cause || 'Record not found.';
+        return NextResponse.json(
+          {error: `Update failed: ${errorMessage}`},
+          {status: 404}
+        );
+      }
+    }
+
+    if (error instanceof Error && error.message.includes('must have an ID')) {
+      return NextResponse.json({error: error.message}, {status: 400});
+    }
+
+    console.error("Error updating local fees: ", error);
+
+    return NextResponse.json(
+      {error: 'An internal server error occurred.'},
+      {status: 500}
+    );
+  }
+}
+
 export async function GET(request: Request) {
   try {
     const {searchParams} = new URL(request.url);
     const motherClassId = searchParams.get('motherClassId') as string;
 
-    const localFees = prisma.classFee.findMany({
+    const localFees = await prisma.classFee.findMany({
       where: {
         motherClassId
       },
@@ -179,10 +248,13 @@ export async function GET(request: Request) {
       }
     })
 
-    return NextResponse.json({globalClassFees: localFees}, {status: 200});
+    return NextResponse.json(localFees, {status: 200});
 
-  } catch (e) {
+  } catch (e: any) {
 
-    return NextResponse.json({error: "Internal server error. Please try again later."}, {status: 500});
+    return NextResponse.json({
+      error: "Internal server error. Please try again later.",
+      message: e.message
+    }, {status: 500});
   }
 }
