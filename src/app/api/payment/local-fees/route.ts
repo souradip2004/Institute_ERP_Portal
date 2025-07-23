@@ -40,7 +40,7 @@ export async function POST(request: Request) {
         penalty
       } = localFee as LocalFee;
 
-      if (!name || !amount || !taxPercentage || !paymentterms || !institutionId || !motherClassId || !Array.isArray(studentIds) || studentIds.length === 0) {
+      if (!name || !amount || !taxPercentage || !paymentterms || !institutionId || !motherClassId || !Array.isArray(studentIds) || studentIds.length === 0 || studentIds.some(id => !id)) {
         return NextResponse.json({error: 'Missing required fields'}, {status: 400});
       }
     }
@@ -48,7 +48,7 @@ export async function POST(request: Request) {
     const result = await prisma.$transaction(async (tx) => {
 
       const allMotherClassIds = new Set<string>();
-      localFees.forEach(fee => allMotherClassIds.add(fee.motherClassId));
+      createdLocalFees.forEach(fee => allMotherClassIds.add(fee.motherClassId));
 
       const existingMotherClasses = await tx.motherClass.findMany({
         where: {id: {in: Array.from(allMotherClassIds)}},
@@ -69,32 +69,36 @@ export async function POST(request: Request) {
         throw new Error("Institute fee detail not found.");
       }
 
+      const localFeesToCreate = createdLocalFees.map(fee => ({
+        name: fee.name,
+        description: fee.description,
+        amount: fee.amount,
+        taxPercentage: fee.taxPercentage,
+        paymentterms: fee.paymentterms,
+        penalty: fee.penalty,
+        motherClassId: fee.motherClassId
+      }))
 
-      const localFees = await tx.localFees.createMany({
-        data: {
-          name,
-          description,
-          amount,
-          taxPercentage,
-          paymentterms,
-          penalty,
-          classFees: {
-            create: [{
-              motherClassId: motherClassId,
-              feeCategoryId: instituteFeesDetail.id
-            }]
-          },
-          studentsLocalFees: {
-            create: studentIds.map(studentId => ({
-              studentId,
-            }))
-          }
-        },
-        include: {
-          classFees: true,
-          studentsLocalFees: true
+      const createdLocalFees = await tx.localFees.createManyAndReturn({
+          data: localFeesToCreate
         }
-      })
+      );
+
+      for (const fee of createdLocalFees) {
+
+        const createdFee = createdLocalFees.find(gf => gf.name === fee.name);
+
+        const classFeeLinksToCreate: { globalFeesId: string; motherClassId: string }[] = [];
+        if (createdFee) {
+          fee.motherClassIds.forEach(motherClassId => {
+            classFeeLinksToCreate.push({
+              globalFeesId: createdFee.id,
+              motherClassId: motherClassId
+            });
+          });
+        }
+      }
+
 
     })
 

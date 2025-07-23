@@ -74,6 +74,7 @@ export async function POST(request: Request) {
       */
 
       const classFeeLinksToCreate: { globalFeesId: string; motherClassId: string }[] = [];
+
       for (const fee of globalFees) {
 
         const createdFee = createdGlobalFees.find(gf => gf.name === fee.name);
