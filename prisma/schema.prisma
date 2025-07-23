@@ -730,7 +730,7 @@ model LocalFeesOnStudent {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  localFees LocalFees @relation(fields: [localFeesId], references: [id])
+  localFees LocalFees @relation(fields: [localFeesId], references: [id], onDelete: Cascade)
   student   Student   @relation(fields: [studentId], references: [id])
 
   @@unique([localFeesId, studentId])

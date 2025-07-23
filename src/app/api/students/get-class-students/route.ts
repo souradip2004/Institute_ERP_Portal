@@ -5,6 +5,9 @@ export async function GET(request: Request) {
   try {
     const {searchParams} = new URL(request.url);
     const motherClassId = searchParams.get('motherClassId') as string;
+    if (!motherClassId) {
+      return NextResponse.json({error: "motherClassId is required!"}, {status: 400});
+    }
 
     const motherClassExists = await prisma.motherClass.findUnique({
       where: {
