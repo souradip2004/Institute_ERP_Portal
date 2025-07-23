@@ -152,7 +152,16 @@ const FeeEditorModal: React.FC<FeeEditorModalProps> = ({ isOpen, onClose, onSave
         setCurrentFees(updatedFees);
     };
 
-    const handleRemoveFee = (index: number) => {
+    const handleRemoveFee = async (index: number) => {
+        console.log("Removing fee at index:", index);
+        console.log("fees id --- ", currentFees[index].id);
+
+        try {
+            const response = await axios.delete(`/api/payment/global-fees?globalFeesId=${currentFees[index].id}`);
+        } catch (err) {
+            console.error("Error removing fee:", err);
+        }
+
         const updatedFees = currentFees.filter((_, i) => i !== index);
         setCurrentFees(updatedFees);
     };
@@ -162,7 +171,7 @@ const FeeEditorModal: React.FC<FeeEditorModalProps> = ({ isOpen, onClose, onSave
         const validFees = currentFees.filter((fee) => fee.name.trim() !== '');
         try {
             // API expects globalFeesToUpdate array
-            await axios.post('/api/payment/global-fees', {
+            await axios.patch('/api/payment/global-fees', {
                 globalFeesToUpdate: validFees
             });
         } catch (err) {
