@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+import { Pencil } from 'lucide-react';
 
 // TypeScript interfaces and types
 interface FormFieldProps {
@@ -141,7 +142,6 @@ const FeeEditorModal: React.FC<FeeEditorModalProps> = ({ isOpen, onClose, onSave
 
     if (!isOpen) return null;
 
-
     const handleFeeChange = (index: number, field: keyof Fee, value: string | number) => {
         const updatedFees = [...currentFees];
         if (field === 'amount' || field === 'taxPercentage' || field === 'penalty') {
@@ -152,22 +152,23 @@ const FeeEditorModal: React.FC<FeeEditorModalProps> = ({ isOpen, onClose, onSave
         setCurrentFees(updatedFees);
     };
 
-
-    const handleAddFee = () => {
-        setCurrentFees([...currentFees, { id: `new_${Date.now()}`, name: '', amount: 0 }]);
-    };
-
-
     const handleRemoveFee = (index: number) => {
         const updatedFees = currentFees.filter((_, i) => i !== index);
         setCurrentFees(updatedFees);
     };
 
-
-    const handleSave = () => {
+    const handleSave = async () => {
         // Filter out any fees with empty names before saving
         const validFees = currentFees.filter((fee) => fee.name.trim() !== '');
-        console.log("Saving fees:", validFees);
+        try {
+            // API expects globalFeesToUpdate array
+            await axios.post('/api/payment/global-fees', {
+                globalFeesToUpdate: validFees
+            });
+        } catch (err) {
+            console.error('Failed to update global fees', err);
+            // Optionally show error to user
+        }
         onSave(validFees);
     };
 
@@ -228,13 +229,6 @@ const FeeEditorModal: React.FC<FeeEditorModalProps> = ({ isOpen, onClose, onSave
                                     <option value="6 Months">6 Months</option>
                                     <option value="12 Months">12 Months</option>
                                 </select>
-                                {/* <input
-                                    type="text"
-                                    placeholder="Custom Terms"
-                                    value={['Monthly', '3 Months', '5 Months', '12 Months'].includes(fee.paymentterms || '') ? '' : (fee.paymentterms ?? '')}
-                                    onChange={(e) => handleFeeChange(index, 'paymentterms', e.target.value)}
-                                    className="px-2 py-1 border border-slate-300 rounded-md text-xs flex-1"
-                                /> */}
                             </div>
                             <button onClick={() => handleRemoveFee(index)} className="col-span-2 p-2 text-slate-500 hover:text-red-600 hover:bg-red-100 rounded-full transition-colors w-fit ml-auto">
                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -243,9 +237,6 @@ const FeeEditorModal: React.FC<FeeEditorModalProps> = ({ isOpen, onClose, onSave
                             </button>
                         </div>
                     ))}
-                    <button onClick={handleAddFee} className="w-full mt-2 py-2 px-4 border-2 border-dashed border-slate-300 text-slate-600 font-semibold rounded-md hover:bg-slate-100 hover:border-slate-400 transition-all">
-                        + Add Fee
-                    </button>
                 </div>
                 <div className="p-4 bg-slate-50 border-t flex justify-end gap-3 rounded-lg">
                     <button onClick={onClose} className="py-2 px-5 bg-white text-slate-700 border border-slate-300 font-semibold rounded-md shadow-sm hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-400 transition-all">
@@ -253,6 +244,127 @@ const FeeEditorModal: React.FC<FeeEditorModalProps> = ({ isOpen, onClose, onSave
                     </button>
                     <button onClick={handleSave} className="py-2 px-5 bg-indigo-600 text-white font-semibold rounded-md shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all">
                         Save Changes
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// --- NEW --- Fee Add Modal Component ---
+interface FeeAddModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    onAdd: (newFee: Fee) => void;
+    title: string;
+}
+
+const FeeAddModal: React.FC<FeeAddModalProps> = ({ isOpen, onClose, onAdd, title }) => {
+    const [fee, setFee] = useState<Fee>({
+        id: `new_${Date.now()}`,
+        name: '',
+        amount: 0,
+        taxPercentage: undefined,
+        paymentterms: '',
+        penalty: undefined,
+        description: '',
+    });
+
+    useEffect(() => {
+        if (isOpen) {
+            setFee({
+                id: `new_${Date.now()}`,
+                name: '',
+                amount: 0,
+                taxPercentage: undefined,
+                paymentterms: '',
+                penalty: undefined,
+                description: '',
+            });
+        }
+    }, [isOpen]);
+
+    if (!isOpen) return null;
+
+    const handleChange = (field: keyof Fee, value: string | number) => {
+        setFee(prev => ({
+            ...prev,
+            [field]: field === 'amount' || field === 'taxPercentage' || field === 'penalty'
+                ? (typeof value === 'number' ? value : parseFloat(value as string) || 0)
+                : value
+        }));
+    };
+
+    const handleAdd = () => {
+        if (fee.name.trim() === '') return;
+        onAdd(fee);
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-md z-50 flex justify-center items-center p-4">
+            <div className="bg-white rounded-lg shadow-xl w-full max-w-lg">
+                <div className="p-6 border-b">
+                    <h3 className="text-xl font-semibold text-slate-800">{title}</h3>
+                </div>
+                <div className="p-6 space-y-4 max-h-[60vh] overflow-y-auto">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 p-3 bg-slate-50 rounded-md">
+                        <input
+                            type="text"
+                            placeholder="Fee Name (e.g., Tuition)"
+                            value={fee.name}
+                            onChange={(e) => handleChange('name', e.target.value)}
+                            className="px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        />
+                        <input
+                            type="number"
+                            placeholder="Amount"
+                            value={fee.amount}
+                            onChange={(e) => handleChange('amount', e.target.value)}
+                            className="px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        />
+                        <input
+                            type="number"
+                            placeholder="Tax (%)"
+                            value={fee.taxPercentage ?? ''}
+                            onChange={(e) => handleChange('taxPercentage', e.target.value)}
+                            className="px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        />
+                        <input
+                            type="number"
+                            placeholder="Penalty (₹)"
+                            value={fee.penalty ?? ''}
+                            onChange={(e) => handleChange('penalty', e.target.value)}
+                            className="px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        />
+                        <textarea
+                            placeholder="Description"
+                            value={fee.description ?? ''}
+                            onChange={(e) => handleChange('description', e.target.value)}
+                            className="col-span-2 px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            rows={2}
+                        />
+                        <div className="col-span-2 flex gap-2 items-center">
+                            <label className="text-xs text-slate-600">Terms:</label>
+                            <select
+                                value={['Monthly', '3 Months', '5 Months', '12 Months'].includes(fee.paymentterms || '') ? fee.paymentterms : ''}
+                                onChange={(e) => handleChange('paymentterms', e.target.value)}
+                                className="px-2 py-1 border border-slate-300 rounded-md text-xs"
+                            >
+                                <option value="">Select</option>
+                                <option value="Monthly">Monthly</option>
+                                <option value="3 Months">3 Months</option>
+                                <option value="6 Months">6 Months</option>
+                                <option value="12 Months">12 Months</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div className="p-4 bg-slate-50 border-t flex justify-end gap-3 rounded-lg">
+                    <button onClick={onClose} className="py-2 px-5 bg-white text-slate-700 border border-slate-300 font-semibold rounded-md shadow-sm hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-400 transition-all">
+                        Cancel
+                    </button>
+                    <button onClick={handleAdd} className="py-2 px-5 bg-emerald-600 text-white font-semibold rounded-md shadow-md hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-all">
+                        Add Fee
                     </button>
                 </div>
             </div>
@@ -292,6 +404,10 @@ export default function Home() {
     const [isFeeEditorOpen, setIsFeeEditorOpen] = useState(false);
     // For section global fees editing
     const [editingFeeDetails, setEditingFeeDetails] = useState<{ rowId: number | null, field: string, title: string, fees: Fee[] }>({ rowId: null, field: '', title: '', fees: [] });
+    // --- NEW --- State for Fee Add Modal ---
+    const [isFeeAddOpen, setIsFeeAddOpen] = useState(false);
+    const [addingFeeSectionId, setAddingFeeSectionId] = useState<number | null>(null);
+    const [addingFeeSectionName, setAddingFeeSectionName] = useState<string>('');
     // For student variable fees editing
     const [editingStudentFee, setEditingStudentFee] = useState<{ sectionId: number | null, studentId: number | null, title: string, fees: Fee[] }>({ sectionId: null, studentId: null, title: '', fees: [] });
     const [isStudentFeeEditorOpen, setIsStudentFeeEditorOpen] = useState(false);
@@ -409,8 +525,9 @@ export default function Home() {
         }
     };
 
-    // --- NEW --- Handlers for the Fee Editor Modal ---
-    // For section global fees
+
+    // --- NEW --- Handlers for the Fee Editor and Add Modal ---
+    // For section global fees editing
     const handleOpenFeeEditor = (rowId: number, field: 'globalFees', sectionName: string) => {
         const row = feesData.find(r => r.id === rowId);
         if (!row) return;
@@ -440,6 +557,29 @@ export default function Home() {
         });
         setFeesData(updatedData);
         handleCloseFeeEditor();
+    };
+
+    // For section global fees adding
+    const handleOpenFeeAdd = (rowId: number, sectionName: string) => {
+        setAddingFeeSectionId(rowId);
+        setAddingFeeSectionName(sectionName);
+        setIsFeeAddOpen(true);
+    };
+
+    const handleCloseFeeAdd = () => {
+        setIsFeeAddOpen(false);
+        setAddingFeeSectionId(null);
+        setAddingFeeSectionName('');
+    };
+
+    const handleAddFee = (newFee: Fee) => {
+        if (addingFeeSectionId === null) return;
+        setFeesData(prev => prev.map(row =>
+            row.id === addingFeeSectionId
+                ? { ...row, globalFees: [...row.globalFees, newFee] }
+                : row
+        ));
+        handleCloseFeeAdd();
     };
 
     // For student variable fees
@@ -552,10 +692,10 @@ export default function Home() {
                 <hr className="my-8 border-t border-slate-200" />
 
                 {/* --- Fee Structure Section --- */}
-                <div>
+                <div className="w-full  ">
                     <h2 className="text-2xl font-semibold text-slate-800 mb-6">Fee Structure</h2>
                     <div className="rounded-lg border border-slate-200 shadow-sm overflow-hidden">
-                        <div className="h-[400px] overflow-y-auto">
+                        <div className="h-[500px] overflow-y-auto">
                             <table className="w-full text-sm text-left text-slate-700">
                                 <thead className="text-xs text-slate-800 uppercase bg-slate-100 sticky top-0 z-10">
                                     <tr>
@@ -580,7 +720,7 @@ export default function Home() {
                                                         <div>
                                                             {row.globalFees.length > 0 ? (
                                                                 row.globalFees.map(fee => (
-                                                                    <div key={fee.id} className="mb-2 text-xs text-slate-600">
+                                                                    <div key={fee.id} className="mb-2 text-xs text-slate-600 border-b-2 border-slate-200 pb-2">
                                                                         <div><span className="font-semibold">{fee.name}</span>: ₹{fee.amount?.toFixed(2)}</div>
                                                                         {fee.taxPercentage !== undefined && (
                                                                             <div>Tax: {fee.taxPercentage}%</div>
@@ -601,9 +741,16 @@ export default function Home() {
                                                             )}
                                                             <div className="font-semibold mt-1">Total: ₹{globalFeesTotal.toFixed(2)}</div>
                                                         </div>
-                                                        <button onClick={(e) => { e.stopPropagation(); handleOpenFeeEditor(row.id, 'globalFees', row.sectionName); }} className="p-1 text-slate-500 rounded-full hover:bg-slate-200 hover:text-slate-800">
-                                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L14.732 3.732z" /></svg>
-                                                        </button>
+                                                        <div className="flex flex-col gap-2 items-end">
+                                                            <button onClick={(e) => { e.stopPropagation(); handleOpenFeeEditor(row.id, 'globalFees', row.sectionName); }} className="p-1 text-slate-500 rounded-full hover:bg-slate-200 hover:text-slate-800">
+                                                                <Pencil className="h-5 w-5" />
+                                                            </button>
+                                                            <button onClick={(e) => { e.stopPropagation(); handleOpenFeeAdd(row.id, row.sectionName); }} className="p-1 text-green-600 rounded-full hover:bg-green-100 hover:text-green-800">
+                                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                                                                </svg>
+                                                            </button>
+                                                        </div>
                                                     </div>
                                                 </td>
                                             </tr>
@@ -729,6 +876,13 @@ export default function Home() {
                 onClose={handleCloseFeeEditor}
                 onSave={handleSaveFees}
                 details={editingFeeDetails}
+            />
+            {/* --- Fee Add Modal Render (for section global fees) --- */}
+            <FeeAddModal
+                isOpen={isFeeAddOpen}
+                onClose={handleCloseFeeAdd}
+                onAdd={handleAddFee}
+                title={`Add New Fee to ${addingFeeSectionName}`}
             />
             {/* --- Fee Editor Modal Render (for student variable fees) --- */}
             <FeeEditorModal
