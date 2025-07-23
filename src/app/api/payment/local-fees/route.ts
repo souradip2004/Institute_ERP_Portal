@@ -8,7 +8,7 @@ interface LocalFee {
   amount: number;
   taxPercentage: number;
   paymentterms: string;
-  penalty: number;
+  penalty?: number;
   motherClassId: string;
   studentIds: string[];
 }
@@ -25,6 +25,8 @@ export async function POST(request: Request) {
       institutionId: string;
     } = body;
 
+    console.log(body);
+
     if (!institutionId) {
       return NextResponse.json({error: "Institution id required"}, {status: 400});
     }
@@ -36,8 +38,7 @@ export async function POST(request: Request) {
         taxPercentage,
         paymentterms,
         motherClassId,
-        studentIds,
-        penalty
+        studentIds
       } = localFee as LocalFee;
 
       if (!name || !amount || !taxPercentage || !paymentterms || !institutionId || !motherClassId || !Array.isArray(studentIds) || studentIds.length === 0 || studentIds.some(id => !id)) {
@@ -45,38 +46,38 @@ export async function POST(request: Request) {
       }
     }
 
+    const allMotherClassIds = new Set<string>();
+    localFees.forEach(fee => allMotherClassIds.add(fee.motherClassId));
+
+    const existingMotherClasses = await prisma.motherClass.findMany({
+      where: {id: {in: Array.from(allMotherClassIds)}},
+      select: {id: true}
+    });
+
+    if (existingMotherClasses.length !== allMotherClassIds.size) {
+      return NextResponse.json({error: "One or more motherClassIds provided do not exist."}, {status: 404});
+    }
+
+    const instituteFeesDetail = await prisma.fees.findUnique({
+      where: {
+        institutionId
+      }
+    });
+
+    if (!instituteFeesDetail) {
+      return NextResponse.json({error: "Institute fee detail not found."}, {status: 404});
+    }
+
+
     const result = await prisma.$transaction(async (tx) => {
 
-      const allMotherClassIds = new Set<string>();
-      createdLocalFees.forEach(fee => allMotherClassIds.add(fee.motherClassId));
-
-      const existingMotherClasses = await tx.motherClass.findMany({
-        where: {id: {in: Array.from(allMotherClassIds)}},
-        select: {id: true}
-      });
-
-      if (existingMotherClasses.length !== allMotherClassIds.size) {
-        return NextResponse.json({error: "One or more motherClassIds provided do not exist."}, {status: 404});
-      }
-
-      const instituteFeesDetail = await tx.fees.findUnique({
-        where: {
-          institutionId
-        }
-      });
-
-      if (!instituteFeesDetail) {
-        throw new Error("Institute fee detail not found.");
-      }
-
-      const localFeesToCreate = createdLocalFees.map(fee => ({
+      const localFeesToCreate = localFees.map(fee => ({
         name: fee.name,
         description: fee.description,
         amount: fee.amount,
         taxPercentage: fee.taxPercentage,
         paymentterms: fee.paymentterms,
-        penalty: fee.penalty,
-        motherClassId: fee.motherClassId
+        penalty: fee.penalty
       }))
 
       const createdLocalFees = await tx.localFees.createManyAndReturn({
@@ -84,25 +85,45 @@ export async function POST(request: Request) {
         }
       );
 
-      for (const fee of createdLocalFees) {
+      console.log("Created ", createdLocalFees);
 
-        const createdFee = createdLocalFees.find(gf => gf.name === fee.name);
+      const classFeeLinksToCreate: { localFeesId: string; motherClassId: string }[] = [];
+      const linkFeeOnStudentIds: { localFeesId: string; studentId: string }[] = [];
 
-        const classFeeLinksToCreate: { globalFeesId: string; motherClassId: string }[] = [];
+      let index = 0;
+      for (const fee of localFees) {
+        // Find the created fee by a unique property, like name.
+        // This assumes 'name' will be unique within this transaction.
+        const createdFee = createdLocalFees[index++];
+
         if (createdFee) {
-          fee.motherClassIds.forEach(motherClassId => {
-            classFeeLinksToCreate.push({
-              globalFeesId: createdFee.id,
-              motherClassId: motherClassId
+          classFeeLinksToCreate.push({
+            localFeesId: createdFee.id,
+            motherClassId: fee.motherClassId
+          });
+
+          fee.studentIds.forEach(studentId => {
+            linkFeeOnStudentIds.push({
+              localFeesId: createdFee.id,
+              studentId
             });
           });
         }
       }
 
+      await tx.classFee.createMany({
+        data: classFeeLinksToCreate
+      });
 
+      await tx.localFeesOnStudent.createMany({
+        data: linkFeeOnStudentIds
+      })
+
+      return createdLocalFees;
     })
 
 
+    console.log("Local fees", result);
     return NextResponse.json(result, {status: 201});
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
@@ -130,6 +151,8 @@ export async function POST(request: Request) {
           break;
       }
     }
+
+    console.log("Error creating local fees: ", error);
 
     return NextResponse.json(
       {error: 'An internal server error occurred.'},
