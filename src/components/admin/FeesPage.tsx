@@ -152,7 +152,16 @@ const FeeEditorModal: React.FC<FeeEditorModalProps> = ({ isOpen, onClose, onSave
         setCurrentFees(updatedFees);
     };
 
-    const handleRemoveFee = (index: number) => {
+    const handleRemoveFee = async (index: number) => {
+        console.log("Removing fee at index:", index);
+        console.log("fees id --- ", currentFees[index].id);
+
+        try {
+            const response = await axios.delete(`/api/payment/global-fees?globalFeesId=${currentFees[index].id}`);
+        } catch (err) {
+            console.error("Error removing fee:", err);
+        }
+
         const updatedFees = currentFees.filter((_, i) => i !== index);
         setCurrentFees(updatedFees);
     };
@@ -162,7 +171,7 @@ const FeeEditorModal: React.FC<FeeEditorModalProps> = ({ isOpen, onClose, onSave
         const validFees = currentFees.filter((fee) => fee.name.trim() !== '');
         try {
             // API expects globalFeesToUpdate array
-            await axios.post('/api/payment/global-fees', {
+            await axios.patch('/api/payment/global-fees', {
                 globalFeesToUpdate: validFees
             });
         } catch (err) {
@@ -257,9 +266,10 @@ interface FeeAddModalProps {
     onClose: () => void;
     onAdd: (newFee: Fee) => void;
     title: string;
+    addingFeeSectionId: number | null;
 }
 
-const FeeAddModal: React.FC<FeeAddModalProps> = ({ isOpen, onClose, onAdd, title }) => {
+const FeeAddModal: React.FC<FeeAddModalProps> = ({ isOpen, onClose, onAdd, title, addingFeeSectionId }) => {
     const [fee, setFee] = useState<Fee>({
         id: `new_${Date.now()}`,
         name: '',
@@ -295,8 +305,37 @@ const FeeAddModal: React.FC<FeeAddModalProps> = ({ isOpen, onClose, onAdd, title
         }));
     };
 
-    const handleAdd = () => {
+    const handleAdd = async () => {
         if (fee.name.trim() === '') return;
+        let institutionId = '';
+        try {
+            const user = localStorage.getItem('user');
+            if (user) {
+                const data = JSON.parse(user);
+                institutionId = data.institutionId || '';
+            }
+        } catch { }
+        // Always send the correct section id as motherClassIds
+        const motherClassIds = addingFeeSectionId !== null ? [String(addingFeeSectionId)] : [];
+        try {
+            const body = {
+                institutionId,
+                globalFees: [{
+                    name: fee.name,
+                    description: fee.description,
+                    amount: fee.amount,
+                    taxPercentage: fee.taxPercentage,
+                    paymentterms: fee.paymentterms,
+                    penalty: fee.penalty,
+                    motherClassIds
+                }]
+            }
+            console.log("add body ---", body);
+            await axios.post('/api/payment/global-fees', body);
+        } catch (err) {
+            console.error('Failed to add global fee', err);
+            // Optionally show error to user
+        }
         onAdd(fee);
     };
 
@@ -883,6 +922,7 @@ export default function Home() {
                 onClose={handleCloseFeeAdd}
                 onAdd={handleAddFee}
                 title={`Add New Fee to ${addingFeeSectionName}`}
+                addingFeeSectionId={addingFeeSectionId}
             />
             {/* --- Fee Editor Modal Render (for student variable fees) --- */}
             <FeeEditorModal
