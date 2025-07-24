@@ -229,7 +229,7 @@ export async function GET(
               console.error(`Attempt ${attempt} failed for diagram API call for script ${script.id}:`, apiError);
             }
           }
-          aiScores.set(script.id, finalScore + writtenScore);
+          aiScores.set(script.id, Number((finalScore + writtenScore).toFixed(2)));
         }
       }
     }
