@@ -57,6 +57,8 @@ export async function GET(
     if (!examSubmission) {
       return NextResponse.json({error: "Exam submission not found"}, {status: 404});
     }
+
+    // console.log("Exam submission ", examSubmission);
     if (examSubmission.status === 'GRADED') {
       return NextResponse.json({error: "Exam already graded"}, {status: 400});
     }
@@ -81,6 +83,7 @@ export async function GET(
             script.studentAnswer = "";
           }
         }
+
         if (!script.studentAnswer) {
           aiScores.set(script.id, 0);
         } else {
@@ -109,6 +112,7 @@ export async function GET(
           student_json_ans: JSON.stringify(studentAns),
           config_json: JSON.stringify(configJson)
         };
+
         const response = await axios.post('https://answer-checking-4-dad1d16-v3.app.beam.cloud', payload, {
           headers: {
             'Content-Type': 'application/json',
@@ -129,6 +133,7 @@ export async function GET(
         const modelAns: Record<string, string[][]> = {};
         const studentAns: Record<string, string[][]> = {};
         const configJson: Record<string, [number, string, number, number]> = {};
+        console.log("Diagram scripts ", diagramScripts);
 
         diagramScripts.forEach((script, index) => {
           const key = String(index + 1);
@@ -144,6 +149,8 @@ export async function GET(
           config_json: JSON.stringify(configJson)
         };
 
+        console.log("Text checking payload ", initialPayload);
+
         const initialResponse = await axios.post('https://answer-checking-4-dad1d16-v3.app.beam.cloud',
           initialPayload,
           {
@@ -152,6 +159,8 @@ export async function GET(
               'Authorization': 'Bearer cpxjIHGyDUggeCZSEgd7TSs_xuIaJLxQyplSlPcpEv35qftljIUmetr9Drtj_MUyC9PUSJLvV1vbjljWohB8Sw=='
             }
           });
+
+        console.log("Initial text answer ", initialResponse.data);
 
         const initialRawResults = initialResponse.data.final_results_data;
         const parsedInitialScores = JSON.parse(initialRawResults[2]);
@@ -164,8 +173,12 @@ export async function GET(
           }
 
           const key = String(index + 1);
-          const initialScoreObject = parsedInitialScores[key];
           const halfMarks = (script.question.marks || 0) * 0.5;
+          console.log("Script ", script, " ", parsedInitialScores[key]);
+          console.log("Updated_written_score ", parsedInitialScores[key]?.[`Updated_Score (?/${halfMarks})`])
+          const writtenScore = Number((parsedInitialScores[key]?.[`Updated_Score (?/${halfMarks})`] ?? 0).toFixed(2));
+          console.log("Written score ", writtenScore);
+          const initialScoreObject = parsedInitialScores[key];
 
           const diagramPayload = {
             question_no: 1,
@@ -174,20 +187,22 @@ export async function GET(
             diagram_data: {
               "1": {
                 text: [[script.question.correctAnswer[0] || ""]],
-                diagram: script.question.diagramImgURL
+                diagram: [script.question.diagramImgURL]
               }
             },
             updated_scores_json: JSON.stringify({"1": initialScoreObject}),
             config_json: JSON.stringify({"1": [halfMarks, script.question.difficultyLevel || "Hard", 0, halfMarks, "FigBased_y"]})
           };
 
+          console.log("Diagram api payload ", diagramPayload);
+
           let finalScore = 0;
-          for (let attempt = 1; attempt <= 2; attempt++) {
-            if (attempt === 2) {
+          for (let attempt = 1; attempt <= 5; attempt++) {
+            if (attempt >= 1 && attempt <= 5) {
               const delay = Math.random() * 2000 + 4000; // 4 to 6 seconds
               await new Promise(resolve => setTimeout(resolve, delay));
             }
-
+            console.log("No of attempt ", attempt);
             try {
               const diagramResponse = await axios.post('https://answer-and-diagram-checking-5-v2-41923a7-v1.app.beam.cloud',
                 diagramPayload,
@@ -200,17 +215,21 @@ export async function GET(
               );
 
               const finalResult = JSON.parse(diagramResponse.data.final_RESULT_JSON);
-              const score = finalResult["1"]?.[`Diagram Final Score (?/${halfMarks})`];
+
+              console.log("Diagram response ", finalResult);
+              const score = finalResult["1"]?.[`Diagram Final Score (?/10)`];
+              console.log("Score ", score);
 
               if (score !== undefined && score !== null) {
-                finalScore = Number(score);
+                finalScore = finalResult["1"]?.[`Updated_Score (?/${halfMarks})`];
+                // console.log("Final score ", finalScore);
                 break;
               }
             } catch (apiError) {
               console.error(`Attempt ${attempt} failed for diagram API call for script ${script.id}:`, apiError);
             }
           }
-          aiScores.set(script.id, finalScore);
+          aiScores.set(script.id, finalScore + writtenScore);
         }
       }
     }
