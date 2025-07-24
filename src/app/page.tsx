@@ -8,6 +8,12 @@ import { Swiper, SwiperSlide } from "swiper/react";
 import { Sparkles, MessageSquare, BarChart2, Zap, TrendingUp, ShieldCheck, LifeBuoy } from 'lucide-react';
 import { Building, Briefcase, Users, UserCheck, CalendarCheck } from 'lucide-react';
 import HeroA from '@/components/HeroA';
+import React from 'react';
+
+
+import { BsFileEarmarkText, BsCalendarDate } from 'react-icons/bs';
+import { FaUserCheck } from 'react-icons/fa'; // Using a different icon for better representation
+
 
 import {
     Instagram,
@@ -119,8 +125,34 @@ export default function LandingPage() {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [activeIndex, setActiveIndex] = useState(0);
 
+
+
+    // A reusable component for each step in the process
+    type WorkStepProps = {
+        icon: React.ComponentType<{ size?: number; className?: string }>;
+        title: string;
+        text: string;
+    };
+    const WorkStep = ({ icon, title, text }: WorkStepProps) => (
+        <div className="flex flex-col items-center text-center w-full md:w-56 mx-4">
+            <div className="bg-white rounded-full p-6 mb-5 shadow-md flex-shrink-0">
+                {/* The icon is created dynamically based on the passed prop */}
+                {React.createElement(icon, { size: 32, className: "text-indigo-600" })}
+            </div>
+            <h3 className="text-2xl font-normal mb-3 text-white">{title}</h3>
+            <p className="text-base text-sm text-indigo-200">{text}</p>
+        </div>
+    );
+
+    // A reusable component for the connecting line
+    const Connector = () => (
+        <div className="flex-1 max-w-[100px] h-0.5 bg-white hidden md:block mb-22"></div>
+    );
+
+
+
     return (
-        <div className="min-h-screen flex flex-col bg-gray-50">
+        <div className="min-h-screen flex flex-col bg-white overflow-x-hidden">
             {/* Header */}
             <header className="bg-white shadow">
                 <div className="max-w-screen mx-auto px-6 py-4 flex justify-between items-center">
@@ -286,196 +318,193 @@ export default function LandingPage() {
                 </div>
             </section>
 
-            {/* Features Section */}
-            <div className='flex justify-end bg-white mt-10'>
-                <div className="bg-[#dad4ff] p-8 md:bg-gradient-to-l from-[#F1F5FF] to-[#EDECFF] text-gray-900 font-inter flex items-center justify-center md:w-[85%] rounded-l-[114px] py-10 border-1 border-purple-200">
-                    <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-40 items-center">
-                        {/* Image Section */}
-                        <div className="flex justify-center lg:justify-end">
-                            {/* Using a placeholder image for the devices. In a real app, you'd replace this with your actual image. */}
-                            <img
-                                src="/iconer2.png"
-                                alt="Dashboard on Tablet and Phone"
-                                className="w-full max-w-lg"
-                                onError={(e) => {
-                                    e.target.onerror = null;
-                                    e.target.src = "https://placehold.co/600x400/F8F0FF/2D0065?text=Image+Not+Found";
-                                }}
-                            />
-                        </div>
 
-                        {/* Content Section */}
-                        <div className="flex flex-col items-center lg:items-start text-center lg:text-left">
-                            <h2 className="text-lg font-semibold text-purple-700 uppercase tracking-wider mb-2">
-                                Smart Features
-                            </h2>
-                            <h1 className="text-4xl font-bold text-purple-900 leading-tight mb-8">
-                                At Your Fingertips
+            <div className='hidden  md:flex'>
+                <div className="relative left-32">
+                    <img src="/home_line.png" alt="Hero" className="w-[416px] h-auto object-cover" />
+                </div>
+
+
+                <div className="bg-white font-sans mt-48">
+                    <div className="container mx-auto max-w-7xl px-6 py-16 md:py-24">
+                        {/* === TOP SECTION === */}
+                        <div className="max-w-5xl">
+                            {/* Main Headline */}
+                            <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-[#4a0e6c] leading-tight">
+                                Let's explore from here
                             </h1>
 
-                            {/* Features List */}
-                            <ul className="space-y-3 max-w-md lg:max-w-none">
-                                <FeatureItem
-                                    icon={Sparkles}
-                                    title="Personalized Theme: Lorem Ipsum,"
-                                />
-                                <FeatureItem
-                                    icon={MessageSquare}
-                                    title="Multi-Channel Communication: Lorem Ipsum,"
-                                />
-                                <FeatureItem
-                                    icon={BarChart2}
-                                    title="Real-Time Analytics: Track performance live."
-                                />
-                                <FeatureItem
-                                    icon={Zap}
-                                    title="Real-Time Response: Lorem Ipsum."
-                                />
-                                <FeatureItem
-                                    icon={TrendingUp}
-                                    title="Scalability: Handles high traffic effortlessly."
-                                />
-                                <FeatureItem
-                                    icon={ShieldCheck}
-                                    title="Secure Data: Advanced encryption and compliance."
-                                />
-                                <FeatureItem
-                                    icon={LifeBuoy}
-                                    title="24/7 Support: Always available, uninterrupted service."
-                                />
-                            </ul>
+                            {/* Sub-headline */}
+                            <p className="mt-4 md:mt-6 text-lg md:text-xl text-gray-600 max-w-3xl">
+                                Harnessed for productivity. Designed for collaboration. Celebrated for
+                                smoothness. Welcome to the ERP platform institutions love.
+                            </p>
+
+                            {/* CTA Form Section */}
+                            <div className="mt-8 md:mt-10 flex flex-col lg:flex-row items-center gap-x-6 gap-y-4">
+                                {/* Email Input & Primary Button */}
+                                <div className="flex w-full flex-col sm:flex-row sm:w-auto gap-3">
+                                    <input
+                                        type="email"
+                                        placeholder="Email address"
+                                        aria-label="Email address"
+                                        className="w-full sm:w-72 appearance-none rounded-md border border-gray-300 px-4 py-3 placeholder-gray-400 shadow-sm focus:border-[#6f42c1] focus:outline-none focus:ring-2 focus:ring-[#a38fc9]"
+                                    />
+                                    <button className="w-full sm:w-auto whitespace-nowrap rounded-md bg-[#6f42c1] px-6 py-3 font-semibold text-white shadow-sm transition-colors hover:bg-[#5a34a0]">
+                                        Request Callback
+                                    </button>
+                                </div>
+
+                                {/* Vertical Divider */}
+                                <div className="hidden lg:block border-l border-gray-300 h-8"></div>
+
+                                {/* Secondary Button */}
+                                <div className="w-full lg:w-auto">
+                                    <button className="w-full lg:w-auto whitespace-nowrap rounded-md border border-[#c5b3e5] px-6 py-3 font-semibold text-[#6f42c1] transition-colors hover:bg-[#f3e5f5] hover:border-[#6f42c1]">
+                                        Start a free enterprise trial
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* === BOTTOM SECTION === */}
+                        <div className="mt-20 md:mt-32 max-w-5xl">
+                            <h2 className="text-4xl font-normal font-[Helvetica]">
+                                <span className="text-[#4a0e6c]">
+                                    Accelerate high-quality{' '}
+                                </span>
+                                <span className="text-[#a38fc9]">
+                                    Institution Management development. Our platform drives innovation
+                                    with tools that boost management velocity.
+                                </span>
+                            </h2>
                         </div>
                     </div>
                 </div>
             </div>
 
-            {/* Features Carousel */}
-            <section className="bg-gradient-to-b from-gray-50 to-white py-20 lg:py-24 overflow-hidden">
-                <div className="container mx-auto px-4 sm:px-6 lg:px-8 p-10">
-                    <div className="text-center mb-16">
-                        <h2 className="text-4xl font-bold text-gray-900 leading-tight tracking-tight">
-                            Experience the <span className="text-indigo-600">Ease of Teaching</span> with <br /> <span className="text-indigo-800">AI Classroom</span>
-                        </h2>
-                        <p className="mt-4 text-lg text-gray-600 max-w-2xl mx-auto">
-                            Revolutionize your teaching methods with our intuitive AI-powered platform designed to simplify your workflow and enhance student engagement.
-                        </p>
-                    </div>
+            <div className='flex justify-center mt-8'>
+                <img src="/CodeEditorImage.png" alt="img" />
+            </div>
 
-                    <Swiper
-                        onSlideChange={(swiper) => setActiveIndex(swiper.realIndex)}
-                        modules={[Navigation, Pagination, Autoplay, EffectCoverflow]}
-                        spaceBetween={40} // Increased space between slides
-                        slidesPerView={1}
-                        centeredSlides
-                        loop
-                        navigation={{
-                            nextEl: '.swiper-button-next-custom',
-                            prevEl: '.swiper-button-prev-custom',
-                        }}
-                        pagination={{ clickable: true, el: '.swiper-pagination-custom' }}
-                        autoplay={{ delay: 3500, disableOnInteraction: false }} // Slightly longer delay, don't stop on interaction
-                        effect="coverflow"
-                        coverflowEffect={{
-                            rotate: 0,
-                            stretch: 0,
-                            depth: 100,
-                            modifier: 1,
-                            slideShadows: false, // Keep shadows off for a cleaner look
-                        }}
-                        breakpoints={{
-                            640: { slidesPerView: 2, spaceBetween: 30 },
-                            1024: { slidesPerView: 3, spaceBetween: 40 },
-                        }}
-                        className="relative pb-16 pt-8" // Added padding for pagination dots and custom arrows
-                    >
-                        {features.map((feature, index) => (
-                            <SwiperSlide key={index}>
-                                <div className={`rounded-3xl p-16 shadow-lg transition-all duration-500 ease-in-out transform
-        h-[400px] min-h-[320px] flex flex-col items-center text-center border border-gray-100
-        ${index === activeIndex ? 'shadow-4xl shadow-purple-400 border-1 border-purple-400' : 'bg-white hover:shadow-xl hover:-translate-y-2'}
-      `}>
-                                    <h3 className="text-2xl font-bold text-[#3A1078] mb-3">{feature.title}</h3>
-                                    <p className="text-black mt-4 text-base leading-relaxed">{feature.description}</p>
-                                    <div className="h-20 mt-auto mb-4">
-                                        <img src={feature.icon} alt={feature.title} className="w-full h-full object-cover" />
-                                    </div>
+
+            <section className=" w-full mt-8 md:mt-0">
+                <div className='flex flex-col'>
+                    <div className="container mx-auto max-w-7xl px-4 pb-10">
+                        {/* Flex container for the two-column layout */}
+                        <div className="flex flex-col lg:flex-row items-center justify-center">
+
+                            {/* === Left Column: Text Content === */}
+                            <div className="flex-1">
+                                <h2 className="text-[28px] font-normal font-[Helvetica]">
+                                    <span className="text-[#4a0e6c]">
+                                        AI-Classroom Workspaces {' '}
+                                    </span>
+                                    <span className="text-[#a38fc9]">
+                                        offers a complete ERP platform, so you can control, manage, structure, and access from any part and from anywhere.
+                                    </span>
+                                </h2>
+                            </div>
+
+                            {/* === Right Column: Image Content === */}
+                            <div className="flex-1">
+                                {/* The image is wrapped in a div to create the card/shadow effect */}
+                                <div className='flex flex-col justify-center align-middle items-center flex-1 max-h-36 relative top-96 md:top-40'>
+                                    <img src="/PortsView.png" alt="AI-Classroom Workspaces" className='relative -top-72 md:-top-0' />
+                                    <img src="/ActionsMenu.png" alt="AI-Classroom Workspaces Actions Menu" className='hidden md:block relative z-10 -top-96 left-36' />
                                 </div>
-                            </SwiperSlide>
-                        ))}
+                            </div>
 
-                        {/* Custom Navigation Arrows */}
-                        <div className="swiper-button-prev-custom absolute left-4 top-1/2 -translate-y-1/2 z-10 cursor-pointer bg-white rounded-full p-3 shadow-md hover:bg-gray-100 transition-colors duration-300 hidden md:block">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-                            </svg>
                         </div>
-                        <div className="swiper-button-next-custom absolute right-4 top-1/2 -translate-y-1/2 z-10 cursor-pointer bg-white rounded-full p-3 shadow-md hover:bg-gray-100 transition-colors duration-300 hidden md:block">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                            </svg>
-                        </div>
-
-                        {/* Custom Pagination Dots */}
-                        <div className="swiper-pagination-custom mt-8 flex justify-center space-x-2 absolute bottom-4 left-0 right-0"></div>
-                        <div className="h-10"></div>
-                    </Swiper>
-
+                    </div>
                 </div>
             </section>
 
 
+            <div className="font-[Helvetica]">
+                <div>
+                    <div className='flex justify-center mt-2 px-16 top-50'>
 
-            <div className="md:hidden min-h-screen bg-white font-inter flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-                <div className="max-w-4xl mx-auto bg-purple-50 rounded-3xl shadow-xl p-8 md:p-12 lg:p-16 text-center">
-                    <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-purple-900 leading-tight mb-4">
-                        Built For All Your <br className="sm:hidden" />Administrative Needs
-                    </h1>
-                    <p className="text-md sm:text-lg text-purple-700 mb-12">
-                        AI Powered Institution Management Solution For You!
-                    </p>
-
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-8">
-                        {features1.map((feature, index) => (
-                            <FeatureCard key={index} icon={feature.icon} title={feature.title} />
-                        ))}
-                    </div>
-                </div>
-            </div>
-
-
-            {/* <div className='flex flex-row  bg-[#e0dcff7c]'>
-                <div className='flex flex-col items-start justify-center h-[600px] w-[40%]'>
-                    <div className="text-3xl sm:text-4xl lg:text-5xl h-[50%] w-[90%] flex flex-col justify-center font-extrabold bg-purple-400 text-white leading-tight mb-4 rounded-r-[250px] pl-8">
-                        <div>
-                            <div>Smart</div>
-                            <div>Classroom</div>
+                        <div className='hidden md:block relative top-40'>
+                            <img src="/Tab.png" alt="qq" className='' />
                         </div>
+                        <div className="max-w-3xl p-20 mt-24">
+                            {/* Subheading */}
+                            <div className="inline-block relative">
+                                <h2 className="text-sm font-bold tracking-[.2em] text-purple-400">ABOUT US</h2>
+                                <div className="absolute -bottom-1 left-0 w-12 h-[2px] bg-purple-200"></div>
+                            </div>
+
+                            {/* Main Heading */}
+                            <h1 className="text-4xl font-medium text-indigo-900 mt-4 mb-6 leading-tight">
+                                The Easy Way To Get <br /> Your Space Organized
+                            </h1>
+
+                            {/* Paragraph */}
+                            <p className="text-md text-gray-600 leading-relaxed">
+                                We are more than just a duh ohouehgagnujaghguionghuia eghuj ghuiahg iuaghuihauighaeigadiughaueighaieughaeiu gahg euibgaeuihgausibf hiuaehgauhg aeuhg ouaeghiuuaehgiuaegh iaeuhgaueigh uaihg iauhg iasugh auig hasuig haiugh ausg haiug auig haui haug haug hugaug haugh aug .....
+                            </p>
+                        </div>
+
+
+
+                    </div>
+
+
+                    <div className='hidden md:block relative -top-70 left-[80%] max-h-0'>
+                        <img src="/Phone.png" alt="qq" className='' />
+                    </div>
+
+                    <div className='py-2 md:py-20 bg-[url(/qwqw.png)] '>
+
+                        {/* <img src="/qwqw.png" alt="qq" className='w-screen' /> */}
+
+                        <div className="font-sans w-full py-20 px-10">
+                            <div className="container mx-auto text-center">
+                                {/* Heading */}
+                                <p className="tracking-wider text-sm text-white mb-2">HEADING 1</p>
+                                <h2 className="text-3xl text-white mb-20">How We Work?</h2>
+
+                                {/* Steps container */}
+                                <div className="flex flex-col md:flex-row items-center justify-center space-y-12 md:space-y-0">
+                                    <WorkStep
+                                        icon={BsFileEarmarkText}
+                                        title="Application"
+                                        text="bvbihdi uiuthd hdjn jadhndjnbjdnbjbjk bkdijn"
+                                    />
+                                    <Connector />
+                                    <WorkStep
+                                        icon={BsCalendarDate}
+                                        title="Schedule us"
+                                        text="jdnbjdbnodjbnjdbnjdnbndbjn dbj dbjdbndkjdbnb"
+                                    />
+                                    <Connector />
+                                    <WorkStep
+                                        icon={BsCalendarDate}
+                                        title="Hire Us"
+                                        text="jkdniuhubn upie dbkmd njguneugjban gujbdjbjb u"
+                                    />
+                                    <Connector />
+                                    <WorkStep
+                                        icon={FaUserCheck}
+                                        title="We Provide"
+                                        text="jnjninadjbj bj ikfvbd jid jd kd d bdahb djb bd jhbd"
+                                    />
+                                </div>
+
+                            </div>
+                        </div>
+
                     </div>
                 </div>
-                <div className='flex flex-col items-center justify-center h-[600px] w-[60%]'>
-                    <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-purple-900 leading-tight mb-4">
-                        Built For All Your <br className="sm:hidden" />Administrative Needs
-                    </h1>
-                    <p className="text-md sm:text-lg text-purple-700 mb-12">
-                        AI Powered Institution Management Solution For You!
-                    </p>
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-8">
-                        {features1.map((feature, index) => (
-                            <FeatureCard key={index} icon={feature.icon} title={feature.title} />
-                        ))}
-                    </div>
-                </div>
-
-            </div> */}
-
-            <div className='hidden md:block mt-10'>
-                <HeroA />
             </div>
+
+
 
 
             <FAQ />
             {/* Footer */}
-            <footer className="border-t bg-gray-100 pt-8">
+            <footer className="border-t bg-gray-100 pt-8 mt-">
                 <div className="flex flex-wrap justify-between mx-[10%] gap-8">
                     <div className="w-full md:w-auto">
                         <div className="flex items-center gap-2 mb-4">
@@ -580,6 +609,6 @@ export default function LandingPage() {
                     </div>
                 </div>
             </footer>
-        </div>
+        </div >
     );
 }
