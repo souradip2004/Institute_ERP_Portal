@@ -760,7 +760,7 @@ export default function ExamsPage() {
 
       {showExamModal && selectedExam && (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-6">
-          <div className="bg-white rounded-lg max-w-8xl w-full max-h-[95vh] overflow-y-auto shadow-xl">
+          <div className="bg-white rounded-lg max-w-8xl w-full max-h-[90vh] overflow-y-auto shadow-xl">
             {!examCompleted ? (
               <>
                 <div
@@ -819,170 +819,136 @@ export default function ExamsPage() {
                           ))}
                         </div>
                       ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
-                          {/* Left Column: Text Area (60%) */}
-                          <div className="md:col-span-3">
-                            <textarea
-                              className={`w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all text-base
-                              ${currentImageUploads.length > 0 && 'cursor-not-allowed bg-gray-100'}`}
-                              rows={20}
-                              onChange={handleTextChange}
-                              value={currentAnswer}
-                              disabled={currentImageUploads.length > 0}
-                              /*onChange={(e) => setCurrentAnswer(e.target.value)}*/
-                              placeholder="Write your answer here..."
-                            />
-                          </div>
+                        // MODIFIED LONG ANSWER LAYOUT LOGIC
+                        (() => {
+                          const isDiagramQuestion = currentQuestion.diagramImgURL && currentQuestion.diagramImgURL.length > 0;
 
-                          {/* Right Column: All Uploaders (40%) */}
-                          <div className="md:col-span-2 flex flex-col gap-6">
-                            {currentQuestion.diagramImgURL && currentQuestion.diagramImgURL.length > 0 && (
-                              <div className="border border-gray-200 rounded-lg p-4 bg-gray-50 h-full">
-                                <h3 className="font-semibold text-gray-700 mb-3">Upload Diagram</h3>
+                          const textAreaComponent = (
+                            <div>
+                        <textarea
+                          className={`w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all text-base
+                          ${currentImageUploads.length > 0 && 'cursor-not-allowed bg-gray-100'}`}
+                          rows={8}
+                          onChange={handleTextChange}
+                          value={currentAnswer}
+                          disabled={currentImageUploads.length > 0}
+                          placeholder="Write your answer here..."
+                        />
+                            </div>
+                          );
+
+                          const attachImagesComponent = (
+                            <div>
+                              <div className="relative flex items-center mb-3">
+                                <div className="flex-grow border border-purple-400 border-dashed"></div>
+                                <span className="flex-shrink mx-4 text-gray-500 text-sm font-semibold">OR</span>
+                                <div className="flex-grow border border-purple-400 border-dashed"></div>
+                              </div>
+                              <div className="border border-gray-200 rounded-lg p-4  min-h-44 text-center bg-gray-200/30 ">
                                 <input
                                   type="file"
                                   accept="image/*"
-                                  ref={diagramFileInputRef}
-                                  onChange={handleDiagramUpload}
+                                  ref={fileInputRef}
+                                  onChange={handleImageUpload}
                                   className="hidden"
-                                  disabled={isUploadingDiagram}
+                                  disabled={isUploadingImg}
                                 />
                                 <button
-                                  onClick={() => diagramFileInputRef.current?.click()}
-                                  disabled={isUploadingDiagram || currentDiagramUploads.length >= 1}
-                                  className={`w-full flex items-center justify-center gap-2 text-sm bg-white border border-gray-300 text-gray-700 font-medium py-2 px-4 rounded-md hover:bg-gray-100 transition-colors 
-                                    ${isUploadingDiagram || currentDiagramUploads.length >= 1 && 'disabled:opacity-50 cursor-not-allowed'}
-                                  
-                                  `}
+                                  onClick={() => !isUploadingImg && currentAnswer.trim() === '' && fileInputRef.current?.click()}
+                                  disabled={isUploadingImg || currentAnswer.trim() !== ''}
+                                  className={`w-full flex items-center justify-center gap-2 text-sm bg-white border border-gray-300 text-gray-700 font-medium py-2 px-4 rounded-md hover:bg-gray-100 transition-colors ${(isUploadingImg || currentAnswer.trim() !== '') && 'cursor-not-allowed bg-gray-400 opacity-50'}`}
                                 >
-                                  {isUploadingDiagram ? (
-                                    <>
-                                      {/* <Loader size="small"/> */}
-                                      <span>Uploading...</span>
-                                    </>
+                                  {isUploadingImg ? (
+                                    <span>Uploading...</span>
                                   ) : (
                                     <>
-                                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none"
-                                           viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                        <path strokeLinecap="round" strokeLinejoin="round"
-                                              d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
-                                      </svg>
-                                      <span>Upload Diagram</span>
+                                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                                      <span>Attach Answer Image</span>
                                     </>
                                   )}
                                 </button>
-
-                                <div className="mt-4">
-                                  {currentDiagramUploads.length > 0 ? (
-                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                                      {currentDiagramUploads.map((image, index) => (
+                                <div className="mt-2">
+                                  {currentImageUploads.length > 0 ? (
+                                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+                                      {currentImageUploads.map((image, index) => (
                                         <div key={index} className="relative group">
-                                          <div
-                                            className="w-full h-24 bg-gray-100 rounded-lg overflow-hidden border-2 border-transparent group-hover:border-indigo-500 transition-all duration-200">
-                                            <img src={image.url} alt={image.fileName}
-                                                 className="w-full h-full object-cover"/>
+                                          <div className="w-fit h-24 bg-gray-100 rounded-lg overflow-hidden border-2 border-transparent group-hover:border-indigo-500 transition-all duration-200">
+                                            <img src={image.url} alt={image.fileName} className="w-fit h-full "/>
                                           </div>
-                                          <p className="mt-1 text-xs text-center text-gray-700 truncate"
-                                             title={image.fileName}>{image.fileName}</p>
-                                          <button
-                                            onClick={() => handleRemoveDiagram(image.fileName)}
-                                            className="absolute top-1 right-1 h-6 w-6 bg-red-600 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                                            aria-label="Remove diagram"
-                                          >
-                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none"
-                                                 viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                                              <path strokeLinecap="round" strokeLinejoin="round"
-                                                    d="M6 18L18 6M6 6l12 12"/>
-                                            </svg>
-                                          </button>
+                                          <p className="mt-1 text-xs text-center text-gray-700 truncate" title={image.fileName}>{image.fileName}</p>
+                                          <button onClick={() => handleRemoveImage(image.fileName)} className="absolute top-1 right-1 h-6 w-6 bg-red-600 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200" aria-label="Remove image"><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg></button>
                                         </div>
                                       ))}
                                     </div>
-                                  ) : (
-                                    <div className="text-center py-2">
-                                      <p className="text-xs text-gray-500">No diagram uploaded.</p>
-                                    </div>
-                                  )}
+                                  ) : (<div className="text-center py-2"><p className="text-xs text-gray-500">No images uploaded.</p></div>)}
                                 </div>
                               </div>
-                            )}
+                            </div>
+                          );
 
-                            <div className="border border-gray-200 rounded-lg p-4 bg-gray-50 h-full">
-                              <h3 className="font-semibold text-gray-700 mb-3">Attach Images</h3>
-                              <input
-                                type="file"
-                                accept="image/*"
-                                ref={fileInputRef}
-                                onChange={handleImageUpload}
-                                className="hidden"
-                                disabled={isUploadingImg}
-                              />
-                              <button
-                                onClick={() => {
-                                  !isUploadingImg && currentAnswer.trim() === '' && fileInputRef.current?.click()
-                                }}
-                                disabled={isUploadingImg && currentAnswer.trim() !== ''}
-                                className={`w-full flex items-center justify-center gap-2 text-sm bg-white border border-gray-300 text-gray-700 font-medium py-2 px-4 rounded-md hover:bg-gray-100 transition-colors
-                                ${(isUploadingImg || currentAnswer.trim() !== '') && 'cursor-not-allowed bg-gray-400 opacity-50'}`}
-                              >
-                                {isUploadingImg ? (
-                                  <>
-                                    {/* <Loader size="small"/> */}
-                                    <span>Uploading...</span>
-                                  </>
+                          const diagramUploaderComponent = (
+                            <div className="border border-gray-200 rounded-lg p-4 bg-gray-200/50
+                       h-full">
+                              <h3 className="font-semibold text-gray-700 mb-3">Upload Diagram</h3>
+                              <input type="file" accept="image/*" ref={diagramFileInputRef} onChange={handleDiagramUpload} className="hidden" disabled={isUploadingDiagram}/>
+                              <button onClick={() => diagramFileInputRef.current?.click()} disabled={isUploadingDiagram || currentDiagramUploads.length >= 1} className="w-full flex items-center justify-center gap-2 text-sm bg-white border border-gray-300 text-gray-700 font-medium py-2 px-4 rounded-md hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                                {isUploadingDiagram ? (
+                                  <span>Uploading...</span>
                                 ) : (
                                   <>
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none"
-                                         viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                      <path strokeLinecap="round" strokeLinejoin="round"
-                                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
-                                    </svg>
-                                    <span>Upload Image</span>
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                                    <span>Upload Diagram</span>
                                   </>
                                 )}
                               </button>
-
                               <div className="mt-4">
-                                {currentImageUploads.length > 0 ? (
-                                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                                    {currentImageUploads.map((image, index) => (
+                                {currentDiagramUploads.length > 0 ? (
+                                  <div className="grid grid-cols-1 gap-3">
+                                    {currentDiagramUploads.map((image, index) => (
                                       <div key={index} className="relative group">
-                                        <div
-                                          className="w-full h-24 bg-gray-100 rounded-lg overflow-hidden border-2 border-transparent group-hover:border-indigo-500 transition-all duration-200">
-                                          <img src={image.url} alt={image.fileName}
-                                               className="w-full h-full object-cover"/>
+                                        <div className="w-full h-fit bg-gray-100 rounded-lg overflow-hidden border-2 border-transparent group-hover:border-indigo-500 transition-all duration-200">
+                                          <img src={image.url} alt={image.fileName} className="w-full h-fit"/>
                                         </div>
-                                        <p className="mt-1 text-xs text-center text-gray-700 truncate"
-                                           title={image.fileName}>
-                                          {image.fileName}
-                                        </p>
-                                        <button
-                                          onClick={() => handleRemoveImage(image.fileName)}
-                                          className="absolute top-1 right-1 h-6 w-6 bg-red-600 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                                          aria-label="Remove image"
-                                        >
-                                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none"
-                                               viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                                            <path strokeLinecap="round" strokeLinejoin="round"
-                                                  d="M6 18L18 6M6 6l12 12"/>
-                                          </svg>
-                                        </button>
+                                        <p className="mt-1 text-xs text-center text-gray-700 truncate" title={image.fileName}>{image.fileName}</p>
+                                        <button onClick={() => handleRemoveDiagram(image.fileName)} className="absolute top-1 right-1 h-6 w-6 bg-red-600 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200" aria-label="Remove diagram"><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg></button>
                                       </div>
                                     ))}
                                   </div>
-                                ) : (
-                                  <div className="text-center py-2">
-                                    <p className="text-xs text-gray-500">No images uploaded.</p>
-                                  </div>
-                                )}
+                                ) : (<div className="text-center py-2"><p className="text-xs text-gray-500">No diagram uploaded.</p></div>)}
                               </div>
                             </div>
-                          </div>
-                        </div>
+                          );
+
+                          if (isDiagramQuestion) {
+                            return (
+                              <div className="flex flex-col md:flex-row gap-6">
+                                {/* Left Column */}
+                                <div className="flex-1">
+                                  {textAreaComponent}
+                                  <div className="mt-4">
+                                    {attachImagesComponent}
+                                  </div>
+                                </div>
+                                {/* Right Column */}
+                                <div className="md:w-[25vw] md:flex-shrink-0">
+                                  {diagramUploaderComponent}
+                                </div>
+                              </div>
+                            );
+                          } else {
+                            return (
+                              <div>
+                                {textAreaComponent}
+                                <div className="mt-4">
+                                  {attachImagesComponent}
+                                </div>
+                              </div>
+                            );
+                          }
+                        })()
                       )}
 
-
-                      <div className="flex justify-between mt-6  border-t flex-wrap gap-2">
+                      <div className="flex justify-between mt-6 border-t pt-4 flex-wrap gap-2">
                         <button
                           onClick={handlePrevious}
                           disabled={currentQuestionIndex === 0}
@@ -995,9 +961,7 @@ export default function ExamsPage() {
                           disabled={submittingExam}
                           className="px-5 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors font-medium disabled:bg-indigo-400"
                         >
-                          {submittingExam && <><Loader size="small"/> <span
-														className={"pl-2"}>Submitting...</span></>}
-                          {!submittingExam && (currentQuestionIndex === selectedExam.questions.length - 1 ? 'Submit Exam' : 'Save & Next')}
+                          {submittingExam ? (<><span>Submitting...</span></>) : (currentQuestionIndex === selectedExam.questions.length - 1 ? 'Submit Exam' : 'Save & Next')}
                         </button>
                       </div>
                     </div>
@@ -1006,12 +970,8 @@ export default function ExamsPage() {
               </>
             ) : (
               <div className="text-center p-10">
-                <div
-                  className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" fill="none" viewBox="0 0 24 24"
-                       stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7"/>
-                  </svg>
+                <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7"/></svg>
                 </div>
                 <h2 className="text-2xl font-bold text-gray-800 mb-4">Exam Completed!</h2>
                 <p className="text-gray-600 mb-8 max-w-md mx-auto">
