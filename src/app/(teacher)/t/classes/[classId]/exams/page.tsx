@@ -191,11 +191,9 @@ export default function ExamsPage() {
 
   const [difficulty, setDifficulty] = useState<'Easy' | 'Medium' | 'Hard'>("Hard");
 
-  // const [aiQuestionType, setAiQuestionType] = useState<Array<AiQuestionType>>([]);
-  // NEW: Holds the page numbers after the user clicks "Apply Range"
+
   const [selectedPages, setSelectedPages] = useState<number[]>([]);
 
-  // NEW: Holds the single question type for the entire selected range
   const [selectedQuestionType, setSelectedQuestionType] = useState<'MCQ' | 'LONG_ANSWER' | 'Both'>('MCQ');
 
   const [pdfPageImages, setPdfPageImages] = useState<string[]>([]);
@@ -1929,8 +1927,10 @@ export default function ExamsPage() {
                                       setSelectedQuestionForDiagram(index);
                                       document.getElementById(`diagram-upload-${index}`)?.click();
                                     }}
-                                    disabled={uploadingDiagram && selectedQuestionForDiagram === index}
-                                    className="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50"
+                                    disabled={(uploadingDiagram && selectedQuestionForDiagram === index) || q.diagramImgURL?.length == 1}
+                                    className={`inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 
+                                    ${(uploadingDiagram && selectedQuestionForDiagram === index) || q.diagramImgURL?.length == 1 && 'disabled:opacity-50 cursor-not-allowed'}
+                                    `}
                                   >
                                     {uploadingDiagram && selectedQuestionForDiagram === index ? 'Uploading...' : 'Add Diagram'}
                                   </button>
