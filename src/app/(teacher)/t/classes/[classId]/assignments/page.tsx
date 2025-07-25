@@ -1,6 +1,6 @@
 "use client";
 
-import React, { use, useEffect, useState } from 'react';
+import React, {use, useEffect, useState} from 'react';
 import Link from 'next/link';
 import AssignmentUpload from '@/components/AssignmentUpload';
 import AssignmentsList from '@/components/AssignmentsList';
@@ -41,28 +41,27 @@ interface TeacherAssignmentsPageProps {
   };
 }
 
-export default function TeacherAssignmentsPage({ params }: TeacherAssignmentsPageProps) {
+export default function TeacherAssignmentsPage({params}: TeacherAssignmentsPageProps) {
   const resolvedParams = React.use(params as any) as { classId: string };
-  const { classId } = resolvedParams;
+  const {classId} = resolvedParams;
 
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [className, setClassName] = useState<string>('');
   const [section, setSection] = useState<string>('');
-  const [institutionId,setInstitutionId] = useState<string>('')
-  useEffect(()=>{
-    if(localStorage.getItem("user")){
-    setInstitutionId(JSON.parse(localStorage.getItem("user")).institutionId)
-  }
-  },[])
+  const [institutionId, setInstitutionId] = useState<string>('')
+  useEffect(() => {
+    if (localStorage.getItem("user")) {
+      setInstitutionId(JSON.parse(localStorage.getItem("user")).institutionId)
+    }
+  }, [])
   useEffect(() => {
     const fetchClassDetails = async () => {
       try {
-        for(let i=0;i<10;i++)
-          console.log (' ------------- ')
-            console.log('Class ID:', classId);
-
+        /*  for (let i = 0; i < 10; i++)
+            console.log(' ------------- ')*/
+        console.log('Class ID: ', classId);
 
         // Try to fetch class details from API
         const classDetailsEndpoints = [
@@ -118,18 +117,18 @@ export default function TeacherAssignmentsPage({ params }: TeacherAssignmentsPag
 
         const data = await response.json() as ApiAssignment[];
         // Make sure submissions is always an array even if not provided from API
-const processedData = await Promise.all(data.map(async (assignment: ApiAssignment) => {
-  const submissionsResponse = await fetch(`/api/assignments/${assignment.id}`, {
-    method: 'GET',
-    credentials: 'include'
-  });
-  const actualSubmissions = await submissionsResponse.json();
-  console.log('Fetched submissions for assignment:', assignment.id, actualSubmissions);
-  return {
-    ...assignment,
-    submissions: actualSubmissions.submissions || []
-  };
-}));
+        const processedData = await Promise.all(data.map(async (assignment: ApiAssignment) => {
+          const submissionsResponse = await fetch(`/api/assignments/${assignment.id}`, {
+            method: 'GET',
+            credentials: 'include'
+          });
+          const actualSubmissions = await submissionsResponse.json();
+          console.log('Fetched submissions for assignment:', assignment.id, actualSubmissions);
+          return {
+            ...assignment,
+            submissions: actualSubmissions.submissions || []
+          };
+        }));
         setAssignments(processedData);
         notify.success('Assignments loaded successfully');
       } catch (error: unknown) {
@@ -144,7 +143,7 @@ const processedData = await Promise.all(data.map(async (assignment: ApiAssignmen
     if (classId) {
       const loadingId = notify.loading('Loading assignments...');
       Promise.all([fetchClassDetails(), fetchAssignments()])
-        .finally(() => notify.dismiss(loadingId));
+      .finally(() => notify.dismiss(loadingId));
     }
   }, [classId]);
 
@@ -164,11 +163,12 @@ const processedData = await Promise.all(data.map(async (assignment: ApiAssignmen
 
         <div className="grid grid-cols-1 gap-6">
           {/* Assignment Upload Section */}
-          <AssignmentUpload classSectionId={classId} instituteId={JSON.parse(localStorage.getItem("user")).institutionId} />
+          <AssignmentUpload classSectionId={classId}
+                            instituteId={JSON.parse(localStorage.getItem("user")).institutionId}/>
 
           {/* Assignments List Section */}
           {loading ? (
-            <Loader size="large" message="Loading assignments..." />
+            <Loader size="large" message="Loading assignments..."/>
           ) : error ? (
             <div className="p-6 bg-red-50 text-red-500 rounded-md">
               <p>{error}</p>

@@ -1,9 +1,8 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, {useState, useEffect} from 'react';
 import Link from 'next/link';
-import { format } from 'date-fns';
-import { useRouter } from 'next/navigation';
+import {useRouter} from 'next/navigation';
 
 interface ClassData {
   id: string;
@@ -11,34 +10,6 @@ interface ClassData {
   section: string;
   subjects: string[];
   studentCount: number;
-  assignmentCount: number;
-  latestAssignment: {
-    title: string;
-    dueDate: string;
-    status: 'active' | 'completed' | 'past_due';
-  } | null;
-}
-
-interface AssignmentSubmission {
-  id: string;
-  studentId: string;
-  studentName: string;
-  submittedAt: string;
-  status: 'submitted' | 'graded' | 'pending';
-  grade?: number;
-}
-
-interface Assignment {
-  id: string;
-  title: string;
-  description: string;
-  dueDate: string;
-  createdAt: string;
-  updatedAt: string;
-  classId: string;
-  totalPoints: number;
-  submissions: AssignmentSubmission[];
-  status?: 'pending' | 'completed';
 }
 
 export default function TeacherAssignmentsPage() {
@@ -74,90 +45,34 @@ export default function TeacherAssignmentsPage() {
       try {
         setLoading(true);
         setError(null);
-        
-        // Default to 'teacher123' if no teacher ID found (for testing only)
-        const currentTeacherId = teacherId || 'teacher123';
-        console.log('Current Teacher ID:', currentTeacherId);
-        // Try to fetch from API endpoints
-        const endpoints = [
-          `/api/teachers/${currentTeacherId}/classes`,
-        ];
-        
-        let fetchedClasses: any[] = [];
-        
-        for (const endpoint of endpoints) {
-          try {
-            const response = await fetch(endpoint, {
-              credentials: 'include',
-              cache: 'no-store'
-            });
-            
-            if (response.ok) {
-              const data = await response.json();
-              
-              if (Array.isArray(data) && data.length > 0) {
-                fetchedClasses = data;
-                break;
-              }
-            }
-          } catch (error) {
-            console.error(`Error fetching from ${endpoint}:`, error);
-          }
+        if (!teacherId) {
+          // Keep loading until teacherId is available
+          return;
         }
 
-        if (fetchedClasses.length > 0) {
-          // Transform API data to our ClassData format
-          const transformedClasses = await Promise.all(fetchedClasses.map(async (classInfo: any) => {
-            console.log('Class Info:', classInfo);
-            const classId = classInfo.sectionId	 || `class-${Math.random().toString(36).substr(2, 9)}`;
-            let assignmentsData = [];
-            
-            // Try to fetch assignments for each class
-            try {
-              const assignmentsResponse = await fetch(`/api/classes/${classId}/assignments`, {
-                credentials: 'include',
-                cache: 'no-store'
-              });
-              
-              if (assignmentsResponse.ok) {
-                assignmentsData = await assignmentsResponse.json();
-              }
-            } catch (error) {
-              console.error(`Error fetching assignments for class ${classId}:`, error);
-            }
-            
-            // If we couldn't get real assignments, use sample data for now
-            const assignments = Array.isArray(assignmentsData) && assignmentsData.length > 0 
-              ? assignmentsData 
-              : [];
-              
-            // Get the latest assignment if any exist
-            const sortedAssignments = assignments.sort((a, b) => {
-              const dateA = new Date(a.dueDate || a.due_date || 0);
-              const dateB = new Date(b.dueDate || b.due_date || 0);
-              return dateB.getTime() - dateA.getTime();
-            });
-            
-            const latestAssignment = sortedAssignments.length > 0 ? {
-              title: sortedAssignments[0].title || 'Untitled Assignment',
-              dueDate: sortedAssignments[0].dueDate || sortedAssignments[0].due_date || 'No due date',
-              status: getAssignmentStatus(sortedAssignments[0].dueDate || sortedAssignments[0].due_date)
-            } : null;
-            
+        const response = await fetch(`/api/teachers/${teacherId}/classes`, {
+          credentials: 'include',
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch classes');
+        }
+
+        const fetchedClasses = await response.json();
+
+        if (Array.isArray(fetchedClasses)) {
+          const transformedClasses = fetchedClasses.map((classInfo: any) => {
             return {
-              id: classId,
-              name: classInfo.name || classInfo.className || (classInfo.batch ? `Class ${classInfo.batch.batchName}` : 'Unknown Class'),
-              section: classInfo.section || classInfo.sectionName || '',
+              id: classInfo.sectionId || `class-${Math.random().toString(36).substr(2, 9)}`,
+              name: classInfo.sectionName || 'Unknown Section',
+              section: classInfo.section || 'N/A',
               subjects: [
                 classInfo.subject || classInfo.subjectName || 'General',
-                classInfo.secondarySubject
+                classInfo.secondarySubject,
               ].filter(Boolean),
               studentCount: classInfo.studentCount || 0,
-              assignmentCount: assignments.length,
-              latestAssignment: latestAssignment
             };
-          }));
-          
+          });
           setClasses(transformedClasses);
         } else {
           setClasses([]);
@@ -170,105 +85,108 @@ export default function TeacherAssignmentsPage() {
       }
     };
 
-    fetchClasses();
+    if (teacherId) {
+      fetchClasses();
+    }
   }, [teacherId]);
 
-  const getAssignmentStatus = (dueDateStr: string): 'active' | 'completed' | 'past_due' => {
-    if (!dueDateStr) return 'active';
-    
-    const dueDate = new Date(dueDateStr);
-    const now = new Date();
-    
-    if (isNaN(dueDate.getTime())) return 'active';
-    
-    if (dueDate.getTime() < now.getTime()) {
-      return 'past_due';
+  const renderContent = () => {
+    if (loading) {
+      return (
+        <div className="flex justify-center items-center min-h-[50vh]">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+        </div>
+      );
     }
-    return 'active';
-  };
-  
-  const getStatusBadge = (status: 'active' | 'completed' | 'past_due') => {
-    switch(status) {
-      case 'active':
-        return <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium">Active</span>;
-      case 'completed':
-        return <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium">Completed</span>;
-      case 'past_due':
-        return <span className="bg-red-100 text-red-800 px-2 py-1 rounded-full text-xs font-medium">Past Due</span>;
-      default:
-        return null;
-    }
-  };
 
-  if (loading) {
+    if (error) {
+      return (
+        <div className="bg-red-50 text-red-500 p-4 rounded-md">
+          <p>{error}</p>
+        </div>
+      );
+    }
+
+    if (classes.length === 0) {
+      return (
+        <div className="text-center py-10">
+          <div className="mb-4 text-gray-500">
+            {/* You can use an SVG icon here for better visuals */}
+            <svg
+              className="mx-auto h-12 w-12 text-gray-400"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              aria-hidden="true"
+            >
+              <path
+                vectorEffect="non-scaling-stroke"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2z"
+              />
+            </svg>
+          </div>
+          <h3 className="text-lg font-medium text-gray-900">No classes found</h3>
+          <p className="mt-1 text-sm text-gray-500">
+            You are not currently assigned to any classes.
+          </p>
+        </div>
+      );
+    }
+
     return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {[...new Map(classes.map(item => [item.id, item])).values()].map(classItem => (
+          <div
+            key={classItem.id}
+            className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
+            onClick={() => router.push(`/t/classes/${classItem.id}/notes`)}
+          >
+            <div className="p-6">
+              <div className="flex justify-between items-start mb-4">
+                <h2 className="text-xl font-bold truncate pr-4">{classItem.name}</h2>
+                <span className="flex-shrink-0 text-gray-500 text-sm">{classItem.studentCount} Students</span>
+              </div>
+
+              <div className="flex flex-wrap gap-2 mb-4">
+                {classItem.subjects.length > 0 ? (
+                  classItem.subjects.map((subject, index) => (
+                    <span key={index} className="bg-purple-200 text-purple-800 px-3 py-1 rounded-full text-sm">
+                      {subject}
+                    </span>
+                  ))
+                ) : (
+                  <span className="text-gray-500 text-sm">No subjects assigned</span>
+                )}
+              </div>
+
+              <div className="mt-6">
+                <div className="text-blue-600 hover:text-blue-800 text-sm font-semibold flex items-center">
+                  View Notes
+                  <svg
+                    className="w-4 h-4 ml-1"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
     );
-  }
+  };
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold mb-6">Classes & Assignments</h1>
-      
-      {error ? (
-        <div className="bg-red-50 text-red-500 p-4 rounded-md mb-6">
-          <p>{error}</p>
-        </div>
-      ) : null}
-      
-      {classes.length === 0 && !error ? (
-         <div className="flex justify-center items-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-      </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-           {[...new Map(classes.map((classItem) => [classItem.id, classItem])).values()].map((classItem) => (
-            <div 
-              key={classItem.id} 
-              className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow relative cursor-pointer"
-              onClick={() => router.push(`/t/classes/${classItem.id}/assignments`)}
-            >
-              <div className="p-6">
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-xl font-bold">{classItem.name}</h2>
-                  <span className="text-gray-500 text-sm">{classItem.studentCount} Students</span>
-                </div>
-                
-                <div className="flex flex-wrap gap-2 mb-4">
-                  {classItem.subjects.length > 0 ? (
-                    classItem.subjects.map((subject, index) => (
-                      <span key={index} className="bg-purple-200 text-purple-800 px-3 py-1 rounded-full text-sm">
-                        {subject}
-                      </span>
-                    ))
-                  ) : (
-                    <span className="text-gray-500 text-sm">No subjects assigned</span>
-                  )}
-                </div>
-                
-                <div className="mb-4">
-                  
-                  
-                  <Link 
-                    href={`/t/classes/${classItem.id}/notes`}
-                    className="text-blue-600 hover:text-blue-800 text-sm flex items-center"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    View all Notes
-                    <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </Link>
-                </div>
-                
-                
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+      <h1 className="text-2xl font-bold mb-6">Classes</h1>
+      {renderContent()}
     </div>
   );
 }

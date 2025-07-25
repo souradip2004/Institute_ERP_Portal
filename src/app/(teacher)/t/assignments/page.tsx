@@ -57,7 +57,7 @@ export default function TeacherAssignmentsPage() {
             const parsedUserData = JSON.parse(userData);
             if (parsedUserData.teacherId || parsedUserData.id) {
               console.log('Parsed User Data:', parsedUserData);
-              setTeacherId(parsedUserData.teacherId || parsedUserData.id);
+              setTeacherId(parsedUserData.teacherId);
             }
           } catch (error) {
             console.error('Error parsing user data from localStorage:', error);
@@ -74,13 +74,15 @@ export default function TeacherAssignmentsPage() {
       try {
         setLoading(true);
         setError(null);
-        
-        // Default to 'teacher123' if no teacher ID found (for testing only)
-        const currentTeacherId = teacherId || 'teacher123';
-        console.log('Current Teacher ID:', currentTeacherId);
+
+        if(!teacherId){
+          return;
+        }
+        // const currentTeacherId = teacherId;
+        console.log('Current Teacher ID:', teacherId);
         // Try to fetch from API endpoints
         const endpoints = [
-          `/api/teachers/${currentTeacherId}/classes`,
+          `/api/teachers/${teacherId}/classes`,
         ];
         
         let fetchedClasses: any[] = [];
@@ -88,8 +90,7 @@ export default function TeacherAssignmentsPage() {
         for (const endpoint of endpoints) {
           try {
             const response = await fetch(endpoint, {
-              credentials: 'include',
-              cache: 'no-store'
+              credentials: 'include'
             });
             
             if (response.ok) {
@@ -146,8 +147,8 @@ export default function TeacherAssignmentsPage() {
             
             return {
               id: classId,
-              name: classInfo.name || classInfo.className || (classInfo.batch ? `Class ${classInfo.batch.batchName}` : 'Unknown Class'),
-              section: classInfo.section || classInfo.sectionName || '',
+              name: classInfo.sectionName || 'Unknown Section',
+              // section: classInfo.section || classInfo.sectionName || '',
               subjects: [
                 classInfo.subject || classInfo.subjectName || 'General',
                 classInfo.secondarySubject
