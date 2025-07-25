@@ -235,7 +235,8 @@ export async function GET(
     }
 
     let totalMarks = 0;
-    const updatePromises = examSubmission.answerScripts.map(script => {
+
+    for (const script of examSubmission.answerScripts) {
       let score = 0;
       let isAiGraded = false;
 
@@ -252,13 +253,18 @@ export async function GET(
       }
       totalMarks += score;
 
-      return prisma.answerScript.update({
+      // Await each update individually inside the loop
+      await prisma.answerScript.update({
         where: {id: script.id},
-        data: {obtainedMarks: score, status: "GRADED", isAiGraded, gradedById: teacherId, gradedAt: new Date()},
+        data: {
+          obtainedMarks: score,
+          status: "GRADED",
+          isAiGraded,
+          gradedById: teacherId,
+          gradedAt: new Date()
+        },
       });
-    });
-
-    await Promise.all(updatePromises);
+    }
 
     const updatedSubmission = await prisma.examSubmission.update({
       where: {id: examSubmission.id},
