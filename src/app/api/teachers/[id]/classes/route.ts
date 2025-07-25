@@ -1,25 +1,25 @@
-import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import {NextResponse} from 'next/server';
+import {PrismaClient} from '@prisma/client';
 
 const prisma = new PrismaClient();
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  {params}: { params: { id: string } }
 ) {
   try {
-    const { id: teacherId } = params; // params is already awaited by Next.js
+    const {id: teacherId} = params; // params is already awaited by Next.js
     console.log(`Received teacher ID: ${teacherId}`);
 
     if (!teacherId) {
-      return NextResponse.json({ error: 'Teacher ID is required' }, { status: 400 });
+      return NextResponse.json({error: 'Teacher ID is required'}, {status: 400});
     }
 
     console.log(`Fetching course sections for teacher ID: ${teacherId}`);
 
     // Query teacher course section relations
     const relations = await prisma.teacherCourseSectionRelation.findMany({
-      where: { teacherId },
+      where: {teacherId},
       include: {
         course: {
           include: {
@@ -27,7 +27,7 @@ export async function GET(
             createdBy: {
               include: {
                 user: {
-                  select: { id: true, name: true, email: true },
+                  select: {id: true, name: true, email: true}
                 },
               },
             },
@@ -42,7 +42,7 @@ export async function GET(
                 student: {
                   include: {
                     user: {
-                      select: { id: true, name: true, email: true },
+                      select: {id: true, name: true, email: true},
                     },
                   },
                 },
@@ -81,67 +81,67 @@ export async function GET(
 
 
     // Structure the response to match the required format
-   const structuredData = await Promise.all(
-  uniqueRelations.map(async (relation, index) => { // Iterate over uniqueRelations now
-    const section = relation.classSection;
-    const classSectionId = section.id;
-    const studentCount = section.studentEnrollments.length;
+    const structuredData = await Promise.all(
+      uniqueRelations.map(async (relation, index) => { // Iterate over uniqueRelations now
+        const section = relation.classSection;
+        const classSectionId = section.id;
+        const studentCount = section.studentEnrollments.length;
 
-    const attendancePercentage = Math.floor(Math.random() * (90 - 70 + 1)) + 70;
+        const attendancePercentage = Math.floor(Math.random() * (90 - 70 + 1)) + 70;
 
-    // Fetch assignments specific to this unique classSectionId
-    const assignments = await prisma.assignment.findMany({
-      where: { classSectionId },
-      orderBy: { createdAt: 'desc' }, // Order by creation date to easily get the last one
-      take: 1, // Only fetch the last assignment
-      include: {
-        classSection: false, // Don't include redundant data here
-        createdBy: {
+        // Fetch assignments specific to this unique classSectionId
+        const assignments = await prisma.assignment.findMany({
+          where: {classSectionId},
+          orderBy: {createdAt: 'desc'}, // Order by creation date to easily get the last one
+          take: 1, // Only fetch the last assignment
           include: {
-            user: {
-              select: { id: true, name: true, email: true },
+            classSection: false, // Don't include redundant data here
+            createdBy: {
+              include: {
+                user: {
+                  select: {id: true, name: true, email: true},
+                },
+              },
             },
           },
-        },
-      },
-    });
+        });
 
-    const lastAssignment = assignments[0] || null;
-    let lastAssignmentData = null;
-    if (lastAssignment) {
-      const today = new Date();
-      const assignmentDate = new Date(lastAssignment.createdAt); // Assuming assignments have a createdAt field
-      const diffTime = Math.abs(today.getTime() - assignmentDate.getTime());
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        const lastAssignment = assignments[0] || null;
+        let lastAssignmentData = null;
+        if (lastAssignment) {
+          const today = new Date();
+          const assignmentDate = new Date(lastAssignment.createdAt); // Assuming assignments have a createdAt field
+          const diffTime = Math.abs(today.getTime() - assignmentDate.getTime());
+          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-      lastAssignmentData = {
-        title: lastAssignment.title,
-        daysAgo: diffDays,
-        // You might want to include the actual date string as well
-        date: assignmentDate.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
-      };
-    }
+          lastAssignmentData = {
+            title: lastAssignment.title,
+            daysAgo: diffDays,
+            // You might want to include the actual date string as well
+            date: assignmentDate.toLocaleDateString('en-US', {year: 'numeric', month: 'short', day: 'numeric'})
+          };
+        }
 
 
-    const exams = [
-      { date: "Apr 12", day: "(Monday)" },
-      { date: "Apr 15", day: "(Thursday)" },
-      { date: "Apr 18", day: "(Sunday)" },
-    ];
-console.log(section)
-    return {
-      id: relation.course.id, // This is the course ID, not necessarily unique per section
-      className: `Class ${section.batch.batchName}`,
-      sectionId: section.id, // This is the unique identifier for the class section
-      sectionName: section.sectionName || String.fromCharCode(65 + index), // Use actual section name if available, fallback to letter
-      subject: relation.course.name,
-      studentCount,
-      attendancePercentage,
-      lastAssignment: lastAssignmentData, // Use the structured last assignment data
-      nextExam: exams[index % exams.length],
-    };
-  })
-);
+        const exams = [
+          {date: "Apr 12", day: "(Monday)"},
+          {date: "Apr 15", day: "(Thursday)"},
+          {date: "Apr 18", day: "(Sunday)"},
+        ];
+        console.log(section);
+        return {
+          id: relation.course.id, // This is the course ID, not necessarily unique per section
+          className: `Class ${section.batch.batchName}`,
+          sectionId: section.id, // This is the unique identifier for the class section
+          sectionName: section.sectionName || String.fromCharCode(65 + index), // Use actual section name if available, fallback to letter
+          subject: relation.course.name,
+          studentCount,
+          attendancePercentage,
+          lastAssignment: lastAssignmentData, // Use the structured last assignment data
+          nextExam: exams[index % exams.length],
+        };
+      })
+    );
 
 
     return NextResponse.json(structuredData);
@@ -149,7 +149,7 @@ console.log(section)
     console.error('Error in teacher course sections API route:', error);
 
     // Return fallback data in development mode
-    if (process.env.NODE_ENV === 'development') {
+    /*if (process.env.NODE_ENV === 'development') {
       console.log('Error occurred, returning fallback data for development');
       return NextResponse.json([
         {
@@ -189,9 +189,9 @@ console.log(section)
           }
         }
       ]);
-    }
+    }*/
 
-    return NextResponse.json({ error: 'Failed to fetch course sections' }, { status: 500 });
+    return NextResponse.json({error: 'Failed to fetch course sections'}, {status: 500});
   } finally {
     await prisma.$disconnect();
   }
