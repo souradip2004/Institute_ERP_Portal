@@ -1,13 +1,14 @@
 'use client';
-import {useState, useEffect} from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import {useRouter} from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import Loader from '@/components/ui/Loader';
 
 interface ClassData {
   id: string;
   name: string;
   section: string;
+  sectionId: string;
   subjects: string[];
   studentCount: number;
   attendancePercentage: number;
@@ -78,6 +79,9 @@ export default function ClassesPage() {
               const data = await response.json();
               console.log('data: ');
               console.log(data);
+              if (data.length == 0) {
+                console.log('no data found');
+              }
               if (Array.isArray(data) && data.length > 0) {
                 fetchedClasses = data;
                 break;
@@ -96,6 +100,7 @@ export default function ClassesPage() {
               id: classInfo.id || classInfo.classId || `class-${Math.random().toString(36).substr(2, 9)}`,
               name: classInfo.name || classInfo.className || (classInfo.batch ? `Class ${classInfo.batch.batchName}` : 'Unknown Class'),
               section: classInfo.section || classInfo.sectionName || '',
+              sectionId: classInfo.sectionId || classInfo.id,
               subjects: [
                 classInfo.subject || classInfo.subjectName || 'General',
                 classInfo.secondarySubject
@@ -138,7 +143,7 @@ export default function ClassesPage() {
     return (
       <div className="flex justify-center items-center min-h-screen">
         {/* <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div> */}
-        <Loader size="large"/>
+        <Loader size="large" />
       </div>
     );
   }
@@ -163,7 +168,7 @@ export default function ClassesPage() {
             <div
               key={classItem.id}
               className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow relative cursor-pointer"
-              // onClick={() => router.push(`/t/classes/${classItem.id}` as any)}
+              onClick={() => router.push(`/t/classes/${classItem.sectionId}` as any)}
             >
               <div className="p-6 border-b">
                 <div className="flex justify-between items-center mb-4">
