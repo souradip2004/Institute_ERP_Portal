@@ -189,50 +189,71 @@ const FeeEditorModal: React.FC<FeeEditorModalProps> = ({ isOpen, onClose, onSave
                 </div>
                 <div className="p-6 space-y-4 max-h-[60vh] overflow-y-auto">
                     {currentFees.map((fee, index) => (
-                        <div key={fee.id} className="grid grid-cols-1 md:grid-cols-2 gap-2 p-3 bg-slate-50 rounded-md">
-                            <input
-                                type="text"
-                                placeholder="Fee Name (e.g., Tuition)"
-                                value={fee.name}
-                                onChange={(e) => handleFeeChange(index, 'name', e.target.value)}
-                                className="px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                            />
-                            <input
-                                type="number"
-                                placeholder="Amount"
-                                value={fee.amount}
-                                onChange={(e) => handleFeeChange(index, 'amount', e.target.value)}
-                                className="px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                            />
-                            <input
-                                type="number"
-                                placeholder="Tax (%)"
-                                value={fee.taxPercentage ?? ''}
-                                onChange={(e) => handleFeeChange(index, 'taxPercentage', e.target.value)}
-                                className="px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                            />
-                            <input
-                                type="number"
-                                placeholder="Penalty (₹)"
-                                value={fee.penalty ?? ''}
-                                onChange={(e) => handleFeeChange(index, 'penalty', e.target.value)}
-                                className="px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                            />
-                            <textarea
-                                placeholder="Description"
-                                value={fee.description ?? ''}
-                                onChange={(e) => handleFeeChange(index, 'description', e.target.value)}
-                                className="col-span-2 px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                                rows={2}
-                            />
-                            <div className="col-span-2 flex gap-2 items-center">
-                                <label className="text-xs text-slate-600">Terms:</label>
+                        <div key={fee.id} className="grid grid-cols-1 md:grid-cols-2 gap-4 p-3 bg-slate-50 rounded-md">
+                            <div>
+                                <label htmlFor={`feename-${fee.id}`} className="block text-sm font-medium text-slate-700 mb-1">Fee Name</label>
+                                <input
+                                    id={`feename-${fee.id}`}
+                                    type="text"
+                                    placeholder="Fee Name (e.g., Tuition)"
+                                    value={fee.name}
+                                    onChange={(e) => handleFeeChange(index, 'name', e.target.value)}
+                                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                />
+                            </div>
+                            <div>
+                                <label htmlFor={`amount-${fee.id}`} className="block text-sm font-medium text-slate-700 mb-1">Amount (₹)</label>
+                                <input
+                                    id={`amount-${fee.id}`}
+                                    type="number"
+                                    placeholder="Amount"
+                                    value={fee.amount}
+                                    onChange={(e) => handleFeeChange(index, 'amount', e.target.value)}
+                                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                />
+                            </div>
+                            <div>
+                                <label htmlFor={`tax-${fee.id}`} className="block text-sm font-medium text-slate-700 mb-1">Tax Percentage (%)</label>
+                                <input
+                                    id={`tax-${fee.id}`}
+                                    type="number"
+                                    placeholder="Tax (%)"
+                                    value={fee.taxPercentage ?? ''}
+                                    onChange={(e) => handleFeeChange(index, 'taxPercentage', e.target.value)}
+                                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                />
+                            </div>
+                            <div>
+                                <label htmlFor={`penalty-${fee.id}`} className="block text-sm font-medium text-slate-700 mb-1">Penalty (₹)</label>
+                                <input
+                                    id={`penalty-${fee.id}`}
+                                    type="number"
+                                    placeholder="Penalty (₹)"
+                                    value={fee.penalty ?? ''}
+                                    onChange={(e) => handleFeeChange(index, 'penalty', e.target.value)}
+                                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                />
+                            </div>
+                            <div className="col-span-2">
+                                <label htmlFor={`description-${fee.id}`} className="block text-sm font-medium text-slate-700 mb-1">Description</label>
+                                <textarea
+                                    id={`description-${fee.id}`}
+                                    placeholder="Description"
+                                    value={fee.description ?? ''}
+                                    onChange={(e) => handleFeeChange(index, 'description', e.target.value)}
+                                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                    rows={2}
+                                />
+                            </div>
+                            <div className="col-span-2">
+                                <label htmlFor={`terms-${fee.id}`} className="block text-sm font-medium text-slate-700 mb-1">Payment Terms</label>
                                 <select
+                                    id={`terms-${fee.id}`}
                                     value={['Monthly', '3 Months', '5 Months', '12 Months'].includes(fee.paymentterms || '') ? fee.paymentterms : ''}
                                     onChange={(e) => handleFeeChange(index, 'paymentterms', e.target.value)}
-                                    className="px-2 py-1 border border-slate-300 rounded-md text-xs"
+                                    className="w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                                 >
-                                    <option value="">Select</option>
+                                    <option value="">Select Payment Terms</option>
                                     <option value="Monthly">Monthly</option>
                                     <option value="3 Months">3 Months</option>
                                     <option value="6 Months">6 Months</option>
@@ -346,50 +367,71 @@ const FeeAddModal: React.FC<FeeAddModalProps> = ({ isOpen, onClose, onAdd, title
                     <h3 className="text-xl font-semibold text-slate-800">{title}</h3>
                 </div>
                 <div className="p-6 space-y-4 max-h-[60vh] overflow-y-auto">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 p-3 bg-slate-50 rounded-md">
-                        <input
-                            type="text"
-                            placeholder="Fee Name (e.g., Tuition)"
-                            value={fee.name}
-                            onChange={(e) => handleChange('name', e.target.value)}
-                            className="px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                        />
-                        <input
-                            type="number"
-                            placeholder="Amount"
-                            value={fee.amount}
-                            onChange={(e) => handleChange('amount', e.target.value)}
-                            className="px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                        />
-                        <input
-                            type="number"
-                            placeholder="Tax (%)"
-                            value={fee.taxPercentage ?? ''}
-                            onChange={(e) => handleChange('taxPercentage', e.target.value)}
-                            className="px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                        />
-                        <input
-                            type="number"
-                            placeholder="Penalty (₹)"
-                            value={fee.penalty ?? ''}
-                            onChange={(e) => handleChange('penalty', e.target.value)}
-                            className="px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                        />
-                        <textarea
-                            placeholder="Description"
-                            value={fee.description ?? ''}
-                            onChange={(e) => handleChange('description', e.target.value)}
-                            className="col-span-2 px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                            rows={2}
-                        />
-                        <div className="col-span-2 flex gap-2 items-center">
-                            <label className="text-xs text-slate-600">Terms:</label>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-3 bg-slate-50 rounded-md">
+                        <div>
+                            <label htmlFor="add-feename" className="block text-sm font-medium text-slate-700 mb-1">Fee Name</label>
+                            <input
+                                id="add-feename"
+                                type="text"
+                                placeholder="Fee Name (e.g., Tuition)"
+                                value={fee.name}
+                                onChange={(e) => handleChange('name', e.target.value)}
+                                className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            />
+                        </div>
+                        <div>
+                            <label htmlFor="add-amount" className="block text-sm font-medium text-slate-700 mb-1">Amount (₹)</label>
+                            <input
+                                id="add-amount"
+                                type="number"
+                                placeholder="Amount"
+                                value={fee.amount}
+                                onChange={(e) => handleChange('amount', e.target.value)}
+                                className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            />
+                        </div>
+                        <div>
+                            <label htmlFor="add-tax" className="block text-sm font-medium text-slate-700 mb-1">Tax Percentage (%)</label>
+                            <input
+                                id="add-tax"
+                                type="number"
+                                placeholder="Tax (%)"
+                                value={fee.taxPercentage ?? ''}
+                                onChange={(e) => handleChange('taxPercentage', e.target.value)}
+                                className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            />
+                        </div>
+                        <div>
+                            <label htmlFor="add-penalty" className="block text-sm font-medium text-slate-700 mb-1">Penalty (₹)</label>
+                            <input
+                                id="add-penalty"
+                                type="number"
+                                placeholder="Penalty (₹)"
+                                value={fee.penalty ?? ''}
+                                onChange={(e) => handleChange('penalty', e.target.value)}
+                                className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            />
+                        </div>
+                        <div className="col-span-2">
+                            <label htmlFor="add-description" className="block text-sm font-medium text-slate-700 mb-1">Description</label>
+                            <textarea
+                                id="add-description"
+                                placeholder="Description"
+                                value={fee.description ?? ''}
+                                onChange={(e) => handleChange('description', e.target.value)}
+                                className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                rows={2}
+                            />
+                        </div>
+                        <div className="col-span-2">
+                            <label htmlFor="add-terms" className="block text-sm font-medium text-slate-700 mb-1">Payment Terms</label>
                             <select
+                                id="add-terms"
                                 value={['Monthly', '3 Months', '5 Months', '12 Months'].includes(fee.paymentterms || '') ? fee.paymentterms : ''}
                                 onChange={(e) => handleChange('paymentterms', e.target.value)}
-                                className="px-2 py-1 border border-slate-300 rounded-md text-xs"
+                                className="w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                             >
-                                <option value="">Select</option>
+                                <option value="">Select Payment Terms</option>
                                 <option value="Monthly">Monthly</option>
                                 <option value="3 Months">3 Months</option>
                                 <option value="6 Months">6 Months</option>
@@ -818,7 +860,8 @@ export default function Home() {
                                             <th scope="col" className="px-6 py-3">Receipt</th>
                                         </tr>
                                     </thead>
-                                    <tbody>
+
+                                    {/* <tbody>
                                         {(studentData[selectedSectionId] || []).map((student) => {
                                             const section = feesData.find(sec => sec.id === selectedSectionId);
                                             const globalFeesTotal = section ? calculateFeeSum(section.globalFees) : 0;
@@ -901,7 +944,7 @@ export default function Home() {
                                                 </td>
                                             </tr>
                                         )}
-                                    </tbody>
+                                    </tbody> */}
                                 </table>
                             </div>
                         </div>

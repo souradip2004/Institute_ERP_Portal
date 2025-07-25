@@ -44,6 +44,7 @@ function Page() {
             state={instituteData.state}
             country={instituteData.country}
             type={instituteData.type}
+            logoUrl={instituteData.logoUrl}
             primaryColor={instituteData.primaryColor}
         />
     );

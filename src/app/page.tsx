@@ -124,6 +124,9 @@ const FeatureCard = ({ icon: Icon, title }: FeatureCardProps) => {
 export default function LandingPage() {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [activeIndex, setActiveIndex] = useState(0);
+    const [email, setEmail] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+    const [message, setMessage] = useState('');
     const router = useRouter();
 
 
@@ -151,7 +154,34 @@ export default function LandingPage() {
 
 
     const handelGetEmailQuote = async () => {
+        if (!email) {
+            setMessage('Please enter your email address');
+            return;
+        }
 
+        setIsLoading(true);
+        setMessage('');
+
+        try {
+            const response = await fetch('/api/emails/quote', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ email }),
+            });
+
+            if (response.ok) {
+                setMessage('Quote sent successfully! Check your email.');
+                setEmail('');
+            } else {
+                setMessage('Failed to send quote. Please try again.');
+            }
+        } catch (error) {
+            setMessage('An error occurred. Please try again.');
+        } finally {
+            setIsLoading(false);
+        }
     }
 
 
@@ -352,12 +382,28 @@ export default function LandingPage() {
                                         type="email"
                                         placeholder="Email address"
                                         aria-label="Email address"
+                                        value={email}
+                                        onChange={(e) => setEmail(e.target.value)}
                                         className="w-full sm:w-72 appearance-none rounded-md border border-gray-300 px-4 py-3 placeholder-gray-400 shadow-sm focus:border-[#6f42c1] focus:outline-none focus:ring-2 focus:ring-[#a38fc9]"
                                     />
-                                    <button className="w-full sm:w-auto whitespace-nowrap rounded-md bg-[#6f42c1] px-6 py-3 font-semibold text-white shadow-sm transition-colors hover:bg-[#5a34a0]">
-                                        Get a quote
+                                    <button
+                                        onClick={handelGetEmailQuote}
+                                        disabled={isLoading}
+                                        className="w-full sm:w-auto whitespace-nowrap rounded-md bg-[#6f42c1] px-6 py-3 font-semibold text-white shadow-sm transition-colors hover:bg-[#5a34a0] disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        {isLoading ? 'Sending...' : 'Get a quote'}
                                     </button>
                                 </div>
+
+                                {/* Message Display */}
+                                {message && (
+                                    <div className={`w-full text-sm px-4 py-2 rounded-md ${message.includes('successfully')
+                                            ? 'bg-green-100 text-green-700 border border-green-200'
+                                            : 'bg-red-100 text-red-700 border border-red-200'
+                                        }`}>
+                                        {message}
+                                    </div>
+                                )}
 
                                 {/* Vertical Divider */}
                                 <div className="hidden lg:block border-l border-gray-300 h-8"></div>
