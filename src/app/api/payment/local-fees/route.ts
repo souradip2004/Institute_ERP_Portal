@@ -260,10 +260,18 @@ export async function GET(request: Request) {
   try {
     const {searchParams} = new URL(request.url);
     const motherClassId = searchParams.get('motherClassId') as string;
+    const studentId = searchParams.get('studentId') as string;
 
-    const localFees = await prisma.classFee.findMany({
+    if (!studentId) {
+      return NextResponse.json({error : "studentId required!"}, {status: 400});
+    }
+
+    /*const localFees = await prisma.classFee.findMany({
       where: {
-        motherClassId
+        motherClassId,
+        localFees: {
+          isNot: null
+        }
       },
       include: {
         localFees: {
@@ -272,9 +280,33 @@ export async function GET(request: Request) {
           }
         }
       }
+    });*/
+
+    const studentLocalFee = await prisma.localFeesOnStudent.findMany({
+      where: {
+        studentId
+      },
+      select: {
+        id: true,
+        localFeesId: true,
+        studentId: true,
+        localFees: {
+          select: {
+            id: true,
+            name: true,
+            amount: true,
+            taxPercentage: true,
+            paymentterms: true,
+            penalty: true
+          }
+        }
+      },
     })
 
-    return NextResponse.json(localFees, {status: 200});
+    console.log("studentLocalFee: ", studentLocalFee);
+
+
+    return NextResponse.json(studentLocalFee, {status: 200});
 
   } catch (e: any) {
 

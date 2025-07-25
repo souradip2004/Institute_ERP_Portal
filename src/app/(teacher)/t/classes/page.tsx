@@ -1,7 +1,7 @@
 'use client';
-import { useState, useEffect } from 'react';
+import {useState, useEffect} from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import {useRouter} from 'next/navigation';
 import Loader from '@/components/ui/Loader';
 
 interface ClassData {
@@ -27,7 +27,7 @@ export default function ClassesPage() {
   const [error, setError] = useState<string | null>(null);
   const [teacherId, setTeacherId] = useState<string | null>(null);
   const router = useRouter();
-  const [details,setdetails]=useState(false);
+  const [details, setdetails] = useState(false);
   useEffect(() => {
     const getUserData = () => {
       if (typeof window !== 'undefined') {
@@ -50,13 +50,13 @@ export default function ClassesPage() {
 
   useEffect(() => {
     const fetchClasses = async () => {
-      if(details)return;
+      if (details) return;
       try {
         setLoading(true);
         setError(null);
 
         // Default to 'teacher123' if no teacher ID found (for testing only)
-        const currentTeacherId = teacherId ;
+        const currentTeacherId = teacherId;
 
         // Try to fetch from API endpoints
         const endpoints = [
@@ -64,7 +64,7 @@ export default function ClassesPage() {
         ];
 
         let fetchedClasses = null;
-console.log('try to get data from backend');
+        console.log('try to get data from backend');
         for (const endpoint of endpoints) {
           try {
 
@@ -138,7 +138,7 @@ console.log('try to get data from backend');
     return (
       <div className="flex justify-center items-center min-h-screen">
         {/* <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div> */}
-        <Loader size="large" />
+        <Loader size="large"/>
       </div>
     );
   }
@@ -155,15 +155,15 @@ console.log('try to get data from backend');
 
       {classes.length === 0 && !error ? (
         <div className="flex justify-center items-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-      </div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+        </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {classes.map((classItem) => (
             <div
               key={classItem.id}
               className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow relative cursor-pointer"
-            // onClick={() => router.push(`/t/classes/${classItem.id}` as any)}
+              // onClick={() => router.push(`/t/classes/${classItem.id}` as any)}
             >
               <div className="p-6 border-b">
                 <div className="flex justify-between items-center mb-4">
@@ -187,9 +187,6 @@ console.log('try to get data from backend');
                     <p className="text-gray-500 text-sm">Total Students</p>
                     <p className="text-3xl font-bold">{classItem.studentCount || 0}</p>
                   </div>
-                  <div>
-                    
-                  </div>
                 </div>
 
                 <div className="border-t pt-4">
@@ -200,10 +197,6 @@ console.log('try to get data from backend');
                       "{classItem.lastAssignment.title}"
                       {classItem.lastAssignment.daysAgo > 0 && ` – ${classItem.lastAssignment.daysAgo} day${classItem.lastAssignment.daysAgo > 1 ? 's' : ''} ago`}
                     </span>
-                  </div>
-
-                  <div className="flex items-center">
-                    
                   </div>
                 </div>
               </div>
