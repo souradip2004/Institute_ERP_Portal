@@ -9,6 +9,7 @@ import { Sparkles, MessageSquare, BarChart2, Zap, TrendingUp, ShieldCheck, LifeB
 import { Building, Briefcase, Users, UserCheck, CalendarCheck } from 'lucide-react';
 import HeroA from '@/components/HeroA';
 import React from 'react';
+import { useRouter } from 'next/navigation';
 
 
 import { BsFileEarmarkText, BsCalendarDate } from 'react-icons/bs';
@@ -125,7 +126,7 @@ export default function LandingPage() {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [activeIndex, setActiveIndex] = useState(0);
 
-
+    const router = useRouter();
 
     // A reusable component for each step in the process
     type WorkStepProps = {
@@ -360,7 +361,9 @@ export default function LandingPage() {
 
                                 {/* Secondary Button */}
                                 <div className="w-full lg:w-auto">
-                                    <button className="w-full lg:w-auto whitespace-nowrap rounded-md border border-[#c5b3e5] px-6 py-3 font-semibold text-[#6f42c1] transition-colors hover:bg-[#f3e5f5] hover:border-[#6f42c1]">
+                                    <button className="w-full lg:w-auto whitespace-nowrap rounded-md border border-[#c5b3e5] px-6 py-3 font-semibold text-[#6f42c1] transition-colors hover:bg-[#f3e5f5] hover:border-[#6f42c1]"
+                                        onClick={() => router.push('/register')}
+                                    >
                                         Start a free enterprise trial
                                     </button>
                                 </div>
