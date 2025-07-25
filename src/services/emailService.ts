@@ -97,6 +97,38 @@ export async function verifyMail(email: string, userId: string, institutionid: s
   await transporter.sendMail(mailOptions);
 
 }
+export async function sendFeatures(to: string) {
+  const subject = "AI Commercial Features!";
+  const htmlContent = `
+    <div style="font-family: Arial, sans-serif; padding: 20px; background-color: #f9f9f9; color: #333;">
+      <div style="max-width: 600px; margin: auto; background: #fff; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
+        <h1 style="color: #4f46e5;">AI Classroom Commercial Features</h1>
+        <p style="font-size: 16px;">Explore the latest features available in our commercial offering:</p>
+        <ul style="margin: 20px 0; padding-left: 20px; font-size: 16px;">
+          <li>Advanced analytics dashboard</li>
+          <li>Custom institution branding</li>
+          <li>Bulk user management</li>
+          <li>Priority support</li>
+          <li>Integration with popular LMS platforms</li>
+          <li>Automated attendance tracking</li>
+          <li>AI-powered assignment grading</li>
+        </ul>
+        <a href="https://commercial.aiclassroom.in/features" style="display: inline-block; margin-top: 20px; background-color: #4f46e5; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none;">Learn More</a>
+        <p style="margin-top: 30px;">If you have any questions, feel free to <a href="mailto:support@aiclassroom.in" style="color: #4f46e5;">contact our support team</a>.</p>
+        <hr style="margin-top: 40px; border: none; border-top: 1px solid #e5e7eb;" />
+        <p style="font-size: 12px; color: #9ca3af; text-align: center;">&copy; ${new Date().getFullYear()} Ai Classroom. All rights reserved.</p>
+      </div>
+    </div>
+  `;
+  const mailOptions = {
+    from: process.env.SMTP_FROM_EMAIL,
+    to,
+    subject,
+    html: htmlContent,
+  };
+
+  await transporter.sendMail(mailOptions);
+}
 export async function sendWelcomeEmail(to: string) {
   const subject = "Welcome to Ai Classroom!";
   const htmlContent = `
