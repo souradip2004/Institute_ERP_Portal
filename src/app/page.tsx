@@ -9,11 +9,11 @@ import { Sparkles, MessageSquare, BarChart2, Zap, TrendingUp, ShieldCheck, LifeB
 import { Building, Briefcase, Users, UserCheck, CalendarCheck } from 'lucide-react';
 import HeroA from '@/components/HeroA';
 import React from 'react';
-
+import { useRouter } from 'next/navigation';
 
 import { BsFileEarmarkText, BsCalendarDate } from 'react-icons/bs';
 import { FaUserCheck } from 'react-icons/fa'; // Using a different icon for better representation
-
+import { PiHandshakeFill } from "react-icons/pi";
 
 import {
     Instagram,
@@ -124,7 +124,7 @@ const FeatureCard = ({ icon: Icon, title }: FeatureCardProps) => {
 export default function LandingPage() {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [activeIndex, setActiveIndex] = useState(0);
-
+    const router = useRouter();
 
 
     // A reusable component for each step in the process
@@ -137,7 +137,7 @@ export default function LandingPage() {
         <div className="flex flex-col items-center text-center w-full md:w-56 mx-4">
             <div className="bg-white rounded-full p-6 mb-5 shadow-md flex-shrink-0">
                 {/* The icon is created dynamically based on the passed prop */}
-                {React.createElement(icon, { size: 32, className: "text-indigo-600" })}
+                {React.createElement(icon, { size: 32, className: "text-[#6750A4]" })}
             </div>
             <h3 className="text-2xl font-normal mb-3 text-white">{title}</h3>
             <p className="text-base text-sm text-indigo-200">{text}</p>
@@ -149,6 +149,10 @@ export default function LandingPage() {
         <div className="flex-1 max-w-[100px] h-0.5 bg-white hidden md:block mb-22"></div>
     );
 
+
+    const handelGetEmailQuote = async () => {
+
+    }
 
 
     return (
@@ -306,7 +310,7 @@ export default function LandingPage() {
                                 </li>
                             </ul>
 
-                            <button className="mt-12 bg-purple-900 hover:bg-purple-800 text-white font-bold text-xl py-4 px-14 rounded-lg transition-colors shadow-lg hover:shadow-xl" onClick={() => window.location.href = "/register"}>
+                            <button className="mt-12 bg-purple-900 hover:bg-purple-800 text-white font-bold text-xl py-4 px-36 rounded-lg transition-colors shadow-lg hover:shadow-xl" onClick={() => window.location.href = "/register"}>
                                 Get Started
                             </button>
                         </div>
@@ -320,7 +324,7 @@ export default function LandingPage() {
 
 
             <div className='hidden  md:flex'>
-                <div className="relative left-32">
+                <div className="relative left-32 -top-28">
                     <img src="/home_line.png" alt="Hero" className="w-[416px] h-auto object-cover" />
                 </div>
 
@@ -351,7 +355,7 @@ export default function LandingPage() {
                                         className="w-full sm:w-72 appearance-none rounded-md border border-gray-300 px-4 py-3 placeholder-gray-400 shadow-sm focus:border-[#6f42c1] focus:outline-none focus:ring-2 focus:ring-[#a38fc9]"
                                     />
                                     <button className="w-full sm:w-auto whitespace-nowrap rounded-md bg-[#6f42c1] px-6 py-3 font-semibold text-white shadow-sm transition-colors hover:bg-[#5a34a0]">
-                                        Request Callback
+                                        Get a quote
                                     </button>
                                 </div>
 
@@ -360,7 +364,9 @@ export default function LandingPage() {
 
                                 {/* Secondary Button */}
                                 <div className="w-full lg:w-auto">
-                                    <button className="w-full lg:w-auto whitespace-nowrap rounded-md border border-[#c5b3e5] px-6 py-3 font-semibold text-[#6f42c1] transition-colors hover:bg-[#f3e5f5] hover:border-[#6f42c1]">
+                                    <button className="w-full lg:w-auto whitespace-nowrap rounded-md border border-[#c5b3e5] px-6 py-3 font-semibold text-[#6f42c1] transition-colors hover:bg-[#f3e5f5] hover:border-[#6f42c1]"
+                                        onClick={() => router.push('/register')}
+                                    >
                                         Start a free enterprise trial
                                     </button>
                                 </div>
@@ -425,7 +431,7 @@ export default function LandingPage() {
                 <div>
                     <div className='flex justify-center mt-2 px-16 top-50'>
 
-                        <div className='hidden md:block relative top-40'>
+                        <div className='hidden md:block relative -left-14 top-40'>
                             <img src="/Tab.png" alt="qq" className='' />
                         </div>
                         <div className="max-w-3xl p-20 mt-24">
@@ -480,7 +486,7 @@ export default function LandingPage() {
                                     />
                                     <Connector />
                                     <WorkStep
-                                        icon={BsCalendarDate}
+                                        icon={PiHandshakeFill}
                                         title="Hire Us"
                                         text="jkdniuhubn upie dbkmd njguneugjban gujbdjbjb u"
                                     />
