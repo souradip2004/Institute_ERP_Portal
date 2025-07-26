@@ -133,13 +133,13 @@ export async function checkAnswerWithDiagramSupport(
     
 
     const response = await fetch(
-      'https://answer-and-diagram-checking-5-d324ec2-v5.app.beam.cloud/',
+      'https://answer-and-diagram-checking-5-12af4c2-v2.app.beam.cloud',
     
       {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer ALXP7mhHyKz1MQATKH7CIQXK9VQBpvoNNuxPvLONWyPCfgemj18cz2T74r4drBpvOkf-3orOQT_6r-63mHPZAA==',
+          'Authorization': 'Bearer cpxjIHGyDUggeCZSEgd7TSs_xuIaJLxQyplSlPcpEv35qftljIUmetr9Drtj_MUyC9PUSJLvV1vbjljWohB8Sw==',
         },
         body: JSON.stringify({
         
