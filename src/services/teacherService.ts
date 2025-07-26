@@ -1,5 +1,6 @@
 import prisma from '@/lib/prisma';
-import { teacherQueue } from '@/bullmq/queues/Teacher';
+import {teacherQueue} from '@/bullmq/queues/Teacher';
+
 // import { json } from 'stream/consumers';
 
 export class TeacherService {
@@ -9,28 +10,30 @@ export class TeacherService {
     return prisma.teacher.findMany({
       include: {
         user: true,
-        department:true
+        department: true
       },
     });
   }
+
   async getTeacherByuserId(userId: string) {
     console.log('hit teacher service for getting teacher by userId');
     console.log(userId);
-    return prisma.teacher.findUnique({ where: { userId }, include: { user: true } });
+    return prisma.teacher.findUnique({where: {userId}, include: {user: true}});
   }
+
   async createTeacher(data: any) {
-    try{
-      const message=await prisma.teacher.create({ data });
-      console.log("teacher created",message);
-    return message;
-    }catch(error){
-      console.log("error in creating teacher",error);
+    try {
+      const message = await prisma.teacher.create({data});
+      console.log("teacher created", message);
+      return message;
+    } catch (error) {
+      console.log("error in creating teacher", error);
       return error
     }
   }
 
   async getTeacherById(id: string) {
-    return prisma.teacher.findUnique({ where: { id },include:{user:true} });
+    return prisma.teacher.findUnique({where: {id}, include: {user: true}});
   }
 
   async updateTeacher(id: string, data: any) {
@@ -49,10 +52,10 @@ export class TeacherService {
 
   async getTeacherDashboardDetail(teacherId: string) {
     return prisma.teacher.findUnique({
-      where: { id: teacherId },
+      where: {id: teacherId},
       include: {
         user: {
-          select: { id: true, name: true, email: true, role: true },
+          select: {id: true, name: true, email: true, role: true},
         },
         department: true,
         departmentHeadRole: {
@@ -60,7 +63,7 @@ export class TeacherService {
             department: true,
             teacher: {
               include: {
-                user: { select: { id: true, name: true, email: true } },
+                user: {select: {id: true, name: true, email: true}},
               },
             },
           },
@@ -74,7 +77,7 @@ export class TeacherService {
               include: {
                 student: {
                   include: {
-                    user: { select: { id: true, name: true } },
+                    user: {select: {id: true, name: true}},
                   },
                 },
               },
@@ -87,7 +90,7 @@ export class TeacherService {
                   include: {
                     student: {
                       include: {
-                        user: { select: { id: true, name: true } },
+                        user: {select: {id: true, name: true}},
                       },
                     },
                   },
@@ -100,7 +103,7 @@ export class TeacherService {
               include: {
                 student: {
                   include: {
-                    user: { select: { id: true, name: true } },
+                    user: {select: {id: true, name: true}},
                   },
                 },
                 semester: true,
@@ -114,7 +117,7 @@ export class TeacherService {
             semester: true,
             evaluatedBy: {
               include: {
-                user: { select: { id: true, name: true } },
+                user: {select: {id: true, name: true}},
               },
             },
           },
@@ -126,7 +129,7 @@ export class TeacherService {
               include: {
                 student: {
                   include: {
-                    user: { select: { id: true, name: true } },
+                    user: {select: {id: true, name: true}},
                   },
                 },
               },
@@ -134,10 +137,10 @@ export class TeacherService {
           },
         },
         aiVideoContents: {
-          include: { course: true },
+          include: {course: true},
         },
         aiQuestionBanks: {
-          include: { course: true },
+          include: {course: true},
         },
         announcements: {
           include: {
@@ -147,7 +150,7 @@ export class TeacherService {
           },
         },
         createdCourses: {
-          include: { department: true },
+          include: {department: true},
         },
         createdExams: true,
         createdQuestions: true,
@@ -155,7 +158,7 @@ export class TeacherService {
           include: {
             student: {
               include: {
-                user: { select: { id: true, name: true } },
+                user: {select: {id: true, name: true}},
               },
             },
           },
@@ -165,7 +168,7 @@ export class TeacherService {
             exam: true,
             student: {
               include: {
-                user: { select: { id: true, name: true } },
+                user: {select: {id: true, name: true}},
               },
             },
             answerScripts: {
@@ -173,7 +176,7 @@ export class TeacherService {
                 question: true,
                 gradedBy: {
                   include: {
-                    user: { select: { id: true, name: true } },
+                    user: {select: {id: true, name: true}},
                   },
                 },
               },
@@ -183,12 +186,12 @@ export class TeacherService {
         gradedAnswerScripts: {
           include: {
             examSubmission: {
-              include: { exam: true },
+              include: {exam: true},
             },
             question: true,
             gradedBy: {
               include: {
-                user: { select: { id: true, name: true } },
+                user: {select: {id: true, name: true}},
               },
             },
           },
@@ -197,16 +200,16 @@ export class TeacherService {
           include: {
             teacher: {
               include: {
-                user: { select: { id: true, name: true } },
+                user: {select: {id: true, name: true}},
               },
             },
           },
         },
         createdVideos: {
-          include: { course: true },
+          include: {course: true},
         },
         createdQuestionBanks: {
-          include: { course: true },
+          include: {course: true},
         },
         createdAssignments: {
           include: {
@@ -214,25 +217,25 @@ export class TeacherService {
             attachments: true,
             comments: {
               include: {
-                user: { select: { id: true, name: true } },
+                user: {select: {id: true, name: true}},
               },
             },
             submissions: {
               include: {
                 student: {
                   include: {
-                    user: { select: { id: true, name: true } },
+                    user: {select: {id: true, name: true}},
                   },
                 },
                 gradedBy: {
                   include: {
-                    user: { select: { id: true, name: true } },
+                    user: {select: {id: true, name: true}},
                   },
                 },
                 attachments: true,
                 comments: {
                   include: {
-                    user: { select: { id: true, name: true } },
+                    user: {select: {id: true, name: true}},
                   },
                 },
               },
@@ -243,7 +246,7 @@ export class TeacherService {
                   include: {
                     student: {
                       include: {
-                        user: { select: { id: true, name: true } },
+                        user: {select: {id: true, name: true}},
                       },
                     },
                   },
@@ -257,10 +260,9 @@ export class TeacherService {
   }
 
 
-
   async getTeacherAttendanceBySection(teacherId: string) {
     const teacherWithSections = await prisma.teacher.findUnique({
-      where: { id: teacherId },
+      where: {id: teacherId},
       include: {
         classSections: {
           include: {
@@ -274,7 +276,7 @@ export class TeacherService {
                     student: {
                       include: {
                         user: {
-                          select: { id: true, name: true, email: true },
+                          select: {id: true, name: true, email: true},
                         },
                       },
                     },
@@ -299,17 +301,17 @@ export class TeacherService {
           name: `${courseName} - ${section.batch.batchName} - Sem ${section.semester.name}`,
         },
         attendanceSessions: section.attendanceSessions.map((session) => ({
-          id: session.id,
-          date: session.sessionDate,
-          attendanceRecords: session.attendanceRecords.map((record) => ({
-            status: record.status,
-            student: {
-              id: record.student.id,
-              name: record.student.user?.name || "Unknown",
-              email: record.student.user?.email || "N/A",
-            },
-          })),
-        }),
+            id: session.id,
+            date: session.sessionDate,
+            attendanceRecords: session.attendanceRecords.map((record) => ({
+              status: record.status,
+              student: {
+                id: record.student.id,
+                name: record.student.user?.name || "Unknown",
+                email: record.student.user?.email || "N/A",
+              },
+            })),
+          }),
         )
       };
     });
@@ -319,7 +321,7 @@ export class TeacherService {
 
   async getSectionWithCourse(teacherId: string) {
     const classSections = await prisma.classSection.findMany({
-      where: { teacherId },
+      where: {teacherId},
       include: {
         batch: true,
         semester: true,
@@ -328,7 +330,7 @@ export class TeacherService {
             student: {
               include: {
                 user: {
-                  select: { id: true, name: true, email: true },
+                  select: {id: true, name: true, email: true},
                 },
               },
             },
@@ -342,7 +344,7 @@ export class TeacherService {
                 createdBy: {
                   include: {
                     user: {
-                      select: { id: true, name: true, email: true },
+                      select: {id: true, name: true, email: true},
                     },
                   },
                 },
@@ -362,7 +364,7 @@ export class TeacherService {
         name: "Unknown Course",
         courseCode: "N/A",
         department: null,
-        createdBy: { id: "", user: { name: "Unknown", email: "N/A" } },
+        createdBy: {id: "", user: {name: "Unknown", email: "N/A"}},
       };
 
       return {
@@ -397,88 +399,83 @@ export class TeacherService {
 
 
   async getTeacherCourseSections(teacherId: string) {
-  const relations = await prisma.teacherCourseSectionRelation.findMany({
-    where: { teacherId },
-    include: {
-      course: {
-        include: {
-          department: true,
-          createdBy: {
-            include: {
-              user: {
-                select: { id: true, name: true, email: true },
-              },
-            },
+
+    // Find all unique ClassSections linked to the teacher
+    const sections = await prisma.classSection.findMany({
+      where: {
+        // Filter sections where at least one relation involves the given teacherId
+        teacherCourseSectionRelations: {
+          some: {
+            teacherId: teacherId,
           },
         },
       },
-      classSection: {
-        include: {
-          batch: true,
-          semester: true,
-          studentEnrollments: {
-            include: {
-              student: {
-                include: {
-                  user: {
-                    select: { id: true, name: true, email: true },
-                  },
+      include: {
+        batch: true,
+        semester: true,
+        studentEnrollments: {
+          include: {
+            student: {
+              include: {
+                user: {
+                  select: { id: true, name: true, email: true }
                 },
               },
             },
           },
         },
+        teacherCourseSectionRelations: {
+          where: {
+            teacherId: teacherId // Important: Filter again to only get this teacher's courses
+          },
+          include: {
+            course: true,
+            semester: true, // The semester specific to this teaching relation
+          },
+        },
       },
-      semester: true,
-    },
-  });
+    });
 
-  if (!relations || relations.length === 0) return [];
+    if (!sections || sections.length === 0) return [];
 
-  const structuredData = relations.map((relation) => {
-    const section = relation.classSection;
+    // Map the structured data to the desired format
+    const structuredData = sections.map((section) => {
 
-    return {
-      section: {
-        id: section.id,
-        name: `${section.batch.batchName} - Sem ${section.semester.name}`,
-        batch: section.batch,
-        semester: section.semester,
-        maxStudents: section.maxStudents,
-        enrolledStudents: section.studentEnrollments.map((enroll) => ({
-          studentId: enroll.student.id,
-          name: enroll.student.user?.name || "Unknown",
-          email: enroll.student.user?.email || "N/A",
-        })),
-      },
-      course: {
+      const courses = section.teacherCourseSectionRelations.map((relation) => ({
         id: relation.course.id,
         name: relation.course.name,
         code: relation.course.courseCode,
-        department: relation.course.department,
-        createdBy: {
-          id: relation.course.createdBy.id,
-          name: relation.course.createdBy.user?.name || "Unknown",
-          email: relation.course.createdBy.user?.email || "N/A",
+        semester: relation.semester || null,
+      }));
+
+      return {
+        section: {
+          id: section.id,
+          name: `${section.sectionName} - ${section.batch.batchName}`,
+          batch: section.batch,
+          semester: section.semester,
+          maxStudents: section.maxStudents,
+          studentCount: section.studentEnrollments.length,
+          enrolledStudents: section.studentEnrollments.map((enroll) => ({
+            studentId: enroll.student.id,
+            name: enroll.student.user?.name || "Unknown",
+            email: enroll.student.user?.email || "N/A",
+          })),
         },
-      },
-      semester: relation.semester || null,
-    };
-  });
+        courses: courses,
+      };
+    });
 
-  return structuredData;
-}
-
-
-
+    return structuredData;
+  }
 
 
   async getTeacherAssignment(teacherId: string) {
     return prisma.teacher.findUnique({
-      where: { id: teacherId },
+      where: {id: teacherId},
       include: {
         user: {
-          select: { id: true, name: true, email: true },
+          select: {id: true, name: true, email: true},
         },
         department: true,
         createdAssignments: {
@@ -489,7 +486,7 @@ export class TeacherService {
             comments: {
               include: {
                 user: {
-                  select: { id: true, name: true },
+                  select: {id: true, name: true},
                 },
               },
             },
@@ -498,14 +495,14 @@ export class TeacherService {
                 student: {
                   include: {
                     user: {
-                      select: { id: true, name: true, email: true },
+                      select: {id: true, name: true, email: true},
                     },
                   },
                 },
                 gradedBy: {
                   include: {
                     user: {
-                      select: { id: true, name: true },
+                      select: {id: true, name: true},
                     },
                   },
                 },
@@ -513,7 +510,7 @@ export class TeacherService {
                 comments: {
                   include: {
                     user: {
-                      select: { id: true, name: true },
+                      select: {id: true, name: true},
                     },
                   },
                 },
@@ -526,7 +523,7 @@ export class TeacherService {
                     student: {
                       include: {
                         user: {
-                          select: { id: true, name: true, email: true },
+                          select: {id: true, name: true, email: true},
                         },
                       },
                     },
@@ -564,7 +561,7 @@ export class TeacherService {
                   createdBy: {
                     include: {
                       user: {
-                        select: { id: true, name: true, email: true },
+                        select: {id: true, name: true, email: true},
                       },
                     },
                   },
@@ -575,7 +572,7 @@ export class TeacherService {
                   student: {
                     include: {
                       user: {
-                        select: { id: true, name: true, email: true },
+                        select: {id: true, name: true, email: true},
                       },
                     },
                   },

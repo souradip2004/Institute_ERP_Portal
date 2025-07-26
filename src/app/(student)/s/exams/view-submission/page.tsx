@@ -1,8 +1,20 @@
 "use client";
 
 import React, {useState, useEffect, Suspense} from 'react';
-import {useSearchParams} from "next/navigation";
-import {Loader2, AlertCircle, FileText, CheckCircle, MessageSquare, KeyRound, BookOpenCheck, XCircle, X, Eye} from 'lucide-react';
+import {useRouter, useSearchParams} from "next/navigation";
+import {
+  Loader2,
+  AlertCircle,
+  FileText,
+  CheckCircle,
+  MessageSquare,
+  KeyRound,
+  BookOpenCheck,
+  XCircle,
+  X,
+  Eye
+} from 'lucide-react';
+import {RxCross2} from "react-icons/rx";
 
 // --- INTERFACES (MODIFIED) ---
 interface Question {
@@ -31,6 +43,7 @@ interface ExamSubmission {
   feedback: string | null;
   answerScripts: AnswerScript[];
 }
+
 const PageLoader = () => (
   <div className="flex flex-col items-center justify-center min-h-screen p-8 text-gray-500">
     <Loader2 className="h-12 w-12 animate-spin mb-4 text-indigo-600"/>
@@ -39,7 +52,7 @@ const PageLoader = () => (
 );
 
 // --- IMAGE PREVIEW MODAL ---
-const ImagePreviewModal = ({ imageUrl, onClose }: { imageUrl: string, onClose: () => void }) => {
+const ImagePreviewModal = ({imageUrl, onClose}: { imageUrl: string, onClose: () => void }) => {
   // Close modal on 'Escape' key press
   useEffect(() => {
     const handleEsc = (event: KeyboardEvent) => {
@@ -63,7 +76,7 @@ const ImagePreviewModal = ({ imageUrl, onClose }: { imageUrl: string, onClose: (
           className="absolute -top-3 -right-3 bg-white rounded-full p-2 text-gray-800 hover:bg-red-500 hover:text-white transition-colors z-10 shadow-lg"
           aria-label="Close image preview"
         >
-          <X className="w-6 h-6" />
+          <X className="w-6 h-6"/>
         </button>
         <img src={imageUrl} alt="Submitted Answer Preview" className="max-w-full max-h-[85vh] rounded-md"/>
       </div>
@@ -82,6 +95,9 @@ function Page() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
+  const [isHovered, setIsHovered] = useState(false);
+
+  const router = useRouter();
 
   useEffect(() => {
     if (!submissionId || !studentId) {
@@ -125,6 +141,15 @@ function Page() {
     return Number((submission?.answerScripts.reduce((total, script) => total + script.question.marks, 0) || 0).toFixed(2));
   };
 
+  const handleMouseEnter = () => {
+    setIsHovered(true);
+  };
+
+  // This function is called when the mouse pointer leaves the RxCross2 icon
+  const handleMouseLeave = () => {
+    setIsHovered(false);
+  };
+
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen p-8 text-gray-500">
@@ -156,16 +181,28 @@ function Page() {
 
   return (
     <>
-      {previewImageUrl && <ImagePreviewModal imageUrl={previewImageUrl} onClose={() => setPreviewImageUrl(null)} />}
+      {previewImageUrl && <ImagePreviewModal imageUrl={previewImageUrl} onClose={() => setPreviewImageUrl(null)}/>}
       <div className="bg-gray-50 min-h-screen">
         <div className="container mx-auto p-4 md:p-8">
           <div className="bg-white text-gray-800 p-6 md:p-8 rounded-xl shadow-lg border border-gray-200 font-sans">
             <header className="mb-8 border-b border-gray-200 pb-6">
-              <h1 className="text-3xl font-bold text-indigo-600 flex items-center">
-                <BookOpenCheck className="mr-3 h-8 w-8"/>
-                Graded Answer Script
-              </h1>
-              <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 text-gray-600 text-sm">
+              <div className="flex justify-between items-center">
+                <h1 className="text-3xl font-bold text-indigo-600 flex items-center">
+                  <BookOpenCheck className="mr-3 h-8 w-8"/>
+                  Graded Answer Script
+                </h1>
+                <div className={""} onClick={() => router.back()}>
+                  <RxCross2
+                    size={28}
+                    onMouseEnter={handleMouseEnter}
+                    onMouseLeave={handleMouseLeave}
+                    color={isHovered ? 'red' : 'black'}
+                    style={{ cursor: 'pointer' }}
+                  />
+                </div>
+
+              </div>
+              <div className="mt-4 flex justify-between gap-4 text-gray-600 text-sm">
                 <p>
                   <span
                     className="font-semibold text-gray-500">Submission Time:</span> {new Date(submission.submissionTime).toLocaleString()}
@@ -190,7 +227,8 @@ function Page() {
                       </span>
                     </div>
                     <div className="text-right">
-                      <span className="font-bold text-lg text-indigo-600">{Number(script.obtainedMarks?.toFixed(2)) ?? 0}</span>
+                      <span
+                        className="font-bold text-lg text-indigo-600">{Number(script.obtainedMarks?.toFixed(2)) ?? 0}</span>
                       <span className="text-gray-400 text-lg"> / {script.question.marks}</span>
                       <p className="text-xs text-gray-500">Marks</p>
                     </div>
@@ -206,13 +244,15 @@ function Page() {
                       </label>
                       <div className="mt-2 flex flex-wrap gap-3">
                         {script.question.diagramImgURL.map((url, imgIndex) => (
-                          <div key={imgIndex} className="relative group cursor-pointer" onClick={() => setPreviewImageUrl(url)}>
+                          <div key={imgIndex} className="relative group cursor-pointer"
+                               onClick={() => setPreviewImageUrl(url)}>
                             <img
                               src={url}
                               alt={`Question diagram ${imgIndex + 1}`}
                               className="w-24 h-24 object-cover rounded-md border-2 border-gray-200 transition-transform transform group-hover:scale-105 group-hover:shadow-md"
                             />
-                            <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-md">
+                            <div
+                              className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-md">
                               <Eye className="w-7 h-7 text-white"/>
                             </div>
                           </div>
@@ -241,7 +281,8 @@ function Page() {
                           }
 
                           return (
-                            <div key={optionIndex} className={`flex items-center justify-between p-3 border-l-4 rounded-md ${optionStyle}`}>
+                            <div key={optionIndex}
+                                 className={`flex items-center justify-between p-3 border-l-4 rounded-md ${optionStyle}`}>
                               <span className="flex-grow mr-2">{option}</span>
                               {icon}
                             </div>
@@ -256,7 +297,8 @@ function Page() {
                       <div>
                         <label className="font-semibold text-gray-800">Your Answer:</label>
                         <div className="mt-1 bg-blue-50 border-l-4 border-blue-400 text-blue-900 p-4 rounded-r-lg">
-                          {script.studentAnswer || <span className="text-gray-500 italic">No text answer provided.</span>}
+                          {script.studentAnswer ||
+														<span className="text-gray-500 italic">No text answer provided.</span>}
                         </div>
                       </div>
 
@@ -267,13 +309,15 @@ function Page() {
                           </label>
                           <div className="mt-2 flex flex-wrap gap-3">
                             {script.answerImgURL.map((url, imgIndex) => (
-                              <div key={imgIndex} className="relative group cursor-pointer" onClick={() => setPreviewImageUrl(url)}>
+                              <div key={imgIndex} className="relative group cursor-pointer"
+                                   onClick={() => setPreviewImageUrl(url)}>
                                 <img
                                   src={url}
                                   alt={`Your submitted image ${imgIndex + 1}`}
                                   className="w-24 h-24 object-cover rounded-md border-2 border-gray-200 transition-transform transform group-hover:scale-105 group-hover:shadow-md"
                                 />
-                                <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-md">
+                                <div
+                                  className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-md">
                                   <Eye className="w-7 h-7 text-white"/>
                                 </div>
                               </div>
@@ -286,25 +330,28 @@ function Page() {
                       {script.question.diagramImgURL && script.question.diagramImgURL.length > 0 && (
                         <div>
                           <label className="font-semibold text-gray-800 flex items-center">
-                            <FileText className="w-4 h-4 mr-2 text-gray-500" />Your Diagram Submission:
+                            <FileText className="w-4 h-4 mr-2 text-gray-500"/>Your Diagram Submission:
                           </label>
                           {script.diagramImgURL && script.diagramImgURL.length > 0 ? (
                             <div className="mt-2 flex flex-wrap gap-3">
                               {script.diagramImgURL.map((url, imgIndex) => (
-                                <div key={imgIndex} className="relative group cursor-pointer" onClick={() => setPreviewImageUrl(url)}>
+                                <div key={imgIndex} className="relative group cursor-pointer"
+                                     onClick={() => setPreviewImageUrl(url)}>
                                   <img
                                     src={url}
                                     alt={`Your submitted diagram ${imgIndex + 1}`}
                                     className="w-24 h-24 object-cover rounded-md border-2 border-gray-200 transition-transform transform group-hover:scale-105 group-hover:shadow-md"
                                   />
-                                  <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-md">
-                                    <Eye className="w-7 h-7 text-white" />
+                                  <div
+                                    className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-md">
+                                    <Eye className="w-7 h-7 text-white"/>
                                   </div>
                                 </div>
                               ))}
                             </div>
                           ) : (
-                            <div className="mt-1 bg-gray-50 border-l-4 border-gray-300 text-gray-500 p-4 rounded-r-lg italic">
+                            <div
+                              className="mt-1 bg-gray-50 border-l-4 border-gray-300 text-gray-500 p-4 rounded-r-lg italic">
                               You did not submit a diagram.
                             </div>
                           )}
@@ -346,7 +393,8 @@ function Page() {
               </div>
             )}
 
-            <footer className="mt-8 pt-6 border-t border-gray-200 flex flex-col items-center justify-center text-center">
+            <footer
+              className="mt-8 pt-6 border-t border-gray-200 flex flex-col items-center justify-center text-center">
               <p className="text-lg text-gray-600">Final Score</p>
               <div className="text-3xl font-bold">
                 <span className="text-indigo-600">{calculateTotalObtainedMarks()}</span>
@@ -364,8 +412,8 @@ function Page() {
 export default function SubmissionPageWrapper() {
   return (
     // Wrap the component that uses useSearchParams with Suspense
-    <Suspense fallback={<PageLoader />}>
-      <Page />
+    <Suspense fallback={<PageLoader/>}>
+      <Page/>
     </Suspense>
   );
 }

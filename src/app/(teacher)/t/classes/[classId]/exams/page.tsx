@@ -1415,7 +1415,7 @@ export default function ExamsPage() {
                     <option value="">Select Class Section</option>
                     {classSections.map((item) => (
                       <option key={item.section.id} value={item.section.id}>
-                        {item.course.name} - {item.section.name}
+                         {item.section.name}
                       </option>
                     ))}
                   </select>

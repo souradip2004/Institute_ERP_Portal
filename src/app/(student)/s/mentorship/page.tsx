@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { MessageCircle, Mic, Send, Maximize2, Download } from "lucide-react"
+import { MessageCircle, Mic, Send, Download, RefreshCw } from "lucide-react";
 import "./mentorship.css" // Assuming you have a CSS file for styling
 import * as SpeechSDK from "microsoft-cognitiveservices-speech-sdk";
 import React from "react";
@@ -199,6 +199,10 @@ const Mentorship = () => {
 
     recognizer.startContinuousRecognitionAsync();
     recognizerRef.current = recognizer;
+  };
+
+  const handleRefresh = () => {
+    setChatHistory([{ role: "assistant", content: "Hi, I am your AI Mentor." }]);
   };
 
   const stopAzureMic = () => {
@@ -419,11 +423,19 @@ const Mentorship = () => {
             <MessageCircle size={20} />
             <h3 className="font-semibold text-lg">Ask Your AI Mentor</h3>
           </div>
-          <button className="p-2 rounded-full hover:bg-indigo-700 transition-colors">
-            <Download size={20} />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              className="p-2 rounded-full hover:bg-indigo-700 transition-colors"
+              onClick={handleRefresh}
+              title="Clear Chat"
+            >
+              <RefreshCw size={20} />
+            </button>
+            <button className="p-2 rounded-full hover:bg-indigo-700 transition-colors">
+              <Download size={20} />
+            </button>
+          </div>
         </div>
-
         {/* Chat Messages Area */}
         <div className="flex-1 p-6 space-y-6 overflow-y-auto bg-slate-100">
           {chatHistory.map((msg, i) => {
