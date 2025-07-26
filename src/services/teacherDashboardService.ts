@@ -24,6 +24,12 @@ export class TeacherDashboardService {
                   batchName: true,
                 },
               },
+              // Correctly count the students enrolled in this section
+              _count: {
+                select: {
+                  studentEnrollments: true,
+                },
+              },
               semester: {
                 select: {
                   name: true,
@@ -33,11 +39,7 @@ export class TeacherDashboardService {
           },
           dueDate: true,
           status: true,
-          submissions: {
-            select: {
-              id: true,
-            },
-          },
+          // Count the submissions for this specific assignment
           _count: {
             select: {
               submissions: true,
@@ -47,17 +49,19 @@ export class TeacherDashboardService {
         orderBy: {
           createdAt: 'desc',
         },
-        take: 5, // Limit to most recent 5 for dashboard
+        take: 5,
       });
 
       // Format the data specifically for the UI needs
+      console.log("Fetched assignments: ", assignments);
       return assignments.map(assignment => ({
         id: assignment.id,
         title: assignment.title,
         class: `${assignment.classSection.batch?.batchName || ''} ${assignment.classSection.sectionName || ''}`.trim(),
         subject: assignment.classSection.semester?.name || 'General',
         dueDate: assignment.dueDate ? assignment.dueDate.toISOString().split('T')[0] : '',
-        submissions: `${assignment._count.submissions}/${assignment.submissions.length || 0}`,
+        // Use the correct paths for both counts
+        submissions: `${assignment._count.submissions}/${assignment.classSection._count.studentEnrollments || 0}`,
         status: assignment.status || 'Active'
       }));
     } catch (error) {

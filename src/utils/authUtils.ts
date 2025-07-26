@@ -38,22 +38,7 @@ export class AuthUtils {
 
             if (decodedToken && decodedToken.id) {
               // Get fresh user data from the database using the ID from the token
-              const user = await prisma.user.findUnique({
-                where: { id: decodedToken.id },
-                include: {
-                  institution:true,
-                  student: {
-                    select: { id: true },
-                  },
-                  teacher: {
-                    select: { id: true },
-                  },
-                },
-              });
 
-              if (user) {
-                return user as User;
-              }
             }
           } catch (tokenError) {
             console.error("Error verifying JWT token:", tokenError);
