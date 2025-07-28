@@ -204,7 +204,7 @@ export async function GET(
             }
             console.log("No of attempt ", attempt);
             try {
-              const diagramResponse = await axios.post('https://answer-and-diagram-checking-5-v2-41923a7-v2.app.beam.cloud' ,
+              const diagramResponse = await axios.post('https://answer-and-diagram-checking-5-v2-41923a7-v3.app.beam.cloud',
                 diagramPayload,
                 {
                   headers: {

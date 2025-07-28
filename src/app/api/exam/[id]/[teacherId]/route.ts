@@ -60,4 +60,44 @@ export async function GET(
       {status: 500}
     );
   }
-} 
+}
+
+
+export async function DELETE(
+  req: NextRequest,
+  {params}: { params: { id: string; teacherId: string } }
+) {
+  try {
+    if (!params.id || !params.teacherId) {
+      return NextResponse.json({error: "examId an teacherId required!"}, {status: 400});
+    }
+
+    const teacher = await prisma.teacher.findUnique({
+      where: {id: params.teacherId}
+    });
+    if (!teacher) {
+      return NextResponse.json({error: "Teacher record not found"}, {status: 403});
+    }
+
+    const examId = params.id;
+
+    const deletedExam = await prisma.exam.delete({
+      where: {
+        id: examId
+      }
+    })
+
+    console.log("Deleted exam ", deletedExam);
+
+    return NextResponse.json(
+      {message: "Deleted exam successfully"}, {status: 200}
+    );
+
+  } catch (error: any) {
+    console.error("Error fetching exam details:", error);
+    return NextResponse.json(
+      {error: "Failed to fetch exam details", details: error.message},
+      {status: 500}
+    );
+  }
+}

@@ -489,7 +489,7 @@ model Question {
   isAiGenerated   Boolean        @default(false) @map("is_ai_generated")
   answerScripts   AnswerScript[]
   createdBy       Teacher        @relation("QuestionCreator", fields: [createdById], references: [id])
-  exam            Exam           @relation(fields: [examId], references: [id])
+  exam            Exam           @relation(fields: [examId], references: [id], onDelete: Cascade)
 
   @@map("questions")
 }
@@ -750,7 +750,7 @@ model ExamSubmission {
   createdAt      DateTime           @default(now()) @map("created_at")
   updatedAt      DateTime           @updatedAt @map("updated_at")
   answerScripts  AnswerScript[]
-  exam           Exam               @relation(fields: [examId], references: [id])
+  exam           Exam               @relation(fields: [examId], references: [id], onDelete: Cascade)
   gradedBy       Teacher?           @relation("GradedByTeacher", fields: [gradedById], references: [id])
   student        Student            @relation(fields: [studentId], references: [id])
 
@@ -773,9 +773,9 @@ model AnswerScript {
   updatedAt        DateTime           @updatedAt @map("updated_at")
   isAiGraded       Boolean            @default(false) @map("is_ai_graded")
   aiFeedback       Json?
-  examSubmission   ExamSubmission     @relation(fields: [examSubmissionId], references: [id])
+  examSubmission   ExamSubmission     @relation(fields: [examSubmissionId], references: [id], onDelete: Cascade)
   gradedBy         Teacher?           @relation("GradedByTeacher", fields: [gradedById], references: [id])
-  question         Question           @relation(fields: [questionId], references: [id])
+  question         Question           @relation(fields: [questionId], references: [id], onDelete: Cascade)
 
   @@map("answer_scripts")
 }
