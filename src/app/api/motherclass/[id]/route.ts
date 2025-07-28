@@ -1,16 +1,43 @@
-import { NextRequest } from 'next/server';
-import { MotherClassEnrollmentController } from '@/controllers/motherClassController';
+import {NextRequest, NextResponse} from 'next/server';
+import {MotherClassEnrollmentController} from '@/controllers/motherClassController';
+import prisma from '@/lib/prisma';
 
 const motherClassController = new MotherClassEnrollmentController();
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
-    console.log('motherclass');
-    const { id } = params;
-    return await motherClassController.getClassById(id);
+export async function GET(req: NextRequest, {params}: { params: { id: string } }) {
+  console.log('motherclass');
+  const {id} = params;
+  return await motherClassController.getClassById(id);
 
 }
-export async function POST(req:NextRequest,{ params}:{params:{id:string}}){
-    console.log('motherclass post');
-    const { id } = params;
-    return await motherClassController.updateClass(id,req);
+
+export async function POST(req: NextRequest, {params}: { params: { id: string } }) {
+  console.log('motherclass post');
+  const {id} = params;
+  return await motherClassController.updateClass(id, req);
+}
+
+export async function DELETE(req: NextRequest, {params}: { params: { id: string } }) {
+  try {
+    const {id} = params;
+    if (!id) {
+      return NextResponse.json({error: "id required !"}, {status: 400});
+    }
+
+
+    const deletedMotherClass = await prisma.motherClass.delete({
+      where: {
+        id
+      }
+    });
+
+    console.log("Deleted mother class ", deletedMotherClass);
+
+    return NextResponse.json({message: "Successfully deleted !", deletedMotherClass}, {status: 200});
+
+  } catch (error) {
+    console.log(error);
+
+    return NextResponse.json({error: "Internal server error !"}, {status: 500});
+  }
 }

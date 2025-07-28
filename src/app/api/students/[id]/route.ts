@@ -15,5 +15,6 @@ export async function PUT(req: NextRequest, context: { params: { id: string } })
 
 export async function DELETE(req: NextRequest, context: { params: { id: string } }) {
   const { id } = await context.params; // Await params
+
   return studentController.deleteStudent(id);
 }

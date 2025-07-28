@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import {NextRequest, NextResponse} from "next/server";
 import prisma from "@/lib/prisma";
 import jwt from 'jsonwebtoken';
 
@@ -8,21 +8,21 @@ export async function GET(req: NextRequest) {
   try {
     // Get auth token from cookie
     const token = req.cookies.get('auth_token')?.value;
-    
+
     if (!token) {
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+      return NextResponse.json({error: "Not authenticated"}, {status: 401});
     }
 
     // Verify token
     const decoded = jwt.verify(token, SECRET_KEY) as any;
     if (!decoded || !decoded.id) {
-      return NextResponse.json({ error: "Invalid token" }, { status: 401 });
+      return NextResponse.json({error: "Invalid token"}, {status: 401});
     }
 
     // Get user details
     const user = await prisma.user.findUnique({
-      where: { id: decoded.id },
-      select: { 
+      where: {id: decoded.id},
+      select: {
         id: true,
         name: true,
         email: true,
@@ -31,16 +31,16 @@ export async function GET(req: NextRequest) {
     });
 
     if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
+      return NextResponse.json({error: "User not found"}, {status: 404});
     }
 
     if (user.role !== "TEACHER") {
-      return NextResponse.json({ error: "User is not a teacher" }, { status: 403 });
+      return NextResponse.json({error: "User is not a teacher"}, {status: 403});
     }
 
     // Get teacher details
     const teacher = await prisma.teacher.findFirst({
-      where: { userId: user.id },
+      where: {userId: user.id},
       include: {
         department: {
           select: {
@@ -59,7 +59,7 @@ export async function GET(req: NextRequest) {
     });
 
     if (!teacher) {
-      return NextResponse.json({ error: "Teacher record not found" }, { status: 404 });
+      return NextResponse.json({error: "Teacher record not found"}, {status: 404});
     }
 
     return NextResponse.json({
@@ -76,8 +76,44 @@ export async function GET(req: NextRequest) {
   } catch (error: any) {
     console.error("Error fetching teacher profile:", error);
     return NextResponse.json(
-      { error: "Failed to fetch teacher profile: " + error.message },
-      { status: 500 }
+      {error: "Failed to fetch teacher profile: " + error.message},
+      {status: 500}
     );
   }
-} 
+}
+
+export async function DELETE(request: Request) {
+  try {
+    const {searchParams} = new URL(request.url);
+    const userId = searchParams.get("id");
+    if (!userId) {
+      return NextResponse.json({error: "userId required !"}, {status: 400});
+    }
+
+    const teacher = await prisma.teacher.findUnique({
+      where: {
+        userId: userId
+
+      },
+    });
+
+    if (!teacher) {
+      return NextResponse.json({error: "User does not exists"}, {status: 404})
+    }
+
+    const deletedTeacher = await prisma.teacher.delete({
+      where: {
+        userId: userId
+      }
+    });
+    console.log("Deleted teacher ", deletedTeacher);
+
+    return NextResponse.json({message: "Deletion successful ", deletedTeacher}, {status: 200});
+
+
+  } catch (error: any) {
+    console.error(error);
+
+    return NextResponse.json({message: "Internal server error!", description: error.mesage}, {status: 500});
+  }
+}

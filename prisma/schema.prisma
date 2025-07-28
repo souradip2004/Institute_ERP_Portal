@@ -128,7 +128,7 @@ model Institution {
   credits             Credit?
   departments         Department[]
   examTypes           ExamType[]
-  subscriptionPlan    SubscriptionPlan?    @relation(fields: [subscriptionPlanId], references: [id])
+  subscriptionPlan    SubscriptionPlan?    @relation(fields: [subscriptionPlanId], references: [id], onDelete: Cascade)
   invoices            Invoice[]
   semesters           Semester[]
   subscriptions       Subscription[]
@@ -152,7 +152,7 @@ model Department {
   batches         Batch[]
   courses         Course[]
   departmentHeads DepartmentHead?
-  institution     Institution                @relation(fields: [institutionId], references: [id])
+  institution     Institution                @relation(fields: [institutionId], references: [id], onDelete: Cascade)
   students        Student[]
   teacherMetrics  TeacherPerformanceMetric[]
   teachers        Teacher[]
@@ -180,9 +180,9 @@ model Student {
   examSubmissions       ExamSubmission[]
   classEnrollments      StudentClassEnrollment[]
   performanceMetrics    StudentPerformanceMetric[]
-  batch                 Batch                      @relation(fields: [batchId], references: [id])
-  department            Department                 @relation(fields: [departmentId], references: [id])
-  user                  User                       @relation(fields: [userId], references: [id])
+  batch                 Batch                      @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  department            Department                 @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  user                  User                       @relation(fields: [userId], references: [id], onDelete: Cascade)
   videoViewLogs         VideoViewLog[]
   studentCopies         studentCopies[]
   questionAnswers       StudentQuestionAnswer[]
@@ -223,8 +223,8 @@ model Teacher {
   createdQuestions              Question[]                     @relation("QuestionCreator")
   evaluatedMetrics              TeacherPerformanceMetric[]     @relation("EvaluatedByTeacher")
   performanceMetrics            TeacherPerformanceMetric[]
-  department                    Department                     @relation(fields: [departmentId], references: [id])
-  user                          User                           @relation(fields: [userId], references: [id])
+  department                    Department                     @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  user                          User                           @relation(fields: [userId], references: [id], onDelete: Cascade)
   Note                          Note[]
   teacherCourseSectionRelations TeacherCourseSectionRelation[]
   copyChecks                    copyCheck[]
@@ -280,7 +280,7 @@ model Batch {
   maxStudents   Int            @default(0) @map("max_students")
   createdAt     DateTime       @default(now()) @map("created_at")
   updatedAt     DateTime       @updatedAt @map("updated_at")
-  department    Department     @relation(fields: [departmentId], references: [id])
+  department    Department     @relation(fields: [departmentId], references: [id], onDelete: Cascade)
   classSections ClassSection[]
   students      Student[]
 
@@ -297,7 +297,7 @@ model Semester {
   createdAt                     DateTime                       @default(now()) @map("created_at")
   updatedAt                     DateTime                       @updatedAt @map("updated_at")
   classSections                 ClassSection[]
-  institution                   Institution                    @relation(fields: [institutionId], references: [id])
+  institution                   Institution                    @relation(fields: [institutionId], references: [id], onDelete: Cascade)
   studentMetrics                StudentPerformanceMetric[]
   teacherMetrics                TeacherPerformanceMetric[]
   teacherCourseSectionRelations TeacherCourseSectionRelation[]
@@ -329,9 +329,9 @@ model ClassSection {
   notes                         Note[]
   attendanceSessions            AttendanceSession[]
   calendarEvents                CalendarEvent[]
-  batch                         Batch                          @relation(fields: [batchId], references: [id])
-  semester                      Semester                       @relation(fields: [semesterId], references: [id])
-  teacher                       Teacher                        @relation(fields: [teacherId], references: [id])
+  batch                         Batch                          @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  semester                      Semester                       @relation(fields: [semesterId], references: [id], onDelete: Cascade)
+  teacher                       Teacher                        @relation(fields: [teacherId], references: [id], onDelete: Cascade)
   classStream                   ClassStream[]
   exams                         Exam[]
   creditsUsed                   Int                            @default(0)
@@ -340,7 +340,7 @@ model ClassSection {
   teacherCourseSectionRelations TeacherCourseSectionRelation[]
   isOptional                    Boolean?                       @default(false)
   motherClassId                 String?                        @map("mother_class_id") // Foreign key to MotherClass
-  motherClass                   MotherClass?                   @relation(fields: [motherClassId], references: [id])
+  motherClass                   MotherClass?                   @relation(fields: [motherClassId], references: [id], onDelete: Cascade)
   copyChecks                    copyCheck[]
 
   // classFees                     ClassFee[]
@@ -354,8 +354,8 @@ model StudentClassEnrollment {
   createdAt        DateTime              @default(now()) @map("created_at")
   updatedAt        DateTime              @updatedAt @map("updated_at")
   enrollmentStatus ClassEnrollmentStatus @map("enrollment_status")
-  classSection     ClassSection          @relation(fields: [classSectionId], references: [id])
-  student          Student               @relation(fields: [studentId], references: [id])
+  classSection     ClassSection          @relation(fields: [classSectionId], references: [id], onDelete: Cascade)
+  student          Student               @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@map("student_class_enrollments")
 }
@@ -373,9 +373,9 @@ model AttendanceSession {
   createdAt         DateTime     @default(now()) @map("created_at")
   updatedAt         DateTime     @updatedAt @map("updated_at")
   attendanceRecords Attendance[]
-  classSection      ClassSection @relation(fields: [classSectionId], references: [id])
-  course            Course       @relation(fields: [courseId], references: [id]) // New relation 
-  teacher           Teacher      @relation(fields: [teacherId], references: [id])
+  classSection      ClassSection @relation(fields: [classSectionId], references: [id], onDelete: Cascade)
+  course            Course       @relation(fields: [courseId], references: [id], onDelete: Cascade) // New relation
+  teacher           Teacher      @relation(fields: [teacherId], references: [id], onDelete: Cascade)
 
   @@map("attendance_sessions")
 }
@@ -411,9 +411,9 @@ model Attendance {
   recordedAt          DateTime          @map("recorded_at")
   updatedAt           DateTime          @updatedAt @map("updated_at")
   isLocked            Boolean           @default(false) @map("is_locked")
-  attendanceSession   AttendanceSession @relation(fields: [attendanceSessionId], references: [id])
-  recordedBy          Teacher           @relation("RecordedByTeacher", fields: [recordedById], references: [id])
-  student             Student           @relation(fields: [studentId], references: [id])
+  attendanceSession   AttendanceSession @relation(fields: [attendanceSessionId], references: [id], onDelete: Cascade)
+  recordedBy          Teacher           @relation("RecordedByTeacher", fields: [recordedById], references: [id], onDelete: Cascade)
+  student             Student           @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@map("attendance")
 }
@@ -427,7 +427,7 @@ model AttendanceSettings {
   allowExcusedAbsences        Boolean     @map("allow_excused_absences")
   createdAt                   DateTime    @default(now()) @map("created_at")
   updatedAt                   DateTime    @updatedAt @map("updated_at")
-  institution                 Institution @relation(fields: [institutionId], references: [id])
+  institution                 Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
 
   @@map("attendance_settings")
 }
@@ -465,9 +465,9 @@ model Exam {
   status          ExamStatus
   isAiGenerated   Boolean          @default(false) @map("is_ai_generated")
   examSubmissions ExamSubmission[]
-  classSection    ClassSection     @relation(fields: [classSectionId], references: [id])
-  createdBy       Teacher          @relation("ExamCreator", fields: [createdById], references: [id])
-  examType        ExamType         @relation(fields: [examTypeId], references: [id])
+  classSection    ClassSection     @relation(fields: [classSectionId], references: [id], onDelete: Cascade)
+  createdBy       Teacher          @relation("ExamCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  examType        ExamType         @relation(fields: [examTypeId], references: [id], onDelete: Cascade)
   questions       Question[]
 
   @@map("exams")
@@ -488,7 +488,7 @@ model Question {
   updatedAt       DateTime       @updatedAt @map("updated_at")
   isAiGenerated   Boolean        @default(false) @map("is_ai_generated")
   answerScripts   AnswerScript[]
-  createdBy       Teacher        @relation("QuestionCreator", fields: [createdById], references: [id])
+  createdBy       Teacher        @relation("QuestionCreator", fields: [createdById], references: [id], onDelete: Cascade)
   exam            Exam           @relation(fields: [examId], references: [id], onDelete: Cascade)
 
   @@map("questions")
@@ -581,11 +581,11 @@ model copyCheck {
   createdAt       DateTime        @default(now()) @map("created_at")
   updatedAt       DateTime        @updatedAt @map("updated_at")
 
-  checkSession  checkSession  @relation(fields: [checkSessionId], references: [id])
-  classSection  ClassSection  @relation(fields: [classSectionId], references: [id])
-  course        Course        @relation(fields: [courseId], references: [id])
-  teacher       Teacher       @relation(fields: [teacherId], references: [id])
-  questionPaper QuestionPaper @relation(fields: [questionPaperId], references: [id])
+  checkSession  checkSession  @relation(fields: [checkSessionId], references: [id], onDelete: Cascade)
+  classSection  ClassSection  @relation(fields: [classSectionId], references: [id], onDelete: Cascade)
+  course        Course        @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  teacher       Teacher       @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  questionPaper QuestionPaper @relation(fields: [questionPaperId], references: [id], onDelete: Cascade)
 
   studentCopies studentCopies[]
 
@@ -601,8 +601,8 @@ model studentCopies {
   createdAt     DateTime        @default(now()) @map("created_ok") // Changed map name from 'created_at' to avoid conflict if `createdAt` on Student is same
   updatedAt     DateTime        @updatedAt @map("updated_at")
 
-  copyCheck copyCheck @relation(fields: [copyCheckId], references: [id])
-  student   Student   @relation(fields: [studentId], references: [id]) // This `student` relation needs an inverse on `Student`
+  copyCheck copyCheck @relation(fields: [copyCheckId], references: [id], onDelete: Cascade)
+  student   Student   @relation(fields: [studentId], references: [id], onDelete: Cascade) // This `student` relation needs an inverse on `Student`
 
   questionAnswers StudentQuestionAnswer[]
 
@@ -622,10 +622,10 @@ model StudentQuestionAnswer {
   createdAt         DateTime  @default(now()) @map("created_at")
   updatedAt         DateTime  @updatedAt @map("updated_at")
 
-  studentCopy studentCopies @relation(fields: [studentCopyId], references: [id])
-  student     Student       @relation(fields: [studentId], references: [id]) // NEW: Relation to Student
-  question    CopyQuestion  @relation(fields: [questionId], references: [id])
-  gradedBy    Teacher?      @relation("GradedQuestionByTeacher", fields: [gradedByTeacherId], references: [id])
+  studentCopy studentCopies @relation(fields: [studentCopyId], references: [id], onDelete: Cascade)
+  student     Student       @relation(fields: [studentId], references: [id], onDelete: Cascade) // NEW: Relation to Student
+  question    CopyQuestion  @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  gradedBy    Teacher?      @relation("GradedQuestionByTeacher", fields: [gradedByTeacherId], references: [id], onDelete: Cascade)
 
   @@map("student_Youtubes")
 }
@@ -697,9 +697,9 @@ model ClassFee {
   localFees  LocalFees?  @relation(fields: [localFeesId], references: [id], onDelete: Cascade)
 
   feesCollections FeesCollection[]
-  feeCategory     Fees?            @relation(fields: [feeCategoryId], references: [id])
+  feeCategory     Fees?            @relation(fields: [feeCategoryId], references: [id], onDelete: Cascade)
   feeCategoryId   String?          @map("fee_category_id")
-  motherClass     MotherClass      @relation(fields: [motherClassId], references: [id])
+  motherClass     MotherClass      @relation(fields: [motherClassId], references: [id], onDelete: Cascade)
 
   @@map("class_fees")
 }
@@ -717,7 +717,7 @@ model FeesCollection {
   updatedAt     DateTime      @updatedAt @map("updated_at")
 
   classFee ClassFee @relation(fields: [classFeeId], references: [id], onDelete: Cascade)
-  student  Student  @relation(fields: [studentId], references: [id])
+  student  Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@unique([classFeeId, studentId])
   @@map("fees_collections")
@@ -731,7 +731,7 @@ model LocalFeesOnStudent {
   updatedAt   DateTime @updatedAt
 
   localFees LocalFees @relation(fields: [localFeesId], references: [id], onDelete: Cascade)
-  student   Student   @relation(fields: [studentId], references: [id])
+  student   Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@unique([localFeesId, studentId])
   @@map("local_fees_on_student")
@@ -751,8 +751,8 @@ model ExamSubmission {
   updatedAt      DateTime           @updatedAt @map("updated_at")
   answerScripts  AnswerScript[]
   exam           Exam               @relation(fields: [examId], references: [id], onDelete: Cascade)
-  gradedBy       Teacher?           @relation("GradedByTeacher", fields: [gradedById], references: [id])
-  student        Student            @relation(fields: [studentId], references: [id])
+  gradedBy       Teacher?           @relation("GradedByTeacher", fields: [gradedById], references: [id], onDelete: Cascade)
+  student        Student            @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@map("exam_submissions")
 }
@@ -774,7 +774,7 @@ model AnswerScript {
   isAiGraded       Boolean            @default(false) @map("is_ai_graded")
   aiFeedback       Json?
   examSubmission   ExamSubmission     @relation(fields: [examSubmissionId], references: [id], onDelete: Cascade)
-  gradedBy         Teacher?           @relation("GradedByTeacher", fields: [gradedById], references: [id])
+  gradedBy         Teacher?           @relation("GradedByTeacher", fields: [gradedById], references: [id], onDelete: Cascade)
   question         Question           @relation(fields: [questionId], references: [id], onDelete: Cascade)
 
   @@map("answer_scripts")
@@ -801,10 +801,10 @@ model AIVideoContent {
   updatedAt       DateTime        @updatedAt @map("updated_at")
   createdById     String          @map("created_by")
   version         Int             @default(1) @map("version")
-  classSection    ClassSection?   @relation(fields: [classSectionId], references: [id])
-  course          Course          @relation(fields: [courseId], references: [id])
-  createdBy       Teacher         @relation("VideoContentCreator", fields: [createdById], references: [id])
-  teacher         Teacher         @relation("AssignedTeacher", fields: [teacherId], references: [id])
+  classSection    ClassSection?   @relation(fields: [classSectionId], references: [id], onDelete: Cascade)
+  course          Course          @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  createdBy       Teacher         @relation("VideoContentCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  teacher         Teacher         @relation("AssignedTeacher", fields: [teacherId], references: [id], onDelete: Cascade)
   videoViewLogs   VideoViewLog[]
 
   @@map("ai_video_content")
@@ -821,8 +821,8 @@ model VideoViewLog {
   feedback               String?
   rating                 Int?
   createdAt              DateTime       @default(now()) @map("created_at")
-  student                Student        @relation(fields: [studentId], references: [id])
-  video                  AIVideoContent @relation(fields: [videoId], references: [id])
+  student                Student        @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  video                  AIVideoContent @relation(fields: [videoId], references: [id], onDelete: Cascade)
 
   @@map("video_view_logs")
 }
@@ -841,9 +841,9 @@ model AIQuestionBank {
   updatedAt       DateTime        @updatedAt @map("updated_at")
   createdById     String          @map("created_by")
   version         Int             @default(1) @map("version")
-  course          Course          @relation(fields: [courseId], references: [id])
-  createdBy       Teacher         @relation("QuestionBankCreator", fields: [createdById], references: [id])
-  teacher         Teacher         @relation("AssignedTeacher", fields: [teacherId], references: [id])
+  course          Course          @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  createdBy       Teacher         @relation("QuestionBankCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  teacher         Teacher         @relation("AssignedTeacher", fields: [teacherId], references: [id], onDelete: Cascade)
 
   @@map("ai_question_banks")
 }
@@ -938,7 +938,7 @@ model CreditAllocation {
   allocatedAt   DateTime    @map("allocated_at")
   source        String      @map("source")
   createdAt     DateTime    @default(now()) @map("created_at")
-  institution   Institution @relation(fields: [institutionId], references: [id])
+  institution   Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
 
   @@map("credit_allocations")
 }
@@ -957,8 +957,8 @@ model Invoice {
   paidAt           DateTime?     @map("paid_at")
   createdAt        DateTime      @default(now()) @map("created_at")
   updatedAt        DateTime      @updatedAt @map("updated_at")
-  institution      Institution   @relation(fields: [institutionId], references: [id])
-  subscription     Subscription  @relation(fields: [subscriptionId], references: [id])
+  institution      Institution   @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  subscription     Subscription  @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
 
   @@map("invoices")
 }
@@ -997,9 +997,9 @@ model StudentPerformanceMetric {
   performanceCategory      PerformanceCategory @map("performance_category")
   createdAt                DateTime            @default(now()) @map("created_at")
   updatedAt                DateTime            @updatedAt @map("updated_at")
-  classSection             ClassSection        @relation(fields: [classSectionId], references: [id])
-  semester                 Semester            @relation(fields: [semesterId], references: [id])
-  student                  Student             @relation(fields: [studentId], references: [id])
+  classSection             ClassSection        @relation(fields: [classSectionId], references: [id], onDelete: Cascade)
+  semester                 Semester            @relation(fields: [semesterId], references: [id], onDelete: Cascade)
+  student                  Student             @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@map("student_performance_metrics")
 }
@@ -1019,8 +1019,8 @@ model Notification {
   createdAt        DateTime  @default(now()) @map("created_at")
 
   teacherId String?  @map("teacher-id")
-  teacher   Teacher? @relation(fields: [teacherId], references: [id])
-  student   Student? @relation(fields: [studentId], references: [id])
+  teacher   Teacher? @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  student   Student? @relation(fields: [studentId], references: [id], onDelete: Cascade)
   studentId String?  @map("student-id")
 
   @@map("notifications")
@@ -1040,10 +1040,10 @@ model Announcement {
   expiryDate       DateTime?     @map("expiry_date") @db.Date
   createdAt        DateTime      @default(now()) @map("created_at")
   updatedAt        DateTime      @updatedAt @map("updated_at")
-  classSection     ClassSection? @relation(fields: [classSectionId], references: [id])
-  createdByTeacher Teacher       @relation("CreatedByTeacher", fields: [createdById], references: [id])
-  department       Department?   @relation(fields: [departmentId], references: [id])
-  institution      Institution   @relation(fields: [institutionId], references: [id])
+  classSection     ClassSection? @relation(fields: [classSectionId], references: [id], onDelete: Cascade)
+  createdByTeacher Teacher       @relation("CreatedByTeacher", fields: [createdById], references: [id], onDelete: Cascade)
+  department       Department?   @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  institution      Institution   @relation(fields: [institutionId], references: [id], onDelete: Cascade)
 
   @@map("announcements")
 }
@@ -1069,9 +1069,9 @@ model Assignment {
   attachments    AssignmentAttachment[]
   comments       AssignmentComment[]
   submissions    AssignmentSubmission[]
-  classSection   ClassSection           @relation(fields: [classSectionId], references: [id])
-  createdBy      Teacher                @relation("AssignmentCreator", fields: [createdById], references: [id])
-  group          AssignmentGroup?       @relation(fields: [groupId], references: [id])
+  classSection   ClassSection           @relation(fields: [classSectionId], references: [id], onDelete: Cascade)
+  createdBy      Teacher                @relation("AssignmentCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  group          AssignmentGroup?       @relation(fields: [groupId], references: [id], onDelete: Cascade)
 
   @@index([classSectionId, createdAt])
   @@map("assignments")
@@ -1092,9 +1092,9 @@ model AssignmentSubmission {
   updatedAt      DateTime               @updatedAt @map("updated_at")
   attachments    AssignmentAttachment[]
   comments       AssignmentComment[]
-  assignment     Assignment             @relation(fields: [assignmentId], references: [id])
-  gradedBy       Teacher?               @relation("GradedByTeacher", fields: [gradedById], references: [id])
-  student        Student                @relation(fields: [studentId], references: [id])
+  assignment     Assignment             @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  gradedBy       Teacher?               @relation("GradedByTeacher", fields: [gradedById], references: [id], onDelete: Cascade)
+  student        Student                @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@index([assignmentId, studentId])
   @@map("assignment_submissions")
@@ -1112,7 +1112,7 @@ model AssignmentAttachment {
   createdAt    DateTime              @default(now()) @map("created_at")
   assignment   Assignment?           @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
   submission   AssignmentSubmission? @relation(fields: [submissionId], references: [id], onDelete: Cascade)
-  uploadedBy   User                  @relation("UploadedByUser", fields: [uploadedById], references: [id])
+  uploadedBy   User                  @relation("UploadedByUser", fields: [uploadedById], references: [id], onDelete: Cascade)
 
   @@map("assignment_attachments")
 }
@@ -1136,7 +1136,7 @@ model AssignmentGroupMember {
   studentId String          @map("student_id")
   createdAt DateTime        @default(now()) @map("created_at")
   group     AssignmentGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  student   Student         @relation(fields: [studentId], references: [id])
+  student   Student         @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@map("assignment_group_members")
 }
@@ -1154,7 +1154,7 @@ model AssignmentComment {
   assignment_comments       AssignmentComment?    @relation("assignment_commentsToassignment_comments", fields: [parent_id], references: [id], onDelete: Cascade)
   other_assignment_comments AssignmentComment[]   @relation("assignment_commentsToassignment_comments")
   submission                AssignmentSubmission? @relation(fields: [submissionId], references: [id], onDelete: Cascade)
-  user                      User                  @relation(fields: [userId], references: [id])
+  user                      User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("assignment_comments")
 }
@@ -1184,9 +1184,9 @@ model CalendarEvent {
   createdById     String        @map("created_by")
   createdAt       DateTime      @default(now()) @map("created_at")
   updatedAt       DateTime      @updatedAt @map("updated_at")
-  classSection    ClassSection? @relation(fields: [classSectionId], references: [id])
-  createdBy       User          @relation("CreatedByUser", fields: [createdById], references: [id])
-  institution     Institution   @relation(fields: [institutionId], references: [id])
+  classSection    ClassSection? @relation(fields: [classSectionId], references: [id], onDelete: Cascade)
+  createdBy       User          @relation("CreatedByUser", fields: [createdById], references: [id], onDelete: Cascade)
+  institution     Institution   @relation(fields: [institutionId], references: [id], onDelete: Cascade)
 
   @@map("calendar_events")
 }
@@ -1204,9 +1204,9 @@ model Note {
   updatedAt      DateTime         @updatedAt @map("updated_at")
   attachments    NoteAttachment[]
   videoData      Json?            @map("video_data")
-  classSection   ClassSection     @relation(fields: [classSectionId], references: [id])
-  teacher        Teacher          @relation("NoteCreator", fields: [teacherId], references: [id], map: "notes_creator_teacher_id_fkey")
-  Teacher        Teacher          @relation(fields: [teacherId], references: [id])
+  classSection   ClassSection     @relation(fields: [classSectionId], references: [id], onDelete: Cascade)
+  teacher        Teacher          @relation("NoteCreator", fields: [teacherId], references: [id], map: "notes_creator_teacher_id_fkey", onDelete: Cascade)
+  Teacher        Teacher          @relation(fields: [teacherId], references: [id], onDelete: Cascade)
 
   @@map("notes")
 }
@@ -1237,7 +1237,7 @@ model TeacherCourseSectionRelation {
   teacher        Teacher      @relation(fields: [teacherId], references: [id], onDelete: Cascade)
   course         Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
   classSection   ClassSection @relation(fields: [classSectionId], references: [id], onDelete: Cascade)
-  semester       Semester?    @relation(fields: [semesterId], references: [id], onDelete: Restrict)
+  semester       Semester?    @relation(fields: [semesterId], references: [id], onDelete: SetNull)
 
   @@unique([teacherId, courseId, classSectionId, semesterId])
   @@map("teacher_course_section_relations")
