@@ -263,8 +263,8 @@ model Course {
   createdById                   String                         @map("created_by")
   aiQuestionBanks               AIQuestionBank[]
   aiVideoContents               AIVideoContent[]
-  createdBy                     Teacher                        @relation("CourseCreator", fields: [createdById], references: [id])
-  department                    Department                     @relation(fields: [departmentId], references: [id])
+  createdBy                     Teacher                        @relation("CourseCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  department                    Department                     @relation(fields: [departmentId], references: [id], onDelete: Cascade)
   AttendanceSession             AttendanceSession[]
   teacherCourseSectionRelations TeacherCourseSectionRelation[]
   copyChecks                    copyCheck[]
