@@ -1,6 +1,7 @@
 "use client";
 
 import React, {useState, useEffect} from 'react';
+import axios from 'axios';
 import {Card} from "@/components/ui/card";
 import StudentsList, {Student} from '@/components/admin/StudentsListComponent';
 import StudentDetail, {StudentDetail as StudentDetailType} from '@/components/admin/StudentdetailComponent';
@@ -24,6 +25,7 @@ export default function ViewStudentsComponent({id}: ViewStudentsProps) {
   const [error, setError] = useState<string | null>(null);
   // State for controlling the add student modal
   const [isAddStudentModalOpen, setIsAddStudentModalOpen] = useState(false);
+  const [deletingStudent, setDeletingStudent] = useState<boolean>(false);
 
   // Fetch students data when component mounts or after adding a new student
   const fetchStudents = async () => {
@@ -72,6 +74,20 @@ export default function ViewStudentsComponent({id}: ViewStudentsProps) {
   const handleStudentAdded = () => {
     fetchStudents();
   };
+  
+  const handleDeleteStudent = async (userId: string) => {
+    try {
+      setDeletingStudent(true);
+      await axios.delete(`/api/students?id=${userId}`);
+      await fetchStudents();
+      setError(null);
+    } catch (err) {
+      console.error('Error deleting student:', err);
+      setError('Failed to delete student. Please try again later.');
+    } finally {
+      setDeletingStudent(false);
+    }
+  }
 
   // Render loading state
   if (isLoading && students.length === 0) {
@@ -108,6 +124,9 @@ export default function ViewStudentsComponent({id}: ViewStudentsProps) {
           ) : (
             <StudentsList
               students={students}
+              deletingStudent={deletingStudent}
+              handleDeleteStudent={handleDeleteStudent}
+              is
               onViewStudent={handleViewStudent}
             />
           )}

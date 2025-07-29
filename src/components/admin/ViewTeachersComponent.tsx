@@ -70,11 +70,11 @@ export default function ViewTeachersComponent({id}: ViewTeachersProps) {
       const deleteTeacher = await axios.delete(`/api/teacher/profile?id=${userId}`);
 
       await fetchTeachers();
-
-      setDeletingTeacher(false);
     } catch (err) {
       console.error('Error deleting teachers:', err);
       setError('Failed to delete teacher. Please try again later.');
+    } finally {
+      setDeletingTeacher(false);
     }
   }
 
