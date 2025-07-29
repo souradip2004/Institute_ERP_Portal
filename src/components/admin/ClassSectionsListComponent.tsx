@@ -66,6 +66,8 @@ export default function ClassSectionsList({ classSections, onViewClassSection }:
         const response = await fetch(`/api/institutions/${institutionId}/motherclass`);
         const data = await response.json();
 
+        console.log("Motherclass response jhhghjv", data);
+
         const processedMotherClasses: MotherClassWithInheritedData[] = data.map((mc: any) => {
           const sectionsForThisMotherClass = classSections.filter(section => section.motherClassId === mc.id);
           const sectionCount = sectionsForThisMotherClass.length;

@@ -86,11 +86,11 @@ export default function TeacherDetail({ teacher, onBack }: TeacherDetailProps) {
     <div className="bg-white shadow rounded-lg">
       <div className="border-b border-gray-200 px-6 py-4 flex justify-between items-center">
         <h2 className="text-xl font-bold text-gray-800">Teacher Detail</h2>
-        <div className="flex space-x-2">
+        {/*<div className="flex space-x-2">
           <span className={`px-3 py-1 inline-flex text-sm leading-5 font-semibold rounded-full ${statusStyle}`}>
             {teacher.employmentStatus.replace('_', ' ')}
           </span>
-        </div>
+        </div>*/}
       </div>
       
       <div className="p-6">
@@ -100,10 +100,7 @@ export default function TeacherDetail({ teacher, onBack }: TeacherDetailProps) {
               <InfoItem label="Teacher Code" value={teacher.teacherCode} />
               <InfoItem label="Full Name" value={teacher.user.name} />
               <InfoItem label="Email" value={teacher.user.email} />
-
             </InfoSection>
-            
-          
           </div>
           
           <div className="space-y-6">

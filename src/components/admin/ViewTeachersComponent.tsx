@@ -1,17 +1,18 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import { Card } from "@/components/ui/card";
-import TeachersList, { Teacher } from '@/components/admin/TeacherListComponent';
-import TeacherDetail, { TeacherDetail as TeacherDetailType } from '@/components/admin/TeacherDetailComponent';
+import React, {useState, useEffect} from 'react';
+import {Card} from "@/components/ui/card";
+import TeachersList, {Teacher} from '@/components/admin/TeacherListComponent';
+import TeacherDetail, {TeacherDetail as TeacherDetailType} from '@/components/admin/TeacherDetailComponent';
 import Loader from '@/components/ui/Loader';
-import AddTeacherModal from '@/components/admin/AddTeachers'; // Assuming this is your modal component
+import AddTeacherModal from '@/components/admin/AddTeachers';
+import axios from "axios"; // Assuming this is your modal component
 
 interface ViewTeachersProps {
   id: string;
 }
 
-export default function ViewTeachersComponent({ id }: ViewTeachersProps) {
+export default function ViewTeachersComponent({id}: ViewTeachersProps) {
   // State for storing all teachers
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   // State for tracking which view to show
@@ -24,6 +25,7 @@ export default function ViewTeachersComponent({ id }: ViewTeachersProps) {
   const [error, setError] = useState<string | null>(null);
   // State for controlling the add teacher modal
   const [isAddTeacherModalOpen, setIsAddTeacherModalOpen] = useState(false);
+  const [deletingTeacher, setDeletingTeacher] = useState<boolean>(false);
 
   // Fetch teachers data when component mounts or after adding a new teacher
   const fetchTeachers = async () => {
@@ -62,6 +64,20 @@ export default function ViewTeachersComponent({ id }: ViewTeachersProps) {
     }
   };
 
+  const handleDeleteTeacher = async (userId: string) => {
+    try {
+      setDeletingTeacher(true);
+      const deleteTeacher = await axios.delete(`/api/teacher/profile?id=${userId}`);
+
+      await fetchTeachers();
+
+      setDeletingTeacher(false);
+    } catch (err) {
+      console.error('Error deleting teachers:', err);
+      setError('Failed to delete teacher. Please try again later.');
+    }
+  }
+
   // Function to go back to the teachers list
   const handleBackToList = () => {
     setActiveSection("viewTeachers");
@@ -77,7 +93,7 @@ export default function ViewTeachersComponent({ id }: ViewTeachersProps) {
   if (isLoading && teachers.length === 0) {
     return (
       <div className="flex justify-center items-center h-full min-h-[300px]">
-        <Loader size="large" message="Loading teachers..." fullScreen={false} />
+        <Loader size="large" message="Loading teachers..." fullScreen={false}/>
       </div>
     );
   }
@@ -93,7 +109,8 @@ export default function ViewTeachersComponent({ id }: ViewTeachersProps) {
 
   return (
     <div className="container mx-auto p-4 md:p-6"> {/* Adjusted padding for mobile vs desktop */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 space-y-4 md:space-y-0"> {/* Stack on mobile, row on desktop */}
+      <div
+        className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 space-y-4 md:space-y-0"> {/* Stack on mobile, row on desktop */}
         <h1 className="text-xl md:text-2xl font-bold text-gray-800">Teacher Management</h1> {/* Adjust text size */}
         <button
           onClick={() => setIsAddTeacherModalOpen(true)}
@@ -107,11 +124,13 @@ export default function ViewTeachersComponent({ id }: ViewTeachersProps) {
         <Card className="shadow-lg p-4 md:p-6"> {/* Adjusted padding within card */}
           {isLoading ? (
             <div className="flex justify-center items-center h-48"> {/* Centered loader for refresh */}
-              <Loader size="medium" message="Refreshing..." fullScreen={false} />
+              <Loader size="medium" message="Refreshing..." fullScreen={false}/>
             </div>
           ) : (
             <TeachersList
               teachers={teachers}
+              handleDeleteTeacher={handleDeleteTeacher}
+              deletingTeacher={deletingTeacher}
               onViewTeacher={handleViewTeacher}
             />
           )}

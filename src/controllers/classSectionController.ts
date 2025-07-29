@@ -67,6 +67,7 @@ export class ClassSectionController {
       const classSection = await classSectionService.createClassSection(
         createData
       );
+
       return NextResponse.json(classSection, { status: 201 });
     } catch (error: unknown) {
       if (error instanceof Error) {

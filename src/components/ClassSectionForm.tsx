@@ -39,7 +39,7 @@ export default function ClassSectionForm({ teacherId }: ClassSectionFormProps) {
       axios.post("/api/class-sections", { ...data, teacherId }),
     onSuccess: (response) => {
       router.push(`/dashboard/teacher/student-mapping/${response.data.id}`);
-    },
+    }
   });
 
   const handleSubmit = (e: React.FormEvent) => {
