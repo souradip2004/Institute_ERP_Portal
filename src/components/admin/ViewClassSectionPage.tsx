@@ -1,13 +1,14 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import { Card } from "@/components/ui/card";
-import ClassSectionsList, { ClassSection } from '@/components/admin/ClassSectionsListComponent';
+import React, {useState, useEffect} from 'react';
+import {Card} from "@/components/ui/card";
+import ClassSectionsList, {ClassSection} from '@/components/admin/ClassSectionsListComponent';
 import ClassSectionDetail from '@/components/admin/ClassSectionDetailComponent';
-import { ClassSectionDetail as ClassSectionDetailType } from '@/components/admin/ClassSectionDetailComponent';
+import {ClassSectionDetail as ClassSectionDetailType} from '@/components/admin/ClassSectionDetailComponent';
 import Loader from '@/components/ui/Loader';
 import AddClassModal from '@/components/admin/AddClass';
-import { PlusCircle } from 'lucide-react';
+import {PlusCircle} from 'lucide-react';
+import axios from "axios";
 
 interface Teacher {
   id: string;
@@ -57,6 +58,7 @@ interface ApiClassSection {
       name?: string;
     };
   };
+
   [key: string]: string | number | boolean | object | null | undefined;
 }
 
@@ -64,7 +66,7 @@ interface ViewClassSectionPageProps {
   id: string;
 }
 
-export default function ClassSectionsPage({ id }: ViewClassSectionPageProps) {
+export default function ClassSectionsPage({id}: ViewClassSectionPageProps) {
   const [classSections, setClassSections] = useState<ClassSection[]>([]);
   const [activeSection, setActiveSection] = useState<"viewClassSections" | "viewClassSectionDetail">("viewClassSections");
   const [selectedClassSection, setSelectedClassSection] = useState<ClassSectionDetailType | null>(null);
@@ -73,87 +75,91 @@ export default function ClassSectionsPage({ id }: ViewClassSectionPageProps) {
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [deletingClassSection, setDeletingClassSection] = useState<boolean>(false);
+
+
+  const fetchClassSections = async () => {
+    setIsLoading(true);
+    try {
+      // Fetch teachers first
+      const teachersResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/teachers`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!teachersResponse.ok) {
+        throw new Error('Failed to fetch teachers');
+      }
+
+      const teachers = await teachersResponse.json();
+
+      if (!Array.isArray(teachers)) {
+        console.error('Teachers response is not an array:', teachers);
+        throw new Error('Invalid teachers data format');
+      }
+
+      const filteredTeachers = teachers.filter((teacher: Teacher) =>
+        teacher && teacher.user && teacher.user.institutionId === id
+      );
+
+      setTeachers(filteredTeachers || []);
+
+      // Now fetch class sections
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/class-sections`);
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch class sections');
+      }
+
+      const data = await response.json();
+
+      if (!Array.isArray(data)) {
+        console.error('Class sections response is not an array:', data);
+        throw new Error('Invalid class sections data format');
+      }
+
+      // Filter sections by teacher ID
+      const teacherIds = filteredTeachers.map(t => t.id);
+      const filteredClassSections = data
+      .filter((section: ApiClassSection) =>
+        section && section.teacherId && teacherIds.includes(section.teacherId)
+      )
+      .map((section: ApiClassSection) => {
+        // Make sure every section has at least the required fields
+        return {
+          id: section.id || '',
+          sectionName: section.sectionName || 'Unnamed Section',
+          motherClassId: section.motherClassId,
+          teacherId: section.teacherId || '',
+          batchId: section.batchId || '',
+          courseId: section.courseId || '',
+          isOptional: section.isOptional || false,
+          semesterId: section.semesterId || '',
+          maxStudents: section.maxStudents || 0,
+          createdAt: section.createdAt || new Date().toISOString(),
+          updatedAt: section.updatedAt || new Date().toISOString(),
+          batch: section.batch || {},
+          course: section.course || {},
+          semester: section.semester || {},
+          teacher: section.teacher || {user: {}}
+        };
+      });
+
+      setClassSections(filteredClassSections as ClassSection[]);
+      setError(null);
+    } catch (err) {
+      console.error('Error fetching data:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load data. Please try again later.');
+      setClassSections([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
 
   useEffect(() => {
-    const fetchClassSections = async () => {
-      setIsLoading(true);
-      try {
-        // Fetch teachers first
-        const teachersResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/teachers`, {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        });
-
-        if (!teachersResponse.ok) {
-          throw new Error('Failed to fetch teachers');
-        }
-
-        const teachers = await teachersResponse.json();
-
-        if (!Array.isArray(teachers)) {
-          console.error('Teachers response is not an array:', teachers);
-          throw new Error('Invalid teachers data format');
-        }
-
-        const filteredTeachers = teachers.filter((teacher: Teacher) =>
-          teacher && teacher.user && teacher.user.institutionId === id
-        );
-
-        setTeachers(filteredTeachers || []);
-
-        // Now fetch class sections
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/class-sections`);
-
-        if (!response.ok) {
-          throw new Error('Failed to fetch class sections');
-        }
-
-        const data = await response.json();
-
-        if (!Array.isArray(data)) {
-          console.error('Class sections response is not an array:', data);
-          throw new Error('Invalid class sections data format');
-        }
-
-        // Filter sections by teacher ID
-        const teacherIds = filteredTeachers.map(t => t.id);
-        const filteredClassSections = data
-          .filter((section: ApiClassSection) =>
-            section && section.teacherId && teacherIds.includes(section.teacherId)
-          )
-          .map((section: ApiClassSection) => {
-            // Make sure every section has at least the required fields
-            return {
-              id: section.id || '',
-              sectionName: section.sectionName || 'Unnamed Section',
-              motherClassId: section.motherClassId,
-              teacherId: section.teacherId || '',
-              batchId: section.batchId || '',
-              courseId: section.courseId || '',
-              isOptional: section.isOptional || false,
-              semesterId: section.semesterId || '',
-              maxStudents: section.maxStudents || 0,
-              createdAt: section.createdAt || new Date().toISOString(),
-              updatedAt: section.updatedAt || new Date().toISOString(),
-              batch: section.batch || {},
-              course: section.course || {},
-              semester: section.semester || {},
-              teacher: section.teacher || { user: {} }
-            };
-          });
-
-        setClassSections(filteredClassSections as ClassSection[]);
-        setError(null);
-      } catch (err) {
-        console.error('Error fetching data:', err);
-        setError(err instanceof Error ? err.message : 'Failed to load data. Please try again later.');
-        setClassSections([]);
-      } finally {
-        setIsLoading(false);
-      }
-    };
 
     fetchClassSections();
   }, [id]);
@@ -215,8 +221,21 @@ export default function ClassSectionsPage({ id }: ViewClassSectionPageProps) {
     setIsAddModalOpen(false);
   };
 
+  const handleDeleteMotherClass = async (motherClassId: string) => {
+    try {
+      setDeletingClassSection(true);
+      await axios.delete(`/api/motherclass/${motherClassId}`);
+      await fetchClassSections();
+    } catch (e) {
+      console.error("Failed to delete mother class:", e);
+      setError("Failed to delete mother class. Please try again later.");
+    } finally {
+      setDeletingClassSection(false);
+    }
+  }
+
   if (isLoading) {
-    return <Loader fullScreen message="Loading class sections..." />;
+    return <Loader fullScreen message="Loading class sections..."/>;
   }
 
   if (error) {
@@ -225,7 +244,8 @@ export default function ClassSectionsPage({ id }: ViewClassSectionPageProps) {
         <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md w-full">
           <div className="flex items-center gap-3 mb-4">
             <svg className="h-6 w-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
+                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
             </svg>
             <h3 className="text-lg font-medium text-red-800">Error</h3>
           </div>
@@ -253,7 +273,7 @@ export default function ClassSectionsPage({ id }: ViewClassSectionPageProps) {
             onClick={openAddModal}
             className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-blue-700 transition-colors"
           >
-            <PlusCircle className="h-4 w-4" />
+            <PlusCircle className="h-4 w-4"/>
             <span>Add Class Section</span>
           </button>
         </div>
@@ -300,6 +320,8 @@ export default function ClassSectionsPage({ id }: ViewClassSectionPageProps) {
       {activeSection === "viewClassSections" && (
         <Card className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
           <ClassSectionsList
+            handleDeleteMotherClass={handleDeleteMotherClass}
+            deletingClassSection={deletingClassSection}
             classSections={classSections}
             onViewClassSection={handleViewClassSection}
           />
@@ -309,6 +331,7 @@ export default function ClassSectionsPage({ id }: ViewClassSectionPageProps) {
       {activeSection === "viewClassSectionDetail" && selectedClassSection && (
         <Card className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
           <ClassSectionDetail
+
             classSection={selectedClassSection}
             onBack={handleBackToList}
           />
