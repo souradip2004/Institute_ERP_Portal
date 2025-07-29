@@ -86,34 +86,92 @@ export async function DELETE(request: Request) {
   try {
     const {searchParams} = new URL(request.url);
     const userId = searchParams.get("id");
+
     if (!userId) {
-      return NextResponse.json({error: "userId required !"}, {status: 400});
+      return NextResponse.json({error: "userId is required!"}, {status: 400});
     }
 
-    const teacher = await prisma.teacher.findUnique({
-      where: {
-        userId: userId
+    // Use a transaction to ensure the entire operation is atomic
+    const deletedTeacher = await prisma.$transaction(async (tx) => {
+      // 1. Find the teacher and include their class sections to get motherClassIds
+      const teacher = await tx.teacher.findUnique({
+        where: {
+          userId: userId,
+        },
+        include: {
+          classSections: {
+            select: {
+              motherClassId: true,
+            },
+          },
+        },
+      });
 
-      },
-    });
-
-    if (!teacher) {
-      return NextResponse.json({error: "User does not exists"}, {status: 404})
-    }
-
-    const deletedTeacher = await prisma.teacher.delete({
-      where: {
-        userId: userId
+      if (!teacher) {
+        throw new Error("User does not exist");
       }
+
+      // 2. Collect all unique, non-null motherClassIds associated with this teacher
+      const motherClassIds = [
+        ...new Set(
+          teacher.classSections
+          .map((section) => section.motherClassId)
+          .filter((id): id is string => id !== null)
+        ),
+      ];
+
+      // 3. Delete the teacher. Prisma's onDelete: Cascade will handle deleting associated ClassSections.
+      const deletedTeacherRecord = await tx.teacher.delete({
+        where: {
+          userId: userId,
+        },
+      });
+
+      // 4. Check for and delete any orphaned MotherClass records
+      if (motherClassIds.length > 0) {
+        // Find which of the mother classes are now empty
+        const motherClassesToDelete = [];
+        for (const id of motherClassIds) {
+          const remainingSections = await tx.classSection.count({
+            where: {
+              motherClassId: id,
+            }
+          });
+
+          if (remainingSections === 0) {
+            motherClassesToDelete.push(id);
+          }
+        }
+
+        // Delete the orphaned mother classes
+        if (motherClassesToDelete.length > 0) {
+          await tx.motherClass.deleteMany({
+            where: {
+              id: {
+                in: motherClassesToDelete,
+              },
+            },
+          });
+        }
+      }
+
+      return deletedTeacherRecord;
     });
-    console.log("Deleted teacher ", deletedTeacher);
 
-    return NextResponse.json({message: "Deletion successful ", deletedTeacher}, {status: 200});
-
-
+    return NextResponse.json(
+      {message: "Deletion successful", deletedTeacher},
+      {status: 200}
+    );
   } catch (error: any) {
     console.error(error);
 
-    return NextResponse.json({message: "Internal server error!", description: error.mesage}, {status: 500});
+    if (error.message === "User does not exist") {
+      return NextResponse.json({error: "User does not exist"}, {status: 404});
+    }
+
+    return NextResponse.json(
+      {message: "Internal server error!", description: error.message},
+      {status: 500}
+    );
   }
 }
