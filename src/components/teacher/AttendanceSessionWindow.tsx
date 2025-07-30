@@ -204,12 +204,14 @@ export default function AttendanceSessionWindow({sessionId, institutionId}: Atte
         studentId,
         status,
       }));
+
       console.log('Sending data:', {sessionId, teacherId, attendanceData});
       const response = await axios.post(`/api/teachers/${teacherId}/attendance/save`, {
         sessionId,
         teacherId,
         attendanceData,
       });
+
       console.log('Response:', response.data);
       setSession((prev) => (prev ? {...prev, status: 'COMPLETED'} : prev));
       alert('Attendance saved successfully');

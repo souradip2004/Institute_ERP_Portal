@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import {NextResponse} from 'next/server';
 import {
   createTeacherCourseSectionAndSessions,
   getTeachers,
@@ -6,13 +6,13 @@ import {
   getClassSections,
 } from '@/services/teacherCourseSectionService';
 
-export async function POST(request: Request, { params }: { params: { adminId: string } }) {
+export async function POST(request: Request, {params}: { params: { adminId: string } }) {
   try {
-    const { adminId } = params;
-  
+    const {adminId} = params;
+
     const body = await request.json();
-    const { teacherId, courseId, classSectionId, semesterId, days, startTime, endTime } = body;
-  
+    const {classSectionId, days, startTime, endTime} = body;
+
     const result = await createTeacherCourseSectionAndSessions({
       classSectionId,
       days,
@@ -20,27 +20,27 @@ export async function POST(request: Request, { params }: { params: { adminId: st
       endTime,
       adminId
     });
-  
-    return NextResponse.json(result, { status: 201 });
+
+    return NextResponse.json(result, {status: 201});
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({error: error.message}, {status: 500});
   }
 }
 
-export async function GET(request: Request, { params }: { params: { adminId: string } }) {
+export async function GET(request: Request, {params}: { params: { adminId: string } }) {
   const url = new URL(request.url);
   console.log('url: ', url.toString());
-  
+
   const parts = url.toString().split('/')[5];
   console.log('parts: ', parts);
   const adminId = parts;
-  
-  const { searchParams } = new URL(request.url);
+
+  const {searchParams} = new URL(request.url);
   const type = searchParams.get('type');
   console.log('admin hit at teacher-course-section route with adminId: ', adminId, '    and type: ', type);
-  
+
   if (!adminId) {
-    return NextResponse.json({ error: 'Admin ID is required' }, { status: 400 });
+    return NextResponse.json({error: 'Admin ID is required'}, {status: 400});
   }
 
   try {
@@ -58,10 +58,10 @@ export async function GET(request: Request, { params }: { params: { adminId: str
         return NextResponse.json(classSections);
 
       default:
-        return NextResponse.json({ error: 'Invalid type parameter' }, { status: 400 });
+        return NextResponse.json({error: 'Invalid type parameter'}, {status: 400});
     }
   } catch (error: any) {
-    console.log('error in get hanler: ',error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.log('error in get hanler: ', error);
+    return NextResponse.json({error: error.message}, {status: 500});
   }
 }

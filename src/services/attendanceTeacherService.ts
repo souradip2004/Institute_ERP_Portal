@@ -299,8 +299,32 @@ export class AttendanceTeacherService {
         throw new Error("Valid sessionId is required");
       }
 
+      // Step 1: Fetch basic session info for validation and to get the classSectionId.
+      // This is a small, fast query.
+      const preliminarySession = await prisma.attendanceSession.findUnique({
+        where: { id: sessionId },
+        select: {
+          teacherId: true,
+          classSectionId: true,
+        },
+      });
+
+      if (!preliminarySession) {
+        throw new Error("Attendance session not found");
+      }
+
+      if (preliminarySession.teacherId !== teacherId) {
+        throw new Error(
+          `Teacher not authorized to view this session where teacherId: ${teacherId} and session.teacherId is: ${preliminarySession.teacherId}`
+        );
+      }
+
+      // Now we have the correct ID for the class section.
+      const classSectionId = preliminarySession.classSectionId;
+
+      // Step 2: Fetch all the detailed data using the correct classSectionId in the nested query.
       const session: any = await prisma.attendanceSession.findUnique({
-        where: {id: sessionId},
+        where: { id: sessionId },
         include: {
           classSection: {
             include: {
@@ -311,12 +335,13 @@ export class AttendanceTeacherService {
                   student: {
                     include: {
                       user: {
-                        select: {id: true, name: true, email: true}
+                        select: { id: true, name: true, email: true },
                       },
                       performanceMetrics: {
-                        where: {classSectionId: {equals: sessionId}},
-                        select: {attendancePercentage: true},
-                      }
+                        // THE FIX: Use the correct `classSectionId` variable here.
+                        where: { classSectionId: { equals: classSectionId } },
+                        select: { attendancePercentage: true },
+                      },
                     },
                   },
                 },
@@ -344,13 +369,11 @@ export class AttendanceTeacherService {
       });
 
       if (!session) {
-        throw new Error("Attendance session not found");
-      }
-      console.log('\nsession detail: ', session);
-      if (session.teacherId !== teacherId) {
-        throw new Error(`Teacher not authorized to view this session where teacherId: ${teacherId}  and session.teacherId is: ${session.teacherId}`);
+        // This is unlikely to happen after the first check, but it's good for safety.
+        throw new Error("Attendance session details could not be found.");
       }
 
+      // The rest of your mapping logic remains the same, as it was already correct.
       const presentCount: number = session.attendanceRecords.filter(
         (record: any) => record.status === "PRESENT" || record.status === "LATE"
       ).length;
@@ -364,9 +387,9 @@ export class AttendanceTeacherService {
             (record: any) => record.studentId === enrollment.studentId
           );
 
+          // This will now correctly find the metric object.
           const relevantMetric: any = enrollment.student.performanceMetrics[0];
-          // console.log('\nrelevantMetric: ', enrollment);
-
+          console.log("Relevant metric: ", relevantMetric);
           return {
             userId: enrollment.student.user.id,
             studentId: enrollment.student.id,
@@ -397,7 +420,6 @@ export class AttendanceTeacherService {
         absentCount,
         students,
       };
-
     } catch (error: any) {
       console.error("Error fetching attendance session details:", error);
       throw error instanceof Error ? error : new Error("Unknown error");
@@ -410,52 +432,30 @@ export class AttendanceTeacherService {
     attendanceData,
   }: SaveAttendanceInput): Promise<SaveAttendanceResponse> {
     try {
-      console.log("1️⃣ [Input] sessionId:", sessionId);
-      console.log("2️⃣ [Input] teacherId:", teacherId);
-      console.log("3️⃣ [Input] attendanceData:", JSON.stringify(attendanceData, null, 2));
-
+      // 1. Validate Input and Session
       if (!sessionId || !teacherId || !Array.isArray(attendanceData) || attendanceData.length === 0) {
         throw new Error("Invalid input: sessionId, teacherId, and non-empty attendanceData are required");
       }
 
-      const session: any = await prisma.attendanceSession.findUnique({
+      const session = await prisma.attendanceSession.findUnique({
         where: {id: sessionId},
-        include: {classSection: true},
+        include: {
+          classSection: {
+            include: {
+              semester: true, // Required for the performance metric key
+            },
+          },
+        },
       });
 
       if (!session) throw new Error("Attendance session not found");
       if (session.teacherId !== teacherId) throw new Error("Teacher not authorized for this session");
-      if (session.status === 'COMPLETED' || session.status === 'CANCELLED') {
+      if (['COMPLETED', 'CANCELLED'].includes(session.status)) {
         throw new Error(`Cannot update attendance for a ${session.status} session`);
       }
 
-      const settings: any = await prisma.attendanceSettings.findFirst({
-        where: {institutionId: session.classSection.institutionId},
-      });
-
-      const isLocked: boolean = settings?.autoLockAttendance
-        ? new Date() > new Date(session.sessionDate.getTime() + settings.autoLockAfterHours * 3600000)
-        : false;
-
-      const enrolledStudents: any = await prisma.studentClassEnrollment.findMany({
-        where: {classSectionId: session.classSectionId},
-        select: {studentId: true},
-      });
-
-      const enrolledStudentIds: Set<string> = new Set(enrolledStudents.map((enrollment: any) => enrollment.studentId));
-
-      const invalidStudentIds: string[] = [];
-      for (const {studentId} of attendanceData) {
-        if (!enrolledStudentIds.has(studentId)) {
-          invalidStudentIds.push(studentId);
-        }
-      }
-
-      if (invalidStudentIds.length > 0) {
-        throw new Error(
-          `Invalid student IDs: ${invalidStudentIds.join(", ")}. Students must be enrolled in the class section.`
-        );
-      }
+      // 2. Upsert Attendance Records for Each Student
+      // (This section reuses your existing logic and the external `upsertAttendance` function)
       for (const record of attendanceData) {
         const res = await upsertAttendance({
           attendanceSessionId: sessionId,
@@ -465,43 +465,118 @@ export class AttendanceTeacherService {
           recordedById: teacherId,
           recordedAt: new Date(),
         });
-
         if (!res.success) {
           console.error(`❌ Failed to save attendance for studentId: ${record.studentId}. Reason: ${res.message}`);
-        } else {
-          console.log(`✅ Attendance saved for studentId: ${record.studentId}`);
         }
       }
 
-      const studentCount: number = enrolledStudents.length;
-      const attendanceCount: number = await prisma.attendance.count({
+      // 3. Check if the Session is Fully Recorded and Mark as Completed
+      const enrolledStudents = await prisma.studentClassEnrollment.findMany({
+        where: {classSectionId: session.classSectionId},
+        select: {studentId: true},
+      });
+      const studentCount = enrolledStudents.length;
+      const attendanceCount = await prisma.attendance.count({
         where: {attendanceSessionId: sessionId},
       });
 
       if (attendanceCount >= studentCount) {
+        // Mark the session as completed
         await prisma.attendanceSession.update({
           where: {id: sessionId},
           data: {status: 'COMPLETED'},
         });
+        console.log(`✅ Session ${sessionId} marked as COMPLETED.`);
+
+        // 4. Update Performance Metrics for ALL Enrolled Students
+        console.log(`⏳ Starting performance metric update for all ${studentCount} students in class ${session.classSectionId}...`);
+
+        // Get total completed sessions for the course ONCE, now including the one we just marked.
+        const totalCourseSessions = await prisma.attendanceSession.count({
+          where: {
+            courseId: session.courseId,
+            classSectionId: session.classSectionId,
+            status: 'COMPLETED'
+          },
+        });
+
+        if (totalCourseSessions > 0) {
+          for (const enrollment of enrolledStudents) {
+            const studentId = enrollment.studentId;
+
+            // Get the number of 'PRESENT' records for this specific student.
+            const presentCount = await prisma.attendance.count({
+              where: {
+                studentId: studentId,
+                status: 'PRESENT',
+                attendanceSession: {
+                  courseId: session.courseId,
+                  classSectionId: session.classSectionId,
+                  status: 'COMPLETED',
+                },
+              },
+            });
+
+            // Calculate percentage.
+            const attendancePercentage = Number(((presentCount / totalCourseSessions) * 100).toFixed(2));
+
+            // Upsert the performance metric.
+            const existingMetric = await prisma.studentPerformanceMetric.findFirst({
+              where: {
+                studentId: studentId,
+                classSectionId: session.classSectionId,
+                semesterId: session.classSection.semesterId,
+              }
+            });
+
+            if (existingMetric) {
+
+              await prisma.studentPerformanceMetric.update({
+                where: {id: existingMetric.id},
+                data: {attendancePercentage},
+              });
+            } else {
+
+              await prisma.studentPerformanceMetric.create({
+                data: {
+                  studentId: studentId,
+                  classSectionId: session.classSectionId,
+                  semesterId: session.classSection.semesterId,
+                  attendancePercentage,
+                  overallGradePoints: 0,
+                  assignmentCompletionRate: 0,
+                  detailedMetrics: {},
+                  performanceCategory: 'SATISFACTORY',
+                }
+              });
+            }
+            console.log(`✅ Performance metrics updated for student ${studentId}. Percentage: ${attendancePercentage}%`);
+          }
+        }
       }
 
-      console.log("✅ [Success] Attendance saved successfully");
+      console.log("✅ [Success] Attendance process completed successfully");
       return {message: "Attendance saved successfully"};
-    } catch (error: any) {
-      console.error("❌ [Error] Saving attendance records:", error);
+
+    } catch
+      (error: any) {
+      console.error("❌ [Error] in saveAttendanceAndMetrics:", error);
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2003") {
         throw new Error(
           `Foreign key constraint violation: One or more student IDs do not exist in the Student table.`
         );
       }
-      throw error instanceof Error ? error : new Error("Unknown error");
+      throw error instanceof Error ? error : new Error("An unknown error occurred during the attendance saving process.");
     }
   }
 
 
-  async getAttendanceBySessionId(sessionId: string): Promise<AttendanceBySessionResponse> {
+  async getAttendanceBySessionId(sessionId: string
+  ):
+    Promise<AttendanceBySessionResponse> {
     try {
-      if (!sessionId || typeof sessionId !== "string") {
+      if (!sessionId || typeof sessionId !== "string"
+      ) {
         throw new Error("Valid sessionId is required");
       }
 
@@ -532,7 +607,8 @@ export class AttendanceTeacherService {
         sessionId: session.id,
         attendanceRecords,
       };
-    } catch (error: any) {
+    } catch
+      (error: any) {
       console.error("Error fetching attendance by session ID:", error);
       throw error instanceof Error ? error : new Error("Unknown error");
     }
