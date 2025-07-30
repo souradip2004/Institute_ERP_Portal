@@ -14,14 +14,11 @@ export async function POST(request: Request, { params }: { params: { adminId: st
     const { teacherId, courseId, classSectionId, semesterId, days, startTime, endTime } = body;
   
     const result = await createTeacherCourseSectionAndSessions({
-      teacherId,
-      courseId,
       classSectionId,
-      semesterId,
       days,
       startTime,
       endTime,
-      adminId,
+      adminId
     });
   
     return NextResponse.json(result, { status: 201 });

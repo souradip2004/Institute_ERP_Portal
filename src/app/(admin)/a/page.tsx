@@ -46,9 +46,9 @@ export default async function AdminPage() {
   }
   console.log(institutionData)
   const id = institutionData.id
-  const teachers = await fetchTeachers(institutionData.id);
+/*  const teachers = await fetchTeachers(institutionData.id);
   const students = await fetchStudents();
-  const classes = await fetchClasses();
+  const classes = await fetchClasses();*/
 
   return (
     // Removed the outer <div> with display: "flex"

@@ -1,7 +1,7 @@
 'use client';
-import { useState, useEffect } from 'react';
+import {useState, useEffect} from 'react';
 import axios from 'axios';
-import { useRouter } from 'next/navigation';
+import {useRouter} from 'next/navigation';
 import Loader from '@/components/ui/Loader';
 
 interface StudentAttendance {
@@ -32,60 +32,60 @@ interface AttendanceSessionDetails {
 
 interface AttendanceSessionWindowProps {
   sessionId: string;
-  institutionId:string;
+  institutionId: string;
 }
 
-export default function AttendanceSessionWindow({ sessionId,institutionId }: AttendanceSessionWindowProps) {
+export default function AttendanceSessionWindow({sessionId, institutionId}: AttendanceSessionWindowProps) {
   const [session, setSession] = useState<AttendanceSessionDetails | null>(null);
   const [attendance, setAttendance] = useState<Record<string, 'PRESENT' | 'ABSENT' | 'LATE'>>({});
   const [teacherId, setTeacherId] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [saving, setSaving] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [creditsData, setcreditsData]=useState(null)
+  const [creditsData, setcreditsData] = useState(null)
   const router = useRouter();
-  useEffect(()=>{
-    alert(institutionId)
-    if(localStorage.getItem("user")){
-    const getData=async()=>{
-      const now = new Date();
-      const month = now.getMonth() + 1;
-      const year = now.getFullYear();
-      const result= await fetch(`/api/credits/${institutionId}?month=${month}&year=${year}`,{
-      method:"GET",
-      headers:{
-        "Content-Type":"application/json"
+  useEffect(() => {
+    // alert(institutionId)
+    if (localStorage.getItem("user")) {
+      const getData = async () => {
+        const now = new Date();
+        const month = now.getMonth() + 1;
+        const year = now.getFullYear();
+        const result = await fetch(`/api/credits/${institutionId}?month=${month}&year=${year}`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json"
+          }
+        })
+        if (result.ok) {
+          const res = await result.json();
+          setcreditsData(res);
+          console.log(res);
+        }
       }
-    })
-    if(result.ok){
-      const res=await result.json();
-      setcreditsData(res);
-      console.log(res);
-      }
+      getData()
     }
-    getData()
-  }
-  },[])
-const updateCoins=async()=>{
+  }, [])
+  const updateCoins = async () => {
     const now = new Date();
-      const month = now.getMonth() + 1; // getMonth() is zero-based
-      const year = now.getFullYear();
-      console.log("Current Credit Balance",creditsData)
+    const month = now.getMonth() + 1; // getMonth() is zero-based
+    const year = now.getFullYear();
+    console.log("Current Credit Balance", creditsData)
 
-    const result=await fetch(`/api/credits/${institutionId}?month=${month}&year=${year}`,{
-      method:"POST",
-            headers:{
-        "Content-Type":"application/json"
+    const result = await fetch(`/api/credits/${institutionId}?month=${month}&year=${year}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
       },
-      body:JSON.stringify({
-        attendanceCreditsBalance: creditsData ? creditsData?.attendanceCreditsBalance+2 : 0,
-        total:creditsData?creditsData?.total+2:0
+      body: JSON.stringify({
+        attendanceCreditsBalance: creditsData ? creditsData?.attendanceCreditsBalance + 2 : 0,
+        total: creditsData ? creditsData?.total + 2 : 0
       })
 
     })
-    if(result.ok){
-      const res=await result.json();
-    }else{
+    if (result.ok) {
+      const res = await result.json();
+    } else {
       alert(result.status)
     }
   }
@@ -180,7 +180,7 @@ const updateCoins=async()=>{
   }, [sessionId, teacherId]);
 
   const handleAttendanceChange = (studentId: string, status: 'PRESENT' | 'ABSENT' | 'LATE') => {
-    setAttendance((prev) => ({ ...prev, [studentId]: status }));
+    setAttendance((prev) => ({...prev, [studentId]: status}));
   };
 
   const markAll = (status: 'PRESENT' | 'ABSENT' | 'LATE') => {
@@ -204,14 +204,14 @@ const updateCoins=async()=>{
         studentId,
         status,
       }));
-      console.log('Sending data:', { sessionId, teacherId, attendanceData });
+      console.log('Sending data:', {sessionId, teacherId, attendanceData});
       const response = await axios.post(`/api/teachers/${teacherId}/attendance/save`, {
         sessionId,
         teacherId,
         attendanceData,
       });
       console.log('Response:', response.data);
-      setSession((prev) => (prev ? { ...prev, status: 'COMPLETED' } : prev));
+      setSession((prev) => (prev ? {...prev, status: 'COMPLETED'} : prev));
       alert('Attendance saved successfully');
       router.back();
     } catch (err) {
@@ -237,7 +237,7 @@ const updateCoins=async()=>{
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-[60vh]">
-        <Loader size="large" message="Loading attendance data..." />
+        <Loader size="large" message="Loading attendance data..."/>
       </div>
     );
   }
@@ -267,13 +267,17 @@ const updateCoins=async()=>{
                   month: 'long',
                   day: 'numeric'
                 }) : 'N/A'}
-                {session?.startTime && session?.endTime ? ` · ${new Date(session.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - ${new Date(session.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : ''}
+                {session?.startTime && session?.endTime ? ` · ${new Date(session.startTime).toLocaleTimeString([], {
+                  hour: '2-digit',
+                  minute: '2-digit'
+                })} - ${new Date(session.endTime).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}` : ''}
               </p>
             </div>
             <div className="mt-4 md:mt-0">
-              <span className={`px-3 py-1 rounded-full text-xs font-medium ${session?.status === 'COMPLETED' ? 'bg-green-100 text-green-800' :
-                session?.status === 'ACTIVE' ? 'bg-blue-100 text-blue-800' :
-                  'bg-gray-100 text-gray-800'
+              <span
+                className={`px-3 py-1 rounded-full text-xs font-medium ${session?.status === 'COMPLETED' ? 'bg-green-100 text-green-800' :
+                  session?.status === 'ACTIVE' ? 'bg-blue-100 text-blue-800' :
+                    'bg-gray-100 text-gray-800'
                 }`}>
                 {session?.status}
               </span>
@@ -290,24 +294,28 @@ const updateCoins=async()=>{
             <div className="bg-green-50 rounded-lg border border-green-200 p-4">
               <p className="text-sm text-green-600">Present</p>
               <p className="text-2xl font-bold text-green-700">{presentCount - lateCount}</p>
-              <p className="text-xs text-green-500">{totalStudents > 0 ? Math.round(((presentCount - lateCount) / totalStudents) * 100) : 0}%</p>
+              <p
+                className="text-xs text-green-500">{totalStudents > 0 ? Math.round(((presentCount - lateCount) / totalStudents) * 100) : 0}%</p>
             </div>
             <div className="bg-yellow-50 rounded-lg border border-yellow-200 p-4">
               <p className="text-sm text-yellow-600">Late</p>
               <p className="text-2xl font-bold text-yellow-700">{lateCount}</p>
-              <p className="text-xs text-yellow-500">{totalStudents > 0 ? Math.round((lateCount / totalStudents) * 100) : 0}%</p>
+              <p
+                className="text-xs text-yellow-500">{totalStudents > 0 ? Math.round((lateCount / totalStudents) * 100) : 0}%</p>
             </div>
             <div className="bg-red-50 rounded-lg border border-red-200 p-4">
               <p className="text-sm text-red-600">Absent</p>
               <p className="text-2xl font-bold text-red-700">{absentCount}</p>
-              <p className="text-xs text-red-500">{totalStudents > 0 ? Math.round((absentCount / totalStudents) * 100) : 0}%</p>
+              <p
+                className="text-xs text-red-500">{totalStudents > 0 ? Math.round((absentCount / totalStudents) * 100) : 0}%</p>
             </div>
           </div>
         </div>
       </div>
 
       <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-        <div className="p-4 border-b border-gray-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div
+          className="p-4 border-b border-gray-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div className="flex gap-2 flex-wrap">
             <button
               onClick={() => setView('all')}
@@ -364,9 +372,12 @@ const updateCoins=async()=>{
             >
               {saving ? (
                 <>
-                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg"
+                       fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
+                            strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
                   Saving...
                 </>
@@ -400,7 +411,7 @@ const updateCoins=async()=>{
                       className={`py-2 px-3 rounded-md text-sm font-medium flex justify-center items-center ${attendance[student.studentId] === 'PRESENT'
                         ? 'bg-green-100 text-green-800 border-2 border-green-500'
                         : 'bg-gray-50 text-gray-800 border border-gray-200'
-                        }`}
+                      }`}
                       onClick={() => handleAttendanceChange(student.studentId, 'PRESENT')}
                       disabled={saving || session?.status === 'COMPLETED'}
                     >
@@ -410,7 +421,7 @@ const updateCoins=async()=>{
                       className={`py-2 px-3 rounded-md text-sm font-medium flex justify-center items-center ${attendance[student.studentId] === 'ABSENT'
                         ? 'bg-red-100 text-red-800 border-2 border-red-500'
                         : 'bg-gray-50 text-gray-800 border border-gray-200'
-                        }`}
+                      }`}
                       onClick={() => handleAttendanceChange(student.studentId, 'ABSENT')}
                       disabled={saving || session?.status === 'COMPLETED'}
                     >
@@ -420,7 +431,7 @@ const updateCoins=async()=>{
                       className={`py-2 px-3 rounded-md text-sm font-medium flex justify-center items-center ${attendance[student.studentId] === 'LATE'
                         ? 'bg-yellow-100 text-yellow-800 border-2 border-yellow-500'
                         : 'bg-gray-50 text-gray-800 border border-gray-200'
-                        }`}
+                      }`}
                       onClick={() => handleAttendanceChange(student.studentId, 'LATE')}
                       disabled={saving || session?.status === 'COMPLETED'}
                     >
@@ -442,64 +453,75 @@ const updateCoins=async()=>{
           ) : (
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
-                <tr>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Roll No.</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Overall %</th>
-                  <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                </tr>
+              <tr>
+                <th scope="col"
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name
+                </th>
+                <th scope="col"
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Roll No.
+                </th>
+                <th scope="col"
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Overall %
+                </th>
+                <th scope="col"
+                    className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Status
+                </th>
+              </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredStudents.map((student) => (
-                  <tr key={student.studentId} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">{student.name}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-500">{student.rollNo}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{student.attendancePercentage.toFixed(1)}%</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex justify-center space-x-4">
-                        <label className={`inline-flex items-center ${session?.status === 'COMPLETED' ? 'opacity-60' : ''}`}>
-                          <input
-                            type="radio"
-                            className="form-radio h-4 w-4 text-green-600 transition duration-150 ease-in-out"
-                            name={`attendance-${student.studentId}`}
-                            checked={attendance[student.studentId] === 'PRESENT'}
-                            onChange={() => handleAttendanceChange(student.studentId, 'PRESENT')}
-                            disabled={saving || session?.status === 'COMPLETED'}
-                          />
-                          <span className="ml-2 text-sm text-green-600">Present</span>
-                        </label>
-                        <label className={`inline-flex items-center ${session?.status === 'COMPLETED' ? 'opacity-60' : ''}`}>
-                          <input
-                            type="radio"
-                            className="form-radio h-4 w-4 text-yellow-500 transition duration-150 ease-in-out"
-                            name={`attendance-${student.studentId}`}
-                            checked={attendance[student.studentId] === 'LATE'}
-                            onChange={() => handleAttendanceChange(student.studentId, 'LATE')}
-                            disabled={saving || session?.status === 'COMPLETED'}
-                          />
-                          <span className="ml-2 text-sm text-yellow-600">Late</span>
-                        </label>
-                        <label className={`inline-flex items-center ${session?.status === 'COMPLETED' ? 'opacity-60' : ''}`}>
-                          <input
-                            type="radio"
-                            className="form-radio h-4 w-4 text-red-600 transition duration-150 ease-in-out"
-                            name={`attendance-${student.studentId}`}
-                            checked={attendance[student.studentId] === 'ABSENT'}
-                            onChange={() => handleAttendanceChange(student.studentId, 'ABSENT')}
-                            disabled={saving || session?.status === 'COMPLETED'}
-                          />
-                          <span className="ml-2 text-sm text-red-600">Absent</span>
-                        </label>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+              {filteredStudents.map((student) => (
+                <tr key={student.studentId} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm font-medium text-gray-900">{student.name}</div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-500">{student.rollNo}</div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-900">{student.attendancePercentage.toFixed(1)}%</div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex justify-center space-x-4">
+                      <label
+                        className={`inline-flex items-center ${session?.status === 'COMPLETED' ? 'opacity-60' : ''}`}>
+                        <input
+                          type="radio"
+                          className="form-radio h-4 w-4 text-green-600 transition duration-150 ease-in-out"
+                          name={`attendance-${student.studentId}`}
+                          checked={attendance[student.studentId] === 'PRESENT'}
+                          onChange={() => handleAttendanceChange(student.studentId, 'PRESENT')}
+                          disabled={saving || session?.status === 'COMPLETED'}
+                        />
+                        <span className="ml-2 text-sm text-green-600">Present</span>
+                      </label>
+                      <label
+                        className={`inline-flex items-center ${session?.status === 'COMPLETED' ? 'opacity-60' : ''}`}>
+                        <input
+                          type="radio"
+                          className="form-radio h-4 w-4 text-yellow-500 transition duration-150 ease-in-out"
+                          name={`attendance-${student.studentId}`}
+                          checked={attendance[student.studentId] === 'LATE'}
+                          onChange={() => handleAttendanceChange(student.studentId, 'LATE')}
+                          disabled={saving || session?.status === 'COMPLETED'}
+                        />
+                        <span className="ml-2 text-sm text-yellow-600">Late</span>
+                      </label>
+                      <label
+                        className={`inline-flex items-center ${session?.status === 'COMPLETED' ? 'opacity-60' : ''}`}>
+                        <input
+                          type="radio"
+                          className="form-radio h-4 w-4 text-red-600 transition duration-150 ease-in-out"
+                          name={`attendance-${student.studentId}`}
+                          checked={attendance[student.studentId] === 'ABSENT'}
+                          onChange={() => handleAttendanceChange(student.studentId, 'ABSENT')}
+                          disabled={saving || session?.status === 'COMPLETED'}
+                        />
+                        <span className="ml-2 text-sm text-red-600">Absent</span>
+                      </label>
+                    </div>
+                  </td>
+                </tr>
+              ))}
               </tbody>
             </table>
           )}

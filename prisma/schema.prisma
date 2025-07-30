@@ -343,7 +343,7 @@ model ClassSection {
   motherClass                   MotherClass?                   @relation(fields: [motherClassId], references: [id], onDelete: Cascade)
   copyChecks                    copyCheck[]
 
-  // classFees                     ClassFee[]
+  // classFees                  ClassFee[]
   @@map("class_sections")
 }
 
@@ -358,26 +358,6 @@ model StudentClassEnrollment {
   student          Student               @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@map("student_class_enrollments")
-}
-
-model AttendanceSession {
-  id                String       @id @default(cuid())
-  classSectionId    String       @map("class_section_id")
-  courseId          String       @map("course_id") // New field 
-  teacherId         String       @map("teacher_id")
-  sessionDate       DateTime     @map("session_date") @db.Date
-  startTime         DateTime     @map("start_time") @db.Time(6)
-  endTime           DateTime     @map("end_time") @db.Time(6)
-  sessionType       SessionType  @map("session_type")
-  status            Status       @default(SCHEDULED)
-  createdAt         DateTime     @default(now()) @map("created_at")
-  updatedAt         DateTime     @updatedAt @map("updated_at")
-  attendanceRecords Attendance[]
-  classSection      ClassSection @relation(fields: [classSectionId], references: [id], onDelete: Cascade)
-  course            Course       @relation(fields: [courseId], references: [id], onDelete: Cascade) // New relation
-  teacher           Teacher      @relation(fields: [teacherId], references: [id], onDelete: Cascade)
-
-  @@map("attendance_sessions")
 }
 
 model TeacherAnswerSheet {
@@ -399,6 +379,26 @@ model StudentSubmissionRecord {
   totalMarks            Float
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
+}
+
+model AttendanceSession {
+  id                String       @id @default(cuid())
+  classSectionId    String       @map("class_section_id")
+  courseId          String       @map("course_id") // New field
+  teacherId         String       @map("teacher_id")
+  sessionDate       DateTime     @map("session_date") @db.Date
+  startTime         DateTime     @map("start_time") @db.Time(6)
+  endTime           DateTime     @map("end_time") @db.Time(6)
+  sessionType       SessionType  @map("session_type")
+  status            Status       @default(SCHEDULED)
+  createdAt         DateTime     @default(now()) @map("created_at")
+  updatedAt         DateTime     @updatedAt @map("updated_at")
+  attendanceRecords Attendance[]
+  classSection      ClassSection @relation(fields: [classSectionId], references: [id], onDelete: Cascade)
+  course            Course       @relation(fields: [courseId], references: [id], onDelete: Cascade) // New relation
+  teacher           Teacher      @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+
+  @@map("attendance_sessions")
 }
 
 model Attendance {

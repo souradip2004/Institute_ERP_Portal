@@ -1,6 +1,6 @@
 import prisma from "@/lib/prisma";
-import { Prisma, Status, SessionType, AttendanceStatus } from "@prisma/client";
-import { upsertAttendance } from "@/utils/upsertAttendanceRecords";
+import {Prisma, Status, SessionType, AttendanceStatus} from "@prisma/client";
+import {upsertAttendance} from "@/utils/upsertAttendanceRecords";
 
 interface CreateAttendanceSessionInput {
   teacherId: string;
@@ -128,10 +128,10 @@ export class AttendanceTeacherService {
         throw new Error("Session date cannot be in the past");
       }
 
-      const teacher: any = await prisma.teacher.findUnique({ where: { id: teacherId } });
-      const course: any = await prisma.course.findUnique({ where: { id: courseId } });
+      const teacher: any = await prisma.teacher.findUnique({where: {id: teacherId}});
+      const course: any = await prisma.course.findUnique({where: {id: courseId}});
       const classSection: any = await prisma.classSection.findUnique({
-        where: { id: classSectionId },
+        where: {id: classSectionId},
       });
 
       if (!teacher) throw new Error("Invalid teacherId");
@@ -147,7 +147,7 @@ export class AttendanceTeacherService {
           teacherId,
           sessionDate: sessionDateObj,
           OR: [
-            { startTime: { lte: end }, endTime: { gte: start } },
+            {startTime: {lte: end}, endTime: {gte: start}},
           ],
         },
       });
@@ -168,7 +168,7 @@ export class AttendanceTeacherService {
         },
         include: {
           classSection: {
-            include: { batch: true, semester: true },
+            include: {batch: true, semester: true},
           },
           course: true,
         },
@@ -181,114 +181,114 @@ export class AttendanceTeacherService {
     }
   }
 
- 
-async  getTodayAttendanceSessions(id: string): Promise<AttendanceSessionResponse> {
-  try {
-    // Input validation
-    if (!id || typeof id !== "string") {
-      throw new Error("Valid ID is required");
-    }
 
-    let teacherId: string;
-    let userId: string;
-
-    // Check if the provided ID is a teacher ID
-    const teacher = await prisma.teacher.findUnique({
-      where: { id },
-      include: { user: true },
-    });
-
-    if (teacher) {
-      // ID is a teacher ID
-      teacherId = id;
-      userId = teacher.userId;
-    } else {
-      // ID might be a user ID, try to find teacher by userId
-      const teacherByUser = await prisma.teacher.findFirst({
-        where: { userId: id },
-        include: { user: true },
-      });
-
-      if (!teacherByUser) {
-        throw new Error("No teacher found for the provided ID");
+  async getTodayAttendanceSessions(id: string): Promise<AttendanceSessionResponse> {
+    try {
+      // Input validation
+      if (!id || typeof id !== "string") {
+        throw new Error("Valid ID is required");
       }
 
-      teacherId = teacherByUser.id;
-      userId = id;
-    }
+      let teacherId: string;
+      let userId: string;
 
-    // Set date range for today
-    const today: Date = new Date();
-    today.setHours(0, 0, 0, 0);
-    const tomorrow: Date = new Date(today);
-    tomorrow.setDate(today.getDate() + 2);
+      // Check if the provided ID is a teacher ID
+      const teacher = await prisma.teacher.findUnique({
+        where: {id},
+        include: {user: true},
+      });
 
-    // Fetch attendance sessions
-    const sessions = await prisma.attendanceSession.findMany({
-      where: {
-        teacherId,
-        sessionDate: {
-          gte: today,
-          lt: tomorrow,
-        },
-      },
-      include: {
-        classSection: {
-          include: {
-            batch: true,
-            semester: true,
+      if (teacher) {
+        // ID is a teacher ID
+        teacherId = id;
+        userId = teacher.userId;
+      } else {
+        // ID might be a user ID, try to find teacher by userId
+        const teacherByUser = await prisma.teacher.findFirst({
+          where: {userId: id},
+          include: {user: true},
+        });
+
+        if (!teacherByUser) {
+          throw new Error("No teacher found for the provided ID");
+        }
+
+        teacherId = teacherByUser.id;
+        userId = id;
+      }
+
+      // Set date range for today
+      const today: Date = new Date();
+      today.setHours(0, 0, 0, 0);
+      const tomorrow: Date = new Date(today);
+      tomorrow.setDate(today.getDate() + 2);
+
+      // Fetch attendance sessions
+      const sessions = await prisma.attendanceSession.findMany({
+        where: {
+          teacherId,
+          sessionDate: {
+            gte: today,
+            lt: tomorrow,
           },
         },
-        course: true,
-        attendanceRecords: {
-          select: {
-            status: true,
+        include: {
+          classSection: {
+            include: {
+              batch: true,
+              semester: true,
+            },
+          },
+          course: true,
+          attendanceRecords: {
+            select: {
+              status: true,
+            },
           },
         },
-      },
-      orderBy: { sessionDate: "asc" },
-    });
+        orderBy: {sessionDate: "asc"},
+      });
 
-    // Structure the response
-    const structuredSessions: AttendanceSessionListItem[] = sessions.map((session: any) => {
-      const presentCount: number = session.attendanceRecords.filter(
-        (record: any) => record.status === "PRESENT" || record.status === "LATE"
-      ).length;
-      const absentCount: number = session.attendanceRecords.filter(
-        (record: any) => record.status === "ABSENT"
-      ).length;
+      // Structure the response
+      const structuredSessions: AttendanceSessionListItem[] = sessions.map((session: any) => {
+        const presentCount: number = session.attendanceRecords.filter(
+          (record: any) => record.status === "PRESENT" || record.status === "LATE"
+        ).length;
+        const absentCount: number = session.attendanceRecords.filter(
+          (record: any) => record.status === "ABSENT"
+        ).length;
 
+        return {
+          id: session.id,
+          classSection: {
+            id: session.classSection.id,
+            name: `${session.course.name} - ${session.classSection.batch.batchName} - Sem ${session.classSection.semester.name}`,
+          },
+          course: {
+            id: session.course.id,
+            name: session.course.name,
+            code: session.course.courseCode,
+          },
+          date: session.sessionDate,
+          startTime: session.startTime,
+          endTime: session.endTime,
+          status: session.status,
+          presentCount,
+          absentCount,
+        };
+      });
+
+      // Return sessions along with userId and teacherId
       return {
-        id: session.id,
-        classSection: {
-          id: session.classSection.id,
-          name: `${session.course.name} - ${session.classSection.batch.batchName} - Sem ${session.classSection.semester.name}`,
-        },
-        course: {
-          id: session.course.id,
-          name: session.course.name,
-          code: session.course.courseCode,
-        },
-        date: session.sessionDate,
-        startTime: session.startTime,
-        endTime: session.endTime,
-        status: session.status,
-        presentCount,
-        absentCount,
+        sessions: structuredSessions,
+        userId,
+        teacherId,
       };
-    });
-
-    // Return sessions along with userId and teacherId
-    return {
-      sessions: structuredSessions,
-      userId,
-      teacherId,
-    };
-  } catch (error: any) {
-    console.error("Error fetching today's attendance sessions:", error);
-    throw error instanceof Error ? error : new Error("Unknown error");
+    } catch (error: any) {
+      console.error("Error fetching today's attendance sessions:", error);
+      throw error instanceof Error ? error : new Error("Unknown error");
+    }
   }
-}
 
   async getAttendanceSessionDetails(
     sessionId: string,
@@ -300,7 +300,7 @@ async  getTodayAttendanceSessions(id: string): Promise<AttendanceSessionResponse
       }
 
       const session: any = await prisma.attendanceSession.findUnique({
-        where: { id: sessionId },
+        where: {id: sessionId},
         include: {
           classSection: {
             include: {
@@ -311,12 +311,12 @@ async  getTodayAttendanceSessions(id: string): Promise<AttendanceSessionResponse
                   student: {
                     include: {
                       user: {
-                        select: { id: true, name: true, email: true },
+                        select: {id: true, name: true, email: true}
                       },
                       performanceMetrics: {
-                        where: { classSectionId: { equals: sessionId } },
-                        select: { attendancePercentage: true },
-                      },
+                        where: {classSectionId: {equals: sessionId}},
+                        select: {attendancePercentage: true},
+                      }
                     },
                   },
                 },
@@ -346,7 +346,7 @@ async  getTodayAttendanceSessions(id: string): Promise<AttendanceSessionResponse
       if (!session) {
         throw new Error("Attendance session not found");
       }
-console.log('\nsession detail: ',session);
+      console.log('\nsession detail: ', session);
       if (session.teacherId !== teacherId) {
         throw new Error(`Teacher not authorized to view this session where teacherId: ${teacherId}  and session.teacherId is: ${session.teacherId}`);
       }
@@ -365,6 +365,7 @@ console.log('\nsession detail: ',session);
           );
 
           const relevantMetric: any = enrollment.student.performanceMetrics[0];
+          // console.log('\nrelevantMetric: ', enrollment);
 
           return {
             userId: enrollment.student.user.id,
@@ -396,106 +397,106 @@ console.log('\nsession detail: ',session);
         absentCount,
         students,
       };
+
     } catch (error: any) {
       console.error("Error fetching attendance session details:", error);
       throw error instanceof Error ? error : new Error("Unknown error");
     }
   }
 
- async  saveAttendanceRecords({
-  sessionId,
-  teacherId,
-  attendanceData,
-}: SaveAttendanceInput): Promise<SaveAttendanceResponse> {
-  try {
-    console.log("1️⃣ [Input] sessionId:", sessionId);
-    console.log("2️⃣ [Input] teacherId:", teacherId);
-    console.log("3️⃣ [Input] attendanceData:", JSON.stringify(attendanceData, null, 2));
+  async saveAttendanceRecords({
+    sessionId,
+    teacherId,
+    attendanceData,
+  }: SaveAttendanceInput): Promise<SaveAttendanceResponse> {
+    try {
+      console.log("1️⃣ [Input] sessionId:", sessionId);
+      console.log("2️⃣ [Input] teacherId:", teacherId);
+      console.log("3️⃣ [Input] attendanceData:", JSON.stringify(attendanceData, null, 2));
 
-    if (!sessionId || !teacherId || !Array.isArray(attendanceData) || attendanceData.length === 0) {
-      throw new Error("Invalid input: sessionId, teacherId, and non-empty attendanceData are required");
-    }
-
-    const session: any = await prisma.attendanceSession.findUnique({
-      where: { id: sessionId },
-      include: { classSection: true },
-    });
-
-    if (!session) throw new Error("Attendance session not found");
-    if (session.teacherId !== teacherId) throw new Error("Teacher not authorized for this session");
-    if (session.status === 'COMPLETED' || session.status === 'CANCELLED') {
-      throw new Error(`Cannot update attendance for a ${session.status} session`);
-    }
-
-    const settings: any = await prisma.attendanceSettings.findFirst({
-      where: { institutionId: session.classSection.institutionId },
-    });
-
-    const isLocked: boolean = settings?.autoLockAttendance
-      ? new Date() > new Date(session.sessionDate.getTime() + settings.autoLockAfterHours * 3600000)
-      : false;
-
-    const enrolledStudents: any = await prisma.studentClassEnrollment.findMany({
-      where: { classSectionId: session.classSectionId },
-      select: { studentId: true },
-    });
-
-    const enrolledStudentIds: Set<string> = new Set(enrolledStudents.map((enrollment: any) => enrollment.studentId));
-
-    const invalidStudentIds: string[] = [];
-    for (const { studentId } of attendanceData) {
-      if (!enrolledStudentIds.has(studentId)) {
-        invalidStudentIds.push(studentId);
+      if (!sessionId || !teacherId || !Array.isArray(attendanceData) || attendanceData.length === 0) {
+        throw new Error("Invalid input: sessionId, teacherId, and non-empty attendanceData are required");
       }
-    }
 
-    if (invalidStudentIds.length > 0) {
-      throw new Error(
-        `Invalid student IDs: ${invalidStudentIds.join(", ")}. Students must be enrolled in the class section.`
-      );
-    }
-    for (const record of attendanceData) {
-      const res = await upsertAttendance({
-        attendanceSessionId: sessionId,
-        studentId: record.studentId,
-        status: record.status,
-        remarks: record.remarks,
-        recordedById: teacherId,
-        recordedAt: new Date(),
+      const session: any = await prisma.attendanceSession.findUnique({
+        where: {id: sessionId},
+        include: {classSection: true},
       });
 
-      if (!res.success) {
-        console.error(`❌ Failed to save attendance for studentId: ${record.studentId}. Reason: ${res.message}`);
-      } else {
-        console.log(`✅ Attendance saved for studentId: ${record.studentId}`);
+      if (!session) throw new Error("Attendance session not found");
+      if (session.teacherId !== teacherId) throw new Error("Teacher not authorized for this session");
+      if (session.status === 'COMPLETED' || session.status === 'CANCELLED') {
+        throw new Error(`Cannot update attendance for a ${session.status} session`);
       }
-    }
 
-    const studentCount: number = enrolledStudents.length;
-    const attendanceCount: number = await prisma.attendance.count({
-      where: { attendanceSessionId: sessionId },
-    });
-
-    if (attendanceCount >= studentCount) {
-      await prisma.attendanceSession.update({
-        where: { id: sessionId },
-        data: { status: 'COMPLETED' },
+      const settings: any = await prisma.attendanceSettings.findFirst({
+        where: {institutionId: session.classSection.institutionId},
       });
-    }
 
-    console.log("✅ [Success] Attendance saved successfully");
-    return { message: "Attendance saved successfully" };
-  } catch (error: any) {
-    console.error("❌ [Error] Saving attendance records:", error);
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2003") {
-      throw new Error(
-        `Foreign key constraint violation: One or more student IDs do not exist in the Student table.`
-      );
+      const isLocked: boolean = settings?.autoLockAttendance
+        ? new Date() > new Date(session.sessionDate.getTime() + settings.autoLockAfterHours * 3600000)
+        : false;
+
+      const enrolledStudents: any = await prisma.studentClassEnrollment.findMany({
+        where: {classSectionId: session.classSectionId},
+        select: {studentId: true},
+      });
+
+      const enrolledStudentIds: Set<string> = new Set(enrolledStudents.map((enrollment: any) => enrollment.studentId));
+
+      const invalidStudentIds: string[] = [];
+      for (const {studentId} of attendanceData) {
+        if (!enrolledStudentIds.has(studentId)) {
+          invalidStudentIds.push(studentId);
+        }
+      }
+
+      if (invalidStudentIds.length > 0) {
+        throw new Error(
+          `Invalid student IDs: ${invalidStudentIds.join(", ")}. Students must be enrolled in the class section.`
+        );
+      }
+      for (const record of attendanceData) {
+        const res = await upsertAttendance({
+          attendanceSessionId: sessionId,
+          studentId: record.studentId,
+          status: record.status,
+          remarks: record.remarks,
+          recordedById: teacherId,
+          recordedAt: new Date(),
+        });
+
+        if (!res.success) {
+          console.error(`❌ Failed to save attendance for studentId: ${record.studentId}. Reason: ${res.message}`);
+        } else {
+          console.log(`✅ Attendance saved for studentId: ${record.studentId}`);
+        }
+      }
+
+      const studentCount: number = enrolledStudents.length;
+      const attendanceCount: number = await prisma.attendance.count({
+        where: {attendanceSessionId: sessionId},
+      });
+
+      if (attendanceCount >= studentCount) {
+        await prisma.attendanceSession.update({
+          where: {id: sessionId},
+          data: {status: 'COMPLETED'},
+        });
+      }
+
+      console.log("✅ [Success] Attendance saved successfully");
+      return {message: "Attendance saved successfully"};
+    } catch (error: any) {
+      console.error("❌ [Error] Saving attendance records:", error);
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2003") {
+        throw new Error(
+          `Foreign key constraint violation: One or more student IDs do not exist in the Student table.`
+        );
+      }
+      throw error instanceof Error ? error : new Error("Unknown error");
     }
-    throw error instanceof Error ? error : new Error("Unknown error");
   }
-}
-
 
 
   async getAttendanceBySessionId(sessionId: string): Promise<AttendanceBySessionResponse> {
@@ -505,7 +506,7 @@ console.log('\nsession detail: ',session);
       }
 
       const session: any = await prisma.attendanceSession.findUnique({
-        where: { id: sessionId },
+        where: {id: sessionId},
         include: {
           attendanceRecords: {
             select: {

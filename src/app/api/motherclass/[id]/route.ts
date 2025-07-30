@@ -8,7 +8,6 @@ export async function GET(req: NextRequest, {params}: { params: { id: string } }
   console.log('motherclass');
   const {id} = params;
   return await motherClassController.getClassById(id);
-
 }
 
 export async function POST(req: NextRequest, {params}: { params: { id: string } }) {
@@ -23,7 +22,6 @@ export async function DELETE(req: NextRequest, {params}: { params: { id: string 
     if (!id) {
       return NextResponse.json({error: "id required !"}, {status: 400});
     }
-
 
     const deletedMotherClass = await prisma.motherClass.delete({
       where: {
