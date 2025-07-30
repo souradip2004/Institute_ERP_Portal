@@ -17,7 +17,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const result = await service.saveAttendanceRecords({
       sessionId,
       teacherId,
-      attendanceData,
+      attendanceData
     });
 
     return NextResponse.json(result);
