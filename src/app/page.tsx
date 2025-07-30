@@ -28,6 +28,7 @@ import {
     AtomIcon,
 } from "lucide-react";
 import FAQ from '@/components/ui/faq';
+import Popup from '@/components/ui/popup';
 import {
     Navigation,
     Pagination,
@@ -126,7 +127,9 @@ export default function LandingPage() {
     const [activeIndex, setActiveIndex] = useState(0);
     const [email, setEmail] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-    const [message, setMessage] = useState('');
+    const [showPopup, setShowPopup] = useState(false);
+    const [popupType, setPopupType] = useState<'success' | 'error'>('success');
+    const [popupMessage, setPopupMessage] = useState('');
     const router = useRouter();
 
 
@@ -155,12 +158,13 @@ export default function LandingPage() {
 
     const handelGetEmailQuote = async () => {
         if (!email) {
-            setMessage('Please enter your email address');
+            setPopupType('error');
+            setPopupMessage('Please enter your email address');
+            setShowPopup(true);
             return;
         }
 
         setIsLoading(true);
-        setMessage('');
 
         try {
             const response = await fetch('/api/emails/quote', {
@@ -172,13 +176,19 @@ export default function LandingPage() {
             });
 
             if (response.ok) {
-                setMessage('Quote sent successfully! Check your email.');
+                setPopupType('success');
+                setPopupMessage('Quote sent successfully! Check your email.');
+                setShowPopup(true);
                 setEmail('');
             } else {
-                setMessage('Failed to send quote. Please try again.');
+                setPopupType('error');
+                setPopupMessage('Failed to send quote. Please try again.');
+                setShowPopup(true);
             }
         } catch (error) {
-            setMessage('An error occurred. Please try again.');
+            setPopupType('error');
+            setPopupMessage('An error occurred. Please try again.');
+            setShowPopup(true);
         } finally {
             setIsLoading(false);
         }
@@ -395,15 +405,7 @@ export default function LandingPage() {
                                     </button>
                                 </div>
 
-                                {/* Message Display */}
-                                {message && (
-                                    <div className={`w-full text-sm px-4 py-2 rounded-md ${message.includes('successfully')
-                                            ? 'bg-green-100 text-green-700 border border-green-200'
-                                            : 'bg-red-100 text-red-700 border border-red-200'
-                                        }`}>
-                                        {message}
-                                    </div>
-                                )}
+
 
                                 {/* Vertical Divider */}
                                 <div className="hidden lg:block border-l border-gray-300 h-8"></div>
@@ -661,6 +663,14 @@ export default function LandingPage() {
                     </div>
                 </div>
             </footer>
-        </div >
+            {/* Popup Component */}
+            <Popup
+                isOpen={showPopup}
+                onClose={() => setShowPopup(false)}
+                type={popupType}
+                title={popupType === 'success' ? 'Success!' : 'Error'}
+                message={popupMessage}
+            />
+        </div>
     );
 }
