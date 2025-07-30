@@ -33,6 +33,7 @@ export default function TodaySessionsList({ teacherId }: TodaySessionsListProps)
         const response = await axios.get<{ sessions: Session[]; userId: string; teacherId: string }>(
           `/api/teachers/${teacherId}/attendance/today`
         );
+
         setSessions(response.data.sessions);
         localStorage.setItem('userId', response.data.userId);
         localStorage.setItem('teacherId', response.data.teacherId);

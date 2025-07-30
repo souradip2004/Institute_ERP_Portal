@@ -118,42 +118,10 @@ export default function AttendanceSessionWindow({sessionId, institutionId}: Atte
         const studentsWithRealAttendance = await Promise.all(
           sessionData.students.map(async (student) => {
             // If percentage is already provided and valid, use it
-            if (student.attendancePercentage > 0) {
+            if (student.attendancePercentage >= 0) {
               return student;
             }
 
-            // Generate realistic random attendance data since the API endpoint is not available
-            try {
-              // Create consistent but random attendance data based on student ID
-              // This ensures the same student always gets the same percentage on refresh
-              const hash = student.studentId.split('').reduce((acc, char) => {
-                return acc + char.charCodeAt(0);
-              }, 0);
-
-              // Use hash to create a "random" but consistent percentage between 70-98%
-              const basePercentage = 70 + (hash % 29);
-              const attendancePercentage = basePercentage;
-
-              // Calculate consistent but realistic historical data
-              const totalSessions = 15 + (hash % 10); // 15-24 sessions
-              const presentSessions = Math.floor((attendancePercentage / 100) * totalSessions);
-              const lateSessions = Math.floor((hash % 5)); // 0-4 late sessions
-
-              return {
-                ...student,
-                attendancePercentage,
-                totalSessions,
-                presentSessions,
-                lateSessions
-              };
-            } catch (error) {
-              console.error(`Failed to generate attendance data for student ${student.studentId}:`, error);
-              // Simpler fallback
-              return {
-                ...student,
-                attendancePercentage: 85 // Default value
-              };
-            }
           })
         );
 

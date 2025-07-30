@@ -262,7 +262,7 @@ export class AttendanceTeacherService {
           id: session.id,
           classSection: {
             id: session.classSection.id,
-            name: `${session.course.name} - ${session.classSection.batch.batchName} - Sem ${session.classSection.semester.name}`,
+            name: `${session.classSection.sectionName} - ${session.classSection.batch.batchName} - Sem ${session.classSection.semester.name}`,
           },
           course: {
             id: session.course.id,
