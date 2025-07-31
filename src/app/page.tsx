@@ -28,6 +28,7 @@ import {
     AtomIcon,
 } from "lucide-react";
 import FAQ from '@/components/ui/faq';
+import Popup from '@/components/ui/popup';
 import {
     Navigation,
     Pagination,
@@ -126,7 +127,9 @@ export default function LandingPage() {
     const [activeIndex, setActiveIndex] = useState(0);
     const [email, setEmail] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-    const [message, setMessage] = useState('');
+    const [showPopup, setShowPopup] = useState(false);
+    const [popupType, setPopupType] = useState<'success' | 'error'>('success');
+    const [popupMessage, setPopupMessage] = useState('');
     const router = useRouter();
 
 
@@ -155,12 +158,13 @@ export default function LandingPage() {
 
     const handelGetEmailQuote = async () => {
         if (!email) {
-            setMessage('Please enter your email address');
+            setPopupType('error');
+            setPopupMessage('Please enter your email address');
+            setShowPopup(true);
             return;
         }
 
         setIsLoading(true);
-        setMessage('');
 
         try {
             const response = await fetch('/api/emails/quote', {
@@ -172,13 +176,19 @@ export default function LandingPage() {
             });
 
             if (response.ok) {
-                setMessage('Quote sent successfully! Check your email.');
+                setPopupType('success');
+                setPopupMessage('Quote sent successfully! Check your email.');
+                setShowPopup(true);
                 setEmail('');
             } else {
-                setMessage('Failed to send quote. Please try again.');
+                setPopupType('error');
+                setPopupMessage('Failed to send quote. Please try again.');
+                setShowPopup(true);
             }
         } catch (error) {
-            setMessage('An error occurred. Please try again.');
+            setPopupType('error');
+            setPopupMessage('An error occurred. Please try again.');
+            setShowPopup(true);
         } finally {
             setIsLoading(false);
         }
@@ -395,15 +405,7 @@ export default function LandingPage() {
                                     </button>
                                 </div>
 
-                                {/* Message Display */}
-                                {message && (
-                                    <div className={`w-full text-sm px-4 py-2 rounded-md ${message.includes('successfully')
-                                            ? 'bg-green-100 text-green-700 border border-green-200'
-                                            : 'bg-red-100 text-red-700 border border-red-200'
-                                        }`}>
-                                        {message}
-                                    </div>
-                                )}
+
 
                                 {/* Vertical Divider */}
                                 <div className="hidden lg:block border-l border-gray-300 h-8"></div>
@@ -494,7 +496,7 @@ export default function LandingPage() {
 
                             {/* Paragraph */}
                             <p className="text-md text-gray-600 leading-relaxed">
-                                We are more than just a duh ohouehgagnujaghguionghuia eghuj ghuiahg iuaghuihauighaeigadiughaueighaieughaeiu gahg euibgaeuihgausibf hiuaehgauhg aeuhg ouaeghiuuaehgiuaegh iaeuhgaueigh uaihg iauhg iasugh auig hasuig haiugh ausg haiug auig haui haug haug hugaug haugh aug .....
+                                We are more than just an educational platform. AI Classroom revolutionizes the way institutions manage their academic operations through intelligent automation, seamless integration, and data-driven insights. Our comprehensive ERP solution empowers administrators, teachers, and students to achieve excellence in education management.
                             </p>
                         </div>
 
@@ -522,25 +524,25 @@ export default function LandingPage() {
                                     <WorkStep
                                         icon={BsFileEarmarkText}
                                         title="Application"
-                                        text="bvbihdi uiuthd hdjn jadhndjnbjdnbjbjk bkdijn"
+                                        text="Submit your institution's requirements and let us understand your specific needs for digital transformation."
                                     />
                                     <Connector />
                                     <WorkStep
                                         icon={BsCalendarDate}
-                                        title="Schedule us"
-                                        text="jdnbjdbnodjbnjdbnjdnbndbjn dbj dbjdbndkjdbnb"
+                                        title="Schedule Demo"
+                                        text="Book a personalized demo session to explore our AI-powered classroom management features."
                                     />
                                     <Connector />
                                     <WorkStep
                                         icon={PiHandshakeFill}
-                                        title="Hire Us"
-                                        text="jkdniuhubn upie dbkmd njguneugjban gujbdjbjb u"
+                                        title="Partnership"
+                                        text="Choose the perfect plan and begin your journey towards smarter education management."
                                     />
                                     <Connector />
                                     <WorkStep
                                         icon={FaUserCheck}
-                                        title="We Provide"
-                                        text="jnjninadjbj bj ikfvbd jid jd kd d bdahb djb bd jhbd"
+                                        title="Implementation"
+                                        text="Get full support during setup and training to ensure seamless adoption across your institution."
                                     />
                                 </div>
 
@@ -575,7 +577,7 @@ export default function LandingPage() {
                         </div>
                     </div>
 
-                    <div className="w-full sm:w-auto">
+                    {/* <div className="w-full sm:w-auto">
                         <h3 className="font-medium mb-4">About Us</h3>
                         <ul className="space-y-2 text-sm text-gray-600">
                             <li
@@ -591,26 +593,26 @@ export default function LandingPage() {
                                 Events
                             </li>
                         </ul>
-                    </div>
+                    </div> */}
 
                     <div className="w-full sm:w-auto">
                         <h3 className="font-medium mb-4">Policies</h3>
                         <ul className="space-y-2 text-sm text-gray-600">
                             <li
                                 className="hover:text-purple-700 cursor-pointer transition-colors duration-200"
-                                onClick={() => { window.location.href = "https://aiclassroom.in/terms-guidelines" }}
+                                onClick={() => { window.location.href = "/terms" }}
                             >
                                 Terms and Conditions
                             </li>
                             <li
                                 className="hover:text-purple-700 cursor-pointer transition-colors duration-200"
-                                onClick={() => { window.location.href = "https://aiclassroom.in/privacy-guidelines" }}
+                                onClick={() => { window.location.href = "/privacy" }}
                             >
                                 Privacy
                             </li>
                             <li
                                 className="hover:text-purple-700 cursor-pointer transition-colors duration-200"
-                                onClick={() => { window.location.href = "https://aiclassroom.in/refund-guidelines" }}
+                                onClick={() => { window.location.href = "/refund" }}
                             >
                                 Refund
                             </li>
@@ -661,6 +663,14 @@ export default function LandingPage() {
                     </div>
                 </div>
             </footer>
-        </div >
+            {/* Popup Component */}
+            <Popup
+                isOpen={showPopup}
+                onClose={() => setShowPopup(false)}
+                type={popupType}
+                title={popupType === 'success' ? 'Success!' : 'Error'}
+                message={popupMessage}
+            />
+        </div>
     );
 }
