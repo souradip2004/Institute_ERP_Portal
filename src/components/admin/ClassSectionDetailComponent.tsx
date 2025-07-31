@@ -118,9 +118,6 @@ export default function ClassSectionDetail({ classSection, onBack }: ClassSectio
             </div>
           </div>
           <div className="flex items-center space-x-2">
-            {/* <span className="px-3 py-1 inline-flex text-sm leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
-              {classSection.course?.courseCode || 'No Code'}
-            </span> */}
             <span className="px-3 py-1 inline-flex text-sm leading-5 font-semibold rounded-full bg-purple-100 text-purple-800">
               {classSection.batch?.batchName || 'No Batch'}
             </span>
@@ -153,25 +150,6 @@ export default function ClassSectionDetail({ classSection, onBack }: ClassSectio
                 </div>
               </div>
             </div>
-
-            {/* Course Information */}
-            {/* <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-              <div className="px-4 py-5 sm:px-6 bg-gray-50 border-b border-gray-200">
-                <h3 className="text-lg font-medium leading-6 text-gray-900">Course Information</h3>
-              </div>
-              <div className="px-4 py-5 sm:p-6 space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">Course Code</p>
-                    <p className="mt-1 text-sm text-gray-900">{classSection.course?.courseCode || 'N/A'}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">Course Name</p>
-                    <p className="mt-1 text-sm text-gray-900">{classSection.course?.name || 'N/A'}</p>
-                  </div>
-                </div>
-              </div>
-            </div> */}
 
             {/* Teacher Information */}
             <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">

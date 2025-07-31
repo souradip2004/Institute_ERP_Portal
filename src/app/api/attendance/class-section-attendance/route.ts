@@ -129,6 +129,7 @@ export async function GET(request: Request) {
 
     // 7. Construct the final response
     const responseData = {
+      sessionStartDate: firstSession.sessionDate.toISOString().split('T')[0],
       classSectionName: sessionForDay.classSection.sectionName,
       courseName: sessionForDay.course.name,
       date: dateParam,
