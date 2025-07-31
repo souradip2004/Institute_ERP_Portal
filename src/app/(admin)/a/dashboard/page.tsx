@@ -76,7 +76,10 @@ export default async function DashboardPage() {
           {/* Profile Section */}
           <div
             className={`mb-8 flex flex-col sm:flex-row items-center sm:items-start gap-6 p-6 sm:p-8 ${primaryBgClass} rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 transition-all hover:shadow-md`}
-            style={{ backgroundColor: institutionData?.primaryColor }}
+            style={{
+              background: `linear-gradient(to right, white, ${institutionData?.primaryColor})`
+            }}
+
           >
             <div className="relative">
               <div className="absolute -inset-1.5 bg-gradient-to-r from-violet-600 to-indigo-600 rounded-full blur-sm opacity-75"></div>
@@ -99,7 +102,7 @@ export default async function DashboardPage() {
 
             <div className="text-center sm:text-left flex-1">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div>
+                <div className="">
                   <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-violet-700 to-indigo-500 dark:from-violet-500 dark:to-indigo-300">
                     Welcome, {userData?.name || "User"}
                   </h1>
@@ -167,8 +170,8 @@ export default async function DashboardPage() {
                       {institutionData.name}
                     </h3>
                     <div className="flex gap-6">
-                      <span className="px-3 py-1 text-xs font-medium text-indigo-800 bg-indigo-100 rounded-full self-start ">
-                        {institutionData.type==="university"?"School":"College"}
+                      <span className="px-3 py-1 text-xs mt-1 font-medium text-indigo-800 bg-indigo-100 rounded-full self-start ">
+                        {institutionData.type === "university" ? "School" : "College"}
                       </span>
                       <span>
                         <Link
@@ -238,23 +241,24 @@ export default async function DashboardPage() {
                         </div>
                       </div>
 
-                      <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700 flex justify-center md:justify-end">
+                      <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700 flex justify-center">
                         {institutionData && (
-                          <div className="mt-2 sm:mt-0">
+                          <div className="w-full max-w-md">
                             <Link
                               href={`${process.env.NEXT_PUBLIC_API_URL}/a`}
-                              className={cn(
-                                buttonVariants({ variant: "outline", size: "sm" }),
-                                "text-indigo-600 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800 hover:bg-indigo-50 dark:hover:bg-indigo-950 relative w-full"
-                              )}
+                              className="group relative block w-full px-8 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold text-lg rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 ease-out"
                             >
-                              <span className="absolute inset-0 rounded-lg bg-gradient-to-r from-indigo-200 to-purple-200 dark:from-indigo-900 dark:to-purple-900 opacity-60 pointer-events-none animate-pulse"></span>
-                              <span className="relative font-semibold">Go to Institution Portal</span>
-
+                              <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-indigo-400 to-purple-400 opacity-0 group-hover:opacity-20 transition-opacity duration-300"></div>
+                              <div className="absolute -inset-1 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl blur opacity-25 group-hover:opacity-40 transition-opacity duration-300"></div>
+                              <span className="relative flex items-center justify-center gap-3">
+                                <Building2 className="w-6 h-6" />
+                                Access Institution Portal
+                                <span className="text-2xl">→</span>
+                              </span>
                             </Link>
-                            <span className="block text-xs text-gray-500 dark:text-gray-400 mt-1">
-                              Click here to access your institution dashboard.
-                            </span>
+                            <p className="text-center text-sm text-gray-600 dark:text-gray-400 mt-3 font-medium">
+                              Manage your institution dashboard and settings
+                            </p>
                           </div>
                         )}
                       </div>
