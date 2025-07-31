@@ -142,13 +142,13 @@ export class AttendanceController {
 
   async getStudentCourseAttendance(req: NextRequest, studentId: string, courseId: string) {
     try {
-      const user = await AuthUtils.getCurrentUser(req);
+      /*const user = await AuthUtils.getCurrentUser(req);
       if (!user) return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
 
       // Security check: If student, can only access their own attendance
       if (user.role === 'STUDENT' && user.student?.id !== studentId) {
         return NextResponse.json({ error: 'Unauthorized to access this student\'s attendance' }, { status: 403 });
-      }
+      }*/
 
       // Get all attendance sessions for this course
       const sessions = await prisma.attendanceSession.findMany({
@@ -185,7 +185,7 @@ export class AttendanceController {
         where: {
           studentId: studentId,
           attendanceSessionId: {
-            in: sessionIds,
+            in: sessionIds
           },
         },
         select: {
