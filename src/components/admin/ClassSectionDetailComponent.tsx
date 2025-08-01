@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, {useState, useEffect} from 'react';
 
 export interface Student {
   id: string;
@@ -8,7 +8,7 @@ export interface Student {
     name: string;
     email: string;
   };
-  attendancePercentage: number;
+  attendancePercentage: number | null;
   status: string;
 }
 
@@ -60,7 +60,7 @@ interface ClassSectionDetailProps {
   onBack: () => void;
 }
 
-export default function ClassSectionDetail({ classSection, onBack }: ClassSectionDetailProps) {
+export default function ClassSectionDetail({classSection, onBack}: ClassSectionDetailProps) {
   const [students, setStudents] = useState<Student[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -82,14 +82,14 @@ export default function ClassSectionDetail({ classSection, onBack }: ClassSectio
 
       setIsLoading(true);
       try {
-        const response = await fetch(`/api/classes/${classSection.id}/students`);
+        const response = await fetch(`api/attendance/student-attendance?classSectionId=${classSection.id}`);
         if (!response.ok) {
-          
+
           throw new Error('Failed to fetch students');
         }
         const data = await response.json();
-        if (Array.isArray(data)) {
-          setStudents(data);
+        if (Array.isArray(data.students)) {
+          setStudents(data.students);
         } else {
           throw new Error('Invalid data format');
         }
@@ -118,7 +118,8 @@ export default function ClassSectionDetail({ classSection, onBack }: ClassSectio
             </div>
           </div>
           <div className="flex items-center space-x-2">
-            <span className="px-3 py-1 inline-flex text-sm leading-5 font-semibold rounded-full bg-purple-100 text-purple-800">
+            <span
+              className="px-3 py-1 inline-flex text-sm leading-5 font-semibold rounded-full bg-purple-100 text-purple-800">
               {classSection.batch?.batchName || 'No Batch'}
             </span>
           </div>
@@ -259,68 +260,80 @@ export default function ClassSectionDetail({ classSection, onBack }: ClassSectio
                 <div className="overflow-x-auto">
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
-                      <tr>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Name
-                        </th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Roll No
-                        </th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Email
-                        </th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Attendance
-                        </th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Status
-                        </th>
+                    <tr>
+                      <th scope="col"
+                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Name
+                      </th>
+                      <th scope="col"
+                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Roll No
+                      </th>
+                      <th scope="col"
+                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Email
+                      </th>
+                      <th scope="col"
+                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Attendance
+                      </th>
+                    {/*  <th scope="col"
+                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Status
+                      </th>*/}
 
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Report Card 
-                          </th>
-                      </tr>
+                      <th scope="col"
+                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Report Card
+                      </th>
+                    </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                      {students.map((student) => (
-                        <tr key={student.id}>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                            {student.name}
-                          </td>
-                           
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {student.rollNo}
-                          </td>
-                          
-                                                <td className="px py-4  whitespace-nowrap text-sm text-gray-500">
-                            {student.user.email}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
+                    {students.map((student) => (
+                      <tr key={student.id}>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                          {student.name}
+                        </td>
+
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {student.rollNo}
+                        </td>
+
+                        <td className="px py-4  whitespace-nowrap text-sm text-gray-500">
+                          {student.user.email}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {student.attendancePercentage !== null ? (
                             <div className="flex items-center">
                               <div className="w-16 bg-gray-200 rounded-full h-2.5">
                                 <div
                                   className={`h-2.5 rounded-full ${student.attendancePercentage >= 75 ? 'bg-green-500' :
                                     student.attendancePercentage >= 60 ? 'bg-yellow-500' : 'bg-red-500'
-                                    }`}
-                                  style={{ width: `${student.attendancePercentage}%` }}
+                                  }`}
+                                  style={{width: `${student.attendancePercentage}%`}}
                                 ></div>
                               </div>
                               <span className="ml-2 text-sm text-gray-600">{student.attendancePercentage}%</span>
                             </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
+                          ) : (
+                            <span className="text-sm text-gray-600">Attendance not available</span>
+                          )}
+
+                        </td>
+                        {/*<td className="px-6 py-4 whitespace-nowrap">
                             <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
                               ${student.status === 'PRESENT' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
                               {student.status}
                             </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            <text onClick={()=>window.location.href=`/a/report?id=${student.id}&name=${student.name}`}>
+                        </td>*/}
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          <text
+                            onClick={() => window.location.href = `/a/report?id=${student.id}&name=${student.name}`}>
                             View Report
-                            </text>
-                          </td>
-                        </tr>
-                      ))}
+                          </text>
+                        </td>
+                      </tr>
+                    ))}
                     </tbody>
                   </table>
                 </div>
@@ -338,7 +351,7 @@ export default function ClassSectionDetail({ classSection, onBack }: ClassSectio
             className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
           >
             <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
             </svg>
             Back to List
           </button>

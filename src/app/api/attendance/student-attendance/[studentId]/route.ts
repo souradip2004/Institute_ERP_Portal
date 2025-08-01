@@ -13,8 +13,8 @@ export async function GET(
   const {studentId} = params;
   const {searchParams} = new URL(request.url);
   const classSectionId = searchParams.get('classSectionId');
-  const month = searchParams.get('month'); // e.g., '7' for July
-  const year = searchParams.get('year');   // e.g., '2025'
+  const month = searchParams.get('month');
+  const year = searchParams.get('year');
 
   // 2. Validate the input
   if (!studentId || !classSectionId) {
@@ -44,7 +44,7 @@ export async function GET(
     const student = await prisma.student.findUnique({
       where: {id: studentId},
       include: {
-        user: {select: {name: true}},
+        user: {select: {name: true, email: true}},
       },
     });
 
@@ -118,6 +118,7 @@ export async function GET(
     const responseData = {
       studentId: student.id,
       studentName: student.user.name,
+      studentEmail: student.user.email,
       studentRoll: student.studentRoll,
       attendanceHistory: attendanceHistory,
     };

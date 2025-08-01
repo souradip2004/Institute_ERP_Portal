@@ -18,12 +18,13 @@ export async function GET(request: Request) {
     const today = new Date();
     today.setHours(23, 59, 59, 999);
 
+    // The main query remains the same, as `enrollmentStatus` is a direct field
+    // on the `StudentClassEnrollment` model we are fetching.
     const enrolledStudents = await prisma.studentClassEnrollment.findMany({
       where: {
         classSectionId: classSectionId,
       },
       include: {
-
         student: {
           include: {
             user: true,
@@ -42,10 +43,12 @@ export async function GET(request: Request) {
             },
           },
         },
+        // Also fetch metadata about the class section itself
         classSection: {
           include: {
             attendanceSessions: {
-              take: 1,
+              orderBy: { sessionDate: 'asc' }, // Order to get the first session
+              take: 1, // Efficiently get just one
               select: {
                 course: {
                   select: {
@@ -67,21 +70,23 @@ export async function GET(request: Request) {
       );
     }
 
-    // 3. Extract the course name once from the first result. It's the same for all.
-    // The optional chaining (?.) makes this safe if no sessions exist yet.
+    // Extract the course name once from the first result.
     const courseName = enrolledStudents[0]?.classSection.attendanceSessions[0]?.course.name || null;
 
-    // 4. Map the results into the final response structure
-    const studentAttendanceDetails = enrolledStudents.map((enrollment) => {
+    // Map the results into the final response structure
+    const studentList = enrolledStudents.map((enrollment) => {
       const { student } = enrollment;
       const performance = student.performanceMetrics[0];
 
-      // This logic is now cleaner and more consistent for all students
       return {
-        studentId: student.id,
-        studentName: student.user.name,
-        studentRoll: student.studentRoll,
-        courseName: courseName, // Use the reliably fetched course name
+        id: student.id,
+        name: student.user.name,
+        roll: student.studentRoll,
+        user: {
+          name: student.user.name,
+          email: student.user.email
+        },
+        status: enrollment.enrollmentStatus,
         attendancePercentage: performance ? performance.attendancePercentage : null,
         message: student.attendanceRecords.length > 0
           ? 'Attendance data available.'
@@ -89,8 +94,13 @@ export async function GET(request: Request) {
       };
     });
 
-    // 5. Return the formatted student data with a 200 OK status
-    return NextResponse.json(studentAttendanceDetails, { status: 200 });
+    // Structure the final response for better frontend handling
+    const responseData = {
+      students: studentList
+    };
+
+    // Return the formatted student data with a 200 OK status
+    return NextResponse.json(responseData, { status: 200 });
 
   } catch (error) {
     console.error("Failed to fetch student attendance:", error);
