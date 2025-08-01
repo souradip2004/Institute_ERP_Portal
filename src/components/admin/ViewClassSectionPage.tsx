@@ -58,6 +58,9 @@ interface ApiClassSection {
       name?: string;
     };
   };
+  _count: {
+    attendanceSessions: number;
+  }
 
   [key: string]: string | number | boolean | object | null | undefined;
 }
@@ -143,7 +146,8 @@ export default function ClassSectionsPage({id}: ViewClassSectionPageProps) {
           batch: section.batch || {},
           course: section.course || {},
           semester: section.semester || {},
-          teacher: section.teacher || {user: {}}
+          teacher: section.teacher || {user: {}},
+          _count: section._count
         };
       });
 

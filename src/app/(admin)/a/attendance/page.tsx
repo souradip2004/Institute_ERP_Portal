@@ -253,7 +253,7 @@ export default function DailyAttendanceTable() {
           <h3 className="text-lg font-bold text-gray-800 order-2 sm:order-1">
             Student List for <span className="text-violet-600">{formatDateForDisplay(currentDate)}</span>
           </h3>
-          <div className="flex items-center gap-2 order-1 sm:order-2 relative right-5">
+          <div className="flex items-center gap-2 order-1 sm:order-2 ">
             <button onClick={handlePrevDay} disabled={isPrevDisabled || isInteractionDisabled} className="p-2 rounded-md hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed" aria-label="Previous day">
               <ChevronLeft className="h-5 w-5"/>
             </button>
