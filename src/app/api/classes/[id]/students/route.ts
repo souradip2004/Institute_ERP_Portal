@@ -79,6 +79,7 @@ export async function GET(
       };
     });
 
+    console.log("Students ", students);
     return NextResponse.json(students);
   } catch (error) {
     console.error("Error in class students API route:", error);
