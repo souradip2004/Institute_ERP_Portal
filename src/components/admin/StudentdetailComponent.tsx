@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import StudentAttendance from './StudentAttendance';
 
 export interface StudentDetail {
   id: string;
@@ -89,6 +90,7 @@ export default function StudentDetail({ studentId, onBack }: StudentDetailProps)
   const [student, setStudent] = useState<StudentDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showAttendance, setShowAttendance] = useState(false);
 
   useEffect(() => {
     const fetchStudentDetail = async () => {
@@ -163,19 +165,26 @@ export default function StudentDetail({ studentId, onBack }: StudentDetailProps)
 
   return (
     <div className="bg-white shadow rounded-lg">
+      <StudentAttendance
+        studentId={student.id}
+        motherClassId={student.classEnrollments?.[0]?.classSection?.motherClassId || ''}
+        isOpen={showAttendance}
+        onClose={() => setShowAttendance(false)}
+      />
+
       <div className="border-b border-gray-200 px-6 py-4 flex justify-between items-center">
         <h2 className="text-xl font-bold text-gray-800">Student Detail</h2>
         <div className="flex space-x-2 items-center">
-
-          {/* <button
-            onClick={() => window.location.reload()}
-            className="inline-flex items-center px-3 py-1 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors"
+          <button
+            onClick={() => setShowAttendance(true)}
+            disabled={!student.classEnrollments?.[0]?.classSection?.motherClassId}
+            className="inline-flex items-center px-3 py-1 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
             </svg>
-            Refresh
-          </button> */}
+            View Attendance
+          </button>
           <span
             className={`px-3 py-1 inline-flex text-sm leading-5 font-semibold rounded-full ${STATUS_STYLES[student.enrollmentStatus]}`}>
             {student.enrollmentStatus}
