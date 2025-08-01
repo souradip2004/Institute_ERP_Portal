@@ -1,5 +1,5 @@
 import prisma from "@/lib/prisma";
-import {studentQueue} from "@/bullmq/queues/student";
+import { studentQueue } from "@/bullmq/queues/student";
 
 export class StudentService {
   async getAllStudents() {
@@ -29,8 +29,8 @@ export class StudentService {
       // Handle user creation or connection
       if (data.user?.connect?.id) {
         user = await prisma.user.findUnique({
-          where: {id: data.user.connect.id},
-          include: {student: true},
+          where: { id: data.user.connect.id },
+          include: { student: true },
         });
 
         if (!user) throw new Error("User not found");
@@ -48,13 +48,13 @@ export class StudentService {
 
       // Validate department
       const department = await prisma.department.findUnique({
-        where: {id: data.department.connect.id},
+        where: { id: data.department.connect.id },
       });
       if (!department) throw new Error("Department not found");
 
       // Validate batch
       const batch = await prisma.batch.findUnique({
-        where: {id: data.batch.connect.id},
+        where: { id: data.batch.connect.id },
       });
       if (!batch) throw new Error("Batch not found");
 
@@ -88,7 +88,7 @@ export class StudentService {
 
       // Return full student object with relations
       const studentWithDetails = await prisma.student.findUnique({
-        where: {id: student.id},
+        where: { id: student.id },
         include: {
           user: true,
           department: true,
@@ -114,7 +114,7 @@ export class StudentService {
 
   async getStudentById(id: string, includeClassSection = true) {
     return prisma.student.findUnique({
-      where: {id},
+      where: { id },
       include: {
         user: true,
         department: true,
@@ -143,18 +143,40 @@ export class StudentService {
 
   async getStudentsByBatchId(batchId: string) {
     return prisma.student.findMany({
-      where: {batchId},
+      where: { batchId },
       include: {
         user: true,
+        department: {
+          select: {
+            name: true,
+          }
+        },
+        batch: {
+          select: {
+            batchName: true,
+            year: true,
+          }
+        }
       },
     });
   }
 
   async getStudentsByDeptId(departmentId: string) {
     return prisma.student.findMany({
-      where: {departmentId},
+      where: { departmentId },
       include: {
         user: true,
+        department: {
+          select: {
+            name: true,
+          }
+        },
+        batch: {
+          select: {
+            batchName: true,
+            year: true,
+          }
+        }
       },
     });
   }

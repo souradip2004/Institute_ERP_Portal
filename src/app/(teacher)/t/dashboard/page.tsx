@@ -1,7 +1,7 @@
 "use client";
-import React, {useEffect, useState} from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from "next/link";
-import {LogoutButton} from "@/components/auth/logout-button";
+import { LogoutButton } from "@/components/auth/logout-button";
 import Loader from '@/components/ui/Loader';
 import axios from "axios";
 
@@ -54,6 +54,14 @@ export default function TeacherDashboardPage() {
   const [classAttendance, setClassAttendance] = useState<ClassAttendance[]>([]);
   const [teacherId, setTeacherId] = useState<string | null>(null);
   const [classSectionId, setClassSectionId] = useState<string | null>(null);
+  const [primaryColor, setPrimaryColor] = useState<string>('#000000');
+
+  useEffect(() => {
+    const temp = localStorage.getItem('primaryColor');
+    if (temp) {
+      setPrimaryColor(temp);
+    }
+  }, []);
 
   let user: { classSectionId?: string } | null = null;
   let classId: string | undefined = undefined;
@@ -170,7 +178,7 @@ export default function TeacherDashboardPage() {
   const handleReplyChange = (notificationId: string, text: string) => {
     setNotifications(prevState => prevState.map(notification =>
       notification.id === notificationId
-        ? {...notification, replyText: text}
+        ? { ...notification, replyText: text }
         : notification
     ))
   };
@@ -352,9 +360,9 @@ export default function TeacherDashboardPage() {
       // If no classes were found from the API, use fallback classes
       if (classes.length === 0) {
         classes = [
-          {id: "class1", name: "Mathematics", section: "Section A"},
-          {id: "class2", name: "Physics", section: "Section B"},
-          {id: "class3", name: "Chemistry", section: "Section C"}
+          { id: "class1", name: "Mathematics", section: "Section A" },
+          { id: "class2", name: "Physics", section: "Section B" },
+          { id: "class3", name: "Chemistry", section: "Section C" }
         ];
       }
 
@@ -399,9 +407,9 @@ export default function TeacherDashboardPage() {
       // Use fallback data if no valid attendance data was found
       if (validAttendance.length === 0) {
         validAttendance = [
-          {id: "class1", name: "Mathematics", sectionName: "Section A", percentage: 95},
-          {id: "class2", name: "Physics", sectionName: "Section B", percentage: 88},
-          {id: "class3", name: "Chemistry", sectionName: "Section C", percentage: 92}
+          { id: "class1", name: "Mathematics", sectionName: "Section A", percentage: 95 },
+          { id: "class2", name: "Physics", sectionName: "Section B", percentage: 88 },
+          { id: "class3", name: "Chemistry", sectionName: "Section C", percentage: 92 }
         ];
       }
 
@@ -414,9 +422,9 @@ export default function TeacherDashboardPage() {
       return {
         teacherAttendance: 97,
         classAttendance: [
-          {id: "class1", name: "Mathematics", sectionName: "Section A", percentage: 95},
-          {id: "class2", name: "Physics", sectionName: "Section B", percentage: 88},
-          {id: "class3", name: "Chemistry", sectionName: "Section C", percentage: 92}
+          { id: "class1", name: "Mathematics", sectionName: "Section A", percentage: 95 },
+          { id: "class2", name: "Physics", sectionName: "Section B", percentage: 88 },
+          { id: "class3", name: "Chemistry", sectionName: "Section C", percentage: 92 }
         ]
       };
     }
@@ -459,7 +467,7 @@ export default function TeacherDashboardPage() {
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
-        <Loader size='large'/>
+        <Loader size='large' />
       </div>
     );
   }
@@ -477,29 +485,30 @@ export default function TeacherDashboardPage() {
     <div className="min-h-screen bg-gray-100 p-4">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
-        <div className="bg-white p-6 rounded-lg shadow-sm flex justify-between items-center">
+        <div className="bg-white p-6 rounded-lg shadow-sm flex justify-between items-center border-t-4" style={{ borderTopColor: primaryColor }}>
           <div>
-            <h1 className="text-2xl font-bold">Teacher Dashboard</h1>
+            <h1 className="text-2xl font-bold" style={{ color: primaryColor }}>Teacher Dashboard</h1>
             <p className="text-gray-500">{teacherName}</p>
           </div>
-          <div className="flex items-center">
+          {/* <div className="flex items-center">
             <div className="bg-gray-100 rounded-full px-4 py-2 mr-4">
             </div>
             <LogoutButton/>
-          </div>
+          </div> */}
         </div>
 
         {/* Notifications Section */}
-        <div className="bg-white p-6 rounded-lg shadow-sm">
+        <div className="bg-white p-6 rounded-lg shadow-sm border-l-4" style={{ borderLeftColor: primaryColor }}>
           {/*<h2 className="text-xl font-semibold mb-4">Notifications</h2>*/}
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold">Notifications</h2>
+            <h2 className="text-xl font-semibold" style={{ color: primaryColor }}>Notifications</h2>
             {notifications.length > 0 && notifications.some(notification => !notification.isRead) && <button
-							onClick={handleMarkSelectedAsRead}
-							className="px-4 py-2 text-sm font-medium text-black bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-						>
-							Mark all as Read ({notifications.length})
-						</button>}
+              onClick={handleMarkSelectedAsRead}
+              className="px-4 py-2 text-sm font-medium text-white rounded-lg hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2"
+              style={{ backgroundColor: primaryColor, focusRingColor: primaryColor }}
+            >
+              Mark all as Read ({notifications.length})
+            </button>}
 
 
           </div>
@@ -520,12 +529,16 @@ export default function TeacherDashboardPage() {
                           <div className="flex justify-between items-start mb-1">
                             <div className={"flex space-x-4"}>
                               <h3 id={`notification-title-${notification.id}`}
-                                  className="font-medium">{notification.title}</h3>
+                                className="font-medium">{notification.title}</h3>
 
                               <div className={"flex items-center space-x-2"}>
                                 <input
                                   type="checkbox"
-                                  className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 border-2"
+                                  className="h-4 w-4 border-gray-300 rounded border-2"
+                                  style={{
+                                    accentColor: primaryColor,
+                                    color: primaryColor
+                                  }}
                                   checked={notification.isRead}
                                   disabled={notification.isRead}
                                   onChange={() => markNotificationsAsRead([notification.id])}
@@ -535,8 +548,8 @@ export default function TeacherDashboardPage() {
                               </div>
                             </div>
                             <span className="text-sm text-gray-500">
-                            {getTimeAgo(notification.createdAt)}
-                        </span>
+                              {getTimeAgo(notification.createdAt)}
+                            </span>
                           </div>
                           <p className="text-gray-600 mb-3">"{notification.message}"</p>
 
@@ -554,12 +567,25 @@ export default function TeacherDashboardPage() {
                                 placeholder="Type your reply..."
                                 value={notification.replyText || ''}
                                 onChange={(e) => handleReplyChange(notification.id, e.target.value)}
-                                className="flex-grow p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                className="flex-grow p-2 border border-gray-300 rounded-md shadow-sm sm:text-sm"
+                                style={{
+                                  focusBorderColor: primaryColor,
+                                  focusRingColor: primaryColor
+                                }}
+                                onFocus={(e) => {
+                                  e.target.style.borderColor = primaryColor;
+                                  e.target.style.boxShadow = `0 0 0 1px ${primaryColor}`;
+                                }}
+                                onBlur={(e) => {
+                                  e.target.style.borderColor = '#D1D5DB';
+                                  e.target.style.boxShadow = 'none';
+                                }}
                               />
                               <button
                                 onClick={() => handleReplySubmit(notification.id)}
                                 disabled={!notification.replyText?.trim()} // Disable button if input is empty
-                                className="px-4 py-2 text-sm font-medium text-white bg-gray-700 rounded-lg hover:bg-gray-800 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                                className="px-4 py-2 text-sm font-medium text-white rounded-lg hover:opacity-90 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                                style={{ backgroundColor: !notification.replyText?.trim() ? '#9CA3AF' : primaryColor }}
                               >
                                 Reply
                               </button>
@@ -645,58 +671,65 @@ export default function TeacherDashboardPage() {
         </div>
 
         {/* Recent Assignments */}
-        <div className="bg-white p-6 rounded-lg shadow-sm">
+        <div className="bg-white p-6 rounded-lg shadow-sm border-l-4" style={{ borderLeftColor: primaryColor }}>
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold">Recent Assignments</h2>
-            <Link href={"/t/classes/" as any} className="text-blue-600 hover:text-blue-900">
+            <h2 className="text-xl font-semibold" style={{ color: primaryColor }}>Recent Assignments</h2>
+            <Link href={"/t/classes/" as any} className="hover:opacity-80" style={{ color: primaryColor }}>
               View All Classes
             </Link>
           </div>
           <div className="overflow-x-auto">
             <table className="min-w-full">
               <thead>
-              <tr className="border-b">
-                <th className="text-left py-3">Title</th>
-                <th className="text-left py-3">Class</th>
-                <th className="text-left py-3">Subject</th>
-                <th className="text-left py-3">Due Date</th>
-                <th className="text-left py-3">Submissions</th>
-                <th className="text-left py-3">Status</th>
+                <tr className="border-b" style={{ borderBottomColor: primaryColor }}>
+                  <th className="text-left py-3 font-semibold" style={{ color: primaryColor }}>Title</th>
+                  <th className="text-left py-3 font-semibold" style={{ color: primaryColor }}>Class</th>
+                  <th className="text-left py-3 font-semibold" style={{ color: primaryColor }}>Subject</th>
+                  <th className="text-left py-3 font-semibold" style={{ color: primaryColor }}>Due Date</th>
+                  <th className="text-left py-3 font-semibold" style={{ color: primaryColor }}>Submissions</th>
+                  <th className="text-left py-3 font-semibold" style={{ color: primaryColor }}>Status</th>
 
-              </tr>
+                </tr>
               </thead>
               <tbody>
-              {assignments.length > 0 ? (
-                assignments.map((assignment) => (
-                  <tr key={assignment.id} className="border-b hover:bg-gray-50">
-                    <td className="py-3">{assignment.title}</td>
-                    <td className="py-3">{assignment.class}</td>
-                    <td className="py-3">{assignment.subject}</td>
-                    <td className="py-3">{assignment.dueDate}</td>
-                    <td className="py-3">{assignment.submissions}</td>
-                    <td className="py-3">{assignment.status}</td>
+                {assignments.length > 0 ? (
+                  assignments.map((assignment) => (
+                    <tr key={assignment.id} className="border-b hover:bg-gray-50"
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = `${primaryColor}10`;
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = '';
+                      }}>
+                      <td className="py-3">{assignment.title}</td>
+                      <td className="py-3">{assignment.class}</td>
+                      <td className="py-3">{assignment.subject}</td>
+                      <td className="py-3">{assignment.dueDate}</td>
+                      <td className="py-3">{assignment.submissions}</td>
+                      <td className="py-3">{assignment.status}</td>
 
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={7} className="py-6 text-center text-gray-500">
+                      No assignments found
+                    </td>
                   </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={7} className="py-6 text-center text-gray-500">
-                    No assignments found
-                  </td>
-                </tr>
-              )}
+                )}
               </tbody>
             </table>
           </div>
         </div>
 
         {/* Upcoming Exams */}
-        <div className="bg-white p-6 rounded-lg shadow-sm">
+        <div className="bg-white p-6 rounded-lg shadow-sm border-l-4" style={{ borderLeftColor: primaryColor }}>
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold">Upcoming Exams</h2>
+            <h2 className="text-xl font-semibold" style={{ color: primaryColor }}>Upcoming Exams</h2>
             <Link
               href={`/t/classes/${classId}/exams` as any}
-              className="text-blue-600 hover:text-blue-900"
+              className="hover:opacity-80"
+              style={{ color: primaryColor }}
             >
               View All Exams
             </Link>
@@ -704,32 +737,38 @@ export default function TeacherDashboardPage() {
           <div className="overflow-x-auto">
             <table className="min-w-full">
               <thead>
-              <tr className="border-b">
-                <th className="text-left py-3">Title</th>
-                <th className="text-left py-3">Class</th>
-                <th className="text-left py-3">Subject</th>
-                <th className="text-left py-3">Date</th>
-                <th className="text-left py-3">Status</th>
-              </tr>
+                <tr className="border-b" style={{ borderBottomColor: primaryColor }}>
+                  <th className="text-left py-3 font-semibold" style={{ color: primaryColor }}>Title</th>
+                  <th className="text-left py-3 font-semibold" style={{ color: primaryColor }}>Class</th>
+                  <th className="text-left py-3 font-semibold" style={{ color: primaryColor }}>Subject</th>
+                  <th className="text-left py-3 font-semibold" style={{ color: primaryColor }}>Date</th>
+                  <th className="text-left py-3 font-semibold" style={{ color: primaryColor }}>Status</th>
+                </tr>
               </thead>
               <tbody>
-              {exams.length > 0 ? (
-                exams.map((exam) => (
-                  <tr key={exam.id} className="border-b hover:bg-gray-50">
-                    <td className="py-3">{exam.title}</td>
-                    <td className="py-3">{exam.class}</td>
-                    <td className="py-3">{exam.subject}</td>
-                    <td className="py-3">{exam.date}</td>
-                    <td className="py-3">{exam.status}</td>
+                {exams.length > 0 ? (
+                  exams.map((exam) => (
+                    <tr key={exam.id} className="border-b hover:bg-gray-50"
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = `${primaryColor}10`;
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = '';
+                      }}>
+                      <td className="py-3">{exam.title}</td>
+                      <td className="py-3">{exam.class}</td>
+                      <td className="py-3">{exam.subject}</td>
+                      <td className="py-3">{exam.date}</td>
+                      <td className="py-3">{exam.status}</td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={6} className="py-6 text-center text-gray-500">
+                      No exams found
+                    </td>
                   </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={6} className="py-6 text-center text-gray-500">
-                    No exams found
-                  </td>
-                </tr>
-              )}
+                )}
               </tbody>
             </table>
           </div>

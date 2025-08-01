@@ -1,10 +1,10 @@
 "use client";
 
-import React, {useState, useEffect} from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import {Card} from "@/components/ui/card";
-import StudentsList, {Student} from '@/components/admin/StudentsListComponent';
-import StudentDetail, {StudentDetail as StudentDetailType} from '@/components/admin/StudentdetailComponent';
+import { Card } from "@/components/ui/card";
+import StudentsList, { Student } from '@/components/admin/StudentsListComponent';
+import StudentDetail, { StudentDetail as StudentDetailType } from '@/components/admin/StudentdetailComponent';
 import Loader from '@/components/ui/Loader';
 import AddStudentModal from '@/components/admin/AddStudent';
 
@@ -12,7 +12,7 @@ interface ViewStudentsProps {
   id: string;
 }
 
-export default function ViewStudentsComponent({id}: ViewStudentsProps) {
+export default function ViewStudentsComponent({ id }: ViewStudentsProps) {
   // State for storing all students
   const [students, setStudents] = useState<Student[]>([]);
   // State for tracking which view to show
@@ -56,12 +56,8 @@ export default function ViewStudentsComponent({id}: ViewStudentsProps) {
 
   // Function to handle viewing a specific student's details
   const handleViewStudent = (studentId: string) => {
-    // Find the selected student from the students array
-    const student = students.find(s => s.id === studentId);
-    if (student) {
-      setSelectedStudent(student as unknown as StudentDetailType);
-      setActiveSection("viewStudentDetail");
-    }
+    setSelectedStudent({ id: studentId } as StudentDetailType);
+    setActiveSection("viewStudentDetail");
   };
 
   // Function to go back to the students list
@@ -74,7 +70,7 @@ export default function ViewStudentsComponent({id}: ViewStudentsProps) {
   const handleStudentAdded = () => {
     fetchStudents();
   };
-  
+
   const handleDeleteStudent = async (userId: string) => {
     try {
       setDeletingStudent(true);
@@ -91,7 +87,7 @@ export default function ViewStudentsComponent({id}: ViewStudentsProps) {
 
   // Render loading state
   if (isLoading && students.length === 0) {
-    return <Loader size="large" message="Loading students..." fullScreen={false}/>;
+    return <Loader size="large" message="Loading students..." fullScreen={false} />;
   }
 
   // Render error state
@@ -119,14 +115,13 @@ export default function ViewStudentsComponent({id}: ViewStudentsProps) {
         <Card className="shadow-lg">
           {isLoading ? (
             <div className="p-8">
-              <Loader size="medium" message="Refreshing..." fullScreen={false}/>
+              <Loader size="medium" message="Refreshing..." fullScreen={false} />
             </div>
           ) : (
             <StudentsList
               students={students}
               deletingStudent={deletingStudent}
               handleDeleteStudent={handleDeleteStudent}
-              is
               onViewStudent={handleViewStudent}
             />
           )}
@@ -136,7 +131,7 @@ export default function ViewStudentsComponent({id}: ViewStudentsProps) {
       {activeSection === "viewStudentDetail" && selectedStudent && (
         <Card className="shadow-lg">
           <StudentDetail
-            student={selectedStudent}
+            studentId={selectedStudent.id}
             onBack={handleBackToList}
           />
         </Card>

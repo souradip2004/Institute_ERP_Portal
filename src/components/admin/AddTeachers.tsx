@@ -70,15 +70,15 @@ const AddTeacherModal = ({ id, isOpen, onClose, onSuccess }: AddTeacherProps) =>
   };
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
-    
+
     e.preventDefault();
     const verified = JSON.parse(localStorage.getItem("verified") || "false"); // Get verification status from localStorage
     console.log("Verification status:", verified); // Debugging line to check verification status
     // alert for debugging
     // console.log("Verification status:", verified);
     //  
-    alert(verified)
-    if(!verified){
+    // alert(verified)
+    if (!verified) {
       alert("You are not yet verified to perform this action. Please wait for verification");
       return;
     }
@@ -172,7 +172,7 @@ const AddTeacherModal = ({ id, isOpen, onClose, onSuccess }: AddTeacherProps) =>
         setIsSubmitting(false);
         return;
       }
-if(emails.length !== names.length) {
+      if (emails.length !== names.length) {
         alert("Number of emails and names must match.");
         setIsSubmitting(false);
         return;
@@ -361,21 +361,21 @@ if(emails.length !== names.length) {
                 </Button>
 
                 {/* Single Teacher Fields */}
-                {isMultiple && 
+                {isMultiple &&
                   <div className="space-y-2">
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Enter Teacher Names 
+                      Enter Teacher Names
                       <span className="text-gray-500 text-xs">(separated by commas)</span>
-                      </label>
-                      <input 
-                        type="text"
-                        placeholder="John Doe, Jane Smith"
-                        value={teacherData.name}
-                        onChange={(e) => setTeacherData({ ...teacherData, name: e.target.value })}
-                        className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
-                      />
-                      </div>
-                } 
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="John Doe, Jane Smith"
+                      value={teacherData.name}
+                      onChange={(e) => setTeacherData({ ...teacherData, name: e.target.value })}
+                      className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    />
+                  </div>
+                }
                 {!isMultiple && (
                   <>
                     <div>
