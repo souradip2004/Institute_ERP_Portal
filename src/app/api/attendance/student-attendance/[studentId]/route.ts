@@ -9,22 +9,21 @@ export async function GET(
   request: Request,
   {params}: { params: { studentId: string } }
 ) {
-  // 1. Extract IDs and optional filter parameters from the request
+  // 1. Extract IDs and optional filters from the request
   const {studentId} = params;
   const {searchParams} = new URL(request.url);
-  const classSectionId = searchParams.get('classSectionId');
+  const motherClassId = searchParams.get('motherClassId');
   const month = searchParams.get('month');
   const year = searchParams.get('year');
 
-  // 2. Validate the input
-  if (!studentId || !classSectionId) {
+  // 2. Validate the primary inputs
+  if (!studentId || !motherClassId) {
     return NextResponse.json(
-      {error: 'studentId (in URL) and classSectionId (as query param) are required'},
+      {error: 'studentId (in URL) and motherClassId (as query param) are required'},
       {status: 400}
     );
   }
 
-  // Enforce that if one filter is provided, the other must be too.
   if ((month && !year) || (!month && year)) {
     return NextResponse.json(
       {error: 'Both month and year must be provided together for filtering.'},
@@ -32,65 +31,74 @@ export async function GET(
     );
   }
 
-  /*
-   * FUTURE-PROOFING NOTE:
-   * To make month and year compulsory, you would remove the 'if (month && year)'
-   * block below and its 'else' part. The validation above would be changed to:
-   * if (!month || !year) { return NextResponse.json(...) }
-   */
-
   try {
-    // 3. Fetch student details (this remains the same)
-    const student = await prisma.student.findUnique({
-      where: {id: studentId},
-      include: {
-        user: {select: {name: true, email: true}},
-      },
-    });
+    // 3. Fetch student and mother class details
+    const [student, motherClass] = await Promise.all([
+      prisma.student.findUnique({
+        where: {id: studentId},
+        include: {
+          user: {select: {name: true, email: true}},
+        },
+      }),
+      prisma.motherClass.findUnique({
+        where: {id: motherClassId},
+        select: {
+          sectionName: true,
+          classSections: {
+            select: {
+              id: true,
+              sectionName: true
+            },
+          },
+        },
+      }),
+    ]);
 
     if (!student) {
       return NextResponse.json({error: 'Student not found'}, {status: 404});
     }
+    if (!motherClass) {
+      return NextResponse.json({error: 'Mother Class not found'}, {status: 404});
+    }
 
-    // 4. Dynamically create the date filter for the Prisma query
+    const classSectionIds = motherClass.classSections.map(cs => cs.id);
+
+    if (classSectionIds.length === 0) {
+      const responseData = {
+        studentId: student.id,
+        studentName: student.user.name,
+        studentEmail: student.user.email,
+        studentRoll: student.studentRoll,
+        motherClassName: motherClass.sectionName,
+        attendanceHistory: [],
+      };
+      return NextResponse.json(responseData);
+    }
+
+    // 4. Create the date filter
     let dateFilter = {};
-
     if (month && year) {
-      // Logic for when a specific month is requested
       const monthInt = parseInt(month, 10);
       const yearInt = parseInt(year, 10);
-
       if (isNaN(monthInt) || isNaN(yearInt) || monthInt < 1 || monthInt > 12) {
         return NextResponse.json({error: 'Invalid month or year provided.'}, {status: 400});
       }
-
-      // Start date is the first moment of the given month
       const startDate = new Date(yearInt, monthInt - 1, 1);
-      // End date is the first moment of the next month
       const endDate = new Date(yearInt, monthInt, 1);
-
-      dateFilter = {
-        gte: startDate, // Greater than or equal to the start of the month
-        lt: endDate,    // Less than the start of the next month
-      };
-
+      dateFilter = {gte: startDate, lt: endDate};
     } else {
-      // Fallback logic: Fetch all records up to today
-      const today = new Date();
-      today.setHours(23, 59, 59, 999);
-      dateFilter = {
-        lte: today,
-      };
+      dateFilter = {lte: new Date()};
     }
 
-    // 5. Fetch attendance sessions using the dynamic date filter
+    // 5. Fetch all sessions (this part remains the same)
     const sessions = await prisma.attendanceSession.findMany({
       where: {
-        classSectionId: classSectionId,
-        sessionDate: dateFilter, // Apply the determined date filter here
+        classSectionId: {in: classSectionIds},
+        sessionDate: dateFilter,
       },
       include: {
         course: {select: {name: true}},
+        classSection: {select: {sectionName: true}},
         attendanceRecords: {
           where: {studentId: studentId},
         },
@@ -100,27 +108,46 @@ export async function GET(
       },
     });
 
-    // 6. Map results and construct the final response (this remains the same)
-    const attendanceHistory = sessions.map((session) => {
+    // 6. --- KEY CHANGE: Group the flat session list by date ---
+    const groupedByDate = new Map<string, any[]>();
+
+    sessions.forEach((session) => {
+      const dateString = session.sessionDate.toISOString().split('T')[0];
       const status: DetailedAttendanceStatus =
         session.attendanceRecords.length > 0
           ? session.attendanceRecords[0].status
           : 'NOT_MARKED';
 
-      return {
-        sessionDate: session.sessionDate.toISOString().split('T')[0],
+      const sessionDetails = {
         sessionType: session.sessionType,
         courseName: session.course.name,
+        classSectionName: session.classSection.sectionName,
         status: status,
       };
+
+      // If the date isn't a key yet, initialize it with an empty array
+      if (!groupedByDate.has(dateString)) {
+        groupedByDate.set(dateString, []);
+      }
+
+      // Push the current session's details into the array for that date
+      groupedByDate.get(dateString)?.push(sessionDetails);
     });
 
+    // Convert the Map into the desired final array structure
+    const attendanceHistory = Array.from(groupedByDate.entries()).map(([date, sessions]) => ({
+      date: date,
+      sessions: sessions
+    }));
+
+    // 7. Construct the final response object with the new structure
     const responseData = {
       studentId: student.id,
       studentName: student.user.name,
       studentEmail: student.user.email,
       studentRoll: student.studentRoll,
-      attendanceHistory: attendanceHistory,
+      motherClassName: motherClass.sectionName,
+      attendanceHistory: attendanceHistory, // Use the new grouped history
     };
 
     return NextResponse.json(responseData, {status: 200});

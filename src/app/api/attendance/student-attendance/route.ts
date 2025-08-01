@@ -81,7 +81,7 @@ export async function GET(request: Request) {
       return {
         id: student.id,
         name: student.user.name,
-        roll: student.studentRoll,
+        rollNo: student.studentRoll,
         user: {
           name: student.user.name,
           email: student.user.email
