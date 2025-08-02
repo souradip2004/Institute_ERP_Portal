@@ -72,6 +72,9 @@ export interface StudentDetail {
       creditsUsed: number;
       isOptional: boolean;
       motherClassId: string;
+      semester:{
+        name: string;
+      }
     };
   }>;
 }
@@ -235,7 +238,7 @@ export default function StudentDetail({studentId, onBack}: StudentDetailProps) {
               </div> */}
             </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="text-center">
               <p className="text-sm font-medium text-gray-500">Student Roll</p>
               <p className="text-lg font-semibold text-gray-900">{student.studentRoll}</p>
@@ -249,12 +252,12 @@ export default function StudentDetail({studentId, onBack}: StudentDetailProps) {
             </div>
             <div className="text-center">
               <p className="text-sm font-medium text-gray-500">Current Semester</p>
-              <p className="text-lg font-semibold text-gray-900">{student.currentSemester}</p>
+              <p className="text-lg font-semibold text-gray-900"> {student.classEnrollments?.[0]?.classSection?.semester?.name || 'N/A'}</p>
             </div>
-            <div className="text-center">
+            {/*<div className="text-center">
               <p className="text-sm font-medium text-gray-500">Academic Year</p>
               <p className="text-lg font-semibold text-gray-900">{student.currentYear}</p>
-            </div>
+            </div>*/}
           </div>
           {student.batch && (
             <div className="mt-4 text-center">
@@ -375,8 +378,8 @@ export default function StudentDetail({studentId, onBack}: StudentDetailProps) {
               {student.batch && (
                 <InfoItem label="Batch Max Students" value={student.batch.maxStudents}/>
               )}
-              <InfoItem label="Current Semester" value={student.currentSemester}/>
-              <InfoItem label="Current Year" value={student.currentYear}/>
+              <InfoItem label="Current Semester" value= {student.classEnrollments?.[0]?.classSection?.semester?.name || 'N/A'}/>
+              {/*<InfoItem label="Current Year" value={student.currentYear}/>*/}
               <InfoItem label="Enrollment Status" value={student.enrollmentStatus}/>
               <InfoItem
                 label="Total Enrolled Classes"
@@ -399,7 +402,6 @@ export default function StudentDetail({studentId, onBack}: StudentDetailProps) {
                           <div>
                             <h4
                               className="font-semibold text-gray-900 text-lg">{enrollment.classSection.sectionName}</h4>
-                            <p className="text-sm text-gray-500">Class Section ID: {enrollment.classSection.id}</p>
                           </div>
                         </div>
                         <span
@@ -431,14 +433,6 @@ export default function StudentDetail({studentId, onBack}: StudentDetailProps) {
                         </div>
                       </div>
 
-                      {enrollment.classSection.motherClassId && (
-                        <div className="mt-3 pt-3 border-t border-gray-100">
-                          <p className="text-xs text-gray-500">
-                            <span
-                              className="font-medium">Mother Class ID:</span> {enrollment.classSection.motherClassId}
-                          </p>
-                        </div>
-                      )}
                     </div>
                   ))}
                 </div>
