@@ -3,6 +3,7 @@ import axios from 'axios';
 import StudentAttendance from './StudentAttendance';
 import {FiEdit} from 'react-icons/fi';
 import EditStudentModal from './EditStudentModal';
+import EnrollStudentModal from "@/components/admin/EnrollStudentModal";
 
 export interface StudentDetail {
   id: string;
@@ -72,7 +73,7 @@ export interface StudentDetail {
       creditsUsed: number;
       isOptional: boolean;
       motherClassId: string;
-      semester:{
+      semester: {
         name: string;
       }
     };
@@ -97,21 +98,22 @@ export default function StudentDetail({studentId, onBack}: StudentDetailProps) {
   const [error, setError] = useState<string | null>(null);
   const [showAttendance, setShowAttendance] = useState(false);
   const [isEditModalOpen, setEditModalOpen] = useState(false);
+  const [isEnrollModalOpen, setEnrollModalOpen] = useState(false);
+
+  const fetchStudentDetail = async () => {
+    try {
+      setLoading(true);
+      const response = await axios.get(`/api/students/${studentId}?includeClassSection=true`);
+      setStudent(response.data);
+    } catch (err) {
+      setError('Failed to fetch student details');
+      console.error('Error fetching student:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchStudentDetail = async () => {
-      try {
-        setLoading(true);
-        const response = await axios.get(`/api/students/${studentId}?includeClassSection=true`);
-        setStudent(response.data);
-      } catch (err) {
-        setError('Failed to fetch student details');
-        console.error('Error fetching student:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     if (studentId) {
       fetchStudentDetail();
     }
@@ -124,6 +126,25 @@ export default function StudentDetail({studentId, onBack}: StudentDetailProps) {
   const formatDate = (dateString: string | null) => {
     if (!dateString) return 'Not provided';
     return new Date(dateString).toLocaleDateString();
+  };
+
+  const handleDeleteStudentEnrollments = async (enrollmentId: string) => {
+    try {
+      setLoading(true);
+      const response = await axios.delete(`/api/studentClassEnrollment/${enrollmentId}`);
+
+      await fetchStudentDetail();
+    } catch (err) {
+      setError('Failed to delete student enrollments');
+      console.error('Error deleting student enrollments:', err);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const handleEnrollmentSuccess = () => {
+    setEnrollModalOpen(false); // Close the modal
+    fetchStudentDetail();      // Re-fetch student data to show the new class
   };
 
   if (loading) {
@@ -187,6 +208,14 @@ export default function StudentDetail({studentId, onBack}: StudentDetailProps) {
         onClose={() => setEditModalOpen(false)}
         onUpdate={handleUpdateStudent}
       />
+
+      <EnrollStudentModal
+        isOpen={isEnrollModalOpen}
+        onClose={() => setEnrollModalOpen(false)}
+        studentId={student.id}
+        onEnrollmentSuccess={handleEnrollmentSuccess}
+      />
+
 
       <div className="border-b border-gray-200 px-6 py-4 flex justify-between items-center">
         <div className="flex items-center space-x-3">
@@ -252,7 +281,8 @@ export default function StudentDetail({studentId, onBack}: StudentDetailProps) {
             </div>
             <div className="text-center">
               <p className="text-sm font-medium text-gray-500">Current Semester</p>
-              <p className="text-lg font-semibold text-gray-900"> {student.classEnrollments?.[0]?.classSection?.semester?.name || 'N/A'}</p>
+              <p
+                className="text-lg font-semibold text-gray-900"> {student.classEnrollments?.[0]?.classSection?.semester?.name || 'N/A'}</p>
             </div>
             {/*<div className="text-center">
               <p className="text-sm font-medium text-gray-500">Academic Year</p>
@@ -378,7 +408,8 @@ export default function StudentDetail({studentId, onBack}: StudentDetailProps) {
               {student.batch && (
                 <InfoItem label="Batch Max Students" value={student.batch.maxStudents}/>
               )}
-              <InfoItem label="Current Semester" value= {student.classEnrollments?.[0]?.classSection?.semester?.name || 'N/A'}/>
+              <InfoItem label="Current Semester"
+                        value={student.classEnrollments?.[0]?.classSection?.semester?.name || 'N/A'}/>
               {/*<InfoItem label="Current Year" value={student.currentYear}/>*/}
               <InfoItem label="Enrollment Status" value={student.enrollmentStatus}/>
               <InfoItem
@@ -387,7 +418,21 @@ export default function StudentDetail({studentId, onBack}: StudentDetailProps) {
               />
             </InfoSection>
 
-            <InfoSection title={`Enrolled Classes (${student.classEnrollments?.length || 0})`}>
+            <div>
+              <div className={"flex items-center justify-between space-x-4"}>
+                <h3 className="text-lg font-medium leading-6 text-gray-900 mb-4">
+                  Enrolled Classes ({student.classEnrollments?.length || 0})
+                </h3>
+                <button
+                  onClick={() => setEnrollModalOpen(true)}
+                  className="px-3 py-1 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-200 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors"
+                >
+                  Enroll Student
+                </button>
+              </div>
+
+              <div className="bg-gray-50 p-4 rounded-md space-y-3">
+
               {student.classEnrollments && student.classEnrollments.length > 0 ? (
                 <div className="space-y-4">
                   {student.classEnrollments.map((enrollment, index) => (
@@ -400,17 +445,24 @@ export default function StudentDetail({studentId, onBack}: StudentDetailProps) {
                             {index + 1}
                           </div>
                           <div>
-                            <h4
-                              className="font-semibold text-gray-900 text-lg">{enrollment.classSection.sectionName}</h4>
+                            <h4 className="font-semibold text-gray-900 text-lg">{enrollment.classSection.sectionName}</h4>
                           </div>
                         </div>
-                        <span
-                          className={`px-3 py-1 text-xs font-medium rounded-full ${enrollment.enrollmentStatus === 'ENROLLED'
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-gray-100 text-gray-800'
-                          }`}>
+                        <div className={"flex items-center space-x-2"}>
+                          <button
+                            className="px-3 py-1 text-sm font-medium text-red-700 bg-red-100 border border-red-200 rounded-md hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors duration-200"
+                            onClick={() => handleDeleteStudentEnrollments(enrollment.id)}>
+                            Unenroll Student
+                          </button>
+                          <span
+                            className={`px-3 py-1 text-xs font-medium rounded-full ${enrollment.enrollmentStatus === 'ENROLLED'
+                              ? 'bg-green-100 text-green-800'
+                              : 'bg-gray-100 text-gray-800'
+                            }`}>
                           {enrollment.enrollmentStatus}
                         </span>
+                        </div>
+
                       </div>
 
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
@@ -448,7 +500,8 @@ export default function StudentDetail({studentId, onBack}: StudentDetailProps) {
                   <p className="text-sm text-gray-400 mt-1">This student is not currently enrolled in any classes.</p>
                 </div>
               )}
-            </InfoSection>
+              </div>
+            </div>
 
           </div>
         </div>

@@ -20,7 +20,7 @@ export class StudentClassEnrollmentService {
             id: true,
             studentRoll: true,
             user: { select: { name: true } },
-          },
+          }
         },
         classSection: {
           select: {
