@@ -194,7 +194,7 @@ export class StudentService {
               include: {
                 semester: {
                   select: {
-                    name: true,
+                    name: true
                   }
                 }
               }
