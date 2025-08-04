@@ -14,10 +14,12 @@ interface GlobalFee {
     penalty: number;
     paymentTerms: string;
     paymentStatus: string;
-    collectionId: string | null;
+    feesCollectionId: string;
+    classFeeId: string;
 }
 
 interface LocalFee {
+    classFeeId: string;
     localFeesId: string;
     name: string;
     description: string;
@@ -34,6 +36,7 @@ interface LocalFee {
 }
 
 interface CombinedFee {
+    classFeeId: string;
     id: string;
     name: string;
     description: string;
@@ -47,6 +50,7 @@ interface CombinedFee {
     transactionId?: string | null;
     paymentDate?: string;
     amountPaid?: number;
+    feesCollectionId?: string;
 }
 
 
@@ -75,6 +79,15 @@ export default function Home() {
     const [loading, setLoading] = useState(true);
     const [feesData, setFeesData] = useState<CombinedFee[]>([]);
     const [filteredFees, setFilteredFees] = useState<CombinedFee[]>([]);
+    const [showPaymentModal, setShowPaymentModal] = useState(false);
+    const [selectedFee, setSelectedFee] = useState<CombinedFee | null>(null);
+    const [paymentForm, setPaymentForm] = useState({
+        amountPaid: '',
+        paymentMethod: 'UPI',
+        paymentDate: new Date().toISOString().split('T')[0],
+        transactionId: ''
+    });
+    const [paymentLoading, setPaymentLoading] = useState(false);
 
     // Combine and transform fees data
     const combineFeesData = (globalFees: GlobalFee[], localFees: LocalFee[]): CombinedFee[] => {
@@ -86,6 +99,7 @@ export default function Home() {
             const total = fee.amountDue + taxAmount + fee.penalty;
 
             combined.push({
+                classFeeId: fee.classFeeId,
                 id: fee.feeId,
                 name: fee.name,
                 description: fee.description,
@@ -95,7 +109,8 @@ export default function Home() {
                 total: total,
                 paymentTerms: fee.paymentTerms,
                 status: fee.paymentStatus,
-                feeType: 'Global'
+                feeType: 'Global',
+                feesCollectionId: fee.feesCollectionId
             });
         });
 
@@ -105,6 +120,7 @@ export default function Home() {
             const total = fee.amountDue + taxAmount + fee.penalty;
 
             combined.push({
+                classFeeId: fee.classFeeId,
                 id: fee.localFeesId,
                 name: fee.name,
                 description: fee.description,
@@ -117,7 +133,8 @@ export default function Home() {
                 feeType: 'Local',
                 transactionId: fee.transactionId,
                 paymentDate: fee.paymentDate,
-                amountPaid: fee.amountPaid
+                amountPaid: fee.amountPaid,
+                feesCollectionId: fee.feesCollectionId
             });
         });
 
@@ -132,6 +149,77 @@ export default function Home() {
             setFilteredFees(feesData.filter(fee => fee.status === selectedStatus));
         }
     }, [feesData, selectedStatus]);
+
+    // Handle payment modal
+    const handlePayFee = (fee: CombinedFee) => {
+        setSelectedFee(fee);
+        setPaymentForm({
+            amountPaid: fee.total.toString(),
+            paymentMethod: 'UPI',
+            paymentDate: new Date().toISOString().split('T')[0],
+            transactionId: ''
+        });
+        setShowPaymentModal(true);
+    };
+
+    const handlePaymentSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!selectedFee) return;
+
+        setPaymentLoading(true);
+        try {
+            const user = localStorage.getItem('user');
+            if (!user) return;
+            const userData = JSON.parse(user);
+            const studentId = userData.studentId;
+
+            const paymentData = {
+                studentId: studentId,
+                classFeeId: selectedFee.classFeeId,
+                amountPaid: parseFloat(paymentForm.amountPaid),
+                paymentMethod: paymentForm.paymentMethod,
+                paymentDate: paymentForm.paymentDate,
+                transactionId: paymentForm.transactionId,
+                feesCollectionId: selectedFee.feesCollectionId
+            };
+
+            await axios.patch('/api/payment/fees-collection', paymentData);
+
+            // Refresh fees data
+            const institutionId = userData.institutionId;
+            const studentInfo = studentData as any;
+
+            const [globalFeesResponse, localFeesResponse] = await Promise.all([
+                axios.get(`/api/payment/fees-collection/global-fees?institutionId=${institutionId}&studentId=${studentId}&motherClassId=${studentInfo.motherclassId}`),
+                axios.get(`/api/payment/fees-collection/local-fees?institutionId=${institutionId}&studentId=${studentId}`)
+            ]);
+
+            const globalFees: GlobalFee[] = globalFeesResponse.data || [];
+            const localFees: LocalFee[] = localFeesResponse.data || [];
+            const combinedFees = combineFeesData(globalFees, localFees);
+            setFeesData(combinedFees);
+
+            setShowPaymentModal(false);
+            setSelectedFee(null);
+            alert('Payment submitted successfully!');
+        } catch (error) {
+            console.error('Payment error:', error);
+            alert('Payment failed. Please try again.');
+        } finally {
+            setPaymentLoading(false);
+        }
+    };
+
+    const closeModal = () => {
+        setShowPaymentModal(false);
+        setSelectedFee(null);
+        setPaymentForm({
+            amountPaid: '',
+            paymentMethod: 'UPI',
+            paymentDate: new Date().toISOString().split('T')[0],
+            transactionId: ''
+        });
+    };
 
     useEffect(() => {
         const fetchData = async () => {
@@ -330,12 +418,13 @@ export default function Home() {
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fee Type</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Transaction ID</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
                                 </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
                                 {filteredFees.length === 0 ? (
                                     <tr>
-                                        <td colSpan={9} className="px-6 py-8 text-center text-gray-500">
+                                        <td colSpan={10} className="px-6 py-8 text-center text-gray-500">
                                             No fees found for the selected criteria
                                         </td>
                                     </tr>
@@ -377,6 +466,16 @@ export default function Home() {
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                                 {fee.transactionId || '-'}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                                {fee.status === 'PENDING' && (
+                                                    <button
+                                                        onClick={() => handlePayFee(fee)}
+                                                        className="px-3 py-1 bg-indigo-600 text-white text-xs font-medium rounded hover:bg-indigo-700 transition-colors"
+                                                    >
+                                                        Pay Fee
+                                                    </button>
+                                                )}
                                             </td>
                                         </tr>
                                     ))
@@ -469,6 +568,131 @@ export default function Home() {
                     </div>
                 </div>
             </div>
+
+            {/* Payment Modal */}
+            {showPaymentModal && selectedFee && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-2xl flex items-center justify-center z-50">
+                    <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+                        <div className="px-6 py-4 border-b border-gray-200">
+                            <div className="flex items-center justify-between">
+                                <h3 className="text-lg font-semibold text-gray-900">Pay Fee</h3>
+                                <button
+                                    onClick={closeModal}
+                                    className="text-gray-400 hover:text-gray-600"
+                                >
+                                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        <form onSubmit={handlePaymentSubmit} className="p-6">
+                            <div className="mb-4">
+                                <h4 className="font-medium text-gray-900 mb-2">{selectedFee.name}</h4>
+                                <p className="text-sm text-gray-600 mb-4">{selectedFee.description}</p>
+                                <div className="bg-gray-50 p-3 rounded-md">
+                                    <div className="flex justify-between text-sm">
+                                        <span>Amount:</span>
+                                        <span>₹{selectedFee.amount.toFixed(2)}</span>
+                                    </div>
+                                    <div className="flex justify-between text-sm">
+                                        <span>Tax:</span>
+                                        <span>₹{selectedFee.tax.toFixed(2)}</span>
+                                    </div>
+                                    <div className="flex justify-between text-sm">
+                                        <span>Penalty:</span>
+                                        <span>₹{selectedFee.penalty.toFixed(2)}</span>
+                                    </div>
+                                    <div className="flex justify-between text-sm font-medium border-t pt-2 mt-2">
+                                        <span>Total:</span>
+                                        <span>₹{selectedFee.total.toFixed(2)}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Amount Paid *
+                                    </label>
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        value={paymentForm.amountPaid}
+                                        onChange={(e) => setPaymentForm({ ...paymentForm, amountPaid: e.target.value })}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                        required
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Payment Method *
+                                    </label>
+                                    <select
+                                        value={paymentForm.paymentMethod}
+                                        onChange={(e) => setPaymentForm({ ...paymentForm, paymentMethod: e.target.value })}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                        required
+                                    >
+                                        <option value="UPI">UPI</option>
+                                        <option value="NEFT">NEFT</option>
+                                        <option value="RTGS">RTGS</option>
+                                        <option value="CASH">Cash</option>
+                                        <option value="CHEQUE">Cheque</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Payment Date *
+                                    </label>
+                                    <input
+                                        type="date"
+                                        value={paymentForm.paymentDate}
+                                        onChange={(e) => setPaymentForm({ ...paymentForm, paymentDate: e.target.value })}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                        required
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Transaction ID *
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={paymentForm.transactionId}
+                                        onChange={(e) => setPaymentForm({ ...paymentForm, transactionId: e.target.value })}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                        placeholder="Enter transaction ID"
+                                        required
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="flex gap-3 mt-6">
+                                <button
+                                    type="button"
+                                    onClick={closeModal}
+                                    className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
+                                    disabled={paymentLoading}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors disabled:opacity-50"
+                                    disabled={paymentLoading}
+                                >
+                                    {paymentLoading ? 'Processing...' : 'Submit Payment'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </main>
     );
 }
