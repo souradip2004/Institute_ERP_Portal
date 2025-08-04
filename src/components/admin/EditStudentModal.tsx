@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import {StudentDetail} from "@/components/admin/StudentdetailComponent";
 
-
 interface EditStudentModalProps {
   student: StudentDetail;
   isOpen: boolean;
@@ -12,6 +11,9 @@ interface EditStudentModalProps {
 
 export default function EditStudentModal({ student, isOpen, onClose, onUpdate }: EditStudentModalProps) {
   const [formData, setFormData] = useState({
+    name: student.user.name || '',
+    email: student.user.email || '',
+    studentRoll: student.studentRoll || '',
     username: student.user.username || '',
     dateOfBirth: student.user.dateOfBirth ? new Date(student.user.dateOfBirth).toISOString().split('T')[0] : '',
     phone: student.user.phone || '',
@@ -26,6 +28,9 @@ export default function EditStudentModal({ student, isOpen, onClose, onUpdate }:
 
   useEffect(() => {
     setFormData({
+      name: student.user.name || '',
+      email: student.user.email || '',
+      studentRoll: student.studentRoll || '',
       username: student.user.username || '',
       dateOfBirth: student.user.dateOfBirth ? new Date(student.user.dateOfBirth).toISOString().split('T')[0] : '',
       phone: student.user.phone || '',
@@ -67,7 +72,7 @@ export default function EditStudentModal({ student, isOpen, onClose, onUpdate }:
   }
 
   return (
-    <div className="fixed inset-0 bg-gray-600/50 backdrop-blur-sm  overflow-y-auto h-full w-full flex items-center justify-center">
+    <div className="fixed inset-0 bg-gray-600/50 backdrop-blur-sm overflow-y-auto h-full w-full flex items-center justify-center">
       <div className="relative mx-auto p-5 border w-full max-w-2xl shadow-lg rounded-md bg-white">
         <div className="mb-4">
           <h3 className="text-lg font-medium leading-6 text-gray-900">Edit Student Details</h3>
@@ -75,6 +80,21 @@ export default function EditStudentModal({ student, isOpen, onClose, onUpdate }:
         {error && <div className="mb-4 text-red-600 bg-red-100 p-3 rounded">{error}</div>}
         <form onSubmit={handleSubmit}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* <!--- Name Field ---> */}
+            <div>
+              <label htmlFor="name" className="block text-sm font-medium text-gray-700">Name</label>
+              <input type="text" name="name" id="name" value={formData.name} onChange={handleChange} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm" placeholder="Souradip" />
+            </div>
+            {/* <!--- Email Field ---> */}
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email</label>
+              <input type="email" name="email" id="email" value={formData.email} onChange={handleChange} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm" placeholder="souradip1@gmail.com" />
+            </div>
+            {/* <!--- Student Roll Field ---> */}
+            <div>
+              <label htmlFor="studentRoll" className="block text-sm font-medium text-gray-700">Student Roll</label>
+              <input type="text" name="studentRoll" id="studentRoll" value={formData.studentRoll} onChange={handleChange} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm" placeholder="2000" />
+            </div>
             <div>
               <label htmlFor="username" className="block text-sm font-medium text-gray-700">Username</label>
               <input type="text" name="username" id="username" value={formData.username} onChange={handleChange} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm" placeholder="jdoe_updated" />

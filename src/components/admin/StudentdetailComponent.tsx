@@ -4,6 +4,7 @@ import StudentAttendance from './StudentAttendance';
 import {FiEdit} from 'react-icons/fi';
 import EditStudentModal from './EditStudentModal';
 import EnrollStudentModal from "@/components/admin/EnrollStudentModal";
+import { UnenrollConfirmationModal } from './UnenrollConfirmationModal';
 
 export interface StudentDetail {
   id: string;
@@ -99,6 +100,8 @@ export default function StudentDetail({studentId, onBack}: StudentDetailProps) {
   const [showAttendance, setShowAttendance] = useState(false);
   const [isEditModalOpen, setEditModalOpen] = useState(false);
   const [isEnrollModalOpen, setEnrollModalOpen] = useState(false);
+  const [isUnenrollModalOpen, setUnenrollModalOpen] = useState(false);
+  const [selectedEnrollment, setSelectedEnrollment] = useState<{ id: string; name: string } | null>(null);
 
   const fetchStudentDetail = async () => {
     try {
@@ -128,17 +131,20 @@ export default function StudentDetail({studentId, onBack}: StudentDetailProps) {
     return new Date(dateString).toLocaleDateString();
   };
 
-  const handleDeleteStudentEnrollments = async (enrollmentId: string) => {
+  const handleDeleteStudentEnrollments = async () => {
+    if (!selectedEnrollment) return;
+
     try {
       setLoading(true);
-      const response = await axios.delete(`/api/studentClassEnrollment/${enrollmentId}`);
-
+      await axios.delete(`/api/studentClassEnrollment/${selectedEnrollment.id}`);
       await fetchStudentDetail();
     } catch (err) {
       setError('Failed to delete student enrollments');
       console.error('Error deleting student enrollments:', err);
     } finally {
       setLoading(false);
+      setUnenrollModalOpen(false); // Close modal on success or failure
+      setSelectedEnrollment(null); // Clear selection
     }
   }
 
@@ -216,7 +222,12 @@ export default function StudentDetail({studentId, onBack}: StudentDetailProps) {
         onEnrollmentSuccess={handleEnrollmentSuccess}
       />
 
-
+      <UnenrollConfirmationModal
+        isOpen={isUnenrollModalOpen}
+        onClose={() => setUnenrollModalOpen(false)}
+        onConfirm={handleDeleteStudentEnrollments}
+        className={selectedEnrollment?.name || ''}
+      />
       <div className="border-b border-gray-200 px-6 py-4 flex justify-between items-center">
         <div className="flex items-center space-x-3">
           <h2 className="text-xl font-bold text-gray-800">Student Detail</h2>
@@ -433,73 +444,77 @@ export default function StudentDetail({studentId, onBack}: StudentDetailProps) {
 
               <div className="bg-gray-50 p-4 rounded-md space-y-3">
 
-              {student.classEnrollments && student.classEnrollments.length > 0 ? (
-                <div className="space-y-4">
-                  {student.classEnrollments.map((enrollment, index) => (
-                    <div key={enrollment.id}
-                         className="bg-white p-5 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
-                      <div className="flex justify-between items-start mb-3">
-                        <div className="flex items-center">
-                          <div
-                            className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white text-sm font-bold mr-3">
-                            {index + 1}
+                {student.classEnrollments && student.classEnrollments.length > 0 ? (
+                  <div className="space-y-4">
+                    {student.classEnrollments.map((enrollment, index) => (
+                      <div key={enrollment.id}
+                           className="bg-white p-5 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+                        <div className="flex justify-between items-start mb-3">
+                          <div className="flex items-center">
+                            <div
+                              className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white text-sm font-bold mr-3">
+                              {index + 1}
+                            </div>
+                            <div>
+                              <h4
+                                className="font-semibold text-gray-900 text-lg">{enrollment.classSection.sectionName}</h4>
+                            </div>
                           </div>
-                          <div>
-                            <h4 className="font-semibold text-gray-900 text-lg">{enrollment.classSection.sectionName}</h4>
-                          </div>
-                        </div>
-                        <div className={"flex items-center space-x-2"}>
-                          <button
-                            className="px-3 py-1 text-sm font-medium text-red-700 bg-red-100 border border-red-200 rounded-md hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors duration-200"
-                            onClick={() => handleDeleteStudentEnrollments(enrollment.id)}>
-                            Unenroll Student
-                          </button>
-                          <span
-                            className={`px-3 py-1 text-xs font-medium rounded-full ${enrollment.enrollmentStatus === 'ENROLLED'
-                              ? 'bg-green-100 text-green-800'
-                              : 'bg-gray-100 text-gray-800'
-                            }`}>
+                          <div className={"flex items-center space-x-2"}>
+                            <button
+                              className="px-3 py-1 text-sm font-medium text-red-700 bg-red-100 border border-red-200 rounded-md hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors duration-200"
+                              onClick={() => {
+                                setSelectedEnrollment({id: enrollment.id, name: enrollment.classSection.sectionName});
+                                setUnenrollModalOpen(true);
+                              }}>
+                              Unenroll Student
+                            </button>
+                            <span
+                              className={`px-3 py-1 text-xs font-medium rounded-full ${enrollment.enrollmentStatus === 'ENROLLED'
+                                ? 'bg-green-100 text-green-800'
+                                : 'bg-gray-100 text-gray-800'
+                              }`}>
                           {enrollment.enrollmentStatus}
                         </span>
+                          </div>
+
+                        </div>
+
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                          <div className="bg-gray-50 p-3 rounded-md">
+                            <p className="font-medium text-gray-500 mb-1">Max Students</p>
+                            <p className="text-gray-900 font-semibold">{enrollment.classSection.maxStudents}</p>
+                          </div>
+                          <div className="bg-gray-50 p-3 rounded-md">
+                            <p className="font-medium text-gray-500 mb-1">Credits Used</p>
+                            <p className="text-gray-900 font-semibold">{enrollment.classSection.creditsUsed}</p>
+                          </div>
+                          <div className="bg-gray-50 p-3 rounded-md">
+                            <p className="font-medium text-gray-500 mb-1">Course Type</p>
+                            <p
+                              className="text-gray-900 font-semibold">{enrollment.classSection.isOptional ? 'Optional' : 'Mandatory'}</p>
+                          </div>
+                          <div className="bg-gray-50 p-3 rounded-md">
+                            <p className="font-medium text-gray-500 mb-1">Enrolled Date</p>
+                            <p className="text-gray-900 font-semibold">{formatDate(enrollment.createdAt)}</p>
+                          </div>
                         </div>
 
                       </div>
-
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                        <div className="bg-gray-50 p-3 rounded-md">
-                          <p className="font-medium text-gray-500 mb-1">Max Students</p>
-                          <p className="text-gray-900 font-semibold">{enrollment.classSection.maxStudents}</p>
-                        </div>
-                        <div className="bg-gray-50 p-3 rounded-md">
-                          <p className="font-medium text-gray-500 mb-1">Credits Used</p>
-                          <p className="text-gray-900 font-semibold">{enrollment.classSection.creditsUsed}</p>
-                        </div>
-                        <div className="bg-gray-50 p-3 rounded-md">
-                          <p className="font-medium text-gray-500 mb-1">Course Type</p>
-                          <p
-                            className="text-gray-900 font-semibold">{enrollment.classSection.isOptional ? 'Optional' : 'Mandatory'}</p>
-                        </div>
-                        <div className="bg-gray-50 p-3 rounded-md">
-                          <p className="font-medium text-gray-500 mb-1">Enrolled Date</p>
-                          <p className="text-gray-900 font-semibold">{formatDate(enrollment.createdAt)}</p>
-                        </div>
-                      </div>
-
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8">
-                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                            d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
-                    </svg>
+                    ))}
                   </div>
-                  <p className="text-gray-500 font-medium">No enrolled classes found</p>
-                  <p className="text-sm text-gray-400 mt-1">This student is not currently enrolled in any classes.</p>
-                </div>
-              )}
+                ) : (
+                  <div className="text-center py-8">
+                    <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                              d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                      </svg>
+                    </div>
+                    <p className="text-gray-500 font-medium">No enrolled classes found</p>
+                    <p className="text-sm text-gray-400 mt-1">This student is not currently enrolled in any classes.</p>
+                  </div>
+                )}
               </div>
             </div>
 

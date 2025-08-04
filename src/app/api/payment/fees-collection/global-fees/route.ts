@@ -62,7 +62,7 @@ export async function GET(request: Request) {
         paymentDate: collectionDetails?.paymentDate,
         paymentMethod: collectionDetails?.paymentMethod,
         transactionId: collectionDetails?.transactionId,
-        collectionId: collectionDetails?.id || null // The ID of the specific fee collection record
+        feesCollectionId: collectionDetails?.id || null // The ID of the specific fee collection record
       };
     });
 

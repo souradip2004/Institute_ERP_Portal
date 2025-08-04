@@ -60,11 +60,10 @@ export async function GET(request: Request) {
     .filter((id): id is string => id !== null);
 
     if (studentMotherClassIds.length === 0) {
-      // If the student isn't enrolled in any classes, they have no local fees.
+
       return NextResponse.json([], { status: 200 });
     }
 
-    // 4. Find all local fees for those classes that are assigned to this student
     const feeDetails = await prisma.classFee.findMany({
       where: {
         // Filter for fees related to the student's classes
