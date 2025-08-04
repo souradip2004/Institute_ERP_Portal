@@ -111,14 +111,14 @@ export async function GET(request: Request) {
         taxPercentage: detail.localFees!.taxPercentage,
         penalty: detail.localFees!.penalty,
         paymentTerms: detail.localFees!.paymentterms,
-
+        classFeeId: detail.id,
         // Student-specific payment information
         paymentStatus: collectionDetails?.status || 'NOT_GENERATED',
         amountPaid: collectionDetails?.amount,
         paymentDate: collectionDetails?.paymentDate,
         paymentMethod: collectionDetails?.paymentMethod,
         transactionId: collectionDetails?.transactionId,
-        feesCollectionId: collectionDetails?.id || null,
+        feesCollectionId: collectionDetails?.id || null
       };
     });
 
