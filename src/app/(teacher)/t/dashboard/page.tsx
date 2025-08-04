@@ -54,12 +54,26 @@ export default function TeacherDashboardPage() {
   const [classAttendance, setClassAttendance] = useState<ClassAttendance[]>([]);
   const [teacherId, setTeacherId] = useState<string | null>(null);
   const [classSectionId, setClassSectionId] = useState<string | null>(null);
-  const [primaryColor, setPrimaryColor] = useState<string>('#000000');
+  const [primaryColor, setPrimaryColor] = useState<string>('#3B82F6');
+
+  // Helper function to convert hex to rgba
+  const hexToRgba = (hex: string, alpha: number = 1) => {
+    const cleanHex = hex.replace('#', '');
+    const r = parseInt(cleanHex.substr(0, 2), 16);
+    const g = parseInt(cleanHex.substr(2, 2), 16);
+    const b = parseInt(cleanHex.substr(4, 2), 16);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  };
 
   useEffect(() => {
     const temp = localStorage.getItem('primaryColor');
     if (temp) {
+      console.log('Primary color loaded from localStorage:', temp);
       setPrimaryColor(temp);
+    } else {
+      // Set a default color if none exists
+      console.log('No primary color found, using default blue');
+      setPrimaryColor('#3B82F6'); // Default blue color
     }
   }, []);
 
@@ -489,6 +503,10 @@ export default function TeacherDashboardPage() {
           <div>
             <h1 className="text-2xl font-bold" style={{ color: primaryColor }}>Teacher Dashboard</h1>
             <p className="text-gray-500">{teacherName}</p>
+            {/* Debug indicator - remove this after testing */}
+            {/* <div className="text-xs text-gray-400 mt-1">
+              Primary Color: {primaryColor}
+            </div> */}
           </div>
           {/* <div className="flex items-center">
             <div className="bg-gray-100 rounded-full px-4 py-2 mr-4">
@@ -505,7 +523,10 @@ export default function TeacherDashboardPage() {
             {notifications.length > 0 && notifications.some(notification => !notification.isRead) && <button
               onClick={handleMarkSelectedAsRead}
               className="px-4 py-2 text-sm font-medium text-white rounded-lg hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2"
-              style={{ backgroundColor: primaryColor, focusRingColor: primaryColor }}
+              style={{
+                backgroundColor: primaryColor,
+                '--tw-ring-color': primaryColor
+              } as React.CSSProperties}
             >
               Mark all as Read ({notifications.length})
             </button>}
@@ -537,7 +558,7 @@ export default function TeacherDashboardPage() {
                                   className="h-4 w-4 border-gray-300 rounded border-2"
                                   style={{
                                     accentColor: primaryColor,
-                                    color: primaryColor
+                                    borderColor: notification.isRead ? primaryColor : '#D1D5DB'
                                   }}
                                   checked={notification.isRead}
                                   disabled={notification.isRead}
@@ -567,14 +588,13 @@ export default function TeacherDashboardPage() {
                                 placeholder="Type your reply..."
                                 value={notification.replyText || ''}
                                 onChange={(e) => handleReplyChange(notification.id, e.target.value)}
-                                className="flex-grow p-2 border border-gray-300 rounded-md shadow-sm sm:text-sm"
+                                className="flex-grow p-2 border border-gray-300 rounded-md shadow-sm sm:text-sm focus:outline-none focus:ring-2 focus:ring-offset-2"
                                 style={{
-                                  focusBorderColor: primaryColor,
-                                  focusRingColor: primaryColor
-                                }}
+                                  '--tw-ring-color': primaryColor
+                                } as React.CSSProperties}
                                 onFocus={(e) => {
                                   e.target.style.borderColor = primaryColor;
-                                  e.target.style.boxShadow = `0 0 0 1px ${primaryColor}`;
+                                  e.target.style.boxShadow = `0 0 0 2px ${hexToRgba(primaryColor, 0.25)}`;
                                 }}
                                 onBlur={(e) => {
                                   e.target.style.borderColor = '#D1D5DB';
@@ -583,9 +603,12 @@ export default function TeacherDashboardPage() {
                               />
                               <button
                                 onClick={() => handleReplySubmit(notification.id)}
-                                disabled={!notification.replyText?.trim()} // Disable button if input is empty
-                                className="px-4 py-2 text-sm font-medium text-white rounded-lg hover:opacity-90 disabled:bg-gray-400 disabled:cursor-not-allowed"
-                                style={{ backgroundColor: !notification.replyText?.trim() ? '#9CA3AF' : primaryColor }}
+                                disabled={!notification.replyText?.trim()}
+                                className="px-4 py-2 text-sm font-medium text-white rounded-lg hover:opacity-90 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all duration-200"
+                                style={{
+                                  backgroundColor: !notification.replyText?.trim() ? '#9CA3AF' : primaryColor,
+                                  boxShadow: !notification.replyText?.trim() ? 'none' : `0 2px 4px ${hexToRgba(primaryColor, 0.3)}`
+                                }}
                               >
                                 Reply
                               </button>
@@ -694,9 +717,9 @@ export default function TeacherDashboardPage() {
               <tbody>
                 {assignments.length > 0 ? (
                   assignments.map((assignment) => (
-                    <tr key={assignment.id} className="border-b hover:bg-gray-50"
+                    <tr key={assignment.id} className="border-b hover:bg-gray-50 transition-colors duration-200"
                       onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = `${primaryColor}10`;
+                        e.currentTarget.style.backgroundColor = hexToRgba(primaryColor, 0.1);
                       }}
                       onMouseLeave={(e) => {
                         e.currentTarget.style.backgroundColor = '';
@@ -748,9 +771,9 @@ export default function TeacherDashboardPage() {
               <tbody>
                 {exams.length > 0 ? (
                   exams.map((exam) => (
-                    <tr key={exam.id} className="border-b hover:bg-gray-50"
+                    <tr key={exam.id} className="border-b hover:bg-gray-50 transition-colors duration-200"
                       onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = `${primaryColor}10`;
+                        e.currentTarget.style.backgroundColor = hexToRgba(primaryColor, 0.1);
                       }}
                       onMouseLeave={(e) => {
                         e.currentTarget.style.backgroundColor = '';

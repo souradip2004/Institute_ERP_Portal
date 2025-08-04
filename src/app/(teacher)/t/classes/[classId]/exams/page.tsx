@@ -5,11 +5,11 @@ import axios from "axios";
 import { v4 as uuidV4 } from "uuid";
 import { format } from "date-fns";
 import Loader from '@/components/ui/Loader';
-import {Calendar, Clock, CheckCheck, X, FileText, BookOpen, GraduationCap, XCircle, PlusCircle} from 'lucide-react';
-import {forceLogout as logoutAndRedirect} from "@/lib/logout-utils";
-import {FaCopy} from "react-icons/fa";
-import {useRouter} from "next/navigation";
-import {uploadImageToCloudinary} from "@/utils/uploadImageToCloudinary";
+import { Calendar, Clock, CheckCheck, X, FileText, BookOpen, GraduationCap, XCircle, PlusCircle } from 'lucide-react';
+import { forceLogout as logoutAndRedirect } from "@/lib/logout-utils";
+import { FaCopy } from "react-icons/fa";
+import { useRouter } from "next/navigation";
+import { uploadImageToCloudinary } from "@/utils/uploadImageToCloudinary";
 
 // Updated Question Interface
 interface Question {
@@ -672,13 +672,13 @@ export default function ExamsPage() {
 
     setError("");
     const selectedQuestions = questions.filter((q) => q.isSelected)
-    .map(({question, answer, options, questionType, diagramImgURL}) => ({
-      question,
-      answer,
-      options,
-      questionType,
-      diagramImgURL
-    }));
+      .map(({ question, answer, options, questionType, diagramImgURL }) => ({
+        question,
+        answer,
+        options,
+        questionType,
+        diagramImgURL
+      }));
 
     if (selectedQuestions.length === 0) {
       setError("Please select at least one question");
@@ -1067,13 +1067,13 @@ export default function ExamsPage() {
     // return;
     try {
       const selectedQuestions = questions.filter((q) => q.isSelected)
-      .map(({question, answer, options, questionType, diagramImgURL}) => ({
-        question,
-        answer,
-        options,
-        questionType,
-        diagramImgURL
-      })); // Include questionType
+        .map(({ question, answer, options, questionType, diagramImgURL }) => ({
+          question,
+          answer,
+          options,
+          questionType,
+          diagramImgURL
+        })); // Include questionType
 
       if (selectedQuestions.length === 0) {
         setError("Please select at least one question");
@@ -1234,7 +1234,7 @@ export default function ExamsPage() {
       setQuestions(prevQuestions => prevQuestions.map((q, idx) => {
         if (idx === questionIndex) {
           const diagramImgURL = [...(q.diagramImgURL || []), imageUrl];
-          return {...q, diagramImgURL};
+          return { ...q, diagramImgURL };
         }
         return q;
       }));
@@ -1252,7 +1252,7 @@ export default function ExamsPage() {
     setQuestions(prevQuestions => prevQuestions.map((q, idx) => {
       if (idx === questionIndex && q.diagramImgURL) {
         const diagramImgURL = q.diagramImgURL.filter((_, i) => i !== diagramIndex);
-        return {...q, diagramImgURL};
+        return { ...q, diagramImgURL };
       }
       return q;
     }));
@@ -1299,6 +1299,40 @@ export default function ExamsPage() {
     }
   };
 
+  const handleExamDelete = async (examId: string) => {
+    if (!confirm('Are you sure you want to delete this exam? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      const temp = localStorage.getItem('user');
+      if (!temp) {
+        setError('User information not found');
+        return;
+      }
+
+      const userData = JSON.parse(temp);
+      const teacherId = userData.teacherId || userData.id;
+
+      if (!teacherId) {
+        setError('Teacher ID not found');
+        return;
+      }
+
+      const response = await axios.delete(`/api/exam/${examId}/${teacherId}`);
+      console.log('delete response ---', response);
+
+      // Refresh the exams list after successful deletion
+      fetchExams();
+
+      // Show success message (optional)
+      // You could add a success state if you want to show a success message
+
+    } catch (err: any) {
+      console.error('Error deleting exam:', err);
+      setError(err.response?.data?.error || 'Failed to delete exam');
+    }
+  };
 
   const closeExamDetails = () => {
     setSelectedExam(null);
@@ -1415,7 +1449,7 @@ export default function ExamsPage() {
                     <option value="">Select Class Section</option>
                     {classSections.map((item) => (
                       <option key={item.section.id} value={item.section.id}>
-                         {item.section.name}
+                        {item.section.name}
                       </option>
                     ))}
                   </select>
@@ -1949,7 +1983,7 @@ export default function ExamsPage() {
                                     {q.diagramImgURL.map((url, i) => (
                                       <div key={i} className="relative group">
                                         <img src={url} alt={`Diagram ${i + 1}`}
-                                             className="h-24 w-24 object-cover rounded-lg border-2 border-purple-200"/>
+                                          className="h-24 w-24 object-cover rounded-lg border-2 border-purple-200" />
                                         <button
                                           type="button"
                                           onClick={(e) => {
@@ -1996,7 +2030,7 @@ export default function ExamsPage() {
                           stroke="currentColor"
                           strokeWidth="4"></circle>
                         <path className="opacity-75" fill="currentColor"
-                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
                         </path>
                       </svg>
                       {/* Text */}
@@ -2113,6 +2147,12 @@ export default function ExamsPage() {
 
                   <div className="px-6 py-3 bg-gray-50 border-t border-gray-200">
                     <div className="flex space-x-2 justify-end">
+                      <button
+                        className="px-3 py-1 bg-red-600 border border-red-600 rounded text-white text-sm hover:bg-red-700 transition-colors"
+                        onClick={() => handleExamDelete(exam.id)}
+                      >
+                        Delete
+                      </button>
                       {activeTab === 'view' && (<button
                         onClick={() => fetchExamDetails(exam.id)}
                         className="px-3 py-1 bg-white border border-gray-300 rounded text-gray-600 text-sm hover:bg-gray-50 transition-colors"
