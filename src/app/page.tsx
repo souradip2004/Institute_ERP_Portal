@@ -477,12 +477,12 @@ export default function LandingPage() {
 
             <div className="font-[Helvetica]">
                 <div>
-                    <div className='flex justify-center mt-2 px-16 top-50'>
+                    <div className='flex justify-center mt-2 px-4 mb:px-16 top-50'>
 
                         <div className='hidden md:block relative -left-14 top-40'>
                             <img src="/Tab.png" alt="qq" className='' />
                         </div>
-                        <div className="max-w-3xl p-20 mt-24">
+                        <div className="max-w-3xl p-0 pb-20 md:p-20 mt-24">
                             {/* Subheading */}
                             <div className="inline-block relative">
                                 <h2 className="text-sm font-bold tracking-[.2em] text-purple-400">ABOUT US</h2>
