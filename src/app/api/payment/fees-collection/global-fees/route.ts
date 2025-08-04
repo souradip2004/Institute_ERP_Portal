@@ -55,7 +55,7 @@ export async function GET(request: Request) {
         taxPercentage: detail.globalFees!.taxPercentage,
         penalty: detail.globalFees!.penalty,
         paymentTerms: detail.globalFees!.paymentterms,
-
+        classFeeId: detail.id,
         // Student-specific payment information
         paymentStatus: collectionDetails?.status || 'NOT_GENERATED', // Provides a clear status if no record was found
         amountPaid: collectionDetails?.amount, // This will be the amount from the collection record

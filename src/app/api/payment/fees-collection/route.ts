@@ -10,6 +10,7 @@ interface FeePaymentPayload {
   paymentMethod: string;
   paymentDate: string; // The date the payment is being made (e.g., "2025-08-21")
   transactionId?: string;
+  feesCollectionId: string;
 }
 
 export async function PATCH(request: Request) {
@@ -20,11 +21,12 @@ export async function PATCH(request: Request) {
     amountPaid,
     paymentMethod,
     paymentDate,
-    transactionId
+    transactionId,
+    feesCollectionId
   } = body;
 
   // 1. Basic Validation
-  if (!studentId || !classFeeId || !paymentMethod || !paymentDate || amountPaid == null) {
+  if (!studentId || !classFeeId || !paymentMethod || !paymentDate || !feesCollectionId || amountPaid == null) {
     return NextResponse.json({error: "Missing required fields in request body."}, {status: 400});
   }
 
@@ -34,44 +36,44 @@ export async function PATCH(request: Request) {
 
   try {
     const updatedFeeCollection = await prisma.$transaction(async (tx) => {
-      // 2. Find the ClassFee and its parent to get total amount and due date
+
       const classFee = await tx.classFee.findUnique({
         where: {id: classFeeId},
         include: {
-          globalFees: {select: {amount: true}}, // Assumes dueDate exists
-          localFees: {select: {amount: true}},  // Assumes dueDate exists
+          globalFees: {select: {amount: true, taxPercentage: true}},
+          localFees: {select: {amount: true, taxPercentage: true}},
           feesCollections: {
-            where: {studentId},
-            select: {amount: true, paymentDate: true, status: true, transactionId: true},
+            where: {
+              id: feesCollectionId
+            }
           }
         }
       });
+
+      console.log("classFee: ", classFee);
 
       if (!classFee) {
         throw new Error("ClassFee not found.");
       }
-
-      // Determine the total due and the due date from the parent fee
-      const totalAmountDue = classFee.globalFees?.amount || classFee.localFees?.amount;
-      const dueDate = classFee.globalFees?.dueDate || classFee.localFees?.dueDate;
-
-      if (totalAmountDue == null || !dueDate) {
-        throw new Error("Fee details (amount or due date) could not be determined.");
-      }
-
-      // 3. Find the specific FeesCollection record for this student and fee
-      const feeCollection = await tx.feesCollection.findUnique({
-        where: {
-          classFeeId_studentId: {
-            classFeeId: classFeeId,
-            studentId: studentId
-          }
-        }
-      });
+      const feeCollection = classFee.feesCollections[0];
 
       if (!feeCollection) {
-        throw new Error("No pending fee found for this student and class fee.");
+        return NextResponse.json({error: "No pending fee found for this student and class fee."}, {status: 404});
       }
+      if (!classFee.globalFees || !classFee.localFees) {
+        return NextResponse.json({error: "Fees details not found. Please contact the administrator.!"}, {status: 404});
+      }
+
+      console.log("Fees collection: ", feeCollection);
+      // Determine the total due and the due date from the parent fee
+      const totalAmount = classFee.globalFees?.amount || classFee.localFees?.amount;
+      const totalAmountDue = totalAmount + (classFee.globalFees?.taxPercentage || classFee.localFees?.taxPercentage || 0) * totalAmount / 100;
+      const dueDate = classFee.feesCollections[0].paymentDate || classFee.feesCollections[0].paymentDate;
+
+      if (totalAmountDue == null || !dueDate) {
+        return NextResponse.json({error: "Fee details (amount or due date) could not be determined."}, {status: 404});
+      }
+
 
       // 4. Validate against overpayment
       const currentAmountPaid = feeCollection.amount; // This stores the sum of previous payments
