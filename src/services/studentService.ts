@@ -8,6 +8,9 @@ interface IStudentUpdateData {
   address?: string;
   username?: string;
   gender?: string;
+  name?: string;
+  email?: string;
+  studentRoll?: string;
   parentGuardianName?: string;
   parentGuardianPhone?: string;
   parentGuardianEmail?: string;
@@ -161,7 +164,10 @@ export class StudentService {
       phone,
       gender,
       address,
-      username
+      username,
+      name,
+      studentRoll,
+      email
     } = data;
     console.log("Id ", id);
     if (!id) {
@@ -174,12 +180,15 @@ export class StudentService {
         parentGuardianPhone: parentGuardianPhone,
         parentGuardianEmail: parentGuardianEmail,
         parentGuardianName: parentGuardianName,
+        studentRoll: studentRoll,
         user: {
           update: {
             username: username,
             phone: phone,
             address: address,
             gender: gender,
+            name: name,
+            email: email,
             dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null
           }
         }
