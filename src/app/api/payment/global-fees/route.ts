@@ -120,7 +120,7 @@ export async function POST(request: Request) {
               feesCollectionToCreate.push({
                 classFeeId: newClassFee.id,
                 studentId: studentId,
-                amount: createdGlobalFee.amount,
+                amount: 0,
                 paymentDate: new Date(),
                 paymentMethod: "",
                 status: PaymentStatus.PENDING,
