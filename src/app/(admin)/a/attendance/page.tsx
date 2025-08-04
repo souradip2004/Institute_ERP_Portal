@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight, Calendar, Users, Percent } from 'lucide-reac
 import { useSearchParams } from "next/navigation";
 import AttendanceProgressBar from "@/components/admin/AttendanceProgressBar";
 import { FaEdit } from 'react-icons/fa';
+import { Suspense } from 'react';
 
 interface StudentAttendanceDetail {
   studentId: string;
@@ -41,8 +42,14 @@ const formatDateForDisplay = (date: Date): string => {
     day: 'numeric'
   });
 };
-
-export default function DailyAttendanceTable() {
+export default function AttendancePage() {
+  return (
+    <Suspense fallback={<div>Loading attendance table...</div>}>
+      <DailyAttendanceTable />
+    </Suspense>
+  );
+}
+ function DailyAttendanceTable() {
 
   const searchParams = useSearchParams();
 
