@@ -73,7 +73,8 @@ const CostManagementPage: React.FC<ViewCost> = ({ id }) => {
           console.log('coinRes ---', coinRes);
 
           setCreditsRemaining(coinRes.data.coins);
-
+          setLoading(false);
+          setCostDetails(coinRes.data.coins);
         } catch (err) {
           console.log(err);
         }
@@ -86,16 +87,16 @@ const CostManagementPage: React.FC<ViewCost> = ({ id }) => {
   }, [])
 
 
-  useEffect(() => {
-    setLoading(true);
-    fetchCostDetails(id, selectedMonth + 1, selectedYear)
-      .then((data) => setCostDetails(data))
-      .catch((error) => {
-        console.error(error);
-        setCostDetails(null);
-      })
-      .finally(() => setLoading(false));
-  }, [id, selectedMonth, selectedYear]);
+  // useEffect(() => {
+  //   setLoading(true);
+  //   fetchCostDetails(id, selectedMonth + 1, selectedYear)
+  //     .then((data) => setCostDetails(data))
+  //     .catch((error) => {
+  //       console.error(error);
+  //       setCostDetails(null);
+  //     })
+  //     .finally(() => setLoading(false));
+  // }, [id, selectedMonth, selectedYear]);
 
   if (loading) {
     return (
