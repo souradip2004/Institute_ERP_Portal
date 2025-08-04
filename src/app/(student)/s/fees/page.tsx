@@ -67,9 +67,10 @@ export default function Home() {
                     name: student.user.name,
                     roll: student.studentRoll,
                     email: student.user.email,
-                    departmentName: student.department.name
+                    departmentName: student.department.name,
+                    motherclassId: student.classEnrollments[0].classSection.motherClassId
                 };
-
+                console.log("studentInfo ---", studentInfo);
                 setStudentData(studentInfo);
 
                 // Fetch institute data
