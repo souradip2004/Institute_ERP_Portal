@@ -1,5 +1,17 @@
 import prisma from "@/lib/prisma";
-import { studentQueue } from "@/bullmq/queues/student";
+import {studentQueue} from "@/bullmq/queues/student";
+import {NextResponse} from "next/server";
+
+interface IStudentUpdateData {
+  dateOfBirth?: string;
+  phone?: string;
+  address?: string;
+  username?: string;
+  gender?: string;
+  parentGuardianName?: string;
+  parentGuardianPhone?: string;
+  parentGuardianEmail?: string;
+}
 
 export class StudentService {
   async getAllStudents() {
@@ -29,8 +41,8 @@ export class StudentService {
       // Handle user creation or connection
       if (data.user?.connect?.id) {
         user = await prisma.user.findUnique({
-          where: { id: data.user.connect.id },
-          include: { student: true },
+          where: {id: data.user.connect.id},
+          include: {student: true},
         });
 
         if (!user) throw new Error("User not found");
@@ -48,13 +60,13 @@ export class StudentService {
 
       // Validate department
       const department = await prisma.department.findUnique({
-        where: { id: data.department.connect.id },
+        where: {id: data.department.connect.id},
       });
       if (!department) throw new Error("Department not found");
 
       // Validate batch
       const batch = await prisma.batch.findUnique({
-        where: { id: data.batch.connect.id },
+        where: {id: data.batch.connect.id},
       });
       if (!batch) throw new Error("Batch not found");
 
@@ -88,14 +100,14 @@ export class StudentService {
 
       // Return full student object with relations
       const studentWithDetails = await prisma.student.findUnique({
-        where: { id: student.id },
+        where: {id: student.id},
         include: {
           user: true,
           department: true,
           batch: true,
           classEnrollments: {
             include: {
-              classSection: true,
+              classSection: true
             },
           },
         },
@@ -114,25 +126,84 @@ export class StudentService {
 
   async getStudentById(id: string, includeClassSection = true) {
     return prisma.student.findUnique({
-      where: { id },
+      where: {id},
       include: {
         user: true,
         department: true,
         batch: true,
         classEnrollments: {
           include: {
-            classSection: true
+            classSection: {
+              include: {
+                semester: {
+                  select: {
+                    name: true,
+                  }
+                }
+              }
+            }
           }
         },
       },
     });
   }
 
-  async updateStudent(id: string, data: any) {
-    return studentQueue.add("update-student", {
-      data,
-      identity: id,
-    });
+  async updateStudent(id: string, data: IStudentUpdateData) {
+    /* return studentQueue.add("update-student", {
+       data,
+       identity: id
+     });*/
+    const {
+      dateOfBirth,
+      parentGuardianEmail,
+      parentGuardianName,
+      parentGuardianPhone,
+      phone,
+      gender,
+      address,
+      username
+    } = data;
+    console.log("Id ", id);
+    if (!id) {
+      throw new Error("Student ID is required");
+    }
+
+    return prisma.student.update({
+      where: {id},
+      data: {
+        parentGuardianPhone: parentGuardianPhone,
+        parentGuardianEmail: parentGuardianEmail,
+        parentGuardianName: parentGuardianName,
+        user: {
+          update: {
+            username: username,
+            phone: phone,
+            address: address,
+            gender: gender,
+            dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null
+          }
+        }
+      },
+      include: {
+        user: true,
+        department: true,
+        batch: true,
+        classEnrollments: {
+          include: {
+            classSection: {
+              include: {
+                semester: {
+                  select: {
+                    name: true
+                  }
+                }
+              }
+            }
+          }
+        },
+      },
+    })
+
   }
 
   async deleteStudent(id: string) {
@@ -143,12 +214,12 @@ export class StudentService {
 
   async getStudentsByBatchId(batchId: string) {
     return prisma.student.findMany({
-      where: { batchId },
+      where: {batchId},
       include: {
         user: true,
         department: {
           select: {
-            name: true,
+            name: true
           }
         },
         batch: {
@@ -163,7 +234,7 @@ export class StudentService {
 
   async getStudentsByDeptId(departmentId: string) {
     return prisma.student.findMany({
-      where: { departmentId },
+      where: {departmentId},
       include: {
         user: true,
         department: {

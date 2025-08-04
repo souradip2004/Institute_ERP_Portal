@@ -47,6 +47,11 @@ export class ClassSectionService {
             user: { select: { name: true } },
           },
         },
+        _count: {
+          select: {
+            attendanceSessions: true
+          }
+        }
       },
       orderBy: { createdAt: "desc" },
     });
