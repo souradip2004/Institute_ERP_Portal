@@ -19,18 +19,18 @@ export async function POST(request: Request) {
     const body = await request.json();
     const {
       localFees,
-      institutionId
+      institutionId // Assuming institutionId might be used for validation later
     }: {
       localFees: LocalFee[];
       institutionId: string;
     } = body;
 
-    console.log(body);
-
+    // --- Start: Existing Validation (Largely Unchanged) ---
     if (!institutionId) {
       return NextResponse.json({error: "Institution id required"}, {status: 400});
     }
 
+    // Validate all incoming local fee objects
     for (const localFee of localFees) {
       const {
         name,
@@ -39,13 +39,14 @@ export async function POST(request: Request) {
         paymentterms,
         motherClassId,
         studentIds
-      } = localFee as LocalFee;
+      } = localFee;
 
-      if (!name || !amount || !taxPercentage || !paymentterms || !institutionId || !motherClassId || !Array.isArray(studentIds) || studentIds.length === 0 || studentIds.some(id => !id)) {
-        return NextResponse.json({error: 'Missing required fields'}, {status: 400});
+      if (!name || amount == null || taxPercentage == null || !paymentterms || !motherClassId || !Array.isArray(studentIds) || studentIds.length === 0 || studentIds.some(id => !id)) {
+        return NextResponse.json({error: 'Missing required fields in one or more fee objects.'}, {status: 400});
       }
     }
 
+    // Validate that all specified mother classes exist
     const allMotherClassIds = new Set<string>();
     localFees.forEach(fee => allMotherClassIds.add(fee.motherClassId));
 
@@ -58,94 +59,93 @@ export async function POST(request: Request) {
       return NextResponse.json({error: "One or more motherClassIds provided do not exist."}, {status: 404});
     }
 
-    const instituteFeesDetail = await prisma.fees.findUnique({
-      where: {
-        institutionId
-      }
+    // (Optional) Validate that all studentIds exist. This adds robustness.
+    const allStudentIds = new Set<string>();
+    localFees.forEach(fee => fee.studentIds.forEach(id => allStudentIds.add(id)));
+    const existingStudents = await prisma.student.count({
+      where: { id: { in: Array.from(allStudentIds) } }
     });
-
-    if (!instituteFeesDetail) {
-      return NextResponse.json({error: "Institute fee detail not found."}, {status: 404});
+    if (existingStudents !== allStudentIds.size) {
+      return NextResponse.json({ error: "One or more studentIds provided do not exist." }, { status: 404 });
     }
 
     const result = await prisma.$transaction(async (tx) => {
+      const createdLocalFeesResult = [];
 
-      const localFeesToCreate = localFees.map(fee => ({
-        name: fee.name,
-        description: fee.description,
-        amount: fee.amount,
-        taxPercentage: fee.taxPercentage,
-        paymentterms: fee.paymentterms,
-        penalty: fee.penalty
-      }))
-
-      const createdLocalFees = await tx.localFees.createManyAndReturn({
-          data: localFeesToCreate
-        }
-      );
-
-      console.log("Created ", createdLocalFees);
-
-      const classFeeLinksToCreate: { localFeesId: string; motherClassId: string }[] = [];
-      const linkFeeOnStudentIds: { localFeesId: string; studentId: string }[] = [];
-
-      let index = 0;
       for (const fee of localFees) {
-        // Find the created fee by a unique property, like name.
-        // This assumes 'name' will be unique within this transaction.
-        const createdFee = createdLocalFees[index++];
+        const createdFee = await tx.localFees.create({
+          data: {
+            name: fee.name,
+            description: fee.description,
+            amount: fee.amount,
+            taxPercentage: fee.taxPercentage,
+            paymentterms: fee.paymentterms,
+            penalty: fee.penalty
+          }
+        });
 
-        if (createdFee) {
-          classFeeLinksToCreate.push({
+        // Step 2: Create the ClassFee link to get its ID.
+        // This is crucial for linking to FeesCollection.
+        const newClassFee = await tx.classFee.create({
+          data: {
             localFeesId: createdFee.id,
             motherClassId: fee.motherClassId
-          });
+          }
+        });
 
-          fee.studentIds.forEach(studentId => {
-            linkFeeOnStudentIds.push({
-              localFeesId: createdFee.id,
-              studentId
-            });
+        // Step 3: Create the links between the LocalFee and the students (existing functionality).
+        const linkFeeOnStudentData = fee.studentIds.map(studentId => ({
+          localFeesId: createdFee.id,
+          studentId: studentId
+        }));
+
+        await tx.localFeesOnStudent.createMany({
+          data: linkFeeOnStudentData,
+          skipDuplicates: true // Good practice to avoid errors
+        });
+
+        // Step 4: NEW LOGIC - Create a FeesCollection record for each student.
+        const feesCollectionToCreate = fee.studentIds.map(studentId => ({
+          classFeeId: newClassFee.id,
+          studentId: studentId,
+          amount: fee.amount, // The amount due
+          paymentDate: new Date(), // NOTE: See explanation below on why this might need changing
+          paymentMethod: "",
+          status: PaymentStatus.PENDING,
+          transactionId: null
+        }));
+
+        if (feesCollectionToCreate.length > 0) {
+          await tx.feesCollection.createMany({
+            data: feesCollectionToCreate,
+            skipDuplicates: true
           });
         }
+
+        createdLocalFeesResult.push(createdFee);
       }
 
-      await tx.classFee.createMany({
-        data: classFeeLinksToCreate
-      });
-
-      await tx.localFeesOnStudent.createMany({
-        data: linkFeeOnStudentIds
-      })
-
-      return createdLocalFees;
-    })
+      return createdLocalFeesResult;
+    });
 
 
-    console.log("Local fees", result);
     return NextResponse.json(result, {status: 201});
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
-      // Use a switch statement to handle multiple known error codes
       switch (error.code) {
         case 'P2002':
-          // Unique constraint failed (e.g., the fee for this class section already exists)
+          const metaTarget = (error.meta as { target?: string[] })?.target;
           return NextResponse.json(
-            {error: 'One or more of these class fees already exist.'},
-            {status: 409} // 409 Conflict is the appropriate status code
+            {error: `A record with this information already exists. Please check for duplicates. (Constraint: ${metaTarget?.join(', ')})`},
+            {status: 409}
           );
-
         case 'P2003':
-          // Foreign key constraint failed (e.g., `globalFeesId` or a `classSectionId` does not exist)
           const fieldName = (error.meta as { field_name?: string })?.field_name;
           return NextResponse.json(
             {error: `Failed to create records. An invalid ID was provided for the '${fieldName}' field.`},
             {status: 400}
           );
-
         default:
-          // For any other known Prisma error, log the code for debugging
-          // and fall through to the generic 500 error.
           console.warn(`Unhandled Prisma Error Code: ${error.code}`);
           break;
       }

@@ -662,7 +662,7 @@ model GlobalFees {
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
 
-  institution Institution @relation(fields: [institutionId], references: [id])
+  institution Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
 
   classFees ClassFee[]
 
@@ -710,7 +710,7 @@ model FeesCollection {
   studentId     String        @map("student_id")
   amount        Float
   paymentDate   DateTime      @map("payment_date") @db.Date
-  paymentMethod String        @map("payment_method")
+  paymentMethod String?       @map("payment_method")
   transactionId String?       @map("transaction_id")
   status        PaymentStatus
   createdAt     DateTime      @default(now()) @map("created_at")

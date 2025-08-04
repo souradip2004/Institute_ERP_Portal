@@ -1,6 +1,6 @@
 import {NextResponse} from "next/server";
 import prisma from "@/lib/prisma";
-import {Prisma} from "@prisma/client";
+import {PaymentStatus, Prisma} from "@prisma/client";
 
 interface GlobalFee {
   name: string;
@@ -23,6 +23,7 @@ export async function POST(request: Request) {
       institutionId: string;
     } = body;
 
+    // --- Start: Existing Validation (Unchanged) ---
     for (const globalFee of globalFees) {
       const {
         name,
@@ -33,7 +34,6 @@ export async function POST(request: Request) {
       } = globalFee;
 
       if (!name || amount == null || taxPercentage == null || !paymentterms || !institutionId || !Array.isArray(motherClassIds) || motherClassIds.length === 0 || motherClassIds.some(id => !id)) {
-
         return NextResponse.json({error: 'Missing required fields'}, {status: 400});
       }
     }
@@ -49,79 +49,122 @@ export async function POST(request: Request) {
     if (existingMotherClasses.length !== allMotherClassIds.size) {
       return NextResponse.json({error: "One or more motherClassIds provided do not exist."}, {status: 404});
     }
+    // --- End: Existing Validation (Unchanged) ---
+
 
     const result = await prisma.$transaction(async (tx) => {
 
-      const globalFeeDataToCreate = globalFees.map(fee => ({
-        name: fee.name,
-        description: fee.description,
-        amount: fee.amount,
-        taxPercentage: fee.taxPercentage,
-        paymentterms: fee.paymentterms,
-        penalty: fee.penalty,
-        institutionId
-      }));
-
-      const createdGlobalFees = await tx.globalFees.createManyAndReturn({
-        data: globalFeeDataToCreate,
+      // --- Start: NEW LOGIC - Find all relevant students beforehand ---
+      const studentEnrollments = await tx.studentClassEnrollment.findMany({
+        where: {
+          classSection: {
+            motherClassId: {
+              in: Array.from(allMotherClassIds)
+            }
+          },
+          enrollmentStatus: 'ENROLLED'
+        },
+        select: {
+          studentId: true,
+          classSection: {
+            select: {
+              motherClassId: true
+            }
+          }
+        }
       });
 
-
-      const classFeeLinksToCreate: { globalFeesId: string; motherClassId: string }[] = [];
-
-      for (const fee of globalFees) {
-
-        const createdFee = createdGlobalFees.find(gf => gf.name === fee.name);
-        if (createdFee) {
-          fee.motherClassIds.forEach(motherClassId => {
-            classFeeLinksToCreate.push({
-              globalFeesId: createdFee.id,
-              motherClassId: motherClassId
-            });
-          });
+      // Create a map for easy lookup: motherClassId -> [studentId, studentId, ...]
+      const studentsByMotherClass = new Map<string, string[]>();
+      for (const enrollment of studentEnrollments) {
+        if (enrollment.classSection.motherClassId) {
+          const students = studentsByMotherClass.get(enrollment.classSection.motherClassId) || [];
+          students.push(enrollment.studentId);
+          studentsByMotherClass.set(enrollment.classSection.motherClassId, students);
         }
       }
+      // --- End: NEW LOGIC ---
 
-      await tx.classFee.createMany({
-        data: classFeeLinksToCreate
-      });
 
-      return createdGlobalFees;
+      const createdGlobalFeesData = [];
+
+      for (const fee of globalFees) {
+        // Step 1: Create the GlobalFee record
+        const createdGlobalFee = await tx.globalFees.create({
+          data: {
+            name: fee.name,
+            description: fee.description,
+            amount: fee.amount,
+            taxPercentage: fee.taxPercentage,
+            paymentterms: fee.paymentterms,
+            penalty: fee.penalty,
+            institutionId
+          }
+        });
+
+        const feesCollectionToCreate: Prisma.FeesCollectionCreateManyInput[] = [];
+
+        // Step 2: Create ClassFee links and prepare FeesCollection records
+        for (const motherClassId of fee.motherClassIds) {
+          const newClassFee = await tx.classFee.create({
+            data: {
+              globalFeesId: createdGlobalFee.id,
+              motherClassId: motherClassId
+            }
+          });
+
+          // --- Start: NEW LOGIC - Generate FeesCollection for each student ---
+          const studentIds = studentsByMotherClass.get(motherClassId);
+          if (studentIds && studentIds.length > 0) {
+            for (const studentId of studentIds) {
+              feesCollectionToCreate.push({
+                classFeeId: newClassFee.id,
+                studentId: studentId,
+                amount: createdGlobalFee.amount,
+                paymentDate: new Date(),
+                paymentMethod: "",
+                status: PaymentStatus.PENDING,
+                transactionId: null
+              });
+            }
+          }
+          // --- End: NEW LOGIC ---
+        }
+
+        // Step 3: Bulk create all FeesCollection records for this GlobalFee
+        if (feesCollectionToCreate.length > 0) {
+          await tx.feesCollection.createMany({
+            data: feesCollectionToCreate,
+            skipDuplicates: true
+          });
+        }
+        createdGlobalFeesData.push(createdGlobalFee);
+      }
+
+      return createdGlobalFeesData;
     });
 
     return NextResponse.json(result, {status: 201});
   } catch (error) {
+    // ... (keep your existing robust error handling)
     console.error('Error creating class fees:', error);
 
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
-      // Use a switch statement to handle multiple known error codes
       switch (error.code) {
         case 'P2002':
-          // Unique constraint failed (e.g., the fee for this class section already exists)
-          return NextResponse.json(
-            {error: 'One or more of these class fees already exist.'},
-            {status: 409}
-          );
+          return NextResponse.json({error: 'One or more of these class fees already exist.'}, {status: 409});
         case 'P2003':
-          // Foreign key constraint failed (e.g., `globalFeesId` or a `classSectionId` does not exist)
           const fieldName = (error.meta as { field_name?: string })?.field_name;
           return NextResponse.json(
             {error: `Failed to create records. An invalid ID was provided for the '${fieldName}' field.`},
             {status: 400}
           );
         default:
-          // For any other known Prisma error, log the code for debugging
-          // and fall through to the generic 500 error.
           console.warn(`Unhandled Prisma Error Code: ${error.code}`);
           break;
       }
     }
-
-    // Fallback for all other errors (including unhandled Prisma errors)
-    return NextResponse.json(
-      {error: 'An internal server error occurred.'},
-      {status: 500}
-    );
+    return NextResponse.json({error: 'An internal server error occurred.'}, {status: 500});
   }
 }
 
