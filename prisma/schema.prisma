@@ -724,14 +724,14 @@ model FeesCollection {
 }
 
 model LocalFeesOnStudent {
-  id          String   @id @default(cuid())
-  localFeesId String   @map("local_fees_id")
-  studentId   String   @map("student_id")
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  localFees LocalFees @relation(fields: [localFeesId], references: [id], onDelete: Cascade)
-  student   Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  id          String    @id @default(cuid())
+  localFeesId String    @map("local_fees_id")
+  studentId   String    @map("student_id")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  offsetFee   Float     @default(0)
+  localFees   LocalFees @relation(fields: [localFeesId], references: [id], onDelete: Cascade)
+  student     Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@unique([localFeesId, studentId])
   @@map("local_fees_on_student")
