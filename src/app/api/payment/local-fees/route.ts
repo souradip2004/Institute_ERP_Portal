@@ -1,7 +1,6 @@
 import {NextResponse} from 'next/server';
 import {Prisma, PaymentStatus} from '@prisma/client';
 import prisma from '@/lib/prisma';
-import {error} from "console";
 
 interface LocalFee {
   name: string;

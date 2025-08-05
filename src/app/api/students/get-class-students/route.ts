@@ -28,6 +28,11 @@ export async function GET(request: Request) {
                         name: true,
                         email: true
                       }
+                    },
+                    localFees: {
+                      select: {
+                        localFees: true
+                      }
                     }
                   }
                 }
