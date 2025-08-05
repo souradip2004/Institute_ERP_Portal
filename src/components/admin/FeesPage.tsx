@@ -31,33 +31,41 @@ interface SectionFeeData {
     globalFees: Fee[];
 }
 
-interface Receipt {
-    name: string;
-}
 
-interface Student {
+
+interface LocalFee {
     id: string;
     name: string;
-    roll: string;
-    email: string;
-    enrollmentStatus: string;
+    description: string;
+    amount: number;
+    taxPercentage: number;
+    paymentterms: string;
+    penalty: number;
+    createdAt: string;
+    updatedAt: string;
+}
+
+interface FeeLink {
+    localFeeId: string;
+    localFeesOnStudentId: string | null;
+    offsetFee: number | null;
 }
 
 interface StudentEnrollment {
-    student: {
-        id: string;
-        studentRoll: string;
-        enrollmentStatus: string;
-        user: {
-            name: string;
-            email: string;
-        };
+    id: string;
+    studentRoll: string;
+    enrollmentStatus: string;
+    user: {
+        name: string;
+        email: string;
     };
+    feeLinks: FeeLink[];
 }
 
 interface StudentResponse {
     institute: string;
     section: string;
+    localFees: LocalFee[];
     studentEnrollments: StudentEnrollment[];
 }
 
@@ -125,7 +133,7 @@ const FeeEditorModal: React.FC<FeeEditorModalProps> = ({ isOpen, onClose, onSave
         console.log("fees id --- ", currentFees[index].id);
 
         try {
-            const response = await axios.delete(`/api/payment/global-fees?globalFeesId=${currentFees[index].id}`);
+            await axios.delete(`/api/payment/global-fees?globalFeesId=${currentFees[index].id}`);
         } catch (err) {
             console.error("Error removing fee:", err);
         }
@@ -661,7 +669,7 @@ export default function Home() {
     const [addingFeeSectionId, setAddingFeeSectionId] = useState<number | null>(null);
     const [addingFeeSectionName, setAddingFeeSectionName] = useState<string>('');
     const [selectedSectionId, setSelectedSectionId] = useState<number | null>(null);
-    const [studentData, setStudentData] = useState<Student[]>([]);
+    const [studentResponse, setStudentResponse] = useState<StudentResponse | null>(null);
     const [loadingStudents, setLoadingStudents] = useState(false);
     // --- NEW --- State for Local Fee Add Modal ---
     const [isLocalFeeAddOpen, setIsLocalFeeAddOpen] = useState(false);
@@ -841,7 +849,7 @@ export default function Home() {
 
     // --- NEW --- Handlers for Local Fee Add Modal ---
     const handleOpenLocalFeeAdd = () => {
-        if (selectedSectionId === null || studentData.length === 0) return;
+        if (selectedSectionId === null || !studentResponse?.studentEnrollments.length) return;
         setIsLocalFeeAddOpen(true);
     };
 
@@ -860,20 +868,10 @@ export default function Home() {
         setLoadingStudents(true);
         try {
             const response = await axios.get(`/api/students/get-class-students?motherClassId=${motherClassId}`);
-            const studentEnrollments: StudentEnrollment[] = response.data.studentEnrollments || [];
-
-            const mappedStudents: Student[] = studentEnrollments.map((enrollment) => ({
-                id: enrollment.student.id,
-                name: enrollment.student.user.name,
-                roll: enrollment.student.studentRoll,
-                email: enrollment.student.user.email,
-                enrollmentStatus: enrollment.student.enrollmentStatus
-            }));
-
-            setStudentData(mappedStudents);
+            setStudentResponse(response.data);
         } catch (err) {
             console.error("Error fetching students:", err);
-            setStudentData([]);
+            setStudentResponse(null);
         } finally {
             setLoadingStudents(false);
         }
@@ -883,16 +881,23 @@ export default function Home() {
     const handleSectionSelect = (sectionId: number) => {
         if (selectedSectionId === sectionId) {
             setSelectedSectionId(null);
-            setStudentData([]);
+            setStudentResponse(null);
         } else {
             setSelectedSectionId(sectionId);
             fetchStudents(sectionId);
         }
     };
 
-    const handleStudentClick = (studentId: string) => {
-        console.log("clicked student id -", studentId);
-        window.location.href = `/a/fees/${studentId}`;
+    const handleFeeToggle = (studentId: string, localFeeId: string, currentStatus: boolean) => {
+        // TODO: Implement API call to toggle fee assignment
+        console.log(`Toggle fee ${localFeeId} for student ${studentId}. Current status: ${currentStatus}`);
+        // This will be implemented later as mentioned in the requirements
+    };
+
+    const handleAmountEdit = (studentId: string, localFeeId: string, currentAmount: number, baseAmount: number) => {
+        // TODO: Implement API call to update fee amount (offsetFee)
+        console.log(`Edit amount for fee ${localFeeId} for student ${studentId}. Current: ${currentAmount}, Base: ${baseAmount}`);
+        // This will be implemented later as mentioned in the requirements
     };
 
     // --- Helper function to calculate sum of fees from an array ---
@@ -1046,55 +1051,112 @@ export default function Home() {
                             <h2 className="text-2xl font-semibold text-slate-800 mb-6">Student List: {selectedSectionName}</h2>
                             <button
                                 onClick={handleOpenLocalFeeAdd}
-                                disabled={studentData.length === 0}
+                                disabled={!studentResponse?.studentEnrollments.length}
                                 className="px-4 py-2 bg-blue-600 text-white font-semibold rounded-md shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 Add Local Fees to all Students
                             </button>
                         </div>
                         <div className="rounded-lg border border-slate-200 shadow-sm overflow-hidden">
-                            <div className="max-h-[500px] overflow-y-auto">
+                            <div className="max-h-[500px] overflow-x-auto overflow-y-auto">
                                 <table className="w-full text-sm text-left text-slate-700">
                                     <thead className="text-xs text-slate-800 uppercase bg-slate-100 sticky top-0 z-10">
                                         <tr>
-                                            <th scope="col" className="px-6 py-3">Student Name</th>
-                                            <th scope="col" className="px-6 py-3">Roll No.</th>
-                                            <th scope="col" className="px-6 py-3">Email</th>
-                                            <th scope="col" className="px-6 py-3">Enrollment Status</th>
+                                            <th scope="col" className="px-4 py-3 min-w-[150px]">Student Name</th>
+                                            <th scope="col" className="px-4 py-3 min-w-[100px]">Roll No.</th>
+                                            <th scope="col" className="px-4 py-3 min-w-[200px]">Email</th>
+                                            <th scope="col" className="px-4 py-3 min-w-[120px]">Status</th>
+                                            {studentResponse?.localFees.map((fee) => (
+                                                <th key={fee.id} scope="col" className="px-4 py-3 min-w-[150px] text-center">
+                                                    <div className="flex flex-col">
+                                                        <span className="font-semibold">{fee.name}</span>
+                                                        <span className="text-xs font-normal text-slate-600">₹{fee.amount}</span>
+                                                        <span className="text-xs font-normal text-slate-500">Tax: {fee.taxPercentage}%</span>
+                                                        <span className="text-xs font-normal text-slate-500">{fee.paymentterms}</span>
+                                                    </div>
+                                                </th>
+                                            ))}
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {loadingStudents ? (
                                             <tr className="bg-white">
-                                                <td colSpan={4} className="text-center py-8 text-slate-500">
+                                                <td colSpan={4 + (studentResponse?.localFees.length || 0)} className="text-center py-8 text-slate-500">
                                                     Loading students...
                                                 </td>
                                             </tr>
-                                        ) : studentData.length > 0 ? (
-                                            studentData.map((student) => (
+                                        ) : studentResponse?.studentEnrollments.length ? (
+                                            studentResponse.studentEnrollments.map((enrollment) => (
                                                 <tr
-                                                    key={student.id}
-                                                    className="bg-white border-b last:border-b-0 hover:bg-slate-50 cursor-pointer"
-                                                    onClick={() => handleStudentClick(student.id)}
+                                                    key={enrollment.id}
+                                                    className="bg-white border-b last:border-b-0 hover:bg-slate-50"
                                                 >
-                                                    <td className="px-6 py-4 font-medium text-slate-900 whitespace-nowrap">
-                                                        {student.name}
+                                                    <td className="px-4 py-4 font-medium text-slate-900 whitespace-nowrap">
+                                                        {enrollment.user.name}
                                                     </td>
-                                                    <td className="px-6 py-4">{student.roll}</td>
-                                                    <td className="px-6 py-4">{student.email}</td>
-                                                    <td className="px-6 py-4">
-                                                        <span className={`text-xs font-semibold rounded-full px-3 py-1 ${student.enrollmentStatus === 'ACTIVE'
+                                                    <td className="px-4 py-4">{enrollment.studentRoll}</td>
+                                                    <td className="px-4 py-4">{enrollment.user.email}</td>
+                                                    <td className="px-4 py-4">
+                                                        <span className={`text-xs font-semibold rounded-full px-3 py-1 ${enrollment.enrollmentStatus === 'ACTIVE'
                                                             ? 'bg-emerald-100 text-emerald-800'
                                                             : 'bg-amber-100 text-amber-800'
                                                             }`}>
-                                                            {student.enrollmentStatus}
+                                                            {enrollment.enrollmentStatus}
                                                         </span>
                                                     </td>
+                                                    {studentResponse.localFees.map((fee) => {
+                                                        const feeLink = enrollment.feeLinks.find(link => link.localFeeId === fee.id);
+                                                        const isAssigned = feeLink?.localFeesOnStudentId !== null;
+                                                        const totalAmount = fee.amount + (feeLink?.offsetFee || 0);
+
+                                                        return (
+                                                            <td key={fee.id} className="px-4 py-4 text-center">
+                                                                <div className="flex flex-col items-center">
+                                                                    <button
+                                                                        onClick={() => handleFeeToggle(enrollment.id, fee.id, isAssigned)}
+                                                                        className={`w-6 h-6 rounded border-2 flex items-center justify-center transition-colors ${isAssigned
+                                                                            ? 'bg-green-500 border-green-500 text-white hover:bg-green-600'
+                                                                            : 'bg-white border-slate-300 hover:border-slate-400'
+                                                                            }`}
+                                                                    >
+                                                                        {isAssigned ? (
+                                                                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                                                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                                                            </svg>
+                                                                        ) : (
+                                                                            <svg className="w-4 h-4 text-slate-400" fill="currentColor" viewBox="0 0 20 20">
+                                                                                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                                                                            </svg>
+                                                                        )}
+                                                                    </button>
+                                                                    {isAssigned && (
+                                                                        <div className="flex items-center gap-1 mt-1">
+                                                                            <span className="text-xs text-slate-600">
+                                                                                ₹{totalAmount.toFixed(2)}
+                                                                            </span>
+                                                                            <button
+                                                                                onClick={(e) => {
+                                                                                    e.stopPropagation();
+                                                                                    handleAmountEdit(enrollment.id, fee.id, totalAmount, fee.amount);
+                                                                                }}
+                                                                                className="p-0.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded transition-colors"
+                                                                                title="Edit amount"
+                                                                            >
+                                                                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                                                </svg>
+                                                                            </button>
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            </td>
+                                                        );
+                                                    })}
                                                 </tr>
                                             ))
                                         ) : (
                                             <tr className="bg-white">
-                                                <td colSpan={4} className="text-center py-8 text-slate-500">
+                                                <td colSpan={4 + (studentResponse?.localFees.length || 0)} className="text-center py-8 text-slate-500">
                                                     No students found for this section.
                                                 </td>
                                             </tr>
@@ -1130,7 +1192,7 @@ export default function Home() {
                 onAdd={handleAddLocalFee}
                 title={`Add Local Fee to All Students in ${selectedSectionName}`}
                 sectionId={selectedSectionId}
-                studentIds={studentData.map(student => student.id)}
+                studentIds={studentResponse?.studentEnrollments.map(enrollment => enrollment.id) || []}
             />
 
         </main>
