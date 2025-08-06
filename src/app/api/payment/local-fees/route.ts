@@ -157,6 +157,7 @@ interface UpdateLocalFeePayload {
   taxPercentage?: number;
   paymentterms?: string;
   penalty?: number;
+  classFeesId?: string;
   dueDate?: string;
 }
 
@@ -181,41 +182,67 @@ export async function PATCH(request: Request) {
           throw new Error('Each fee object in the array must have an ID.');
         }
 
+        if (fee.classFeesId && !fee.dueDate) {
+          throw new Error('Due date is required for classFeesId');
+        }
+
+
         return tx.localFees.update({
-          where: {id},
-          data: dataToUpdate
+          where: {id: id},
+          data: {
+            ...dataToUpdate,
+            classFees: {
+              update: {
+                where: {
+                  id: fee.classFeesId,
+                },
+                data: {
+                  // Set the new due date on that ClassFee record
+                  dueDate: fee.dueDate ? new Date(fee.dueDate) : undefined
+                },
+              },
+            },
+          },
         });
       });
-
-      const updatedFees = await Promise.all(updatePromises);
-      return updatedFees;
     });
 
-    return NextResponse.json(result, {status: 200});
 
-  } catch (error) {
-    if (error instanceof Prisma.PrismaClientKnownRequestError) {
-
-      if (error.code === 'P2025') {
-        const errorMessage = (error.meta as { cause?: string })?.cause || 'Record not found.';
-        return NextResponse.json(
-          {error: `Update failed: ${errorMessage}`},
-          {status: 404}
-        );
-      }
-    }
-
-    if (error instanceof Error && error.message.includes('must have an ID')) {
-      return NextResponse.json({error: error.message}, {status: 400});
-    }
-
-    console.error("Error updating local fees: ", error);
-
-    return NextResponse.json(
-      {error: 'An internal server error occurred.'},
-      {status: 500}
-    );
+    const updatedFees = await Promise.all(updatePromises);
+    return updatedFees;
   }
+)
+  ;
+
+  return NextResponse.json(result, {status: 200});
+
+}
+
+catch
+(error)
+{
+  if (error instanceof Prisma.PrismaClientKnownRequestError) {
+
+    if (error.code === 'P2025') {
+      const errorMessage = (error.meta as { cause?: string })?.cause || 'Record not found.';
+      return NextResponse.json(
+        {error: `Update failed: ${errorMessage}`},
+        {status: 404}
+      );
+    }
+  }
+
+  if (error instanceof Error && error.message.includes('must have an ID')) {
+    return NextResponse.json({error: error.message}, {status: 400});
+  }
+
+  console.error("Error updating local fees: ", error);
+
+  return NextResponse.json(
+    {error: 'An internal server error occurred.'},
+    {status: 500}
+  );
+}
 }
 
 export async function DELETE(request: Request) {
