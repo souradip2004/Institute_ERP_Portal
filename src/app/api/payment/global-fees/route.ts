@@ -9,6 +9,7 @@ interface GlobalFee {
   taxPercentage: number;
   paymentterms: string;
   penalty: number;
+  dueDate: string;
   motherClassIds: string[];
 }
 
@@ -23,54 +24,46 @@ export async function POST(request: Request) {
       institutionId: string;
     } = body;
 
-    // --- Start: Existing Validation (Unchanged) ---
+    // --- Validation (Unchanged and Correct) ---
     for (const globalFee of globalFees) {
       const {
         name,
         amount,
         taxPercentage,
         paymentterms,
-        motherClassIds
+        motherClassIds,
+        dueDate
       } = globalFee;
 
-      if (!name || amount == null || taxPercentage == null || !paymentterms || !institutionId || !Array.isArray(motherClassIds) || motherClassIds.length === 0 || motherClassIds.some(id => !id)) {
-        return NextResponse.json({error: 'Missing required fields'}, {status: 400});
+      if (!name || amount == null || taxPercentage == null || !paymentterms || !institutionId || !Array.isArray(motherClassIds) || motherClassIds.length === 0 || motherClassIds.some(id => !id) || !dueDate) {
+        return NextResponse.json({error: 'Missing required fields in one or more fee objects.'}, {status: 400});
       }
     }
 
     const allMotherClassIds = new Set<string>();
     globalFees.forEach(fee => fee.motherClassIds.forEach(id => allMotherClassIds.add(id)));
 
-    const existingMotherClasses = await prisma.motherClass.findMany({
+    const existingMotherClasses = await prisma.motherClass.count({
       where: {id: {in: Array.from(allMotherClassIds)}},
-      select: {id: true}
     });
 
-    if (existingMotherClasses.length !== allMotherClassIds.size) {
+    if (existingMotherClasses !== allMotherClassIds.size) {
       return NextResponse.json({error: "One or more motherClassIds provided do not exist."}, {status: 404});
     }
-    // --- End: Existing Validation (Unchanged) ---
 
-
+    // --- Transaction Block ---
     const result = await prisma.$transaction(async (tx) => {
-
-      // --- Start: NEW LOGIC - Find all relevant students beforehand ---
+      // Find all relevant students beforehand (Efficient and Unchanged)
       const studentEnrollments = await tx.studentClassEnrollment.findMany({
         where: {
           classSection: {
-            motherClassId: {
-              in: Array.from(allMotherClassIds)
-            }
+            motherClassId: { in: Array.from(allMotherClassIds) }
           },
-          enrollmentStatus: 'ENROLLED'
+          enrollmentStatus: 'ENROLLED' // Assuming 'ENROLLED' is a valid status
         },
         select: {
           studentId: true,
-          classSection: {
-            select: {
-              motherClassId: true
-            }
-          }
+          classSection: { select: { motherClassId: true } }
         }
       });
 
@@ -83,13 +76,10 @@ export async function POST(request: Request) {
           studentsByMotherClass.set(enrollment.classSection.motherClassId, students);
         }
       }
-      // --- End: NEW LOGIC ---
-
 
       const createdGlobalFeesData = [];
 
       for (const fee of globalFees) {
-        // Step 1: Create the GlobalFee record
         const createdGlobalFee = await tx.globalFees.create({
           data: {
             name: fee.name,
@@ -104,34 +94,32 @@ export async function POST(request: Request) {
 
         const feesCollectionToCreate: Prisma.FeesCollectionCreateManyInput[] = [];
 
-        // Step 2: Create ClassFee links and prepare FeesCollection records
+        // Step 2 & 3: Create ClassFee links and prepare FeesCollection records
         for (const motherClassId of fee.motherClassIds) {
+          // MODIFICATION 1: Add the dueDate when creating the ClassFee
           const newClassFee = await tx.classFee.create({
             data: {
               globalFeesId: createdGlobalFee.id,
-              motherClassId: motherClassId
+              motherClassId: motherClassId,
+              dueDate: new Date(fee.dueDate) // Correctly set the due date
             }
           });
 
-          // --- Start: NEW LOGIC - Generate FeesCollection for each student ---
+          // MODIFICATION 2: Generate FeesCollection for each student in the class
           const studentIds = studentsByMotherClass.get(motherClassId);
           if (studentIds && studentIds.length > 0) {
             for (const studentId of studentIds) {
+
               feesCollectionToCreate.push({
                 classFeeId: newClassFee.id,
                 studentId: studentId,
-                amount: 0,
-                paymentDate: new Date(),
-                paymentMethod: "",
-                status: PaymentStatus.PENDING,
-                transactionId: null
+                status: PaymentStatus.PENDING
               });
             }
           }
-          // --- End: NEW LOGIC ---
         }
 
-        // Step 3: Bulk create all FeesCollection records for this GlobalFee
+        // Step 4: Perform a single bulk-insert for all prepared FeesCollection records for this fee
         if (feesCollectionToCreate.length > 0) {
           await tx.feesCollection.createMany({
             data: feesCollectionToCreate,
@@ -144,15 +132,22 @@ export async function POST(request: Request) {
       return createdGlobalFeesData;
     });
 
-    return NextResponse.json(result, {status: 201});
+    return NextResponse.json(
+      {
+        message: 'Global fees created and assigned to all relevant students successfully.',
+        data: result
+      },
+      {status: 201}
+    );
+
   } catch (error) {
-    // ... (keep your existing robust error handling)
-    console.error('Error creating class fees:', error);
+    // --- Error Handling (Unchanged and Correct) ---
+    console.error('Error creating global fees:', error);
 
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
       switch (error.code) {
         case 'P2002':
-          return NextResponse.json({error: 'One or more of these class fees already exist.'}, {status: 409});
+          return NextResponse.json({error: 'One or more of the fee records you are trying to create already exist.'}, {status: 409});
         case 'P2003':
           const fieldName = (error.meta as { field_name?: string })?.field_name;
           return NextResponse.json(

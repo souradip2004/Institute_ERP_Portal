@@ -17,8 +17,7 @@ export async function POST(request: Request) {
     ) {
       return NextResponse.json(
         {
-          error:
-            'A non-empty studentIds array, a localFeesId, and a numeric offsetFee are required.',
+          error: 'A non-empty studentIds array, a localFeesId, and a numeric offsetFee are required.',
         },
         {status: 400}
       );
@@ -39,7 +38,7 @@ export async function POST(request: Request) {
       const classFeeId = classFeeLink.id;
 
       const studentsExistCount = await tx.student.count({
-        where: {id: {in: studentIds}},
+        where: {id: {in: studentIds}}
       });
 
       if (studentsExistCount !== studentIds.length) {
@@ -49,10 +48,11 @@ export async function POST(request: Request) {
       const existingLinks = await tx.localFeesOnStudent.findMany({
         where: {
           localFeesId: localFeesId,
-          studentId: {in: studentIds},
+          studentId: {in: studentIds}
         },
         select: {studentId: true},
       });
+
       const existingStudentIds = new Set(
         existingLinks.map((link) => link.studentId)
       );
@@ -121,56 +121,76 @@ export async function POST(request: Request) {
 }
 
 
-export async function DELETE(
-  request: Request
-) {
+interface DeletionRecord {
+  localFeeOnStudentId: string;
+  studentId: string;
+}
+
+export async function DELETE(request: Request) {
   try {
     const body = await request.json();
-    const {studentId, localFeeOnStudentId} = body;
+    const recordsToDelete: DeletionRecord[] = body.records;
 
     // --- 1. Input Validation ---
-    if (!localFeeOnStudentId) {
+    if (!Array.isArray(recordsToDelete) || recordsToDelete.length === 0) {
       return NextResponse.json(
-        {error: 'The localFeeOnStudentId is required in the URL.'},
-        {status: 400}
-      );
-    }
-    if (!studentId) {
-      return NextResponse.json(
-        {error: 'The studentId is required in the request body.'},
-        {status: 400}
+        {
+          error:
+            'The request body must contain a non-empty `records` array.',
+        },
+        { status: 400 }
       );
     }
 
-    await prisma.localFeesOnStudent.delete({
-      where: {
-        id: localFeeOnStudentId,
-        studentId: studentId,
-      },
-    });
-
-
-    return NextResponse.json(
-      {message: 'Student fee link deleted successfully.'},
-      {status: 200}
-    );
-  } catch (error: any) {
-
-    if (error instanceof Prisma.PrismaClientKnownRequestError) {
-
-      // but the studentId doesn't match.
-      if (error.code === 'P2025') {
+    // Validate the structure of each object in the array
+    for (const record of recordsToDelete) {
+      if (!record.localFeeOnStudentId || !record.studentId) {
         return NextResponse.json(
-          {error: 'The specified student fee link was not found or does not belong to the student.'},
-          {status: 404}
+          {
+            error:
+              'Each object in the array must contain both `localFeeOnStudentId` and `studentId`.',
+          },
+          { status: 400 }
         );
       }
     }
 
-    console.error('Failed to delete student fee link:', error); // Server-side logging
+    const whereClause = {
+      OR: recordsToDelete.map((record) => ({
+        id: record.localFeeOnStudentId,
+        studentId: record.studentId,
+      })),
+    };
+
+    const deleteResult = await prisma.localFeesOnStudent.deleteMany({
+      where: whereClause,
+    });
+
+    if (deleteResult.count === 0) {
+      return NextResponse.json(
+        {
+          message: 'No matching records found to delete.',
+          deletedCount: 0
+        },
+        { status: 404 }
+      );
+    }
+
     return NextResponse.json(
-      {error: 'An unexpected error occurred.'},
-      {status: 500}
+      {
+        message: 'Student fee links deleted successfully.',
+        deletedCount: deleteResult.count,
+      },
+      { status: 200 }
     );
+  } catch (error: any) {
+
+    console.error('Failed to bulk delete student fee links:', error);
+    return NextResponse.json(
+      { error: 'An unexpected error occurred.' },
+      { status: 500 }
+    );
+  } finally {
+    await prisma.$disconnect();
   }
 }

@@ -695,7 +695,7 @@ model ClassFee {
 
   globalFees GlobalFees? @relation(fields: [globalFeesId], references: [id], onDelete: Cascade)
   localFees  LocalFees?  @relation(fields: [localFeesId], references: [id], onDelete: Cascade)
-  dueDate    DateTime    @default(now()) @map("due-date") @db.Date
+  dueDate    DateTime    @map("due-date") @db.Date
 
   feesCollections FeesCollection[]
   feeCategory     Fees?            @relation(fields: [feeCategoryId], references: [id], onDelete: Cascade)
@@ -709,7 +709,7 @@ model FeesCollection {
   id            String        @id @default(cuid())
   classFeeId    String        @map("class_fee_id")
   studentId     String        @map("student_id")
-  amount        Float
+  amount        Float         @default(0)
   paymentDate   DateTime?     @map("payment_date") @db.Date
   paymentMethod String?       @map("payment_method")
   transactionId String?       @map("transaction_id")
