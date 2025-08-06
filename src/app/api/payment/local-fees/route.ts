@@ -174,76 +174,65 @@ export async function PATCH(request: Request) {
     }
 
     const result = await prisma.$transaction(async (tx) => {
-
       const updatePromises = localFees.map((fee) => {
-        const {id, ...dataToUpdate} = fee;
+        // 1. Destructure all payload fields to separate relation IDs from direct data.
+        const { id, classFeesId, dueDate, ...dataToUpdate } = fee;
 
         if (!id) {
           throw new Error('Each fee object in the array must have an ID.');
         }
 
-        if (fee.classFeesId && !fee.dueDate) {
-          throw new Error('Due date is required for classFeesId');
+        if (classFeesId && !dueDate) {
+          throw new Error('Due date is required when updating a class fee.');
         }
-
 
         return tx.localFees.update({
           where: {id: id},
           data: {
+            // 2. Spread only the valid fields for the LocalFees model.
             ...dataToUpdate,
-            classFees: {
-              update: {
-                where: {
-                  id: fee.classFeesId,
+            // 3. Provide the update payload for the related ClassFee as an object, not an array.
+            classFees: classFeesId
+              ? {
+                update: {
+                  where: { id: classFeesId },
+                  data: { dueDate: dueDate ? new Date(dueDate) : undefined }
                 },
-                data: {
-                  // Set the new due date on that ClassFee record
-                  dueDate: fee.dueDate ? new Date(fee.dueDate) : undefined
-                },
-              },
-            },
+              }
+              : undefined, // Use 'undefined' to skip the update if no classFeesId is provided.
           },
         });
       });
+
+      const updatedFees = await Promise.all(updatePromises);
+      return updatedFees;
     });
 
-
-    const updatedFees = await Promise.all(updatePromises);
-    return updatedFees;
-  }
-)
-  ;
-
-  return NextResponse.json(result, {status: 200});
-
-}
-
-catch
-(error)
-{
-  if (error instanceof Prisma.PrismaClientKnownRequestError) {
-
-    if (error.code === 'P2025') {
-      const errorMessage = (error.meta as { cause?: string })?.cause || 'Record not found.';
-      return NextResponse.json(
-        {error: `Update failed: ${errorMessage}`},
-        {status: 404}
-      );
+    return NextResponse.json(result, {status: 200});
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      if (error.code === 'P2025') {
+        const errorMessage = (error.meta as { cause?: string })?.cause || 'Record not found.';
+        return NextResponse.json(
+          {error: `Update failed: ${errorMessage}`},
+          {status: 404}
+        );
+      }
     }
+
+    if (error instanceof Error && (error.message.includes('must have an ID') || error.message.includes('Due date is required'))) {
+      return NextResponse.json({error: error.message}, {status: 400});
+    }
+
+    console.error("Error updating local fees: ", error);
+
+    return NextResponse.json(
+      {error: 'An internal server error occurred.'},
+      {status: 500}
+    );
   }
-
-  if (error instanceof Error && error.message.includes('must have an ID')) {
-    return NextResponse.json({error: error.message}, {status: 400});
-  }
-
-  console.error("Error updating local fees: ", error);
-
-  return NextResponse.json(
-    {error: 'An internal server error occurred.'},
-    {status: 500}
-  );
 }
-}
+
 
 export async function DELETE(request: Request) {
   try {
