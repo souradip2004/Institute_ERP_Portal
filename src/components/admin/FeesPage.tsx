@@ -264,29 +264,32 @@ interface LocalFeeAddModalProps {
     onAdd: (newFee: any) => void;
     title: string;
     sectionId: number | null;
-    studentIds: string[];
 }
 
-const LocalFeeAddModal: React.FC<LocalFeeAddModalProps> = ({ isOpen, onClose, onAdd, title, sectionId, studentIds }) => {
+const LocalFeeAddModal: React.FC<LocalFeeAddModalProps> = ({ isOpen, onClose, onAdd, title, sectionId }) => {
     const [formData, setFormData] = useState({
         name: '',
         description: '',
         amount: '',
         taxPercentage: '',
         paymentterms: '',
-        penalty: ''
+        penalty: '',
+        dueDate: ''
     });
     const [submitting, setSubmitting] = useState(false);
 
     useEffect(() => {
         if (isOpen) {
+            // Set default due date to today
+            const today = new Date().toISOString().split('T')[0];
             setFormData({
                 name: '',
                 description: '',
                 amount: '',
                 taxPercentage: '',
                 paymentterms: '',
-                penalty: ''
+                penalty: '',
+                dueDate: today
             });
         }
     }, [isOpen]);
@@ -303,7 +306,7 @@ const LocalFeeAddModal: React.FC<LocalFeeAddModalProps> = ({ isOpen, onClose, on
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!formData.name.trim() || !sectionId || studentIds.length === 0) return;
+        if (!formData.name.trim() || !sectionId || !formData.dueDate) return;
 
         setSubmitting(true);
         try {
@@ -326,7 +329,7 @@ const LocalFeeAddModal: React.FC<LocalFeeAddModalProps> = ({ isOpen, onClose, on
                     paymentterms: formData.paymentterms,
                     penalty: parseFloat(formData.penalty) || 0,
                     motherClassId: String(sectionId),
-                    studentIds: studentIds
+                    dueDate: formData.dueDate
                 }]
             };
 
@@ -408,19 +411,15 @@ const LocalFeeAddModal: React.FC<LocalFeeAddModalProps> = ({ isOpen, onClose, on
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Payment Terms *</label>
-                            <select
+                            <input
+                                type="text"
                                 name="paymentterms"
                                 value={formData.paymentterms}
                                 onChange={handleInputChange}
                                 required
                                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                            >
-                                <option value="">Select Payment Terms</option>
-                                <option value="1 month">1 month</option>
-                                <option value="3 months">3 months</option>
-                                <option value="6 months">6 months</option>
-                                <option value="12 months">12 months</option>
-                            </select>
+                                placeholder="e.g., Due at the beginning of the academic year"
+                            />
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Penalty (₹) *</label>
@@ -434,6 +433,17 @@ const LocalFeeAddModal: React.FC<LocalFeeAddModalProps> = ({ isOpen, onClose, on
                                 step="0.01"
                                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                                 placeholder="0.00"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Due Date *</label>
+                            <input
+                                type="date"
+                                name="dueDate"
+                                value={formData.dueDate}
+                                onChange={handleInputChange}
+                                required
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                             />
                         </div>
                         <div className="flex gap-3 pt-4">
@@ -969,7 +979,7 @@ export default function Home() {
 
     // --- NEW --- Handlers for Local Fee Add Modal ---
     const handleOpenLocalFeeAdd = () => {
-        if (selectedSectionId === null || !studentResponse?.studentEnrollments.length) return;
+        if (selectedSectionId === null) return;
         setIsLocalFeeAddOpen(true);
     };
 
@@ -1226,7 +1236,7 @@ export default function Home() {
                             <h2 className="text-2xl font-semibold text-slate-800 mb-6">Student List: {selectedSectionName}</h2>
                             <button
                                 onClick={handleOpenLocalFeeAdd}
-                                disabled={!studentResponse?.studentEnrollments.length}
+                                disabled={selectedSectionId === null}
                                 className="px-4 py-2 bg-blue-600 text-white font-semibold rounded-md shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 Add Local Fees to all Students
@@ -1367,7 +1377,6 @@ export default function Home() {
                 onAdd={handleAddLocalFee}
                 title={`Add Local Fee to All Students in ${selectedSectionName}`}
                 sectionId={selectedSectionId}
-                studentIds={studentResponse?.studentEnrollments.map(enrollment => enrollment.id) || []}
             />
 
             {/* --- Local Fee Edit Modal Render --- */}
