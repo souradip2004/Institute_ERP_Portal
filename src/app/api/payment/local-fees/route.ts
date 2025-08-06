@@ -122,7 +122,7 @@ export async function POST(request: Request) {
           const metaTarget = (error.meta as { target?: string[] })?.target;
           return NextResponse.json(
             {
-              error: `A record with this information already exists. (Constraint: ${metaTarget?.join(', ')})`,
+              error: `A record withi this information already exists. (Constraint: ${metaTarget?.join(', ')})`,
             },
             {status: 409}
           );
