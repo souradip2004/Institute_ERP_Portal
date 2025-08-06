@@ -90,7 +90,7 @@ export async function GET(request: Request) {
       where: {
         classFees: {
           some: {
-            motherClassId: motherClassId,
+            motherClassId: motherClassId
           },
         },
       },
@@ -122,10 +122,9 @@ export async function GET(request: Request) {
                     localFees: {
                       select: {
                         localFeesId: true,
-                        id: true, // This is the ID of the LocalFeesOnStudent record
+                        id: true,
                         offsetFee: true,
                       }
-
                     }
                   }
                 }
