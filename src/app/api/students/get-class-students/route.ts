@@ -74,13 +74,13 @@ const prisma = new PrismaClient();
 // Define a more detailed type for our final student structure
 export async function GET(request: Request) {
   try {
-    const { searchParams } = new URL(request.url);
+    const {searchParams} = new URL(request.url);
     const motherClassId = searchParams.get('motherClassId');
 
     if (!motherClassId) {
       return NextResponse.json(
-        { error: 'motherClassId is required!' },
-        { status: 400 }
+        {error: 'motherClassId is required!'},
+        {status: 400}
       );
     }
 
@@ -94,17 +94,21 @@ export async function GET(request: Request) {
           },
         },
       },
+      include: {
+        classFees: {
+          select: {
+            dueDate: true
+          }
+        }
+      },
       orderBy: {
-        name: 'asc' // Optional: Keep the order consistent
+        createdAt: 'desc'
       }
     });
 
-    // If there are no fees associated with this class, we can still return the students.
-    // So, we don't exit here.
-
     // --- 2. Fetch the MotherClass with its enrolled students and their *existing* fee links ---
     const motherClassWithStudents = await prisma.motherClass.findUnique({
-      where: { id: motherClassId },
+      where: {id: motherClassId},
       select: {
         institutionId: true,
         sectionName: true,
@@ -114,26 +118,26 @@ export async function GET(request: Request) {
               select: {
                 student: {
                   include: {
-                    user: { select: { name: true, email: true } },
-                    // Fetch only the specific join table info for the student
+                    user: {select: {name: true, email: true}},
                     localFees: {
                       select: {
                         localFeesId: true,
                         id: true, // This is the ID of the LocalFeesOnStudent record
                         offsetFee: true,
-                      },
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
+                      }
+
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     });
 
     if (!motherClassWithStudents) {
-      return NextResponse.json({ error: 'Class not found!' }, { status: 404 });
+      return NextResponse.json({error: 'Class not found!'}, {status: 404});
     }
 
     // --- 3. Process the data to build the final, structured response ---
@@ -147,7 +151,7 @@ export async function GET(request: Request) {
       const studentFeeLinkMap = new Map(
         student.localFees.map((feeLink) => [
           feeLink.localFeesId,
-          { id: feeLink.id, offsetFee: feeLink.offsetFee },
+          {id: feeLink.id, offsetFee: feeLink.offsetFee},
         ])
       );
 
@@ -178,14 +182,15 @@ export async function GET(request: Request) {
         localFees: classLocalFees, // The single, top-level array of fee details
         studentEnrollments: processedStudents, // The array of students with their specific fee links
       },
-      { status: 200 }
+      {status: 200}
     );
 
-  } catch (e) {
+  } catch
+    (e) {
     console.error(e); // Log the actual error on the server
     return NextResponse.json(
-      { error: 'Internal server error. Please try again later.' },
-      { status: 500 }
+      {error: 'Internal server error. Please try again later.'},
+      {status: 500}
     );
   } finally {
     await prisma.$disconnect();

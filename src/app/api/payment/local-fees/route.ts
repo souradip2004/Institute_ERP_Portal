@@ -10,6 +10,7 @@ interface LocalFees {
   paymentterms: string;
   penalty?: number;
   motherClassId: string;
+  dueDate: string;
   studentIds: string[];
 }
 
@@ -27,21 +28,21 @@ export async function POST(request: Request) {
     // --- 1. Input Validation ---
     if (!institutionId) {
       return NextResponse.json(
-        { error: 'Institution ID is required.' },
-        { status: 400 }
+        {error: 'Institution ID is required.'},
+        {status: 400}
       );
     }
 
     if (!Array.isArray(localFees) || localFees.length === 0) {
       return NextResponse.json(
-        { error: 'A non-empty localFees array is required.' },
-        { status: 400 }
+        {error: 'A non-empty localFees array is required.'},
+        {status: 400}
       );
     }
 
     // Validate all incoming local fee objects
     for (const fee of localFees) {
-      const { name, amount, taxPercentage, paymentterms, motherClassId } = fee;
+      const {name, amount, taxPercentage, paymentterms, motherClassId} = fee;
       if (
         !name ||
         amount == null ||
@@ -50,8 +51,8 @@ export async function POST(request: Request) {
         !motherClassId
       ) {
         return NextResponse.json(
-          { error: 'Missing required fields in one or more fee objects.' },
-          { status: 400 }
+          {error: 'Missing required fields in one or more fee objects.'},
+          {status: 400}
         );
       }
     }
@@ -62,13 +63,13 @@ export async function POST(request: Request) {
     );
 
     const existingMotherClassesCount = await prisma.motherClass.count({
-      where: { id: { in: Array.from(allMotherClassIds) } },
+      where: {id: {in: Array.from(allMotherClassIds)}},
     });
 
     if (existingMotherClassesCount !== allMotherClassIds.size) {
       return NextResponse.json(
-        { error: 'One or more motherClassIds provided do not exist.' },
-        { status: 404 }
+        {error: 'One or more motherClassIds provided do not exist.'},
+        {status: 404}
       );
     }
 
@@ -90,15 +91,16 @@ export async function POST(request: Request) {
         });
 
         // --- b. Create the ClassFee record to link the new fee to the MotherClass ---
-        await tx.classFee.create({
+        const createdClassFee = await tx.classFee.create({
           data: {
             localFeesId: createdFee.id,
             motherClassId: fee.motherClassId,
+            dueDate: new Date(fee.dueDate)
           },
         });
 
         // Push the fully created fee object to our results array
-        createdFeesResult.push(createdFee);
+        createdFeesResult.push({...createdFee, dueDate: createdClassFee.dueDate});
       }
 
       return createdFeesResult;
@@ -110,7 +112,7 @@ export async function POST(request: Request) {
         message: 'Local fees created and linked to classes successfully.',
         data: result,
       },
-      { status: 201 }
+      {status: 201}
     );
   } catch (error) {
     // --- 5. Robust Error Handling (Unchanged) ---
@@ -122,7 +124,7 @@ export async function POST(request: Request) {
             {
               error: `A record with this information already exists. (Constraint: ${metaTarget?.join(', ')})`,
             },
-            { status: 409 }
+            {status: 409}
           );
         case 'P2003': // Foreign key constraint failed
           const fieldName = (error.meta as { field_name?: string })?.field_name;
@@ -130,7 +132,7 @@ export async function POST(request: Request) {
             {
               error: `Failed to create records. An invalid ID was provided for the '${fieldName}' field.`,
             },
-            { status: 400 }
+            {status: 400}
           );
         default:
           console.warn(`Unhandled Prisma Error Code: ${error.code}`);
@@ -141,8 +143,8 @@ export async function POST(request: Request) {
     console.error("Error creating local fees: ", error);
 
     return NextResponse.json(
-      { error: 'An internal server error occurred.' },
-      { status: 500 }
+      {error: 'An internal server error occurred.'},
+      {status: 500}
     );
   }
 }
@@ -155,6 +157,7 @@ interface UpdateLocalFeePayload {
   taxPercentage?: number;
   paymentterms?: string;
   penalty?: number;
+  dueDate?: string;
 }
 
 export async function PATCH(request: Request) {
@@ -242,52 +245,27 @@ export async function DELETE(request: Request) {
   }
 }
 
-
 export async function GET(request: Request) {
   try {
     const {searchParams} = new URL(request.url);
     const motherClassId = searchParams.get('motherClassId') as string;
-    const studentId = searchParams.get('studentId') as string;
 
-    if (!studentId) {
-      return NextResponse.json({error : "studentId required!"}, {status: 400});
-    }
-
-    /*const localFees = await prisma.classFee.findMany({
+    const studentLocalFee = await prisma.localFees.findMany({
       where: {
-        motherClassId,
-        localFees: {
-          isNot: null
+        classFees: {
+          some: {
+            motherClassId: motherClassId
+          }
         }
       },
       include: {
-        localFees: {
-          include: {
-            studentsLocalFees: true
+        classFees: {
+          select: {
+            id: true,
+            dueDate: true
           }
         }
       }
-    });*/
-
-    const studentLocalFee = await prisma.localFeesOnStudent.findMany({
-      where: {
-        studentId
-      },
-      select: {
-        id: true,
-        localFeesId: true,
-        studentId: true,
-        localFees: {
-          select: {
-            id: true,
-            name: true,
-            amount: true,
-            taxPercentage: true,
-            paymentterms: true,
-            penalty: true
-          }
-        }
-      },
     })
 
     console.log("studentLocalFee: ", studentLocalFee);

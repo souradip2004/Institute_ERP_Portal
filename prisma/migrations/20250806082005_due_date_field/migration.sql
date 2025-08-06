@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "class_fees" ADD COLUMN     "due-date" DATE NOT NULL DEFAULT CURRENT_TIMESTAMP;
