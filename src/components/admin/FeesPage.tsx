@@ -23,6 +23,7 @@ interface Fee {
     penalty?: number;
     description?: string;
     institutionId?: string;
+    dueDate?: string;
 }
 
 interface SectionFeeData {
@@ -146,9 +147,16 @@ const FeeEditorModal: React.FC<FeeEditorModalProps> = ({ isOpen, onClose, onSave
         // Filter out any fees with empty names before saving
         const validFees = currentFees.filter((fee) => fee.name.trim() !== '');
         try {
-            // API expects globalFeesToUpdate array
+            // Format due date to YYYY-MM-DD format for API
+            const formattedFees = validFees.map(fee => ({
+                ...fee,
+                dueDate: fee.dueDate ? new Date(fee.dueDate).toISOString().split('T')[0] : undefined
+            }));
+
+            // API expects globalFeesToUpdate array with dueDate
             await axios.patch('/api/payment/global-fees', {
-                globalFeesToUpdate: validFees
+                dueDate: formattedFees[0]?.dueDate, // Use first fee's due date as global due date
+                globalFeesToUpdate: formattedFees
             });
         } catch (err) {
             console.error('Failed to update global fees', err);
@@ -221,7 +229,7 @@ const FeeEditorModal: React.FC<FeeEditorModalProps> = ({ isOpen, onClose, onSave
                                     rows={2}
                                 />
                             </div>
-                            <div className="col-span-2">
+                            <div>
                                 <label htmlFor={`terms-${fee.id}`} className="block text-sm font-medium text-slate-700 mb-1">Payment Terms</label>
                                 <select
                                     id={`terms-${fee.id}`}
@@ -235,6 +243,16 @@ const FeeEditorModal: React.FC<FeeEditorModalProps> = ({ isOpen, onClose, onSave
                                     <option value="6 Months">6 Months</option>
                                     <option value="12 Months">12 Months</option>
                                 </select>
+                            </div>
+                            <div>
+                                <label htmlFor={`duedate-${fee.id}`} className="block text-sm font-medium text-slate-700 mb-1">Due Date</label>
+                                <input
+                                    id={`duedate-${fee.id}`}
+                                    type="date"
+                                    value={fee.dueDate ?? ''}
+                                    onChange={(e) => handleFeeChange(index, 'dueDate', e.target.value)}
+                                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                />
                             </div>
                             <button onClick={() => handleRemoveFee(index)} className="col-span-2 p-2 text-slate-500 hover:text-red-600 hover:bg-red-100 rounded-full transition-colors w-fit ml-auto">
                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -597,10 +615,13 @@ const FeeAddModal: React.FC<FeeAddModalProps> = ({ isOpen, onClose, onAdd, title
         paymentterms: '',
         penalty: undefined,
         description: '',
+        dueDate: '',
     });
 
     useEffect(() => {
         if (isOpen) {
+            // Set default due date to today
+            const today = new Date().toISOString().split('T')[0];
             setFee({
                 id: `new_${Date.now()}`,
                 name: '',
@@ -609,6 +630,7 @@ const FeeAddModal: React.FC<FeeAddModalProps> = ({ isOpen, onClose, onAdd, title
                 paymentterms: '',
                 penalty: undefined,
                 description: '',
+                dueDate: today,
             });
         }
     }, [isOpen]);
@@ -625,7 +647,7 @@ const FeeAddModal: React.FC<FeeAddModalProps> = ({ isOpen, onClose, onAdd, title
     };
 
     const handleAdd = async () => {
-        if (fee.name.trim() === '') return;
+        if (fee.name.trim() === '' || !fee.dueDate) return;
         let institutionId = '';
         try {
             const user = localStorage.getItem('user');
@@ -637,6 +659,15 @@ const FeeAddModal: React.FC<FeeAddModalProps> = ({ isOpen, onClose, onAdd, title
         // Always send the correct section id as motherClassIds
         const motherClassIds = addingFeeSectionId !== null ? [String(addingFeeSectionId)] : [];
         try {
+            // Format due date to DD-MM-YY format as per API requirement
+            const formatDueDate = (dateStr: string) => {
+                const date = new Date(dateStr);
+                const day = String(date.getDate()).padStart(2, '0');
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const year = String(date.getFullYear()).slice(-2);
+                return `${day}-${month}-${year}`;
+            };
+
             const body = {
                 institutionId,
                 globalFees: [{
@@ -646,6 +677,7 @@ const FeeAddModal: React.FC<FeeAddModalProps> = ({ isOpen, onClose, onAdd, title
                     taxPercentage: fee.taxPercentage,
                     paymentterms: fee.paymentterms,
                     penalty: fee.penalty,
+                    dueDate: formatDueDate(fee.dueDate!),
                     motherClassIds
                 }]
             }
@@ -721,7 +753,7 @@ const FeeAddModal: React.FC<FeeAddModalProps> = ({ isOpen, onClose, onAdd, title
                                 rows={2}
                             />
                         </div>
-                        <div className="col-span-2">
+                        <div>
                             <label htmlFor="add-terms" className="block text-sm font-medium text-slate-700 mb-1">Payment Terms</label>
                             <select
                                 id="add-terms"
@@ -735,6 +767,17 @@ const FeeAddModal: React.FC<FeeAddModalProps> = ({ isOpen, onClose, onAdd, title
                                 <option value="6 Months">6 Months</option>
                                 <option value="12 Months">12 Months</option>
                             </select>
+                        </div>
+                        <div>
+                            <label htmlFor="add-duedate" className="block text-sm font-medium text-slate-700 mb-1">Due Date *</label>
+                            <input
+                                id="add-duedate"
+                                type="date"
+                                value={fee.dueDate ?? ''}
+                                onChange={(e) => handleChange('dueDate', e.target.value)}
+                                className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                required
+                            />
                         </div>
                     </div>
                 </div>
@@ -872,7 +915,8 @@ export default function Home() {
                                 paymentterms: fee.paymentterms,
                                 penalty: fee.penalty,
                                 description: fee.description,
-                                institutionId: fee.institutionId
+                                institutionId: fee.institutionId,
+                                dueDate: fee.dueDate
                             };
                         })
                 }));
@@ -1220,6 +1264,9 @@ export default function Home() {
                                                                             )}
                                                                             {fee.description && (
                                                                                 <div className="text-slate-500">{fee.description}</div>
+                                                                            )}
+                                                                            {fee.dueDate && (
+                                                                                <div className="text-slate-500">Due: {new Date(fee.dueDate).toLocaleDateString()}</div>
                                                                             )}
                                                                         </div>
                                                                     ))

@@ -1,14 +1,14 @@
 {
-  "name": "GT Academy",
+  "name": "Ultimate Institute",
   "type": "college",
-  "address": "452 Innovation Drive",
-  "city": "DURGAPUR",
-  "state": "West  Bengal",
-  "country": "Republic of Innovatia",
-  "phone": "8240894562",
-  "email": "souradipsaha2004@gmail.com",
-  "website": "",
-  "userId": "cmdo6gn0700001p82q24yl8e0",
-  "logoUrl": "https://aiclassroomin.s3.eu-north-1.amazonaws.com/assignments/1753772045202_porche.avif",
-  "primaryColor": "#7599e9"
+  "address": "KOLKATA",
+  "city": "Kolkata",
+  "state": "West Bengal",
+  "country": "India",
+  "phone": "1234567890",
+  "email": "admin@gmail.com",
+  "website": "https://google.com",
+  "userId": "cme094ewf0000ep8wxm8gt17j",
+  "logoUrl": "https://aiclassroomin.s3.eu-north-1.amazonaws.com/assignments/1754502041952_hexonode.png",
+  "primaryColor": "#8700ff"
 }
