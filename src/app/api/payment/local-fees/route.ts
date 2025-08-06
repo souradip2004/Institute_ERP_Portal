@@ -176,7 +176,7 @@ export async function PATCH(request: Request) {
     const result = await prisma.$transaction(async (tx) => {
       const updatePromises = localFees.map((fee) => {
         // 1. Destructure all payload fields to separate relation IDs from direct data.
-        const { id, classFeesId, dueDate, ...dataToUpdate } = fee;
+        const {id, classFeesId, dueDate, ...dataToUpdate} = fee;
 
         if (!id) {
           throw new Error('Each fee object in the array must have an ID.');
@@ -189,14 +189,12 @@ export async function PATCH(request: Request) {
         return tx.localFees.update({
           where: {id: id},
           data: {
-            // 2. Spread only the valid fields for the LocalFees model.
             ...dataToUpdate,
-            // 3. Provide the update payload for the related ClassFee as an object, not an array.
             classFees: classFeesId
               ? {
                 update: {
-                  where: { id: classFeesId },
-                  data: { dueDate: dueDate ? new Date(dueDate) : undefined }
+                  where: {id: classFeesId},
+                  data: {dueDate: dueDate ? new Date(dueDate) : undefined}
                 },
               }
               : undefined, // Use 'undefined' to skip the update if no classFeesId is provided.
