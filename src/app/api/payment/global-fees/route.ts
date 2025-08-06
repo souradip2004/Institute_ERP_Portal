@@ -51,19 +51,18 @@ export async function POST(request: Request) {
       return NextResponse.json({error: "One or more motherClassIds provided do not exist."}, {status: 404});
     }
 
-    // --- Transaction Block ---
     const result = await prisma.$transaction(async (tx) => {
       // Find all relevant students beforehand (Efficient and Unchanged)
       const studentEnrollments = await tx.studentClassEnrollment.findMany({
         where: {
           classSection: {
-            motherClassId: { in: Array.from(allMotherClassIds) }
+            motherClassId: {in: Array.from(allMotherClassIds)}
           },
           enrollmentStatus: 'ENROLLED' // Assuming 'ENROLLED' is a valid status
         },
         select: {
           studentId: true,
-          classSection: { select: { motherClassId: true } }
+          classSection: {select: {motherClassId: true}}
         }
       });
 
@@ -94,7 +93,6 @@ export async function POST(request: Request) {
 
         const feesCollectionToCreate: Prisma.FeesCollectionCreateManyInput[] = [];
 
-        // Step 2 & 3: Create ClassFee links and prepare FeesCollection records
         for (const motherClassId of fee.motherClassIds) {
           // MODIFICATION 1: Add the dueDate when creating the ClassFee
           const newClassFee = await tx.classFee.create({
@@ -165,80 +163,96 @@ export async function POST(request: Request) {
 
 interface GlobalFeeUpdatePayload {
   id: string;
+  institutionId: string;
   name?: string;
+  description?: string;
   amount?: number;
   taxPercentage?: number;
   paymentterms?: string;
-  institutionId: string;
+  penalty?: number;
 }
 
 export async function PATCH(request: Request) {
   try {
     const body = await request.json();
     const {
+      dueDate,
       globalFeesToUpdate
     }: {
+      dueDate?: string,
       globalFeesToUpdate: GlobalFeeUpdatePayload[];
-
     } = body;
 
-
+    // --- 1. Input Validation ---
     if (!Array.isArray(globalFeesToUpdate) || globalFeesToUpdate.length === 0) {
-      return NextResponse.json({error: 'Missing required fields: institutionId and a non-empty globalFeesToUpdate array are required.'}, {status: 400});
+      return NextResponse.json({error: 'The request body must contain a non-empty `globalFeesToUpdate` array.'}, {status: 400});
     }
     if (globalFeesToUpdate.some(fee => !fee.id || !fee.institutionId)) {
-      return NextResponse.json({error: 'Every fee object in the update array must have an ID.'}, {status: 400});
+      return NextResponse.json({error: 'Every fee object in the array must have an `id` and `institutionId`.'}, {status: 400});
     }
 
+    // --- 2. Pre-transaction Validation (Fail Fast) ---
     const instituteExists = await prisma.institution.findUnique({
-      where: {
-        id: globalFeesToUpdate[0].institutionId
-      }
+      where: {id: globalFeesToUpdate[0].institutionId},
     });
-
     if (!instituteExists) {
-      return NextResponse.json({error: "Institute doesn't exists."}, {status: 404});
+      return NextResponse.json({error: "The specified institution does not exist."}, {status: 404});
     }
 
+    // --- 3. Transaction for Atomic Updates ---
     const updatedFees = await prisma.$transaction(async (tx) => {
-      const results = [];
-
-      for (const fee of globalFeesToUpdate) {
+      // Use Promise.all to run all update operations concurrently for better performance
+      const updatePromises = globalFeesToUpdate.map((fee) => {
         const {id, institutionId, ...dataToUpdate} = fee;
-        // console.log("dataToUpdate: ", dataToUpdate)
 
-        const updatedFee = await tx.globalFees.update({
+        return tx.globalFees.update({
           where: {
             id: id,
-            institutionId: institutionId
+            institutionId: institutionId, // Security check: ensure fee belongs to the institution
           },
           data: {
-            ...dataToUpdate
+            ...dataToUpdate,
+            ...(dueDate && {
+              classFees: {
+                updateMany: {
+                  // The `where` is empty, so it applies to ALL related ClassFee records for this GlobalFee.
+                  where: {},
+                  data: {
+                    // Set the new due date on all related ClassFee records.
+                    dueDate: new Date(dueDate),
+                  },
+                },
+              },
+            }),
           },
         });
-        results.push(updatedFee);
-      }
+      });
 
+      // Execute all the prepared update promises
+      const results = await Promise.all(updatePromises);
       return results;
     });
 
-    return NextResponse.json(updatedFees, {status: 200});
+    return NextResponse.json(
+      {
+        message: 'Global fees updated successfully.',
+        data: updatedFees,
+      },
+      {status: 200}
+    );
 
   } catch (error) {
+    // --- 4. Robust Error Handling ---
     console.error('Error updating global fees:', error);
 
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
-      // Handle the specific case where a fee to update was not found.
-      // This happens if an ID is invalid or doesn't belong to the institution.
-      if (error.code === 'P2025') {
+      if (error.code === 'P2025') { // "Record to update not found"
         return NextResponse.json(
-          {error: 'One or more fees to update were not found. Please check the IDs and institutionId.'},
-          {status: 404} // 404 Not Found is appropriate here
+          {error: 'One or more fees to update were not found. Please check the IDs and ensure they belong to the correct institution.'},
+          {status: 404}
         );
       }
-
-      // Handle cases where a unique constraint is violated (e.g., duplicate name)
-      if (error.code === 'P2002') {
+      if (error.code === 'P2002') { // Unique constraint violation
         return NextResponse.json(
           {error: 'Update failed because it would create a duplicate record (e.g., a fee with that name already exists).'},
           {status: 409}
@@ -283,27 +297,43 @@ export async function DELETE(request: Request) {
 export async function GET(request: Request) {
   try {
     const {searchParams} = new URL(request.url);
-    const motherClassId = searchParams.get('motherClassId') as string;
+    // const motherClassId = searchParams.get('motherClassId') as string;
+    const institutionId = searchParams.get('institutionId') as string;
 
-    if (!motherClassId) {
-      return NextResponse.json({error: "Missing required fields"}, {status: 400})
+    if (!institutionId) {
+      return NextResponse.json({error: "All fields are required !"});
     }
 
-    const globalClassFee = await prisma.classFee.findMany({
+    const motherClass = await prisma.motherClass.findMany({
       where: {
-        motherClassId
+        institutionId
       },
       include: {
-        globalFees: true
+        classfee: {
+          select: {
+            globalFees: {
+              select: {
+                id: true,
+                name: true,
+                amount: true,
+                taxPercentage: true,
+                paymentterms: true,
+                penalty: true,
+                description: true,
+                institutionId: true
+              }
+            }
+          }
+        },
       }
-    })
+    });
 
-    console.log("globalClassFee: ", globalClassFee)
+    console.log("motherClass: ", motherClass);
 
-    return NextResponse.json({globalClassFees: globalClassFee}, {status: 200});
+    return NextResponse.json({motherClass}, {status: 200});
 
   } catch (e) {
-    console.log("Error in GET: ", e);
+    console.log(e);
 
     return NextResponse.json({error: "Internal server error. Please try again later."}, {status: 500});
   }

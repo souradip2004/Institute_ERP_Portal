@@ -194,3 +194,34 @@ export async function DELETE(request: Request) {
     await prisma.$disconnect();
   }
 }
+
+
+
+export async function GET(request: Request) {
+  try {
+    const {searchParams} = new URL(request.url);
+    const motherClassId = searchParams.get('motherClassId') as string;
+
+    if (!motherClassId) {
+      return NextResponse.json({error: "Missing required fields"}, {status: 400})
+    }
+
+    const globalClassFee = await prisma.classFee.findMany({
+      where: {
+        motherClassId
+      },
+      include: {
+        globalFees: true
+      }
+    })
+
+    console.log("globalClassFee: ", globalClassFee)
+
+    return NextResponse.json({globalClassFees: globalClassFee}, {status: 200});
+
+  } catch (e) {
+    console.log("Error in GET: ", e);
+
+    return NextResponse.json({error: "Internal server error. Please try again later."}, {status: 500});
+  }
+}
