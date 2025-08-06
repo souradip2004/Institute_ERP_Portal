@@ -1047,6 +1047,33 @@ export default function Home() {
         }
     };
 
+    const handleFeeToggleAll = async (localFeeId: string, markAll: boolean) => {
+        if (!studentResponse?.studentEnrollments) return;
+
+        try {
+            if (markAll) {
+                // Mark all students for this fee
+                const allStudentIds = studentResponse.studentEnrollments.map(enrollment => enrollment.id);
+                await axios.post('/api/payment/local-fees/fees', {
+                    studentIds: allStudentIds,
+                    localFeesId: localFeeId,
+                    offsetFee: 0
+                });
+            } else {
+                // Unmark all students for this fee - keeping delete body empty as requested
+                await axios.delete('/api/payment/local-fees/fees', {
+                    data: {}
+                });
+            }
+            // Refresh the student data
+            if (selectedSectionId) {
+                fetchStudents(selectedSectionId);
+            }
+        } catch (err) {
+            console.error('Failed to toggle all fees:', err);
+        }
+    };
+
     const handleAmountEdit = (studentId: string, localFeeId: string, currentAmount: number, baseAmount: number, studentName: string, feeName: string) => {
         const currentOffset = currentAmount - baseAmount;
         setEditingLocalFee({
@@ -1258,6 +1285,22 @@ export default function Home() {
                                                         <span className="text-xs font-normal text-slate-600">₹{fee.amount}</span>
                                                         <span className="text-xs font-normal text-slate-500">Tax: {fee.taxPercentage}%</span>
                                                         <span className="text-xs font-normal text-slate-500">{fee.paymentterms}</span>
+                                                        <div className="flex gap-1 mt-2 justify-center">
+                                                            <button
+                                                                onClick={() => handleFeeToggleAll(fee.id, true)}
+                                                                className="px-2 py-1 text-xs bg-green-500 text-white rounded hover:bg-green-600 transition-colors"
+                                                                title="Mark all students for this fee"
+                                                            >
+                                                                Mark All
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleFeeToggleAll(fee.id, false)}
+                                                                className="px-2 py-1 text-xs bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+                                                                title="Unmark all students for this fee"
+                                                            >
+                                                                Unmark All
+                                                            </button>
+                                                        </div>
                                                     </div>
                                                 </th>
                                             ))}
