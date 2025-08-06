@@ -4,76 +4,6 @@ import { Prisma } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-export async function PATCH(request: Request) {
-  try {
-    const body = await request.json();
-    const { studentId, localFeesId, incrementOffset } = body;
-
-    // --- 1. Input Validation ---
-    if (!studentId || !localFeesId) {
-      return NextResponse.json(
-        { error: 'studentId and localFeesId are required.' },
-        { status: 400 }
-      );
-    }
-
-    if (typeof incrementOffset !== 'number') {
-      return NextResponse.json(
-        { error: 'incrementOffset must be a number.' },
-        { status: 400 }
-      );
-    }
-
-    // --- 2. Prisma Update Query ---
-    // This query targets the specific join table record and atomically
-    // increments the 'offsetFee' field.
-    const updatedRecord = await prisma.localFeesOnStudent.update({
-      where: {
-        // Use the compound unique key for efficient lookup
-        localFeesId_studentId: {
-          localFeesId: localFeesId,
-          studentId: studentId,
-        },
-      },
-      data: {
-        offsetFee: {
-          increment: incrementOffset,
-        },
-      },
-    });
-
-    // --- 3. Return Success Response ---
-    return NextResponse.json(
-      {
-        message: 'Student fee offset updated successfully.',
-        data: updatedRecord,
-      },
-      { status: 200 }
-    );
-  } catch (error: any) {
-    // --- 4. Handle Specific Prisma Error ---
-    // Prisma throws a P2025 error when the record to update is not found.
-    if (error instanceof Prisma.PrismaClientKnownRequestError) {
-      if (error.code === 'P2025') {
-        return NextResponse.json(
-          {
-            error:
-              'Record not found. The specified studentId and localFeesId combination does not exist.',
-          },
-          { status: 404 }
-        );
-      }
-    }
-
-    // --- 5. Handle Generic Errors ---
-    console.error('Failed to update fee offset:', error); // Server-side logging
-    return NextResponse.json(
-      { error: 'An unexpected error occurred.' },
-      { status: 500 }
-    );
-  }
-}
-
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -100,10 +30,15 @@ export async function POST(request: Request) {
       // --- a. Verify that all related records exist to prevent errors ---
       const feeExists = await tx.localFees.findUnique({
         where: { id: localFeesId },
+        include: {
+          classFees: true
+        }
       });
       if (!feeExists) {
-        throw new Error(`The local fee with ID ${localFeesId} was not found.`);
+        throw new Error(`The local fee was not found.`);
       }
+
+
 
       const studentsExistCount = await tx.student.count({
         where: { id: { in: studentIds } },
@@ -184,9 +119,6 @@ export async function POST(request: Request) {
       // Use a 404 if a resource wasn't found, otherwise a generic 500
       { status: error.message.includes('not found') || error.message.includes('do not exist') ? 404 : 500 }
     );
-  } finally {
-    // --- 5. Disconnect Prisma Client ---
-    await prisma.$disconnect();
   }
 }
 
@@ -212,11 +144,6 @@ export async function DELETE(
       );
     }
 
-    // --- 2. Prisma Delete Query ---
-    // We target the record by its unique ID but also ensure it belongs
-    // to the correct student as a security measure.
-    // If a record with the given ID exists but has a different studentId,
-    // Prisma will not find a match and throw a P2025 error, which we handle below.
     await prisma.localFeesOnStudent.delete({
       where: {
         id: localFeeOnStudentId,
@@ -224,14 +151,13 @@ export async function DELETE(
       },
     });
 
-    // --- 3. Return Success Response ---
-    // 200 OK or 204 No Content are both appropriate. 200 is often clearer.
+
     return NextResponse.json(
       { message: 'Student fee link deleted successfully.' },
       { status: 200 }
     );
   } catch (error: any) {
-    // --- 4. Handle Specific Prisma Error ---
+
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
       // P2025: "An operation failed because it depends on one or more records
       // that were required but not found. Record to delete does not exist."
@@ -245,7 +171,6 @@ export async function DELETE(
       }
     }
 
-    // --- 5. Handle Generic Errors ---
     console.error('Failed to delete student fee link:', error); // Server-side logging
     return NextResponse.json(
       { error: 'An unexpected error occurred.' },

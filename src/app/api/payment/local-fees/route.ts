@@ -2,7 +2,7 @@ import {NextResponse} from 'next/server';
 import {Prisma, PaymentStatus} from '@prisma/client';
 import prisma from '@/lib/prisma';
 
-interface LocalFee {
+interface LocalFees {
   name: string;
   description?: string;
   amount: number;
@@ -18,60 +18,66 @@ export async function POST(request: Request) {
     const body = await request.json();
     const {
       localFees,
-      institutionId // Assuming institutionId might be used for validation later
+      institutionId, // Kept for potential future validation or logging
     }: {
-      localFees: LocalFee[];
+      localFees: LocalFees[];
       institutionId: string;
     } = body;
 
-    // --- Start: Existing Validation (Largely Unchanged) ---
+    // --- 1. Input Validation ---
     if (!institutionId) {
-      return NextResponse.json({error: "Institution id required"}, {status: 400});
+      return NextResponse.json(
+        { error: 'Institution ID is required.' },
+        { status: 400 }
+      );
+    }
+
+    if (!Array.isArray(localFees) || localFees.length === 0) {
+      return NextResponse.json(
+        { error: 'A non-empty localFees array is required.' },
+        { status: 400 }
+      );
     }
 
     // Validate all incoming local fee objects
-    for (const localFee of localFees) {
-      const {
-        name,
-        amount,
-        taxPercentage,
-        paymentterms,
-        motherClassId,
-        studentIds
-      } = localFee;
-
-      if (!name || amount == null || taxPercentage == null || !paymentterms || !motherClassId || !Array.isArray(studentIds) || studentIds.length === 0 || studentIds.some(id => !id)) {
-        return NextResponse.json({error: 'Missing required fields in one or more fee objects.'}, {status: 400});
+    for (const fee of localFees) {
+      const { name, amount, taxPercentage, paymentterms, motherClassId } = fee;
+      if (
+        !name ||
+        amount == null ||
+        taxPercentage == null ||
+        !paymentterms ||
+        !motherClassId
+      ) {
+        return NextResponse.json(
+          { error: 'Missing required fields in one or more fee objects.' },
+          { status: 400 }
+        );
       }
     }
 
-    // Validate that all specified mother classes exist
-    const allMotherClassIds = new Set<string>();
-    localFees.forEach(fee => allMotherClassIds.add(fee.motherClassId));
+    // --- 2. Validate that all specified MotherClasses exist ---
+    const allMotherClassIds = new Set<string>(
+      localFees.map((fee) => fee.motherClassId)
+    );
 
-    const existingMotherClasses = await prisma.motherClass.findMany({
-      where: {id: {in: Array.from(allMotherClassIds)}},
-      select: {id: true}
+    const existingMotherClassesCount = await prisma.motherClass.count({
+      where: { id: { in: Array.from(allMotherClassIds) } },
     });
 
-    if (existingMotherClasses.length !== allMotherClassIds.size) {
-      return NextResponse.json({error: "One or more motherClassIds provided do not exist."}, {status: 404});
+    if (existingMotherClassesCount !== allMotherClassIds.size) {
+      return NextResponse.json(
+        { error: 'One or more motherClassIds provided do not exist.' },
+        { status: 404 }
+      );
     }
 
-    // (Optional) Validate that all studentIds exist. This adds robustness.
-    const allStudentIds = new Set<string>();
-    localFees.forEach(fee => fee.studentIds.forEach(id => allStudentIds.add(id)));
-    const existingStudents = await prisma.student.count({
-      where: { id: { in: Array.from(allStudentIds) } }
-    });
-    if (existingStudents !== allStudentIds.size) {
-      return NextResponse.json({ error: "One or more studentIds provided do not exist." }, { status: 404 });
-    }
-
+    // --- 3. Transaction to create fees and link them to classes ---
     const result = await prisma.$transaction(async (tx) => {
-      const createdLocalFeesResult = [];
+      const createdFeesResult = [];
 
       for (const fee of localFees) {
+        // --- a. Create the LocalFees record ---
         const createdFee = await tx.localFees.create({
           data: {
             name: fee.name,
@@ -79,70 +85,52 @@ export async function POST(request: Request) {
             amount: fee.amount,
             taxPercentage: fee.taxPercentage,
             paymentterms: fee.paymentterms,
-            penalty: fee.penalty
-          }
+            penalty: fee.penalty, // Prisma handles undefined values correctly
+          },
         });
 
-        // Step 2: Create the ClassFee link to get its ID.
-        // This is crucial for linking to FeesCollection.
-        const newClassFee = await tx.classFee.create({
+        // --- b. Create the ClassFee record to link the new fee to the MotherClass ---
+        await tx.classFee.create({
           data: {
             localFeesId: createdFee.id,
-            motherClassId: fee.motherClassId
-          }
+            motherClassId: fee.motherClassId,
+          },
         });
 
-        // Step 3: Create the links between the LocalFee and the students (existing functionality).
-        const linkFeeOnStudentData = fee.studentIds.map(studentId => ({
-          localFeesId: createdFee.id,
-          studentId: studentId
-        }));
-
-        await tx.localFeesOnStudent.createMany({
-          data: linkFeeOnStudentData,
-          skipDuplicates: true // Good practice to avoid errors
-        });
-
-        // Step 4: NEW LOGIC - Create a FeesCollection record for each student.
-        const feesCollectionToCreate = fee.studentIds.map(studentId => ({
-          classFeeId: newClassFee.id,
-          studentId: studentId,
-          amount: fee.amount, // The amount due
-          paymentDate: new Date(), // NOTE: See explanation below on why this might need changing
-          paymentMethod: "",
-          status: PaymentStatus.PENDING,
-          transactionId: null
-        }));
-
-        if (feesCollectionToCreate.length > 0) {
-          await tx.feesCollection.createMany({
-            data: feesCollectionToCreate,
-            skipDuplicates: true
-          });
-        }
-
-        createdLocalFeesResult.push(createdFee);
+        // Push the fully created fee object to our results array
+        createdFeesResult.push(createdFee);
       }
 
-      return createdLocalFeesResult;
+      return createdFeesResult;
     });
 
-
-    return NextResponse.json(result, {status: 201});
+    // --- 4. Return Success Response ---
+    return NextResponse.json(
+      {
+        message: 'Local fees created and linked to classes successfully.',
+        data: result,
+      },
+      { status: 201 }
+    );
   } catch (error) {
+    // --- 5. Robust Error Handling (Unchanged) ---
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
       switch (error.code) {
-        case 'P2002':
+        case 'P2002': // Unique constraint failed
           const metaTarget = (error.meta as { target?: string[] })?.target;
           return NextResponse.json(
-            {error: `A record with this information already exists. Please check for duplicates. (Constraint: ${metaTarget?.join(', ')})`},
-            {status: 409}
+            {
+              error: `A record with this information already exists. (Constraint: ${metaTarget?.join(', ')})`,
+            },
+            { status: 409 }
           );
-        case 'P2003':
+        case 'P2003': // Foreign key constraint failed
           const fieldName = (error.meta as { field_name?: string })?.field_name;
           return NextResponse.json(
-            {error: `Failed to create records. An invalid ID was provided for the '${fieldName}' field.`},
-            {status: 400}
+            {
+              error: `Failed to create records. An invalid ID was provided for the '${fieldName}' field.`,
+            },
+            { status: 400 }
           );
         default:
           console.warn(`Unhandled Prisma Error Code: ${error.code}`);
@@ -150,11 +138,11 @@ export async function POST(request: Request) {
       }
     }
 
-    console.log("Error creating local fees: ", error);
+    console.error("Error creating local fees: ", error);
 
     return NextResponse.json(
-      {error: 'An internal server error occurred.'},
-      {status: 500}
+      { error: 'An internal server error occurred.' },
+      { status: 500 }
     );
   }
 }
