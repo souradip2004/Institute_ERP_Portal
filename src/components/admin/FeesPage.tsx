@@ -146,21 +146,53 @@ const FeeEditorModal: React.FC<FeeEditorModalProps> = ({ isOpen, onClose, onSave
     const handleSave = async () => {
         // Filter out any fees with empty names before saving
         const validFees = currentFees.filter((fee) => fee.name.trim() !== '');
-        try {
-            // Format due date to YYYY-MM-DD format for API
-            const formattedFees = validFees.map(fee => ({
-                ...fee,
-                dueDate: fee.dueDate ? new Date(fee.dueDate).toISOString().split('T')[0] : undefined
-            }));
 
-            // API expects globalFeesToUpdate array with dueDate
-            await axios.patch('/api/payment/global-fees', {
-                dueDate: formattedFees[0]?.dueDate, // Use first fee's due date as global due date
-                globalFeesToUpdate: formattedFees
+        if (validFees.length === 0) {
+            console.error('No valid fees to update');
+            return;
+        }
+
+        try {
+            // Format fees to include only required fields for API
+            const formattedFees = validFees.map(fee => {
+                if (!fee.id || !fee.institutionId) {
+                    console.error('Missing required fields for fee:', fee);
+                    throw new Error(`Fee "${fee.name}" is missing required id or institutionId`);
+                }
+
+                return {
+                    id: fee.id,
+                    name: fee.name.trim(),
+                    amount: Number(fee.amount) || 0,
+                    institutionId: fee.institutionId,
+                    // Include optional fields only if they have values
+                    ...(fee.description && { description: fee.description.trim() }),
+                    ...(fee.taxPercentage !== undefined && { taxPercentage: Number(fee.taxPercentage) }),
+                    ...(fee.paymentterms && { paymentterms: fee.paymentterms.trim() }),
+                    ...(fee.penalty !== undefined && { penalty: Number(fee.penalty) }),
+                    ...(fee.dueDate && { dueDate: fee.dueDate })
+                };
             });
-        } catch (err) {
+
+            // Use the first fee's due date as global due date, or current date if none
+            const globalDueDate = formattedFees[0]?.dueDate || new Date().toISOString().split('T')[0];
+
+            const requestBody = {
+                dueDate: globalDueDate,
+                globalFeesToUpdate: formattedFees
+            };
+
+            console.log('Updating global fees with body:', JSON.stringify(requestBody, null, 2));
+
+            await axios.patch('/api/payment/global-fees', requestBody);
+            console.log('Global fees updated successfully');
+        } catch (err: any) {
             console.error('Failed to update global fees', err);
-            // Optionally show error to user
+            console.error('Error details:', err.response?.data);
+            // Show error to user
+            const errorMessage = err.response?.data?.error || err.response?.data?.message || err.message || 'Unknown error occurred';
+            alert(`Failed to update global fees: ${errorMessage}`);
+            return; // Don't close modal on error
         }
         onSave(validFees);
     };
@@ -617,6 +649,7 @@ const FeeAddModal: React.FC<FeeAddModalProps> = ({ isOpen, onClose, onAdd, title
         description: '',
         dueDate: '',
     });
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
         if (isOpen) {
@@ -647,7 +680,13 @@ const FeeAddModal: React.FC<FeeAddModalProps> = ({ isOpen, onClose, onAdd, title
     };
 
     const handleAdd = async () => {
-        if (fee.name.trim() === '' || !fee.dueDate) return;
+        if (fee.name.trim() === '' || !fee.dueDate || !addingFeeSectionId) {
+            console.error('Missing required fields:', { name: fee.name, dueDate: fee.dueDate, sectionId: addingFeeSectionId });
+            alert('Please fill in all required fields (Name and Due Date)');
+            return;
+        }
+
+        setIsSubmitting(true);
         let institutionId = '';
         try {
             const user = localStorage.getItem('user');
@@ -656,38 +695,47 @@ const FeeAddModal: React.FC<FeeAddModalProps> = ({ isOpen, onClose, onAdd, title
                 institutionId = data.institutionId || '';
             }
         } catch { }
+
         // Always send the correct section id as motherClassIds
         const motherClassIds = addingFeeSectionId !== null ? [String(addingFeeSectionId)] : [];
+        console.log('Section ID and motherClassIds:', { addingFeeSectionId, motherClassIds });
+
         try {
-            // Format due date to DD-MM-YY format as per API requirement
-            const formatDueDate = (dateStr: string) => {
-                const date = new Date(dateStr);
-                const day = String(date.getDate()).padStart(2, '0');
-                const month = String(date.getMonth() + 1).padStart(2, '0');
-                const year = String(date.getFullYear()).slice(-2);
-                return `${day}-${month}-${year}`;
-            };
+            // Validate the date before sending
+            const testDate = new Date(fee.dueDate!);
+            if (isNaN(testDate.getTime())) {
+                alert('Invalid due date selected. Please choose a valid date.');
+                return;
+            }
+            console.log(`Using date: ${fee.dueDate} -> Valid: ${!isNaN(testDate.getTime())}`);
 
             const body = {
                 institutionId,
                 globalFees: [{
-                    name: fee.name,
-                    description: fee.description,
-                    amount: fee.amount,
-                    taxPercentage: fee.taxPercentage,
-                    paymentterms: fee.paymentterms,
-                    penalty: fee.penalty,
-                    dueDate: formatDueDate(fee.dueDate!),
+                    name: fee.name.trim(),
+                    description: fee.description?.trim() || '',
+                    amount: Number(fee.amount) || 0,
+                    taxPercentage: Number(fee.taxPercentage) || 0,
+                    paymentterms: fee.paymentterms?.trim() || '',
+                    penalty: Number(fee.penalty) || 0,
+                    dueDate: fee.dueDate,
                     motherClassIds
                 }]
             }
-            console.log("add body ---", body);
-            await axios.post('/api/payment/global-fees', body);
-        } catch (err) {
+            console.log("add body ---", JSON.stringify(body, null, 2));
+            const response = await axios.post('/api/payment/global-fees', body);
+            console.log("API response:", response.data);
+            onAdd(fee);
+            onClose();
+        } catch (err: any) {
             console.error('Failed to add global fee', err);
-            // Optionally show error to user
+            console.error('Error details:', err.response?.data);
+            // Show detailed error to user
+            const errorMessage = err.response?.data?.message || err.response?.data?.error || err.message || 'Unknown error occurred';
+            alert(`Failed to add global fee: ${errorMessage}`);
+        } finally {
+            setIsSubmitting(false);
         }
-        onAdd(fee);
     };
 
     return (
@@ -785,8 +833,12 @@ const FeeAddModal: React.FC<FeeAddModalProps> = ({ isOpen, onClose, onAdd, title
                     <button onClick={onClose} className="py-2 px-5 bg-white text-slate-700 border border-slate-300 font-semibold rounded-md shadow-sm hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-400 transition-all">
                         Cancel
                     </button>
-                    <button onClick={handleAdd} className="py-2 px-5 bg-emerald-600 text-white font-semibold rounded-md shadow-md hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-all">
-                        Add Fee
+                    <button
+                        onClick={handleAdd}
+                        disabled={isSubmitting}
+                        className="py-2 px-5 bg-emerald-600 text-white font-semibold rounded-md shadow-md hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        {isSubmitting ? 'Adding...' : 'Add Fee'}
                     </button>
                 </div>
             </div>
@@ -1069,8 +1121,10 @@ export default function Home() {
                 if (localFeesOnStudentId) {
                     await axios.delete('/api/payment/local-fees/fees', {
                         data: {
-                            studentId: studentId,
-                            localFeeOnStudentId: localFeesOnStudentId
+                            records: [{
+                                studentId: studentId,
+                                localFeeOnStudentId: localFeesOnStudentId
+                            }]
                         }
                     });
                 }
@@ -1104,10 +1158,27 @@ export default function Home() {
                     offsetFee: 0
                 });
             } else {
-                // Unmark all students for this fee - keeping delete body empty as requested
-                await axios.delete('/api/payment/local-fees/fees', {
-                    data: {}
-                });
+                // Unmark all students for this fee - collect all records for this specific fee
+                const recordsToDelete = studentResponse.studentEnrollments
+                    .map(enrollment => {
+                        const feeLink = enrollment.feeLinks.find(link => link.localFeeId === localFeeId);
+                        if (feeLink?.localFeesOnStudentId) {
+                            return {
+                                studentId: enrollment.id,
+                                localFeeOnStudentId: feeLink.localFeesOnStudentId
+                            };
+                        }
+                        return null;
+                    })
+                    .filter(record => record !== null);
+
+                if (recordsToDelete.length > 0) {
+                    await axios.delete('/api/payment/local-fees/fees', {
+                        data: {
+                            records: recordsToDelete
+                        }
+                    });
+                }
             }
             // Refresh the student data
             if (selectedSectionId) {
