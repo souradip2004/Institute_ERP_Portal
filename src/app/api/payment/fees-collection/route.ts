@@ -1,6 +1,7 @@
 import {NextResponse} from 'next/server';
-import prisma from '@/lib/prisma';
-import {FeesCollection, PaymentStatus} from '@prisma/client';
+import {PrismaClient, PaymentStatus} from '@prisma/client';
+
+const prisma = new PrismaClient();
 
 interface FeePaymentPayload {
   studentId: string;
@@ -13,92 +14,88 @@ interface FeePaymentPayload {
 }
 
 export async function PATCH(request: Request) {
-  const body: FeePaymentPayload = await request.json();
-  const {
-    studentId,
-    classFeeId,
-    amountPaid,
-    paymentMethod,
-    paymentDate,
-    transactionId,
-    feesCollectionId
-  } = body;
-
-  if (!studentId || !classFeeId || !paymentMethod || !paymentDate || !feesCollectionId || amountPaid == null) {
-    return NextResponse.json({error: "Missing required fields in request body."}, {status: 400});
-  }
-
-  if (amountPaid <= 0) {
-    return NextResponse.json({error: "Payment amount must be positive."}, {status: 400});
-  }
-
   try {
+    const body: FeePaymentPayload = await request.json();
+    const {
+      studentId,
+      classFeeId,
+      amountPaid,
+      paymentMethod,
+      paymentDate,
+      transactionId,
+      feesCollectionId
+    } = body;
+
+    // --- 1. Input Validation (Unchanged) ---
+    if (!studentId || !classFeeId || !paymentMethod || !paymentDate || !feesCollectionId || !amountPaid) {
+      return NextResponse.json({error: "Missing required fields in request body."}, {status: 400});
+    }
+
+    if (amountPaid <= 0) {
+      return NextResponse.json({error: "Payment amount must be positive."}, {status: 400});
+    }
+
     const updatedFeeCollection = await prisma.$transaction(async (tx) => {
 
       const classFee = await tx.classFee.findUnique({
         where: {id: classFeeId},
-        include: {
+        select: {
+          id: true,
+          dueDate: true,
           globalFees: {select: {amount: true, taxPercentage: true}},
           localFees: {select: {amount: true, taxPercentage: true}},
-          feesCollections: {
-            where: {
-              id: feesCollectionId
-            }
-          }
         }
       });
-
-      console.log("classFee: ", classFee);
 
       if (!classFee) {
         throw new Error("ClassFee not found.");
       }
-      const feeCollection = classFee.feesCollections[0];
+
+      const feeCollection = await tx.feesCollection.findUnique({
+        where: { id: feesCollectionId, studentId: studentId }
+      });
 
       if (!feeCollection) {
-        return NextResponse.json({error: "No pending fee found for this student and class fee."}, {status: 404});
-      }
-      if (!classFee.globalFees || !classFee.localFees) {
-        return NextResponse.json({error: "Fees details not found. Please contact the administrator.!"}, {status: 404});
+        throw new Error("No pending fee found for this student and fee collection ID.");
       }
 
-      console.log("Fees collection: ", feeCollection);
-      // Determine the total due and the due date from the parent fee
-      const totalAmount = classFee.globalFees?.amount || classFee.localFees?.amount;
-      const totalAmountDue = totalAmount + (classFee.globalFees?.taxPercentage || classFee.localFees?.taxPercentage || 0) * totalAmount / 100;
-      const dueDate = classFee.feesCollections[0].paymentDate || classFee.feesCollections[0].paymentDate;
-
-      if (totalAmountDue == null || !dueDate) {
-        return NextResponse.json({error: "Fee details (amount or due date) could not be determined."}, {status: 404});
+      if (!classFee.globalFees && !classFee.localFees) {
+        throw new Error("Fee details (Global/Local) not found for this ClassFee. Please contact the administrator.");
       }
 
+      const baseAmount = classFee.globalFees?.amount ?? classFee.localFees?.amount ?? 0;
+      const taxPercentage = classFee.globalFees?.taxPercentage ?? classFee.localFees?.taxPercentage ?? 0;
+      const totalAmountDue = baseAmount + (baseAmount * taxPercentage / 100);
 
-      // 4. Validate against overpayment
-      const currentAmountPaid = feeCollection.amount; // This stores the sum of previous payments
+      const dueDate = classFee.dueDate;
+
+      if (totalAmountDue <= 0 || !dueDate) {
+        throw new Error("Fee details (amount or due date) could not be determined from the linked fee.");
+      }
+
+      // --- c. Check for overpayment ---
+      const currentAmountPaid = feeCollection.amount;
       const newTotalPaid = currentAmountPaid + amountPaid;
 
       if (newTotalPaid > totalAmountDue) {
         throw new Error(`Overpayment detected. Amount due: ${totalAmountDue}, current amount paid: ${currentAmountPaid}, attempted payment: ${amountPaid}.`);
       }
 
-      // 5. Determine the new payment status based on your rules
+      // --- d. Determine the new payment status based on the correct due date ---
       let newStatus: PaymentStatus;
       const paymentTransactionDate = new Date(paymentDate);
 
-      // Rule: If payment is made after the due date, it's OVERDUE. This has the highest priority.
-      if (paymentTransactionDate > dueDate) {
-        newStatus = PaymentStatus.OVERDUE;
-      }
-      // Rule: If the new total paid equals the amount due (and it's on time)
-      else if (newTotalPaid === totalAmountDue) {
+      if (newTotalPaid >= totalAmountDue) {
         newStatus = PaymentStatus.PAID;
-      }
-      // Rule: If the payment is partial (and on time)
-      else {
+      } else if (paymentTransactionDate > dueDate) {
+        // If it's not fully paid and the payment date is after the due date, it's OVERDUE
+        newStatus = PaymentStatus.OVERDUE;
+      } else {
+        // Otherwise, it's a partial payment made on time
         newStatus = PaymentStatus.PARTIAL;
       }
 
-      // 6. Update the FeesCollection record
+      // --- e. Update the FeesCollection record ---
       const updatedRecord = await tx.feesCollection.update({
         where: {
           id: feeCollection.id
