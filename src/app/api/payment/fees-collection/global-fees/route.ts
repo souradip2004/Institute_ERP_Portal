@@ -46,19 +46,21 @@ export async function GET(request: Request) {
       // The 'feesCollections' array will have either one item (if a record exists for the student)
       // or zero items. We extract the single record or return null.
       const collectionDetails = detail.feesCollections[0] || null;
+      const amountDue = parseFloat((detail.globalFees!.amount + detail.globalFees!.penalty + ((detail.globalFees!.taxPercentage / 100.00) * detail.globalFees!.amount) - collectionDetails.amount).toFixed(2));
+
 
       return {
         feeId: detail.globalFees!.id,
         name: detail.globalFees!.name,
         description: detail.globalFees!.description,
-        amountDue: detail.globalFees!.amount,
+        amountDue,
         taxPercentage: detail.globalFees!.taxPercentage,
         penalty: detail.globalFees!.penalty,
         paymentTerms: detail.globalFees!.paymentterms,
         classFeeId: detail.id,
         // Student-specific payment information
-        paymentStatus: collectionDetails?.status || 'NOT_GENERATED', // Provides a clear status if no record was found
-        amountPaid: collectionDetails?.amount, // This will be the amount from the collection record
+        paymentStatus: collectionDetails.status || 'NOT_GENERATED', // Provides a clear status if no record was found
+        amountPaid: collectionDetails.amount, // This will be the amount from the collection record
         paymentDate: collectionDetails?.paymentDate,
         paymentMethod: collectionDetails?.paymentMethod,
         transactionId: collectionDetails?.transactionId,

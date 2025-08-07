@@ -304,33 +304,53 @@ export async function GET(request: Request) {
       return NextResponse.json({error: "All fields are required !"});
     }
 
-    const motherClass = await prisma.motherClass.findMany({
+    const globalFees = await prisma.globalFees.findMany({
       where: {
-        institutionId
-      },
-      include: {
-        classfee: {
-          select: {
-            globalFees: {
-              select: {
-                id: true,
-                name: true,
-                amount: true,
-                taxPercentage: true,
-                paymentterms: true,
-                penalty: true,
-                description: true,
-                institutionId: true
-              }
+        classFees: {
+          some: {
+            motherClass: {
+              institutionId: institutionId
             }
           }
         },
+      },
+      include: {
+        classFees: {
+          select: {
+            dueDate: true,
+            id: true,
+            motherClassId: true,
+          }
+        }
+      },
+      orderBy: {
+        createdAt: 'desc'
       }
-    });
+    })
 
-    console.log("motherClass: ", motherClass);
+    const motherClasses = await prisma.motherClass.findMany({
+      where: {
+        institutionId: institutionId,
+      },
+      include: {
+        classfee: {
+          where :{
+            globalFees : {
+              isNot: null,
+            }
+          },
+          select: {
+            dueDate: true,
+            id: true,
+          }
+        }
+      }
+    })
+    console.log("motherClass: ", globalFees);
 
-    return NextResponse.json({motherClass}, {status: 200});
+    return NextResponse.json({
+      globalFees, motherClasses
+    }, {status: 200});
 
   } catch (e) {
     console.log(e);

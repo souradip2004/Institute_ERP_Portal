@@ -292,7 +292,6 @@ export async function GET(request: Request) {
       }
     });
 
-    // --- 2. Fetch the MotherClass with its enrolled students and their *existing* fee links ---
     const motherClassWithStudents = await prisma.motherClass.findUnique({
       where: {id: motherClassId},
       select: {
@@ -355,7 +354,7 @@ export async function GET(request: Request) {
         studentRoll: student.studentRoll,
         enrollmentStatus: student.enrollmentStatus,
         user: student.user,
-        feeLinks: feeStatuses, // The new, lean array
+        feeLinks: feeStatuses
       };
     });
 

@@ -6,7 +6,7 @@ const prisma = new PrismaClient();
 interface AssignGlobalFeePayload {
   globalFeeId: string;
   motherClassIds: string[];
-  institutionId: string; // Included for context/validation
+  institutionId: string;
 }
 
 export async function POST(request: Request) {
@@ -14,7 +14,6 @@ export async function POST(request: Request) {
     const body: AssignGlobalFeePayload = await request.json();
     const {globalFeeId, motherClassIds, institutionId} = body;
 
-    // --- 1. Input Validation ---
     if (!globalFeeId || !Array.isArray(motherClassIds) || motherClassIds.length === 0 || !institutionId) {
       return NextResponse.json(
         {error: 'A globalFeeId and a non-empty motherClassIds array are required.'},
@@ -24,7 +23,7 @@ export async function POST(request: Request) {
 
     // --- 2. Transaction for All-or-Nothing Operation ---
     const result = await prisma.$transaction(async (tx) => {
-      // --- a. Find an existing ClassFee to copy the dueDate from ---
+
       const sourceClassFee = await tx.classFee.findFirst({
         where: {globalFeesId: globalFeeId},
         select: {dueDate: true},
@@ -53,6 +52,7 @@ export async function POST(request: Request) {
         },
         select: {motherClassId: true}
       });
+
       const alreadyLinkedIds = new Set(alreadyLinked.map(cf => cf.motherClassId));
       const motherClassIdsToCreate = motherClassIds.filter(id => !alreadyLinkedIds.has(id));
 
