@@ -1134,6 +1134,7 @@ export default function Home() {
         bankName: '',
         branchName: '',
         upiqrCode: '',
+        upilink: '',
     });
     const [isSavingPayment, setIsSavingPayment] = useState(false);
     interface InstituteData {
@@ -1217,6 +1218,7 @@ export default function Home() {
                         bankName: res.data.bankName || '',
                         branchName: res.data.branchName || '',
                         upiqrCode: res.data.upiqrCode || '',
+                        upilink: res.data.upilink || '',
                     });
                 }
             } catch (err) {
@@ -1627,8 +1629,8 @@ export default function Home() {
                     <h2 className="text-2xl font-semibold text-slate-800 mb-6">Payment Details</h2>
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                         <div className="lg:col-span-1 bg-white p-6 rounded-xl shadow-sm flex flex-col items-center justify-center text-center">
-                            {paymentDetails.upiqrCode ? (
-                                <img src={paymentDetails.upiqrCode} alt="UPI QR Code" className="w-40 h-40 object-cover mb-4 border-4 border-slate-100 rounded-lg" />
+                            {paymentDetails.upilink ? (
+                                <img src={paymentDetails.upilink} alt="UPI QR Code" className="w-40 h-40 object-cover mb-4 border-4 border-slate-100 rounded-lg" />
                             ) : (
                                 <div className="w-40 h-40 flex items-center justify-center bg-slate-100 mb-4 rounded-lg text-slate-400">No QR</div>
                             )}
@@ -1642,7 +1644,7 @@ export default function Home() {
                                 <FormField label="Branch Location" name="branchName" value={paymentDetails.branchName} onChange={handleChange} isEditing={isEditing} />
                                 <FormField label="Bank IFSC Code" name="ifscCode" value={paymentDetails.ifscCode} onChange={handleChange} isEditing={isEditing} />
                                 <FormField label="Account Number" name="accountNumber" value={paymentDetails.accountNumber} onChange={handleChange} isEditing={isEditing} />
-                                <FormField label="UPI ID" name="upiId" value={paymentDetails.upiqrCode} onChange={handleChange} isEditing={isEditing} />
+                                <FormField label="UPI ID" name="upiqrCode" value={paymentDetails.upiqrCode} onChange={handleChange} isEditing={isEditing} />
                             </div>
                             <div className="mt-6 flex justify-end">
                                 {!isEditing ? (
