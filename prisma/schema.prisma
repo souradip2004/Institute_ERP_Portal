@@ -639,6 +639,7 @@ model Fees {
   bankName      String   @map("bank_name")
   branchName    String   @map("branch_name")
   upiqrCode     String?  @map("upi_qr_code")
+  upilink       String?  @map("upi_link")
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
   email         String?  @map("email")
