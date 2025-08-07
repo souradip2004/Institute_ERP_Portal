@@ -41,7 +41,7 @@ export async function segregateFromPdf(fileUrls: string[]) {
 
       const responseData = await response.json();
       console.log("✅ PDF Segregation Response:", responseData);
-      return responseData.data;
+      return responseData;
 
     } catch (error) {
       console.error(`❌ Error during PDF Segregation:`, error);
