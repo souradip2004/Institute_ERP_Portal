@@ -120,7 +120,7 @@ export default function TeacherPage({ params }: { params: { id: string } }) {
       // This would be your actual Python server endpoint
       // For now, we'll simulate with a timeout and hardcoded data
       setTimeout(async () => {
-        const getPythonResponse = await fetch('https://anskey-segregate-from-pdfs-33f7051-v3.app.beam.cloud', {
+        const getPythonResponse = await fetch('https://anskey-segregate-from-pdfs-33f7051-v4.app.beam.cloud', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

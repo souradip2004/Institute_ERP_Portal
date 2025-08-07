@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import axios from "axios";
 
-const BEAM_API_URL = 'https://question-generation-f79eeb2-v4.app.beam.cloud/';
+const BEAM_API_URL = 'https://question-generation-f79eeb2-v5.app.beam.cloud/';
 const BEAM_TOKEN =
   "ALXP7mhHyKz1MQATKH7CIQXK9VQBpvoNNuxPvLONWyPCfgemj18cz2T74r4drBpvOkf-3orOQT_6r-63mHPZAA==";
 

@@ -12,6 +12,7 @@ export async function POST(req: NextRequest) {
         },
         body:JSON.stringify(body)
     },
+    
 )
     if(!response.ok){
         console.log(response)

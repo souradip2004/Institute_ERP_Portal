@@ -204,12 +204,12 @@ export async function GET(
             }
             console.log("No of attempt ", attempt);
             try {
-              const diagramResponse = await axios.post('https://answer-and-diagram-checking-5-v2-41923a7-v3.app.beam.cloud',
+              const diagramResponse = await axios.post('https://answer-and-diagram-checking-5-v2-702bc7c-v1.app.beam.cloud' ,
                 diagramPayload,
                 {
                   headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': 'Bearer cpxjIHGyDUggeCZSEgd7TSs_xuIaJLxQyplSlPcpEv35qftljIUmetr9Drtj_MUyC9PUSJLvV1vbjljWohB8Sw=='
+                    'Authorization': 'Bearer ALXP7mhHyKz1MQATKH7CIQXK9VQBpvoNNuxPvLONWyPCfgemj18cz2T74r4drBpvOkf-3orOQT_6r-63mHPZAA=='
                   }
                 }
               );

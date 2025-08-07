@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken';
 import axios from 'axios';
 
 const SECRET_KEY = process.env.JWT_SECRET || 'your-secret-key';
-const API_URL = 'https://question-generation-f79eeb2-v4.app.beam.cloud/';
+const API_URL = 'https://question-generation-f79eeb2-v5.app.beam.cloud/';
 const BEARER_TOKEN = "ALXP7mhHyKz1MQATKH7CIQXK9VQBpvoNNuxPvLONWyPCfgemj18cz2T74r4drBpvOkf-3orOQT_6r-63mHPZAA==";
 
 interface Question {
