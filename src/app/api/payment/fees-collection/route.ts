@@ -8,7 +8,6 @@ interface FeePaymentPayload {
   classFeeId: string;
   amountPaid: number;
   paymentMethod: string;
-  paymentDate: string; // The date the payment is being made (e.g., "2025-08-21")
   transactionId?: string;
   feesCollectionId: string;
 }
@@ -21,13 +20,12 @@ export async function PATCH(request: Request) {
       classFeeId,
       amountPaid,
       paymentMethod,
-      paymentDate,
       transactionId,
       feesCollectionId
     } = body;
 
     // --- 1. Input Validation (Unchanged) ---
-    if (!studentId || !classFeeId || !paymentMethod || !paymentDate || !feesCollectionId || !amountPaid) {
+    if (!studentId || !classFeeId || !paymentMethod ||  !feesCollectionId || !amountPaid) {
       return NextResponse.json({error: "Missing required fields in request body."}, {status: 400});
     }
 
@@ -42,8 +40,21 @@ export async function PATCH(request: Request) {
         select: {
           id: true,
           dueDate: true,
-          globalFees: {select: {amount: true, taxPercentage: true}},
-          localFees: {select: {amount: true, taxPercentage: true}},
+          globalFees: {
+            select: {
+              amount: true,
+              taxPercentage: true,
+              penalty: true
+            }
+          },
+          localFees: {
+            select:
+              {
+                amount: true,
+                taxPercentage: true,
+                penalty: true
+              }
+          },
         }
       });
 
@@ -52,7 +63,7 @@ export async function PATCH(request: Request) {
       }
 
       const feeCollection = await tx.feesCollection.findUnique({
-        where: { id: feesCollectionId, studentId: studentId }
+        where: {id: feesCollectionId, studentId: studentId}
       });
 
       if (!feeCollection) {
@@ -65,7 +76,8 @@ export async function PATCH(request: Request) {
 
       const baseAmount = classFee.globalFees?.amount ?? classFee.localFees?.amount ?? 0;
       const taxPercentage = classFee.globalFees?.taxPercentage ?? classFee.localFees?.taxPercentage ?? 0;
-      const totalAmountDue = baseAmount + (baseAmount * taxPercentage / 100);
+      const penalty = classFee.globalFees?.penalty ?? classFee.localFees?.penalty ?? 0;
+      const totalAmountDue = baseAmount + (baseAmount * taxPercentage / 100) + penalty - feeCollection.amount;
 
       const dueDate = classFee.dueDate;
 
@@ -73,19 +85,18 @@ export async function PATCH(request: Request) {
         throw new Error("Fee details (amount or due date) could not be determined from the linked fee.");
       }
 
-      // --- c. Check for overpayment ---
-      const currentAmountPaid = feeCollection.amount;
-      const newTotalPaid = currentAmountPaid + amountPaid;
-
+      // const currentAmountPaid = feeCollection.amount;
+      const newTotalPaid =  amountPaid;
+      console.log("Total payment ", newTotalPaid);
+      console.log("Total amount due ", totalAmountDue);
       if (newTotalPaid > totalAmountDue) {
-        throw new Error(`Overpayment detected. Amount due: ${totalAmountDue}, current amount paid: ${currentAmountPaid}, attempted payment: ${amountPaid}.`);
+        throw new Error(`Overpayment detected. Amount due: ${totalAmountDue}, current amount paid: ${amountPaid}`);
       }
 
-      // --- d. Determine the new payment status based on the correct due date ---
       let newStatus: PaymentStatus;
-      const paymentTransactionDate = new Date(paymentDate);
+      const paymentTransactionDate = new Date();
 
-      if (newTotalPaid >= totalAmountDue) {
+      if (newTotalPaid === totalAmountDue) {
         newStatus = PaymentStatus.PAID;
       } else if (paymentTransactionDate > dueDate) {
         // If it's not fully paid and the payment date is after the due date, it's OVERDUE
@@ -95,7 +106,6 @@ export async function PATCH(request: Request) {
         newStatus = PaymentStatus.PARTIAL;
       }
 
-      // --- e. Update the FeesCollection record ---
       const updatedRecord = await tx.feesCollection.update({
         where: {
           id: feeCollection.id
