@@ -1,5 +1,5 @@
 import {NextResponse} from 'next/server';
-import {PaymentStatus, PrismaClient} from '@prisma/client';
+import {PaymentStatus, Prisma, PrismaClient} from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -16,17 +16,18 @@ export async function POST(request: Request) {
     ) {
       return NextResponse.json(
         {
-          error: 'A non-empty studentIds array, a localFeesId, and a numeric offsetFee are required.',
+          error:
+            'A non-empty studentIds array, a localFeesId, and a numeric offsetFee are required.',
         },
         {status: 400}
       );
     }
 
     const result = await prisma.$transaction(async (tx) => {
-
+      // a. Find the associated classFeeId
       const classFeeLink = await tx.classFee.findFirst({
         where: {localFeesId: localFeesId},
-        select: {id: true}
+        select: {id: true},
       });
 
       if (!classFeeLink) {
@@ -36,18 +37,22 @@ export async function POST(request: Request) {
       }
       const classFeeId = classFeeLink.id;
 
+      // b. Verify all students exist
       const studentsExistCount = await tx.student.count({
-        where: {id: {in: studentIds}}
+        where: {id: {in: studentIds}},
       });
 
       if (studentsExistCount !== studentIds.length) {
-        throw new Error('One or more of the provided student IDs do not exist.');
+        throw new Error(
+          'One or more of the provided student IDs do not exist.'
+        );
       }
 
+      // c. Find existing student-fee links to separate create/update logic
       const existingLinks = await tx.localFeesOnStudent.findMany({
         where: {
           localFeesId: localFeesId,
-          studentId: {in: studentIds}
+          studentId: {in: studentIds},
         },
         select: {studentId: true},
       });
@@ -63,6 +68,7 @@ export async function POST(request: Request) {
         (id) => !existingStudentIds.has(id)
       );
 
+      // e. Update existing records
       let updatedCount = 0;
       if (studentIdsToUpdate.length > 0) {
         const updateResult = await tx.localFeesOnStudent.updateMany({
@@ -81,43 +87,89 @@ export async function POST(request: Request) {
         const studentFeeLinksToCreate = studentIdsToCreate.map((studentId) => ({
           studentId: studentId,
           localFeesId: localFeesId,
-          offsetFee: offsetFee
+          offsetFee: offsetFee,
         }));
+
         const createStudentLinksResult = await tx.localFeesOnStudent.createMany({
           data: studentFeeLinksToCreate,
         });
         createdCount = createStudentLinksResult.count;
 
-        // --- Create corresponding FeesCollection records for the new links ---
-        const feesCollectionToCreate = studentIdsToCreate.map((studentId) => ({
-          classFeeId: classFeeId,
-          studentId: studentId,
-          status: PaymentStatus.PENDING,
-          // Amount defaults to 0 as per schema, paymentDate is optional (null)
-        }));
-        await tx.feesCollection.createMany({data: feesCollectionToCreate});
+        const existingFeesCollections = await tx.feesCollection.findMany({
+          where: {
+            classFeeId: classFeeId,
+            studentId: { in: studentIdsToCreate }
+          },
+          select: { studentId: true }
+        });
+        const studentIdsWithExistingCollection = new Set(
+          existingFeesCollections.map((fc) => fc.studentId)
+        );
+
+        // Filter out students who, for some reason, already have a collection record
+        const studentIdsForNewCollectionCreation = studentIdsToCreate.filter(
+          (id) => !studentIdsWithExistingCollection.has(id)
+        );
+
+        if (studentIdsForNewCollectionCreation.length > 0) {
+          const feesCollectionToCreate = studentIdsForNewCollectionCreation.map(
+            (studentId) => ({
+              classFeeId: classFeeId,
+              studentId: studentId,
+              status: PaymentStatus.PENDING
+            })
+          );
+          await tx.feesCollection.createMany({data: feesCollectionToCreate});
+        }
       }
 
-      // --- g. Return a detailed result from the transaction ---
+      // g. Return a detailed result from the transaction
       return {
         message: 'Fee assignment and billing operation completed.',
         createdCount,
-        updatedCount
+        updatedCount,
       };
     });
 
-    // --- 3. Return Success Response ---
     return NextResponse.json(result, {status: 200});
-
   } catch (error: any) {
-    // --- 4. Handle Errors ---
+
+    console.error('Error assigning local fee to students:', error);
+
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+
+      if (error.code === 'P2002') {
+        const fields = (error.meta as {target?: string[]})?.target?.join(', ');
+        return NextResponse.json(
+          {
+            error: `Database unique constraint failed on the following fields: ${fields}.`,
+          },
+          {status: 409} // 409 Conflict is a more appropriate status code
+        );
+      }
+
+      if (error.code === 'P2025') {
+        return NextResponse.json(
+          {error: error.meta?.cause || 'A required record was not found.'},
+          {status: 404}
+        );
+      }
+    }
+
+    if (
+      error.message.includes('not exist') ||
+      error.message.includes('No ClassFee')
+    ) {
+      return NextResponse.json({error: error.message}, {status: 404});
+    }
+
+    // Generic fallback for all other errors
     return NextResponse.json(
-      {error: error.message || 'An unexpected error occurred.'},
-      {status: error.message.includes('not found') || error.message.includes('not exist') || error.message.includes('No ClassFee') ? 404 : 500}
+      {error: 'An unexpected error occurred during the transaction.'},
+      {status: 500}
     );
   }
 }
-
 
 interface DeletionRecord {
   localFeeOnStudentId: string;
