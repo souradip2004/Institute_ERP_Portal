@@ -1,71 +1,3 @@
-/*
-import prisma from "@/lib/prisma";
-import {NextResponse} from "next/server";
-
-export async function GET(request: Request) {
-  try {
-    const {searchParams} = new URL(request.url);
-    const motherClassId = searchParams.get('motherClassId') as string;
-    if (!motherClassId) {
-      return NextResponse.json({error: "motherClassId is required!"}, {status: 400});
-    }
-
-    const motherClassExists = await prisma.motherClass.findUnique({
-      where: {
-        id: motherClassId
-      },
-      include: {
-        classSections: {
-          select: {
-            studentEnrollments: {
-              select: {
-                student: {
-                  select: {
-                    id: true,
-                    studentRoll: true,
-                    enrollmentStatus: true,
-                    user: {
-                      select: {
-                        name: true,
-                        email: true
-                      }
-                    },
-                    localFees: {
-                      select: {
-                        localFees: true,
-                        id: true,
-                        offsetFee: true
-                      },
-
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    });
-
-
-    if (!motherClassExists) {
-      return NextResponse.json({error: "Class not found!"}, {status: 404});
-    }
-
-
-    return NextResponse.json({
-      institute: motherClassExists.institutionId,
-      section: motherClassExists.sectionName,
-      studentEnrollments: motherClassExists.classSections[0].studentEnrollments
-    }, {status: 200});
-
-  } catch (e) {
-
-    return NextResponse.json({error: "Internal server error. Please try again later."}, {status: 500});
-  }
-}*/
-
-
 import {NextResponse} from 'next/server';
 import {PrismaClient, Student, User} from '@prisma/client';
 
@@ -84,20 +16,19 @@ export async function GET(request: Request) {
       );
     }
 
-    // --- 1. Fetch all LocalFees associated with the MotherClass ---
-    // This will become the top-level 'localFees' array in our response.
     const classLocalFees = await prisma.localFees.findMany({
       where: {
         classFees: {
           some: {
             motherClassId: motherClassId
-          },
-        },
+          }
+        }
       },
       include: {
         classFees: {
           select: {
-            dueDate: true
+            dueDate: true,
+            id: true
           }
         }
       },

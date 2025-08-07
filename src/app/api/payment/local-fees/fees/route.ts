@@ -1,6 +1,5 @@
 import {NextResponse} from 'next/server';
 import {PaymentStatus, PrismaClient} from '@prisma/client';
-import {Prisma} from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -76,10 +75,9 @@ export async function POST(request: Request) {
         updatedCount = updateResult.count;
       }
 
-      // --- f. Perform create operations for new links ---
       let createdCount = 0;
       if (studentIdsToCreate.length > 0) {
-        // --- Create LocalFeesOnStudent records ---
+
         const studentFeeLinksToCreate = studentIdsToCreate.map((studentId) => ({
           studentId: studentId,
           localFeesId: localFeesId,
