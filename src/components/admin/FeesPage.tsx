@@ -1378,7 +1378,7 @@ export default function Home() {
     const [editingFeeDetails, setEditingFeeDetails] = useState<{ rowId: number | null, field: string, title: string, fees: Fee[] }>({ rowId: null, field: '', title: '', fees: [] });
     // --- NEW --- State for Global Fee Add Modal ---
     const [isGlobalFeeAddOpen, setIsGlobalFeeAddOpen] = useState(false);
-    const [selectedSectionId, setSelectedSectionId] = useState<number | null>(null);
+    const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null);
     const [studentResponse, setStudentResponse] = useState<StudentResponse | null>(null);
     const [loadingStudents, setLoadingStudents] = useState(false);
     // --- NEW --- State for Local Fee Add Modal ---
@@ -1673,15 +1673,16 @@ export default function Home() {
     };
 
     // --- Handlers for Section Selection and Student Data ---
-    const handleSectionSelect = (sectionId: number) => {
-        if (selectedSectionId === sectionId) {
+    const handleSectionSelect = (sectionId: string) => {
+        alert(sectionId)
+        if (selectedSectionId !== null && sectionId.includes(selectedSectionId.toString())) {
             setSelectedSectionId(null);
             setStudentResponse(null);
         } else {
             setSelectedSectionId(sectionId);
             // Find the actual motherClass ID from the fee structure data
             const motherClass = feeStructureData?.motherClasses.find(
-                mc => parseInt(mc.id.slice(-8), 16) === sectionId
+                mc => mc.id.includes(sectionId)
             );
             if (motherClass) {
                 fetchStudents(motherClass.id);
@@ -1714,7 +1715,7 @@ export default function Home() {
             // Refresh the student data
             if (selectedSectionId) {
                 const motherClass = feeStructureData?.motherClasses.find(
-                    mc => parseInt(mc.id.slice(-8), 16) === selectedSectionId
+                    mc => mc.id.includes(selectedSectionId)
                 );
                 if (motherClass) {
                     fetchStudents(motherClass.id);
@@ -1763,7 +1764,7 @@ export default function Home() {
             // Refresh the student data
             if (selectedSectionId) {
                 const motherClass = feeStructureData?.motherClasses.find(
-                    mc => parseInt(mc.id.slice(-8), 16) === selectedSectionId
+                    mc => mc.id.includes(selectedSectionId)
                 );
                 if (motherClass) {
                     fetchStudents(motherClass.id);
@@ -1805,7 +1806,7 @@ export default function Home() {
             // Refresh the student data
             if (selectedSectionId) {
                 const motherClass = feeStructureData?.motherClasses.find(
-                    mc => parseInt(mc.id.slice(-8), 16) === selectedSectionId
+                    mc => mc.id.includes(selectedSectionId)
                 );
                 if (motherClass) {
                     fetchStudents(motherClass.id);
@@ -1851,7 +1852,7 @@ export default function Home() {
         // Refresh the student data to show updated fee information
         if (selectedSectionId) {
             const motherClass = feeStructureData?.motherClasses.find(
-                mc => parseInt(mc.id.slice(-8), 16) === selectedSectionId
+                mc => mc.id.includes(selectedSectionId)
             );
             if (motherClass) {
                 fetchStudents(motherClass.id);
@@ -2163,12 +2164,12 @@ export default function Home() {
                                     ) : feeStructureData?.motherClasses.length ? (
                                         feeStructureData.motherClasses.map((motherClass) => {
                                             const sectionDetails = sectionFeeDetails[motherClass.id] || [];
-                                            const sectionId = parseInt(motherClass.id.slice(-8), 16);
+                                            const sectionId = motherClass.id
                                             return (
                                                 <tr
                                                     key={motherClass.id}
                                                     className={`border-b last:border-b-0 cursor-pointer transition-colors ${selectedSectionId === sectionId ? 'bg-indigo-50 hover:bg-indigo-100' : 'bg-white hover:bg-slate-50'}`}
-                                                    onClick={() => handleSectionSelect(sectionId)}
+                                                    onClick={() => handleSectionSelect(motherClass.id)}
                                                 >
                                                     <td className="px-4 py-4 font-medium text-slate-900 whitespace-nowrap">
                                                         {motherClass.sectionName}
