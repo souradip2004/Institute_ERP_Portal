@@ -1,28 +1,60 @@
+"use server"
 import axios,{isAxiosError} from 'axios';
 
 export async function segregateFromPdf(fileUrls: string[]) {
-  try {
-    console.log("🔄 Sending PDF URL(s) to AnsKey Segregate API...with fileURLs: " + fileUrls);
+  const maxRetries = 3;
+  let retryCount = 0;
+  let delay = 1000; // Start with a 1-second delay
 
-    const response = await axios.post(
-       'https://anskey-segregate-from-pdfs-33f7051-v4.app.beam.cloud' ,
-      { file_url_list: fileUrls },
-      {
+  while (retryCount < maxRetries) {
+    try {
+      console.log(`🔄 Sending PDF URL(s) to AnsKey Segregate API... (Attempt ${retryCount + 1}/${maxRetries})`);
+      console.log(typeof fileUrls);
+      console.log(fileUrls);
+      
+      const response = await fetch('https://anskey-segregate-from-pdfs-33f7051-v4.app.beam.cloud', {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer ALXP7mhHyKz1MQATKH7CIQXK9VQBpvoNNuxPvLONWyPCfgemj18cz2T74r4drBpvOkf-3orOQT_6r-63mHPZAA==',
+          'Authorization': 'Bearer ALXP7mhHyKz1MQATKH7CIQXK9VQBpvoNNuxPvLONWyPCfgemj18cz2T74r4drBpvOkf-3orOQT_6r-63mHPZAA=='
+        },
+        body: JSON.stringify({
+          'file_url_list': fileUrls
+        })
+      });
+
+      if (!response.ok) {
+        // If the response is not a success (e.g., 400, 500), it might not be a network error,
+        // but it's good to handle it within the retry loop for certain error codes.
+        // For a general error, we can still proceed with retries.
+        console.error(`❌ API returned an unsuccessful status code: ${response.status}`);
+        if (response.status >= 500) {
+            // Retry on server-side errors
+             throw new Error(`Server error: ${response.statusText}`);
+        } else {
+            // For client-side errors (4xx), it's likely not a temporary issue, so we don't retry.
+            const errorBody = await response.text();
+            console.error(`❌ Not retrying for client error: ${response.status} - ${errorBody}`);
+            throw new Error(`API Error: ${response.status} - ${errorBody}`);
         }
       }
-    );
 
-    // console.log('python response: ');
-    // console.log(response)
+      const responseData = await response.json();
+      console.log("✅ PDF Segregation Response:", responseData);
+      return responseData;
 
-    // console.log("✅ PDF Segregation Response:", response.data);
-    return response.data;
-  } catch (error) {
-    console.error("❌ Error during PDF Segregation:", error);
-    throw error;
+    } catch (error) {
+      console.error(`❌ Error during PDF Segregation:`, error);
+      retryCount++;
+      if (retryCount < maxRetries) {
+        console.log(`⏱️ Retrying in ${delay / 1000} seconds...`);
+        await new Promise(res => setTimeout(res, delay));
+        delay *= 2; // Exponential backoff
+      } else {
+        console.error(`❌ All retry attempts failed. Throwing the final error.`);
+        throw error; // No more retries, re-throw the original error
+      }
+    }
   }
 }
 

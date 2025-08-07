@@ -298,6 +298,31 @@ export default function TeacherPage({ params }: { params: { id: string } }) {
       setIsUploading(false);
     }
   };
+
+  // New function to handle uploading all student files
+  const handleUploadAllStudentFiles = async () => {
+    setIsUploading(true);
+    try {
+      // Iterate over each student in studentFiles state
+      for (const studentId in studentFiles) {
+        if (studentFiles.hasOwnProperty(studentId)) {
+          const files = studentFiles[studentId];
+          if (files && files.length > 0) {
+            console.log(`Uploading files for student ${studentId}...`);
+            // Call the existing upload logic for each student
+            // This reuses the logic from handleUploadStudentFiles
+            await handleUploadStudentFiles(studentId);
+          }
+        }
+      }
+      alert('All student files uploaded successfully!');
+    } catch (error) {
+      alert('Error uploading one or more student files.');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   const handleConfigSubmit = (configData: any) => {
     setConfigData(configData);
     saveConfigurationAndAnswerKey(configData);
@@ -387,8 +412,17 @@ export default function TeacherPage({ params }: { params: { id: string } }) {
 
           {studentIds && studentIds.length > 0 ? (
             <div>
+              <div className='flex justify-between items-center mb-4'>
+                <h3 className="font-bold text-lg">Student Details</h3>
+                <button
+                  onClick={handleUploadAllStudentFiles}
+                  className="bg-blue-500 text-white font-semibold px-4 py-2 rounded-md hover:bg-blue-600 disabled:opacity-50"
+                  disabled={isUploading || Object.keys(studentFiles).length === 0}
+                >
+                  Upload All Copies
+                </button>
+              </div>
 
-              <h3 className="font-bold mb-4 text-lg">Student Details</h3>
               <button
                 onClick={async () => {
                   if (studentIds && studentIds.length > 0) {
