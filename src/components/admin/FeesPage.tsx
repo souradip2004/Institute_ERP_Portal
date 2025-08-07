@@ -1674,7 +1674,6 @@ export default function Home() {
 
     // --- Handlers for Section Selection and Student Data ---
     const handleSectionSelect = (sectionId: string) => {
-        alert(sectionId)
         if (selectedSectionId !== null && sectionId.includes(selectedSectionId.toString())) {
             setSelectedSectionId(null);
             setStudentResponse(null);
