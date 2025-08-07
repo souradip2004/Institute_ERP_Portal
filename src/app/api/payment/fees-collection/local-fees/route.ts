@@ -15,10 +15,7 @@ export async function GET(request: Request) {
       }, { status: 400 });
     }
 
-    // 2. Security Check: Verify the student exists and belongs to the institution
-    // This query ensures we don't leak student data across institutions.
-    // NOTE: This assumes Student -> Department -> institutionId relationship exists.
-    // If your schema is different, adjust the `department` include accordingly.
+
     const student = await prisma.student.findUnique({
       where: {
         id: studentId,
