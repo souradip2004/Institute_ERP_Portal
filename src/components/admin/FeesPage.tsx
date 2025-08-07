@@ -582,7 +582,11 @@ const LocalFeeColumnEditModal: React.FC<LocalFeeColumnEditModalProps> = ({ isOpe
             const body = {
                 localFees: [{
                     id: editingLocalFeeColumn.id,
+                    name: formData.name.trim(),
+                    description: formData.description.trim(),
                     amount: parseFloat(formData.amount) || 0,
+                    taxPercentage: parseFloat(formData.taxPercentage) || 0,
+                    paymentterms: formData.paymentterms.trim(),
                     penalty: parseFloat(formData.penalty) || 0,
                     classFeesId: editingLocalFeeColumn.classFeesId,
                     dueDate: new Date(formData.dueDate).toISOString()
@@ -622,11 +626,9 @@ const LocalFeeColumnEditModal: React.FC<LocalFeeColumnEditModalProps> = ({ isOpe
                                 value={formData.name}
                                 onChange={handleInputChange}
                                 required
-                                disabled
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-500 cursor-not-allowed"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                                 placeholder="e.g., Library Fee"
                             />
-                            <p className="text-xs text-gray-500 mt-1">Fee name cannot be changed</p>
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
@@ -635,11 +637,9 @@ const LocalFeeColumnEditModal: React.FC<LocalFeeColumnEditModalProps> = ({ isOpe
                                 value={formData.description}
                                 onChange={handleInputChange}
                                 rows={3}
-                                disabled
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-500 cursor-not-allowed"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                                 placeholder="Brief description of the fee"
                             />
-                            <p className="text-xs text-gray-500 mt-1">Description cannot be changed</p>
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Amount (₹) *</label>
@@ -656,33 +656,35 @@ const LocalFeeColumnEditModal: React.FC<LocalFeeColumnEditModalProps> = ({ isOpe
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Tax Percentage (%)</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Tax Percentage (%) *</label>
                             <input
                                 type="number"
                                 name="taxPercentage"
                                 value={formData.taxPercentage}
                                 onChange={handleInputChange}
+                                required
                                 min="0"
                                 max="100"
                                 step="0.01"
-                                disabled
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-500 cursor-not-allowed"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                                 placeholder="0"
                             />
-                            <p className="text-xs text-gray-500 mt-1">Tax percentage cannot be changed</p>
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Payment Terms</label>
-                            <input
-                                type="text"
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Payment Terms *</label>
+                            <select
                                 name="paymentterms"
                                 value={formData.paymentterms}
                                 onChange={handleInputChange}
-                                disabled
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-500 cursor-not-allowed"
-                                placeholder="e.g., Due at the beginning of the academic year"
-                            />
-                            <p className="text-xs text-gray-500 mt-1">Payment terms cannot be changed</p>
+                                required
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                            >
+                                <option value="">Select Payment Terms</option>
+                                <option value="Monthly">Monthly</option>
+                                <option value="3 Months">3 Months</option>
+                                <option value="6 Months">6 Months</option>
+                                <option value="12 Months">12 Months</option>
+                            </select>
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Penalty (₹) *</label>
