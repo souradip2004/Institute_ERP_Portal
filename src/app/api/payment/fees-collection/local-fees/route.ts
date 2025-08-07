@@ -1,10 +1,10 @@
-import { NextResponse } from 'next/server';
+import {NextResponse} from 'next/server';
 import prisma from '@/lib/prisma';
-import { Student } from '@prisma/client'; // Assuming Student model might be needed for validation
+import {Student} from '@prisma/client'; // Assuming Student model might be needed for validation
 
 export async function GET(request: Request) {
   try {
-    const { searchParams } = new URL(request.url);
+    const {searchParams} = new URL(request.url);
     const studentId = searchParams.get('studentId');
     const institutionId = searchParams.get('institutionId');
 
@@ -12,24 +12,23 @@ export async function GET(request: Request) {
     if (!studentId || !institutionId) {
       return NextResponse.json({
         error: "Missing required parameters. 'studentId' and 'institutionId' are required."
-      }, { status: 400 });
+      }, {status: 400});
     }
-
 
     const student = await prisma.student.findUnique({
       where: {
         id: studentId,
         department: {
-          institutionId: institutionId,
+          institutionId: institutionId
         }
       },
-      select: { id: true }
+      select: {id: true}
     });
 
     if (!student) {
       return NextResponse.json({
         error: "Student not found in the specified institution."
-      }, { status: 404 });
+      }, {status: 404});
     }
 
     // 3. Find all MotherClass IDs for the student's active enrollments
@@ -58,7 +57,7 @@ export async function GET(request: Request) {
 
     if (studentMotherClassIds.length === 0) {
 
-      return NextResponse.json([], { status: 200 });
+      return NextResponse.json([], {status: 200});
     }
 
     const feeDetails = await prisma.classFee.findMany({
@@ -99,18 +98,20 @@ export async function GET(request: Request) {
       // The 'feesCollections' array will have at most one item due to the where clause
       const collectionDetails = detail.feesCollections[0] || null;
 
+      const amountDue = parseFloat((detail.localFees!.amount + detail.localFees!.penalty + ((detail.localFees!.taxPercentage / 100.00) * detail.localFees!.amount) - collectionDetails.amount).toFixed(2));
+
       return {
         localFeesId: detail.localFees!.id,
         name: detail.localFees!.name,
         description: detail.localFees!.description,
-        amountDue: detail.localFees!.amount,
+        amountDue,
         taxPercentage: detail.localFees!.taxPercentage,
         penalty: detail.localFees!.penalty,
         paymentTerms: detail.localFees!.paymentterms,
         classFeeId: detail.id,
         // Student-specific payment information
-        paymentStatus: collectionDetails?.status || 'NOT_GENERATED',
-        amountPaid: collectionDetails?.amount,
+        paymentStatus: collectionDetails.status || 'NOT_GENERATED',
+        amountPaid: collectionDetails.amount,
         paymentDate: collectionDetails?.paymentDate,
         paymentMethod: collectionDetails?.paymentMethod,
         transactionId: collectionDetails?.transactionId,
@@ -118,10 +119,10 @@ export async function GET(request: Request) {
       };
     });
 
-    return NextResponse.json(structuredResponse, { status: 200 });
+    return NextResponse.json(structuredResponse, {status: 200});
 
   } catch (error) {
     console.error("Error fetching student local fee details: ", error);
-    return NextResponse.json({ error: "An internal server error occurred." }, { status: 500 });
+    return NextResponse.json({error: "An internal server error occurred."}, {status: 500});
   }
 }
