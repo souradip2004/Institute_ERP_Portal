@@ -904,16 +904,231 @@ const LocalFeeEditModal: React.FC<LocalFeeEditModalProps> = ({ isOpen, onClose, 
     );
 };
 
-// --- NEW --- Fee Add Modal Component ---
-interface FeeAddModalProps {
+// --- NEW --- Global Fee Edit Modal Component ---
+interface GlobalFeeEditModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    onSave: (updatedFee: any) => void;
+    editingGlobalFee: {
+        id: string;
+        name: string;
+        description: string;
+        amount: number;
+        taxPercentage: number;
+        paymentterms: string;
+        penalty: number;
+        institutionId: string;
+        dueDate: string;
+        sectionName: string;
+    } | null;
+}
+
+const GlobalFeeEditModal: React.FC<GlobalFeeEditModalProps> = ({ isOpen, onClose, onSave, editingGlobalFee }) => {
+    const [formData, setFormData] = useState({
+        name: '',
+        description: '',
+        amount: '',
+        taxPercentage: '',
+        paymentterms: '',
+        penalty: '',
+        dueDate: ''
+    });
+    const [submitting, setSubmitting] = useState(false);
+
+    useEffect(() => {
+        if (isOpen && editingGlobalFee) {
+            setFormData({
+                name: editingGlobalFee.name,
+                description: editingGlobalFee.description,
+                amount: editingGlobalFee.amount.toString(),
+                taxPercentage: editingGlobalFee.taxPercentage.toString(),
+                paymentterms: editingGlobalFee.paymentterms,
+                penalty: editingGlobalFee.penalty.toString(),
+                dueDate: editingGlobalFee.dueDate
+            });
+        }
+    }, [isOpen, editingGlobalFee]);
+
+    if (!isOpen || !editingGlobalFee) return null;
+
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+        const { name, value } = e.target;
+        setFormData(prev => ({
+            ...prev,
+            [name]: value
+        }));
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!formData.name.trim() || !formData.dueDate) return;
+
+        setSubmitting(true);
+        try {
+            const body = {
+                dueDate: formData.dueDate,
+                globalFeesToUpdate: [{
+                    id: editingGlobalFee.id,
+                    name: formData.name.trim(),
+                    description: formData.description.trim(),
+                    amount: parseFloat(formData.amount) || 0,
+                    taxPercentage: parseFloat(formData.taxPercentage) || 0,
+                    paymentterms: formData.paymentterms.trim(),
+                    penalty: parseFloat(formData.penalty) || 0,
+                    institutionId: editingGlobalFee.institutionId
+                }]
+            };
+
+            console.log("Global fee edit body:", body);
+            await axios.patch('/api/payment/global-fees', body);
+            onSave(formData);
+        } catch (err) {
+            console.error('Failed to update global fee', err);
+            alert('Failed to update global fee. Please try again.');
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-md z-50 flex justify-center items-center p-4">
+            <div className="bg-white rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+                <div className="p-6 border-b">
+                    <h3 className="text-xl font-semibold text-slate-800">
+                        Edit Global Fee: {editingGlobalFee.name}
+                    </h3>
+                    <p className="text-sm text-slate-600 mt-1">
+                        Section: {editingGlobalFee.sectionName}
+                    </p>
+                </div>
+                <div className="p-6">
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Fee Name *</label>
+                            <input
+                                type="text"
+                                name="name"
+                                value={formData.name}
+                                onChange={handleInputChange}
+                                required
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                placeholder="e.g., Tuition Fee"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                            <textarea
+                                name="description"
+                                value={formData.description}
+                                onChange={handleInputChange}
+                                rows={3}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                placeholder="Brief description of the fee"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Amount (₹) *</label>
+                            <input
+                                type="number"
+                                name="amount"
+                                value={formData.amount}
+                                onChange={handleInputChange}
+                                required
+                                min="0"
+                                step="0.01"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                placeholder="0.00"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Tax Percentage (%) *</label>
+                            <input
+                                type="number"
+                                name="taxPercentage"
+                                value={formData.taxPercentage}
+                                onChange={handleInputChange}
+                                required
+                                min="0"
+                                max="100"
+                                step="0.01"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                placeholder="0"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Payment Terms *</label>
+                            <select
+                                name="paymentterms"
+                                value={formData.paymentterms}
+                                onChange={handleInputChange}
+                                required
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                            >
+                                <option value="">Select Payment Terms</option>
+                                <option value="Monthly">Monthly</option>
+                                <option value="3 Months">3 Months</option>
+                                <option value="6 Months">6 Months</option>
+                                <option value="12 Months">12 Months</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Penalty (₹) *</label>
+                            <input
+                                type="number"
+                                name="penalty"
+                                value={formData.penalty}
+                                onChange={handleInputChange}
+                                required
+                                min="0"
+                                step="0.01"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                placeholder="0.00"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Due Date *</label>
+                            <input
+                                type="date"
+                                name="dueDate"
+                                value={formData.dueDate}
+                                onChange={handleInputChange}
+                                required
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                            />
+                        </div>
+                        <div className="flex gap-3 pt-4">
+                            <button
+                                type="button"
+                                onClick={onClose}
+                                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="submit"
+                                disabled={submitting}
+                                className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {submitting ? 'Updating...' : 'Update Fee'}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// --- NEW --- Global Fee Add Modal Component ---
+interface GlobalFeeAddModalProps {
     isOpen: boolean;
     onClose: () => void;
     onAdd: (newFee: Fee) => void;
     title: string;
-    addingFeeSectionId: number | null;
+    feeStructureData: FeeStructureData | null;
 }
 
-const FeeAddModal: React.FC<FeeAddModalProps> = ({ isOpen, onClose, onAdd, title, addingFeeSectionId }) => {
+const GlobalFeeAddModal: React.FC<GlobalFeeAddModalProps> = ({ isOpen, onClose, onAdd, title, feeStructureData }) => {
     const [fee, setFee] = useState<Fee>({
         id: `new_${Date.now()}`,
         name: '',
@@ -955,8 +1170,8 @@ const FeeAddModal: React.FC<FeeAddModalProps> = ({ isOpen, onClose, onAdd, title
     };
 
     const handleAdd = async () => {
-        if (fee.name.trim() === '' || !fee.dueDate || !addingFeeSectionId) {
-            console.error('Missing required fields:', { name: fee.name, dueDate: fee.dueDate, sectionId: addingFeeSectionId });
+        if (fee.name.trim() === '' || !fee.dueDate) {
+            console.error('Missing required fields:', { name: fee.name, dueDate: fee.dueDate });
             alert('Please fill in all required fields (Name and Due Date)');
             return;
         }
@@ -971,9 +1186,12 @@ const FeeAddModal: React.FC<FeeAddModalProps> = ({ isOpen, onClose, onAdd, title
             }
         } catch { }
 
-        // Always send the correct section id as motherClassIds
-        const motherClassIds = addingFeeSectionId !== null ? [String(addingFeeSectionId)] : [];
-        console.log('Section ID and motherClassIds:', { addingFeeSectionId, motherClassIds });
+        // Get all motherClass IDs from the fee structure data
+        let motherClassIds: string[] = [];
+        if (feeStructureData?.motherClasses) {
+            motherClassIds = feeStructureData.motherClasses.map(mc => mc.id);
+        }
+        console.log('Adding global fee to all sections. MotherClassIds:', motherClassIds);
 
         try {
             // Validate the date before sending
@@ -997,7 +1215,7 @@ const FeeAddModal: React.FC<FeeAddModalProps> = ({ isOpen, onClose, onAdd, title
                     motherClassIds
                 }]
             }
-            console.log("add body ---", JSON.stringify(body, null, 2));
+            console.log("Global fee add body ---", JSON.stringify(body, null, 2));
             const response = await axios.post('/api/payment/global-fees', body);
             console.log("API response:", response.data);
             onAdd(fee);
@@ -1158,10 +1376,8 @@ export default function Home() {
     const [isFeeEditorOpen, setIsFeeEditorOpen] = useState(false);
     // For section global fees editing
     const [editingFeeDetails, setEditingFeeDetails] = useState<{ rowId: number | null, field: string, title: string, fees: Fee[] }>({ rowId: null, field: '', title: '', fees: [] });
-    // --- NEW --- State for Fee Add Modal ---
-    const [isFeeAddOpen, setIsFeeAddOpen] = useState(false);
-    const [addingFeeSectionId, setAddingFeeSectionId] = useState<number | null>(null);
-    const [addingFeeSectionName, setAddingFeeSectionName] = useState<string>('');
+    // --- NEW --- State for Global Fee Add Modal ---
+    const [isGlobalFeeAddOpen, setIsGlobalFeeAddOpen] = useState(false);
     const [selectedSectionId, setSelectedSectionId] = useState<number | null>(null);
     const [studentResponse, setStudentResponse] = useState<StudentResponse | null>(null);
     const [loadingStudents, setLoadingStudents] = useState(false);
@@ -1361,27 +1577,69 @@ export default function Home() {
         handleCloseFeeEditor();
     };
 
-    // For section global fees adding
-    const handleOpenFeeAdd = (rowId: number, sectionName: string) => {
-        setAddingFeeSectionId(rowId);
-        setAddingFeeSectionName(sectionName);
-        setIsFeeAddOpen(true);
+    // For global fees adding to all sections
+    const handleOpenGlobalFeeAdd = () => {
+        setIsGlobalFeeAddOpen(true);
     };
 
-    const handleCloseFeeAdd = () => {
-        setIsFeeAddOpen(false);
-        setAddingFeeSectionId(null);
-        setAddingFeeSectionName('');
+    const handleCloseGlobalFeeAdd = () => {
+        setIsGlobalFeeAddOpen(false);
     };
 
-    const handleAddFee = (newFee: Fee) => {
-        if (addingFeeSectionId === null) return;
-        setFeesData(prev => prev.map(row =>
-            row.id === addingFeeSectionId
-                ? { ...row, globalFees: [...row.globalFees, newFee] }
-                : row
-        ));
-        handleCloseFeeAdd();
+    const handleAddGlobalFee = async (newFee: Fee) => {
+        // Refresh the fee structure data to get the latest data from server
+        try {
+            const user = localStorage.getItem('user');
+            if (user) {
+                const data = JSON.parse(user as string);
+                const institutionId = data.institutionId;
+
+                // Fetch updated fee structure
+                const response = await axios.get(`/api/payment/global-fees?institutionId=${institutionId}`);
+                const feeStructure: FeeStructureData = response.data;
+                setFeeStructureData(feeStructure);
+
+                // Refresh section details for all mother classes
+                const sectionDetails: SectionFeeDetails = {};
+                for (const motherClass of feeStructure.motherClasses) {
+                    try {
+                        const detailResponse = await axios.get(`/api/payment/global-fees/fees?motherClassId=${motherClass.id}`);
+                        sectionDetails[motherClass.id] = detailResponse.data.globalClassFees || [];
+                    } catch (err) {
+                        console.log(`Error fetching details for section ${motherClass.sectionName}:`, err);
+                        sectionDetails[motherClass.id] = [];
+                    }
+                }
+                setSectionFeeDetails(sectionDetails);
+
+                // Update the mapped fees data
+                const mappedFeesData = feeStructure.motherClasses.map((section) => ({
+                    id: parseInt(section.id.slice(-8), 16),
+                    sectionName: section.sectionName,
+                    globalFees: (sectionDetails[section.id] || [])
+                        .filter((feeObj) => feeObj.globalFees !== null)
+                        .map((feeObj) => {
+                            const fee = feeObj.globalFees!;
+                            return {
+                                id: fee.id,
+                                name: fee.name,
+                                amount: fee.amount,
+                                taxPercentage: fee.taxPercentage,
+                                paymentterms: fee.paymentterms,
+                                penalty: fee.penalty,
+                                description: fee.description,
+                                institutionId: fee.institutionId,
+                                dueDate: feeObj.dueDate
+                            };
+                        })
+                }));
+                setFeesData(mappedFeesData);
+            }
+        } catch (err) {
+            console.error('Error refreshing fee structure:', err);
+        }
+
+        handleCloseGlobalFeeAdd();
     };
 
     // --- NEW --- Handlers for Local Fee Add Modal ---
@@ -1401,7 +1659,7 @@ export default function Home() {
     };
 
     // Fetch students for selected section
-    const fetchStudents = async (motherClassId: number) => {
+    const fetchStudents = async (motherClassId: string) => {
         setLoadingStudents(true);
         try {
             const response = await axios.get(`/api/payment/local-fees?motherClassId=${motherClassId}`);
@@ -1426,7 +1684,7 @@ export default function Home() {
                 mc => parseInt(mc.id.slice(-8), 16) === sectionId
             );
             if (motherClass) {
-                fetchStudents(parseInt(motherClass.id.slice(-8), 16));
+                fetchStudents(motherClass.id);
             }
         }
     };
@@ -1455,7 +1713,12 @@ export default function Home() {
             }
             // Refresh the student data
             if (selectedSectionId) {
-                fetchStudents(selectedSectionId);
+                const motherClass = feeStructureData?.motherClasses.find(
+                    mc => parseInt(mc.id.slice(-8), 16) === selectedSectionId
+                );
+                if (motherClass) {
+                    fetchStudents(motherClass.id);
+                }
             }
         } catch (err) {
             console.error('Failed to toggle fee:', err);
@@ -1499,7 +1762,12 @@ export default function Home() {
             }
             // Refresh the student data
             if (selectedSectionId) {
-                fetchStudents(selectedSectionId);
+                const motherClass = feeStructureData?.motherClasses.find(
+                    mc => parseInt(mc.id.slice(-8), 16) === selectedSectionId
+                );
+                if (motherClass) {
+                    fetchStudents(motherClass.id);
+                }
             }
         } catch (err) {
             console.error('Failed to toggle all fees:', err);
@@ -1536,7 +1804,12 @@ export default function Home() {
 
             // Refresh the student data
             if (selectedSectionId) {
-                fetchStudents(selectedSectionId);
+                const motherClass = feeStructureData?.motherClasses.find(
+                    mc => parseInt(mc.id.slice(-8), 16) === selectedSectionId
+                );
+                if (motherClass) {
+                    fetchStudents(motherClass.id);
+                }
             }
             handleCloseLocalFeeEdit();
         } catch (err) {
@@ -1577,7 +1850,12 @@ export default function Home() {
         console.log('Local fee column updated successfully:', updatedFee);
         // Refresh the student data to show updated fee information
         if (selectedSectionId) {
-            fetchStudents(selectedSectionId);
+            const motherClass = feeStructureData?.motherClasses.find(
+                mc => parseInt(mc.id.slice(-8), 16) === selectedSectionId
+            );
+            if (motherClass) {
+                fetchStudents(motherClass.id);
+            }
         }
         handleCloseLocalFeeColumnEdit();
     };
@@ -1587,7 +1865,7 @@ export default function Home() {
 
     const selectedSectionName = feesData.find(sec => sec.id === selectedSectionId)?.sectionName;
 
-    // --- NEW --- Placeholder functions for fee structure buttons ---
+    // --- NEW --- Fee structure button handlers ---
     const handleEditGlobalFee = (feeId: string, motherClassId: string) => {
         console.log('Edit global fee:', feeId, 'for section:', motherClassId);
         // TODO: Implement edit functionality
@@ -1603,9 +1881,153 @@ export default function Home() {
         // TODO: Implement unmark all functionality
     };
 
-    const handleToggleFeeForSection = (feeId: string, motherClassId: string, isEnabled: boolean) => {
-        console.log('Toggle fee:', feeId, 'for section:', motherClassId, 'enabled:', isEnabled);
-        // TODO: Implement toggle functionality
+    const handleDeleteGlobalFee = async (feeId: string, feeName: string) => {
+        // Show confirmation dialog
+        const isConfirmed = window.confirm(`Are you sure you want to delete the global fee "${feeName}"? This action cannot be undone and will remove this fee from all sections.`);
+
+        if (!isConfirmed) return;
+
+        try {
+            await axios.delete(`/api/payment/global-fees?globalFeesId=${feeId}`);
+
+            // Refresh the fee structure data after successful deletion
+            const user = localStorage.getItem('user');
+            if (user) {
+                const data = JSON.parse(user as string);
+                const institutionId = data.institutionId;
+
+                // Fetch updated fee structure
+                const response = await axios.get(`/api/payment/global-fees?institutionId=${institutionId}`);
+                const feeStructure: FeeStructureData = response.data;
+                setFeeStructureData(feeStructure);
+
+                // Refresh section details for all mother classes
+                const sectionDetails: SectionFeeDetails = {};
+                for (const motherClass of feeStructure.motherClasses) {
+                    try {
+                        const detailResponse = await axios.get(`/api/payment/global-fees/fees?motherClassId=${motherClass.id}`);
+                        sectionDetails[motherClass.id] = detailResponse.data.globalClassFees || [];
+                    } catch (err) {
+                        console.log(`Error fetching details for section ${motherClass.sectionName}:`, err);
+                        sectionDetails[motherClass.id] = [];
+                    }
+                }
+                setSectionFeeDetails(sectionDetails);
+
+                // Update the mapped fees data
+                const mappedFeesData = feeStructure.motherClasses.map((section) => ({
+                    id: parseInt(section.id.slice(-8), 16),
+                    sectionName: section.sectionName,
+                    globalFees: (sectionDetails[section.id] || [])
+                        .filter((feeObj) => feeObj.globalFees !== null)
+                        .map((feeObj) => {
+                            const fee = feeObj.globalFees!;
+                            return {
+                                id: fee.id,
+                                name: fee.name,
+                                amount: fee.amount,
+                                taxPercentage: fee.taxPercentage,
+                                paymentterms: fee.paymentterms,
+                                penalty: fee.penalty,
+                                description: fee.description,
+                                institutionId: fee.institutionId,
+                                dueDate: feeObj.dueDate
+                            };
+                        })
+                }));
+                setFeesData(mappedFeesData);
+            }
+        } catch (err: any) {
+            console.error('Failed to delete global fee:', err);
+            console.error('Error details:', err.response?.data);
+            const errorMessage = err.response?.data?.error || err.response?.data?.message || err.message || 'Unknown error occurred';
+            alert(`Failed to delete global fee: ${errorMessage}`);
+        }
+    };
+
+    const handleToggleFeeForSection = async (feeId: string, motherClassId: string, isEnabled: boolean) => {
+        try {
+            let institutionId = '';
+            try {
+                const user = localStorage.getItem('user');
+                if (user) {
+                    const data = JSON.parse(user);
+                    institutionId = data.institutionId || '';
+                }
+            } catch { }
+
+            if (isEnabled) {
+                // Enable the fee for this section
+                const body = {
+                    globalFeeId: feeId,
+                    motherClassIds: [motherClassId],
+                    institutionId: institutionId
+                };
+                console.log('Enabling fee with body:', body);
+                await axios.post('/api/payment/global-fees/fees', body);
+            } else {
+                // Disable the fee for this section
+                const body = {
+                    globalFeeId: feeId,
+                    motherClassIds: [motherClassId]
+                };
+                console.log('Disabling fee with body:', body);
+                await axios.delete('/api/payment/global-fees/fees', { data: body });
+            }
+
+            // Refresh the fee structure data after successful toggle
+            const user = localStorage.getItem('user');
+            if (user) {
+                const data = JSON.parse(user as string);
+                const institutionId = data.institutionId;
+
+                // Fetch updated fee structure
+                const response = await axios.get(`/api/payment/global-fees?institutionId=${institutionId}`);
+                const feeStructure: FeeStructureData = response.data;
+                setFeeStructureData(feeStructure);
+
+                // Refresh section details for all mother classes
+                const sectionDetails: SectionFeeDetails = {};
+                for (const motherClass of feeStructure.motherClasses) {
+                    try {
+                        const detailResponse = await axios.get(`/api/payment/global-fees/fees?motherClassId=${motherClass.id}`);
+                        sectionDetails[motherClass.id] = detailResponse.data.globalClassFees || [];
+                    } catch (err) {
+                        console.log(`Error fetching details for section ${motherClass.sectionName}:`, err);
+                        sectionDetails[motherClass.id] = [];
+                    }
+                }
+                setSectionFeeDetails(sectionDetails);
+
+                // Update the mapped fees data
+                const mappedFeesData = feeStructure.motherClasses.map((section) => ({
+                    id: parseInt(section.id.slice(-8), 16),
+                    sectionName: section.sectionName,
+                    globalFees: (sectionDetails[section.id] || [])
+                        .filter((feeObj) => feeObj.globalFees !== null)
+                        .map((feeObj) => {
+                            const fee = feeObj.globalFees!;
+                            return {
+                                id: fee.id,
+                                name: fee.name,
+                                amount: fee.amount,
+                                taxPercentage: fee.taxPercentage,
+                                paymentterms: fee.paymentterms,
+                                penalty: fee.penalty,
+                                description: fee.description,
+                                institutionId: fee.institutionId,
+                                dueDate: feeObj.dueDate
+                            };
+                        })
+                }));
+                setFeesData(mappedFeesData);
+            }
+        } catch (err: any) {
+            console.error('Failed to toggle fee for section:', err);
+            console.error('Error details:', err.response?.data);
+            const errorMessage = err.response?.data?.error || err.response?.data?.message || err.message || 'Unknown error occurred';
+            alert(`Failed to ${isEnabled ? 'enable' : 'disable'} fee: ${errorMessage}`);
+        }
     };
 
     return (
@@ -1665,7 +2087,15 @@ export default function Home() {
 
                 {/* --- Fee Structure Section --- */}
                 <div className="w-full">
-                    <h2 className="text-2xl font-semibold text-slate-800 mb-6">Fee Structure</h2>
+                    <div className="flex justify-between items-center mb-6">
+                        <h2 className="text-2xl font-semibold text-slate-800">Fee Structure</h2>
+                        <button
+                            onClick={() => handleOpenGlobalFeeAdd()}
+                            className="px-4 py-2 bg-emerald-600 text-white font-semibold rounded-md shadow-md hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-all"
+                        >
+                            Add New Global Fee
+                        </button>
+                    </div>
                     <div className="rounded-lg border border-slate-200 shadow-sm overflow-hidden">
                         <div className="h-[500px] overflow-auto">
                             <table className="w-full text-sm text-left text-slate-700">
@@ -1673,7 +2103,7 @@ export default function Home() {
                                     <tr>
                                         <th scope="col" className="px-4 py-3 min-w-[150px]">Section Name</th>
                                         {feeStructureData?.globalFees.map((fee) => (
-                                            <th key={fee.id} scope="col" className="px-4 py-3 min-w-[200px] text-center">
+                                            <th key={fee.id} scope="col" className="px-3 py-3 min-w-[220px] text-center">
                                                 <div className="flex flex-col">
                                                     <div className="font-semibold text-slate-900 mb-1">{fee.name}</div>
                                                     <div className="text-xs font-normal text-slate-600 mb-1">₹{fee.amount.toFixed(2)}</div>
@@ -1687,24 +2117,31 @@ export default function Home() {
                                                             {fee.description}
                                                         </div>
                                                     )}
-                                                    <div className="flex gap-1 justify-center flex-wrap">
+                                                    <div className="grid grid-cols-2 gap-1 justify-center">
                                                         <button
                                                             onClick={() => handleEditGlobalFee(fee.id, '')}
-                                                            className="px-2 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+                                                            className="px-1.5 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
                                                             title="Edit this fee"
                                                         >
                                                             Edit
                                                         </button>
                                                         <button
+                                                            onClick={() => handleDeleteGlobalFee(fee.id, fee.name)}
+                                                            className="px-1.5 py-1 text-xs bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+                                                            title="Delete this fee"
+                                                        >
+                                                            Delete
+                                                        </button>
+                                                        <button
                                                             onClick={() => handleMarkAllForFee(fee.id)}
-                                                            className="px-2 py-1 text-xs bg-green-500 text-white rounded hover:bg-green-600 transition-colors"
+                                                            className="px-1.5 py-1 text-xs bg-green-500 text-white rounded hover:bg-green-600 transition-colors"
                                                             title="Mark all sections for this fee"
                                                         >
                                                             Mark All
                                                         </button>
                                                         <button
                                                             onClick={() => handleUnmarkAllForFee(fee.id)}
-                                                            className="px-2 py-1 text-xs bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+                                                            className="px-1.5 py-1 text-xs bg-orange-500 text-white rounded hover:bg-orange-600 transition-colors"
                                                             title="Unmark all sections for this fee"
                                                         >
                                                             Unmark All
@@ -1713,6 +2150,7 @@ export default function Home() {
                                                 </div>
                                             </th>
                                         ))}
+
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -1725,11 +2163,12 @@ export default function Home() {
                                     ) : feeStructureData?.motherClasses.length ? (
                                         feeStructureData.motherClasses.map((motherClass) => {
                                             const sectionDetails = sectionFeeDetails[motherClass.id] || [];
+                                            const sectionId = parseInt(motherClass.id.slice(-8), 16);
                                             return (
                                                 <tr
                                                     key={motherClass.id}
-                                                    className={`border-b last:border-b-0 cursor-pointer transition-colors ${selectedSectionId === parseInt(motherClass.id.slice(-8), 16) ? 'bg-indigo-50 hover:bg-indigo-100' : 'bg-white hover:bg-slate-50'}`}
-                                                    onClick={() => handleSectionSelect(parseInt(motherClass.id.slice(-8), 16))}
+                                                    className={`border-b last:border-b-0 cursor-pointer transition-colors ${selectedSectionId === sectionId ? 'bg-indigo-50 hover:bg-indigo-100' : 'bg-white hover:bg-slate-50'}`}
+                                                    onClick={() => handleSectionSelect(sectionId)}
                                                 >
                                                     <td className="px-4 py-4 font-medium text-slate-900 whitespace-nowrap">
                                                         {motherClass.sectionName}
@@ -1752,6 +2191,7 @@ export default function Home() {
                                                                             ? 'bg-green-500 border-green-500 text-white hover:bg-green-600'
                                                                             : 'bg-white border-slate-300 hover:border-slate-400'
                                                                             }`}
+                                                                        title={isEnabled ? 'Click to disable this fee for this section' : 'Click to enable this fee for this section'}
                                                                     >
                                                                         {isEnabled ? (
                                                                             <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
@@ -1765,9 +2205,12 @@ export default function Home() {
                                                                     </button>
                                                                     {isEnabled && classFee && (
                                                                         <div className="flex items-center gap-1">
-                                                                            <span className="text-xs text-slate-600">
-                                                                                Due: {new Date(classFee.dueDate).toLocaleDateString()}
-                                                                            </span>
+                                                                            <div className="text-xs text-slate-600 space-y-1">
+                                                                                <div>Amount: ₹{classFee.globalFees?.amount}</div>
+                                                                                <div>Tax: ₹{((classFee.globalFees?.amount || 0) * (classFee.globalFees?.taxPercentage || 0) / 100).toFixed(2)}</div>
+                                                                                <div>Penalty: ₹{classFee.globalFees?.penalty}</div>
+                                                                                <div>Due: {new Date(classFee.dueDate).toLocaleDateString()}</div>
+                                                                            </div>
                                                                             <button
                                                                                 onClick={(e) => {
                                                                                     e.stopPropagation();
@@ -1784,6 +2227,7 @@ export default function Home() {
                                                             </td>
                                                         );
                                                     })}
+
                                                 </tr>
                                             );
                                         })
@@ -1957,13 +2401,13 @@ export default function Home() {
                 onSave={handleSaveFees}
                 details={editingFeeDetails}
             />
-            {/* --- Fee Add Modal Render (for section global fees) --- */}
-            <FeeAddModal
-                isOpen={isFeeAddOpen}
-                onClose={handleCloseFeeAdd}
-                onAdd={handleAddFee}
-                title={`Add New Fee to ${addingFeeSectionName}`}
-                addingFeeSectionId={addingFeeSectionId}
+            {/* --- Global Fee Add Modal Render --- */}
+            <GlobalFeeAddModal
+                isOpen={isGlobalFeeAddOpen}
+                onClose={handleCloseGlobalFeeAdd}
+                onAdd={handleAddGlobalFee}
+                title="Add New Global Fee to All Sections"
+                feeStructureData={feeStructureData}
             />
 
             {/* --- Local Fee Add Modal Render --- */}
