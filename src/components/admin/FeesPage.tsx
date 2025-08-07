@@ -371,12 +371,13 @@ const FeeEditorModal: React.FC<FeeEditorModalProps> = ({ isOpen, onClose, onSave
 interface LocalFeeAddModalProps {
     isOpen: boolean;
     onClose: () => void;
+    refresh: () => void;
     onAdd: (newFee: any) => void;
     title: string;
-    sectionId: number | null;
+    sectionId: string | null;
 }
 
-const LocalFeeAddModal: React.FC<LocalFeeAddModalProps> = ({ isOpen, onClose, onAdd, title, sectionId }) => {
+const LocalFeeAddModal: React.FC<LocalFeeAddModalProps> = ({ isOpen, onClose,refresh, onAdd, title, sectionId }) => {
     const [formData, setFormData] = useState({
         name: '',
         description: '',
@@ -450,6 +451,7 @@ const LocalFeeAddModal: React.FC<LocalFeeAddModalProps> = ({ isOpen, onClose, on
             console.error('Failed to add local fee', err);
         } finally {
             setSubmitting(false);
+            refresh()
         }
     };
 
@@ -1647,9 +1649,19 @@ export default function Home() {
         if (selectedSectionId === null) return;
         setIsLocalFeeAddOpen(true);
     };
-
+const refershStudents = () => {
+        if (selectedSectionId !== null) {
+            const motherClass = feeStructureData?.motherClasses.find(
+                mc => mc.id.includes(selectedSectionId)
+            );
+            if (motherClass) {
+                fetchStudents(motherClass.id);
+            }
+        }
+    };
     const handleCloseLocalFeeAdd = () => {
         setIsLocalFeeAddOpen(false);
+        
     };
 
     const handleAddLocalFee = (newLocalFee: any) => {
@@ -2415,6 +2427,7 @@ export default function Home() {
                 isOpen={isLocalFeeAddOpen}
                 onClose={handleCloseLocalFeeAdd}
                 onAdd={handleAddLocalFee}
+                refresh={refershStudents}
                 title={`Add Local Fee to All Students in ${selectedSectionName}`}
                 sectionId={selectedSectionId}
             />

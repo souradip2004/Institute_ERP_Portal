@@ -11,6 +11,7 @@ import {
   Sparkles,
   BarChart3,
   MessageSquareQuoteIcon,
+  IndianRupeeIcon,
   LogOut,
   Menu, // Added for the hamburger icon
   X // Added for the close icon
@@ -106,6 +107,7 @@ export default function Sidebar({ onSidebarToggle }: SidebarProps) {
     { title: 'Report Card', href: '/s/report', icon: <BarChart3 size={18} /> },
     { title: 'Ask Teacher', href: '/s/ask-teacher', icon: <MessageSquareQuoteIcon size={18} /> },
     { title: 'Smart Resources', href: '/s/smart-resources', icon: <FaRegLightbulb size={18} /> },
+    { title: 'Fees', href: '/s/fees', icon: <IndianRupeeIcon size={18} /> },
   ];
 
   return (
