@@ -2,10 +2,9 @@ import {NextResponse} from 'next/server';
 import prisma from '@/lib/prisma';
 import {FeesCollection, PaymentStatus} from '@prisma/client';
 
-// Define the structure of the incoming request body.
 interface FeePaymentPayload {
   studentId: string;
-  classFeeId: string; // The ID of the specific fee being paid
+  classFeeId: string;
   amountPaid: number;
   paymentMethod: string;
   paymentDate: string; // The date the payment is being made (e.g., "2025-08-21")
@@ -25,7 +24,6 @@ export async function PATCH(request: Request) {
     feesCollectionId
   } = body;
 
-  // 1. Basic Validation
   if (!studentId || !classFeeId || !paymentMethod || !paymentDate || !feesCollectionId || amountPaid == null) {
     return NextResponse.json({error: "Missing required fields in request body."}, {status: 400});
   }

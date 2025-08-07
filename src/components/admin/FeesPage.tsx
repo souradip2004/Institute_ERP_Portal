@@ -1319,7 +1319,7 @@ export default function Home() {
     const fetchStudents = async (motherClassId: number) => {
         setLoadingStudents(true);
         try {
-            const response = await axios.get(`/api/students/get-class-students?motherClassId=${motherClassId}`);
+            const response = await axios.get(`/api/payment/local-fees?motherClassId=${motherClassId}`);
             setStudentResponse(response.data);
         } catch (err) {
             console.error("Error fetching students:", err);

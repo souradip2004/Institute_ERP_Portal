@@ -262,9 +262,16 @@ export async function DELETE(request: Request) {
 export async function GET(request: Request) {
   try {
     const {searchParams} = new URL(request.url);
-    const motherClassId = searchParams.get('motherClassId') as string;
+    const motherClassId = searchParams.get('motherClassId');
 
-    const studentLocalFee = await prisma.localFees.findMany({
+    if (!motherClassId) {
+      return NextResponse.json(
+        {error: 'motherClassId is required!'},
+        {status: 400}
+      );
+    }
+
+    const classLocalFees = await prisma.localFees.findMany({
       where: {
         classFees: {
           some: {
@@ -275,23 +282,100 @@ export async function GET(request: Request) {
       include: {
         classFees: {
           select: {
-            id: true,
-            dueDate: true
+            dueDate: true,
+            id: true
+          }
+        }
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    });
+
+    // --- 2. Fetch the MotherClass with its enrolled students and their *existing* fee links ---
+    const motherClassWithStudents = await prisma.motherClass.findUnique({
+      where: {id: motherClassId},
+      select: {
+        institutionId: true,
+        sectionName: true,
+        classSections: {
+          select: {
+            studentEnrollments: {
+              select: {
+                student: {
+                  include: {
+                    user: {select: {name: true, email: true}},
+                    localFees: {
+                      select: {
+                        localFeesId: true,
+                        id: true,
+                        offsetFee: true,
+                      }
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }
-    })
+    });
 
-    console.log("studentLocalFee: ", studentLocalFee);
+    if (!motherClassWithStudents) {
+      return NextResponse.json({error: 'Class not found!'}, {status: 404});
+    }
 
+    // --- 3. Process the data to build the final, structured response ---
+    const studentEnrollments =
+      motherClassWithStudents.classSections[0]?.studentEnrollments || [];
 
-    return NextResponse.json(studentLocalFee, {status: 200});
+    const processedStudents = studentEnrollments.map((enrollment) => {
+      const student = enrollment.student;
 
-  } catch (e: any) {
+      // Create a lookup map for the student's existing fees for O(1) access time
+      const studentFeeLinkMap = new Map(
+        student.localFees.map((feeLink) => [
+          feeLink.localFeesId,
+          {id: feeLink.id, offsetFee: feeLink.offsetFee},
+        ])
+      );
 
-    return NextResponse.json({
-      error: "Internal server error. Please try again later.",
-      message: e.message
-    }, {status: 500});
+      // For each student, generate their specific fee statuses by referencing the main class fees list
+      const feeStatuses = classLocalFees.map((classFee) => {
+        const studentLink = studentFeeLinkMap.get(classFee.id);
+        return {
+          localFeeId: classFee.id, // ID of the fee in the top-level array
+          localFeesOnStudentId: studentLink?.id || null, // The join table record ID, or null
+          offsetFee: studentLink?.offsetFee ?? null, // The specific offset, or null
+        };
+      });
+
+      return {
+        id: student.id,
+        studentRoll: student.studentRoll,
+        enrollmentStatus: student.enrollmentStatus,
+        user: student.user,
+        feeLinks: feeStatuses, // The new, lean array
+      };
+    });
+
+    // --- 4. Assemble the final response object ---
+    return NextResponse.json(
+      {
+        institute: motherClassWithStudents.institutionId,
+        section: motherClassWithStudents.sectionName,
+        localFees: classLocalFees, // The single, top-level array of fee details
+        studentEnrollments: processedStudents, // The array of students with their specific fee links
+      },
+      {status: 200}
+    );
+
+  } catch
+    (e) {
+    console.error(e); // Log the actual error on the server
+    return NextResponse.json(
+      {error: 'Internal server error. Please try again later.'},
+      {status: 500}
+    );
   }
 }

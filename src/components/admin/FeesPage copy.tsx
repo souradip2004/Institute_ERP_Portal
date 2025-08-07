@@ -876,7 +876,7 @@ export default function Home() {
     const fetchStudents = async (motherClassId: number) => {
         setLoadingStudents(true);
         try {
-            const response = await axios.get(`/api/students/get-class-students?motherClassId=${motherClassId}`);
+            const response = await axios.get(`/api/payment/local-fees?motherClassId=${motherClassId}`);
             const studentEnrollments: StudentEnrollment[] = response.data.studentEnrollments || [];
 
             const mappedStudents: Student[] = studentEnrollments.map((enrollment) => ({
