@@ -1,14 +1,14 @@
 {
-  "name": "Ultimate Institute",
+  "name": "RnPsoft Private Limited",
   "type": "college",
-  "address": "KOLKATA",
-  "city": "Kolkata",
-  "state": "West Bengal",
+  "address": "bbsr",
+  "city": "bbsr",
+  "state": "odisha",
   "country": "India",
-  "phone": "1234567890",
-  "email": "admin@gmail.com",
-  "website": "https://google.com",
-  "userId": "cme094ewf0000ep8wxm8gt17j",
-  "logoUrl": "https://aiclassroomin.s3.eu-north-1.amazonaws.com/assignments/1754502041952_hexonode.png",
-  "primaryColor": "#8700ff"
+  "phone": "8637845107",
+  "email": "tpriyanshu775@gmail.com",
+  "website": "https://rnpsoft.com",
+  "userId": "cme134tvq00004hk2d644c3lp",
+  "logoUrl": "https://aiclassroomin.s3.eu-north-1.amazonaws.com/assignments/1754552970545_images.jpeg",
+  "primaryColor": "#000000"
 }

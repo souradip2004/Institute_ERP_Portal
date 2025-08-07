@@ -5,7 +5,7 @@ export async function segregateFromPdf(fileUrls: string[]) {
     console.log("🔄 Sending PDF URL(s) to AnsKey Segregate API...with fileURLs: " + fileUrls);
 
     const response = await axios.post(
-       'https://anskey-segregate-from-pdfs-33f7051-v3.app.beam.cloud' ,
+       'https://anskey-segregate-from-pdfs-33f7051-v4.app.beam.cloud' ,
       { file_url_list: fileUrls },
       {
         headers: {
@@ -56,7 +56,7 @@ export async function checkAnswerWithModelKey(
     console.log(JSON.parse(configJson1string))
     console.log('......................................................\n\n\n\n\n\n');
     const response = await fetch(
-       'https://answer-checking-4-89f26c7-v4.app.beam.cloud',
+       'https://answer-checking-4-89f26c7-v6.app.beam.cloud',
       {
         method: 'POST',
         body: JSON.stringify({
@@ -133,13 +133,13 @@ export async function checkAnswerWithDiagramSupport(
     
 
     const response = await fetch(
-      'https://answer-and-diagram-checking-5-12af4c2-v2.app.beam.cloud',
+      'https://answer-and-diagram-checking-5-d324ec2-v6.app.beam.cloud' ,
     
       {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer cpxjIHGyDUggeCZSEgd7TSs_xuIaJLxQyplSlPcpEv35qftljIUmetr9Drtj_MUyC9PUSJLvV1vbjljWohB8Sw==',
+          'Authorization': 'Bearer ALXP7mhHyKz1MQATKH7CIQXK9VQBpvoNNuxPvLONWyPCfgemj18cz2T74r4drBpvOkf-3orOQT_6r-63mHPZAA==',
         },
         body: JSON.stringify({
         

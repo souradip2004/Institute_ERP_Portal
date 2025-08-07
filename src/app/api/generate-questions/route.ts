@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
     }
     
     // Call the Beam API with the new URL and Bearer token
-    const beamApiUrl = 'https://question-generation-f79eeb2-v4.app.beam.cloud/';
+    const beamApiUrl = 'https://question-generation-f79eeb2-v5.app.beam.cloud/';
     const beamApiKey = 'ALXP7mhHyKz1MQATKH7CIQXK9VQBpvoNNuxPvLONWyPCfgemj18cz2T74r4drBpvOkf-3orOQT_6r-63mHPZAA==';
     
     console.log('⭐ CALLING EXTERNAL API ⭐');

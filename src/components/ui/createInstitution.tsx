@@ -167,7 +167,12 @@ export default function CreateInstitutionForm({ userId, email }: CreateInstituti
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ institutionId: institution.id }),
       });
-
+      let data2 = localStorage.getItem("user");
+      let data1 = JSON.parse(data2 || "{}");
+      if (data1) {
+        data1.institutionId = institution.id;
+        localStorage.setItem("user", JSON.stringify(data1));
+      }
       console.log("Update User Response:", await updateUserRes.json());
 
       if (!updateUserRes.ok) throw new Error("Failed to update user.");
