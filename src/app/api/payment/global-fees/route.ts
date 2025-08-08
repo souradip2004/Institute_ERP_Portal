@@ -14,7 +14,7 @@ interface GlobalFeePayload {
   motherClassIds: string[];
 }
 
-function calculateDueDates(
+export function calculateDueDates(
   startDate: Date,
   endDate: Date,
   term: PaymentTerms,
@@ -207,7 +207,6 @@ export async function PATCH(request: Request) {
     const body = await request.json();
     const globalFeesToUpdate: GlobalFeeUpdatePayload[] = body.fees;
 
-    // --- 1. Input Validation ---
     if (!Array.isArray(globalFeesToUpdate) || globalFeesToUpdate.length === 0) {
       return NextResponse.json({error: 'The request body must contain a non-empty `fees` array.'}, {status: 400});
     }
