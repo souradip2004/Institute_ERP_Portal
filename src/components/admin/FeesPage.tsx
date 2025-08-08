@@ -1204,19 +1204,37 @@ const GlobalFeeAddModal: React.FC<GlobalFeeAddModalProps> = ({ isOpen, onClose, 
             }
             console.log(`Using date: ${fee.dueDate} -> Valid: ${!isNaN(testDate.getTime())}`);
 
-            const body = {
-                institutionId,
-                globalFees: [{
-                    name: fee.name.trim(),
-                    description: fee.description?.trim() || '',
-                    amount: Number(fee.amount) || 0,
-                    taxPercentage: Number(fee.taxPercentage) || 0,
-                    paymentterms: fee.paymentterms?.trim() || '',
-                    penalty: Number(fee.penalty) || 0,
-                    dueDate: fee.dueDate,
-                    motherClassIds
-                }]
+            let body = {}
+            if (fee.paymentterms === 'ONE_TIME') {
+                body = {
+                    institutionId,
+                    globalFees: [{
+                        name: fee.name.trim(),
+                        description: fee.description?.trim() || '',
+                        amount: Number(fee.amount) || 0,
+                        taxPercentage: Number(fee.taxPercentage) || 0,
+                        paymentterms: fee.paymentterms?.trim() || '',
+                        penalty: Number(fee.penalty) || 0,
+                        dueDate: fee.dueDate,
+                        motherClassIds
+                    }]
+                }
+            } else {
+                body = {
+                    institutionId,
+                    globalFees: [{
+                        name: fee.name.trim(),
+                        description: fee.description?.trim() || '',
+                        amount: Number(fee.amount) || 0,
+                        taxPercentage: Number(fee.taxPercentage) || 0,
+                        paymentterms: fee.paymentterms?.trim() || '',
+                        penalty: Number(fee.penalty) || 0,
+                        // dueDate: fee.dueDate,
+                        motherClassIds
+                    }]
+                }
             }
+
             console.log("Global fee add body ---", JSON.stringify(body, null, 2));
             const response = await axios.post('/api/payment/global-fees', body);
             console.log("API response:", response.data);
@@ -1300,28 +1318,32 @@ const GlobalFeeAddModal: React.FC<GlobalFeeAddModalProps> = ({ isOpen, onClose, 
                             <label htmlFor="add-terms" className="block text-sm font-medium text-slate-700 mb-1">Payment Terms</label>
                             <select
                                 id="add-terms"
-                                value={['Monthly', '3 Months', '5 Months', '12 Months'].includes(fee.paymentterms || '') ? fee.paymentterms : ''}
+                                value={['MONTHLY', 'QUARTERLY', 'HALF_YEARLY', 'YEARLY', 'ONE_TIME'].includes(fee.paymentterms || '') ? fee.paymentterms : ''}
                                 onChange={(e) => handleChange('paymentterms', e.target.value)}
                                 className="w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                             >
                                 <option value="">Select Payment Terms</option>
-                                <option value="Monthly">Monthly</option>
-                                <option value="3 Months">3 Months</option>
-                                <option value="6 Months">6 Months</option>
-                                <option value="12 Months">12 Months</option>
+                                <option value="MONTHLY">Monthly</option>
+                                <option value="QUARTERLY">Quarterly</option>
+                                <option value="HALF_YEARLY">Half Yearly</option>
+                                <option value="YEARLY">Yearly</option>
+                                <option value="ONE_TIME">One Time</option>
                             </select>
                         </div>
-                        <div>
-                            <label htmlFor="add-duedate" className="block text-sm font-medium text-slate-700 mb-1">Due Date *</label>
-                            <input
-                                id="add-duedate"
-                                type="date"
-                                value={fee.dueDate ?? ''}
-                                onChange={(e) => handleChange('dueDate', e.target.value)}
-                                className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                                required
-                            />
-                        </div>
+                        {fee.paymentterms === 'ONE_TIME' && (
+                            <div>
+                                <label htmlFor="add-duedate" className="block text-sm font-medium text-slate-700 mb-1">Due Date *</label>
+                                <input
+                                    id="add-duedate"
+                                    type="date"
+                                    value={fee.dueDate ?? ''}
+                                    onChange={(e) => handleChange('dueDate', e.target.value)}
+                                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                    required
+                                />
+                            </div>
+                        )}
+
                     </div>
                 </div>
                 <div className="p-4 bg-slate-50 border-t flex justify-end gap-3 rounded-lg">
