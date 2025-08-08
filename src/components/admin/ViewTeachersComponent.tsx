@@ -113,7 +113,13 @@ export default function ViewTeachersComponent({id}: ViewTeachersProps) {
         className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 space-y-4 md:space-y-0"> {/* Stack on mobile, row on desktop */}
         <h1 className="text-xl md:text-2xl font-bold text-gray-800">Teacher Management</h1> {/* Adjust text size */}
         <button
-          onClick={() => setIsAddTeacherModalOpen(true)}
+          onClick={() => {
+            const verified = JSON.parse(localStorage.getItem("verified") || "false");
+            if (!verified) {
+              alert("Please wait for verification of your account before adding a teacher.");
+              return;
+            }
+            setIsAddTeacherModalOpen(true)}}
           className="w-full md:w-auto px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors"
         >
           Add New Teacher
