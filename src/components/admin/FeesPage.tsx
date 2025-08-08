@@ -234,13 +234,22 @@ const FeeEditorModal: React.FC<FeeEditorModalProps> = ({ isOpen, onClose, onSave
                 };
             });
 
-            // Use the first fee's due date as global due date, or current date if none
-            const globalDueDate = formattedFees[0]?.dueDate || new Date().toISOString().split('T')[0];
+            // Check if any fee has ONE_TIME payment terms to determine if we need dueDate
+            const hasOneTimeFee = formattedFees.some(fee => fee.paymentterms === 'ONE_TIME');
 
-            const requestBody = {
-                dueDate: globalDueDate,
-                globalFeesToUpdate: formattedFees
-            };
+            let requestBody = {};
+            if (hasOneTimeFee) {
+                // Use the first fee's due date as global due date, or current date if none
+                const globalDueDate = formattedFees[0]?.dueDate || new Date().toISOString().split('T')[0];
+                requestBody = {
+                    dueDate: globalDueDate,
+                    globalFeesToUpdate: formattedFees
+                };
+            } else {
+                requestBody = {
+                    globalFeesToUpdate: formattedFees
+                };
+            }
 
             console.log('Updating global fees with body:', JSON.stringify(requestBody, null, 2));
 
@@ -325,27 +334,30 @@ const FeeEditorModal: React.FC<FeeEditorModalProps> = ({ isOpen, onClose, onSave
                                 <label htmlFor={`terms-${fee.id}`} className="block text-sm font-medium text-slate-700 mb-1">Payment Terms</label>
                                 <select
                                     id={`terms-${fee.id}`}
-                                    value={['Monthly', '3 Months', '5 Months', '12 Months'].includes(fee.paymentterms || '') ? fee.paymentterms : ''}
+                                    value={['MONTHLY', 'QUARTERLY', 'HALF_YEARLY', 'YEARLY', 'ONE_TIME'].includes(fee.paymentterms || '') ? fee.paymentterms : ''}
                                     onChange={(e) => handleFeeChange(index, 'paymentterms', e.target.value)}
                                     className="w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                                 >
                                     <option value="">Select Payment Terms</option>
-                                    <option value="Monthly">Monthly</option>
-                                    <option value="3 Months">3 Months</option>
-                                    <option value="6 Months">6 Months</option>
-                                    <option value="12 Months">12 Months</option>
+                                    <option value="MONTHLY">Monthly</option>
+                                    <option value="QUARTERLY">Quarterly</option>
+                                    <option value="HALF_YEARLY">Half Yearly</option>
+                                    <option value="YEARLY">Yearly</option>
+                                    <option value="ONE_TIME">One Time</option>
                                 </select>
                             </div>
-                            <div>
-                                <label htmlFor={`duedate-${fee.id}`} className="block text-sm font-medium text-slate-700 mb-1">Due Date</label>
-                                <input
-                                    id={`duedate-${fee.id}`}
-                                    type="date"
-                                    value={fee.dueDate ?? ''}
-                                    onChange={(e) => handleFeeChange(index, 'dueDate', e.target.value)}
-                                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                                />
-                            </div>
+                            {fee.paymentterms === 'ONE_TIME' && (
+                                <div>
+                                    <label htmlFor={`duedate-${fee.id}`} className="block text-sm font-medium text-slate-700 mb-1">Due Date</label>
+                                    <input
+                                        id={`duedate-${fee.id}`}
+                                        type="date"
+                                        value={fee.dueDate ?? ''}
+                                        onChange={(e) => handleFeeChange(index, 'dueDate', e.target.value)}
+                                        className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                    />
+                                </div>
+                            )}
                             <button onClick={() => handleRemoveFee(index)} className="col-span-2 p-2 text-slate-500 hover:text-red-600 hover:bg-red-100 rounded-full transition-colors w-fit ml-auto">
                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -430,19 +442,36 @@ const LocalFeeAddModal: React.FC<LocalFeeAddModalProps> = ({ isOpen, onClose, re
                 }
             } catch { }
 
-            const body = {
-                institutionId,
-                localFees: [{
-                    name: formData.name,
-                    description: formData.description,
-                    amount: parseFloat(formData.amount) || 0,
-                    taxPercentage: parseFloat(formData.taxPercentage) || 0,
-                    paymentterms: formData.paymentterms,
-                    penalty: parseFloat(formData.penalty) || 0,
-                    motherClassId: String(sectionId),
-                    dueDate: formData.dueDate
-                }]
-            };
+            let body = {}
+
+            if (formData.paymentterms === 'ONE_TIME') {
+                body = {
+                    institutionId,
+                    localFees: [{
+                        name: formData.name,
+                        description: formData.description,
+                        amount: parseFloat(formData.amount) || 0,
+                        taxPercentage: parseFloat(formData.taxPercentage) || 0,
+                        paymentterms: formData.paymentterms,
+                        penalty: parseFloat(formData.penalty) || 0,
+                        motherClassId: String(sectionId),
+                        dueDate: formData.dueDate
+                    }]
+                };
+            } else {
+                body = {
+                    institutionId,
+                    localFees: [{
+                        name: formData.name,
+                        description: formData.description,
+                        amount: parseFloat(formData.amount) || 0,
+                        taxPercentage: parseFloat(formData.taxPercentage) || 0,
+                        paymentterms: formData.paymentterms,
+                        penalty: parseFloat(formData.penalty) || 0,
+                        motherClassId: String(sectionId)
+                    }]
+                };
+            }
 
             console.log("Local fee body:", body);
             await axios.post('/api/payment/local-fees', body);
@@ -523,15 +552,20 @@ const LocalFeeAddModal: React.FC<LocalFeeAddModalProps> = ({ isOpen, onClose, re
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Payment Terms *</label>
-                            <input
-                                type="text"
+                            <select
                                 name="paymentterms"
-                                value={formData.paymentterms}
+                                value={['MONTHLY', 'QUARTERLY', 'HALF_YEARLY', 'YEARLY', 'ONE_TIME'].includes(formData.paymentterms || '') ? formData.paymentterms : ''}
                                 onChange={handleInputChange}
                                 required
                                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                                placeholder="e.g., Due at the beginning of the academic year"
-                            />
+                            >
+                                <option value="">Select Payment Terms</option>
+                                <option value="MONTHLY">Monthly</option>
+                                <option value="QUARTERLY">Quarterly</option>
+                                <option value="HALF_YEARLY">Half Yearly</option>
+                                <option value="YEARLY">Yearly</option>
+                                <option value="ONE_TIME">One Time</option>
+                            </select>
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Penalty (₹) *</label>
@@ -547,17 +581,19 @@ const LocalFeeAddModal: React.FC<LocalFeeAddModalProps> = ({ isOpen, onClose, re
                                 placeholder="0.00"
                             />
                         </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Due Date *</label>
-                            <input
-                                type="date"
-                                name="dueDate"
-                                value={formData.dueDate}
-                                onChange={handleInputChange}
-                                required
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                            />
-                        </div>
+                        {formData.paymentterms === 'ONE_TIME' && (
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Due Date *</label>
+                                <input
+                                    type="date"
+                                    name="dueDate"
+                                    value={formData.dueDate}
+                                    onChange={handleInputChange}
+                                    required
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                />
+                            </div>
+                        )}
                         <div className="flex gap-3 pt-4">
                             <button
                                 type="button"
@@ -641,19 +677,36 @@ const LocalFeeColumnEditModal: React.FC<LocalFeeColumnEditModalProps> = ({ isOpe
 
         setSubmitting(true);
         try {
-            const body = {
-                localFees: [{
-                    id: editingLocalFeeColumn.id,
-                    name: formData.name.trim(),
-                    description: formData.description.trim(),
-                    amount: parseFloat(formData.amount) || 0,
-                    taxPercentage: parseFloat(formData.taxPercentage) || 0,
-                    paymentterms: formData.paymentterms.trim(),
-                    penalty: parseFloat(formData.penalty) || 0,
-                    classFeesId: editingLocalFeeColumn.classFeesId,
-                    dueDate: new Date(formData.dueDate).toISOString()
-                }]
-            };
+            let body = {};
+
+            if (formData.paymentterms === 'ONE_TIME') {
+                body = {
+                    localFees: [{
+                        id: editingLocalFeeColumn.id,
+                        name: formData.name.trim(),
+                        description: formData.description.trim(),
+                        amount: parseFloat(formData.amount) || 0,
+                        taxPercentage: parseFloat(formData.taxPercentage) || 0,
+                        paymentterms: formData.paymentterms.trim(),
+                        penalty: parseFloat(formData.penalty) || 0,
+                        classFeesId: editingLocalFeeColumn.classFeesId,
+                        dueDate: new Date(formData.dueDate).toISOString()
+                    }]
+                };
+            } else {
+                body = {
+                    localFees: [{
+                        id: editingLocalFeeColumn.id,
+                        name: formData.name.trim(),
+                        description: formData.description.trim(),
+                        amount: parseFloat(formData.amount) || 0,
+                        taxPercentage: parseFloat(formData.taxPercentage) || 0,
+                        paymentterms: formData.paymentterms.trim(),
+                        penalty: parseFloat(formData.penalty) || 0,
+                        classFeesId: editingLocalFeeColumn.classFeesId
+                    }]
+                };
+            }
 
             console.log("Local fee column edit body:", body);
             await axios.patch('/api/payment/local-fees', body);
@@ -736,16 +789,17 @@ const LocalFeeColumnEditModal: React.FC<LocalFeeColumnEditModalProps> = ({ isOpe
                             <label className="block text-sm font-medium text-gray-700 mb-1">Payment Terms *</label>
                             <select
                                 name="paymentterms"
-                                value={formData.paymentterms}
+                                value={['MONTHLY', 'QUARTERLY', 'HALF_YEARLY', 'YEARLY', 'ONE_TIME'].includes(formData.paymentterms || '') ? formData.paymentterms : ''}
                                 onChange={handleInputChange}
                                 required
                                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                             >
                                 <option value="">Select Payment Terms</option>
-                                <option value="Monthly">Monthly</option>
-                                <option value="3 Months">3 Months</option>
-                                <option value="6 Months">6 Months</option>
-                                <option value="12 Months">12 Months</option>
+                                <option value="MONTHLY">Monthly</option>
+                                <option value="QUARTERLY">Quarterly</option>
+                                <option value="HALF_YEARLY">Half Yearly</option>
+                                <option value="YEARLY">Yearly</option>
+                                <option value="ONE_TIME">One Time</option>
                             </select>
                         </div>
                         <div>
@@ -762,17 +816,19 @@ const LocalFeeColumnEditModal: React.FC<LocalFeeColumnEditModalProps> = ({ isOpe
                                 placeholder="0.00"
                             />
                         </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Due Date *</label>
-                            <input
-                                type="date"
-                                name="dueDate"
-                                value={formData.dueDate}
-                                onChange={handleInputChange}
-                                required
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                            />
-                        </div>
+                        {formData.paymentterms === 'ONE_TIME' && (
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Due Date *</label>
+                                <input
+                                    type="date"
+                                    name="dueDate"
+                                    value={formData.dueDate}
+                                    onChange={handleInputChange}
+                                    required
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                />
+                            </div>
+                        )}
                         <div className="flex gap-3 pt-4">
                             <button
                                 type="button"
@@ -967,19 +1023,36 @@ const GlobalFeeEditModal: React.FC<GlobalFeeEditModalProps> = ({ isOpen, onClose
 
         setSubmitting(true);
         try {
-            const body = {
-                dueDate: formData.dueDate,
-                globalFeesToUpdate: [{
-                    id: editingGlobalFee.id,
-                    name: formData.name.trim(),
-                    description: formData.description.trim(),
-                    amount: parseFloat(formData.amount) || 0,
-                    taxPercentage: parseFloat(formData.taxPercentage) || 0,
-                    paymentterms: formData.paymentterms.trim(),
-                    penalty: parseFloat(formData.penalty) || 0,
-                    institutionId: editingGlobalFee.institutionId
-                }]
-            };
+            let body = {};
+
+            if (formData.paymentterms === 'ONE_TIME') {
+                body = {
+                    dueDate: formData.dueDate,
+                    globalFeesToUpdate: [{
+                        id: editingGlobalFee.id,
+                        name: formData.name.trim(),
+                        description: formData.description.trim(),
+                        amount: parseFloat(formData.amount) || 0,
+                        taxPercentage: parseFloat(formData.taxPercentage) || 0,
+                        paymentterms: formData.paymentterms.trim(),
+                        penalty: parseFloat(formData.penalty) || 0,
+                        institutionId: editingGlobalFee.institutionId
+                    }]
+                };
+            } else {
+                body = {
+                    globalFeesToUpdate: [{
+                        id: editingGlobalFee.id,
+                        name: formData.name.trim(),
+                        description: formData.description.trim(),
+                        amount: parseFloat(formData.amount) || 0,
+                        taxPercentage: parseFloat(formData.taxPercentage) || 0,
+                        paymentterms: formData.paymentterms.trim(),
+                        penalty: parseFloat(formData.penalty) || 0,
+                        institutionId: editingGlobalFee.institutionId
+                    }]
+                };
+            }
 
             console.log("Global fee edit body:", body);
             await axios.patch('/api/payment/global-fees', body);
@@ -1061,16 +1134,17 @@ const GlobalFeeEditModal: React.FC<GlobalFeeEditModalProps> = ({ isOpen, onClose
                             <label className="block text-sm font-medium text-gray-700 mb-1">Payment Terms *</label>
                             <select
                                 name="paymentterms"
-                                value={formData.paymentterms}
+                                value={['MONTHLY', 'QUARTERLY', 'HALF_YEARLY', 'YEARLY', 'ONE_TIME'].includes(formData.paymentterms || '') ? formData.paymentterms : ''}
                                 onChange={handleInputChange}
                                 required
                                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                             >
                                 <option value="">Select Payment Terms</option>
-                                <option value="Monthly">Monthly</option>
-                                <option value="3 Months">3 Months</option>
-                                <option value="6 Months">6 Months</option>
-                                <option value="12 Months">12 Months</option>
+                                <option value="MONTHLY">Monthly</option>
+                                <option value="QUARTERLY">Quarterly</option>
+                                <option value="HALF_YEARLY">Half Yearly</option>
+                                <option value="YEARLY">Yearly</option>
+                                <option value="ONE_TIME">One Time</option>
                             </select>
                         </div>
                         <div>
@@ -1087,17 +1161,19 @@ const GlobalFeeEditModal: React.FC<GlobalFeeEditModalProps> = ({ isOpen, onClose
                                 placeholder="0.00"
                             />
                         </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Due Date *</label>
-                            <input
-                                type="date"
-                                name="dueDate"
-                                value={formData.dueDate}
-                                onChange={handleInputChange}
-                                required
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                            />
-                        </div>
+                        {formData.paymentterms === 'ONE_TIME' && (
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Due Date *</label>
+                                <input
+                                    type="date"
+                                    name="dueDate"
+                                    value={formData.dueDate}
+                                    onChange={handleInputChange}
+                                    required
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                />
+                            </div>
+                        )}
                         <div className="flex gap-3 pt-4">
                             <button
                                 type="button"
@@ -1429,6 +1505,20 @@ export default function Home() {
         penalty: number;
         classFeesId: string;
         dueDate: string;
+    } | null>(null);
+    // --- NEW --- State for Global Fee Edit Modal ---
+    const [isGlobalFeeEditOpen, setIsGlobalFeeEditOpen] = useState(false);
+    const [editingGlobalFee, setEditingGlobalFee] = useState<{
+        id: string;
+        name: string;
+        description: string;
+        amount: number;
+        taxPercentage: number;
+        paymentterms: string;
+        penalty: number;
+        institutionId: string;
+        dueDate: string;
+        sectionName: string;
     } | null>(null);
 
 
@@ -1894,25 +1984,227 @@ export default function Home() {
         handleCloseLocalFeeColumnEdit();
     };
 
+    // --- NEW --- Handlers for Global Fee Edit Modal ---
+    const handleCloseGlobalFeeEdit = () => {
+        setIsGlobalFeeEditOpen(false);
+        setEditingGlobalFee(null);
+    };
+
+    const handleSaveGlobalFeeEdit = async (updatedFee: any) => {
+        console.log('Global fee updated successfully:', updatedFee);
+
+        // Refresh the fee structure data after successful update
+        try {
+            const user = localStorage.getItem('user');
+            if (user) {
+                const data = JSON.parse(user as string);
+                const institutionId = data.institutionId;
+
+                // Fetch updated fee structure
+                const response = await axios.get(`/api/payment/global-fees?institutionId=${institutionId}`);
+                const feeStructure: FeeStructureData = response.data;
+                setFeeStructureData(feeStructure);
+
+                // Refresh section details for all mother classes
+                const sectionDetails: SectionFeeDetails = {};
+                for (const motherClass of feeStructure.motherClasses) {
+                    try {
+                        const detailResponse = await axios.get(`/api/payment/global-fees/fees?motherClassId=${motherClass.id}`);
+                        sectionDetails[motherClass.id] = detailResponse.data.globalClassFees || [];
+                    } catch (err) {
+                        console.log(`Error fetching details for section ${motherClass.sectionName}:`, err);
+                        sectionDetails[motherClass.id] = [];
+                    }
+                }
+                setSectionFeeDetails(sectionDetails);
+
+                // Update the mapped fees data
+                const mappedFeesData = feeStructure.motherClasses.map((section) => ({
+                    id: parseInt(section.id.slice(-8), 16),
+                    sectionName: section.sectionName,
+                    globalFees: (sectionDetails[section.id] || [])
+                        .filter((feeObj) => feeObj.globalFees !== null)
+                        .map((feeObj) => {
+                            const fee = feeObj.globalFees!;
+                            return {
+                                id: fee.id,
+                                name: fee.name,
+                                amount: fee.amount,
+                                taxPercentage: fee.taxPercentage,
+                                paymentterms: fee.paymentterms,
+                                penalty: fee.penalty,
+                                description: fee.description,
+                                institutionId: fee.institutionId,
+                                dueDate: feeObj.dueDate
+                            };
+                        })
+                }));
+                setFeesData(mappedFeesData);
+            }
+        } catch (err) {
+            console.error('Error refreshing fee structure after edit:', err);
+        }
+
+        handleCloseGlobalFeeEdit();
+    };
+
     // --- Helper function to calculate sum of fees from an array ---
     const calculateFeeSum = (feesArray: Fee[]): number => feesArray.reduce((sum: number, fee: Fee) => sum + fee.amount, 0);
+
+    // --- Helper function to refresh fee structure data ---
+    const refreshFeeStructureData = async () => {
+        const user = localStorage.getItem('user');
+        if (user) {
+            const data = JSON.parse(user as string);
+            const institutionId = data.institutionId;
+
+            // Fetch updated fee structure
+            const response = await axios.get(`/api/payment/global-fees?institutionId=${institutionId}`);
+            const feeStructure: FeeStructureData = response.data;
+            setFeeStructureData(feeStructure);
+
+            // Refresh section details for all mother classes
+            const sectionDetails: SectionFeeDetails = {};
+            for (const motherClass of feeStructure.motherClasses) {
+                try {
+                    const detailResponse = await axios.get(`/api/payment/global-fees/fees?motherClassId=${motherClass.id}`);
+                    sectionDetails[motherClass.id] = detailResponse.data.globalClassFees || [];
+                } catch (err) {
+                    console.log(`Error fetching details for section ${motherClass.sectionName}:`, err);
+                    sectionDetails[motherClass.id] = [];
+                }
+            }
+            setSectionFeeDetails(sectionDetails);
+
+            // Update the mapped fees data
+            const mappedFeesData = feeStructure.motherClasses.map((section) => ({
+                id: parseInt(section.id.slice(-8), 16),
+                sectionName: section.sectionName,
+                globalFees: (sectionDetails[section.id] || [])
+                    .filter((feeObj) => feeObj.globalFees !== null)
+                    .map((feeObj) => {
+                        const fee = feeObj.globalFees!;
+                        return {
+                            id: fee.id,
+                            name: fee.name,
+                            amount: fee.amount,
+                            taxPercentage: fee.taxPercentage,
+                            paymentterms: fee.paymentterms,
+                            penalty: fee.penalty,
+                            description: fee.description,
+                            institutionId: fee.institutionId,
+                            dueDate: feeObj.dueDate
+                        };
+                    })
+            }));
+            setFeesData(mappedFeesData);
+        }
+    };
 
     const selectedSectionName = feesData.find(sec => sec.id === selectedSectionId)?.sectionName;
 
     // --- NEW --- Fee structure button handlers ---
-    const handleEditGlobalFee = (feeId: string, motherClassId: string) => {
-        console.log('Edit global fee:', feeId, 'for section:', motherClassId);
-        // TODO: Implement edit functionality
+    const handleEditGlobalFee = (feeId: string, motherClassId: string = '') => {
+        // Find the global fee from the fee structure data
+        const globalFee = feeStructureData?.globalFees.find(fee => fee.id === feeId);
+        if (!globalFee) {
+            console.error('Global fee not found:', feeId);
+            return;
+        }
+
+        // Get the due date from any section that has this fee enabled
+        let dueDate = new Date().toISOString().split('T')[0]; // Default to today
+
+        // Look for the due date in section details
+        for (const [motherClassId, details] of Object.entries(sectionFeeDetails)) {
+            const classFee = details.find(detail => detail.globalFeesId === feeId);
+            if (classFee && classFee.dueDate) {
+                dueDate = new Date(classFee.dueDate).toISOString().split('T')[0];
+                break;
+            }
+        }
+
+        setEditingGlobalFee({
+            id: globalFee.id,
+            name: globalFee.name,
+            description: globalFee.description,
+            amount: globalFee.amount,
+            taxPercentage: globalFee.taxPercentage,
+            paymentterms: globalFee.paymentterms,
+            penalty: globalFee.penalty,
+            institutionId: globalFee.institutionId,
+            dueDate: dueDate,
+            sectionName: 'All Sections' // Since this is a global fee edit
+        });
+        setIsGlobalFeeEditOpen(true);
     };
 
-    const handleMarkAllForFee = (feeId: string) => {
-        console.log('Mark all for fee:', feeId);
-        // TODO: Implement mark all functionality
+    const handleMarkAllForFee = async (feeId: string) => {
+        try {
+            let institutionId = '';
+            try {
+                const user = localStorage.getItem('user');
+                if (user) {
+                    const data = JSON.parse(user);
+                    institutionId = data.institutionId || '';
+                }
+            } catch { }
+
+            // Get all motherClass IDs from the fee structure data
+            const allMotherClassIds = feeStructureData?.motherClasses.map(mc => mc.id) || [];
+
+            if (allMotherClassIds.length === 0) {
+                console.warn('No sections found to mark');
+                return;
+            }
+
+            // Enable the fee for all sections
+            const body = {
+                globalFeeId: feeId,
+                motherClassIds: allMotherClassIds,
+                institutionId: institutionId
+            };
+
+            console.log('Marking all sections for fee with body:', body);
+            await axios.post('/api/payment/global-fees/fees', body);
+
+            // Refresh the fee structure data after successful operation
+            await refreshFeeStructureData();
+        } catch (err: any) {
+            console.error('Failed to mark all sections for fee:', err);
+            console.error('Error details:', err.response?.data);
+            const errorMessage = err.response?.data?.error || err.response?.data?.message || err.message || 'Unknown error occurred';
+            alert(`Failed to mark all sections for fee: ${errorMessage}`);
+        }
     };
 
-    const handleUnmarkAllForFee = (feeId: string) => {
-        console.log('Unmark all for fee:', feeId);
-        // TODO: Implement unmark all functionality
+    const handleUnmarkAllForFee = async (feeId: string) => {
+        try {
+            // Get all motherClass IDs from the fee structure data
+            const allMotherClassIds = feeStructureData?.motherClasses.map(mc => mc.id) || [];
+
+            if (allMotherClassIds.length === 0) {
+                console.warn('No sections found to unmark');
+                return;
+            }
+
+            // Disable the fee for all sections
+            const body = {
+                globalFeeId: feeId,
+                motherClassIds: allMotherClassIds
+            };
+
+            console.log('Unmarking all sections for fee with body:', body);
+            await axios.delete('/api/payment/global-fees/fees', { data: body });
+
+            // Refresh the fee structure data after successful operation
+            await refreshFeeStructureData();
+        } catch (err: any) {
+            console.error('Failed to unmark all sections for fee:', err);
+            console.error('Error details:', err.response?.data);
+            const errorMessage = err.response?.data?.error || err.response?.data?.message || err.message || 'Unknown error occurred';
+            alert(`Failed to unmark all sections for fee: ${errorMessage}`);
+        }
     };
 
     const handleDeleteGlobalFee = async (feeId: string, feeName: string) => {
@@ -2010,52 +2302,7 @@ export default function Home() {
             }
 
             // Refresh the fee structure data after successful toggle
-            const user = localStorage.getItem('user');
-            if (user) {
-                const data = JSON.parse(user as string);
-                const institutionId = data.institutionId;
-
-                // Fetch updated fee structure
-                const response = await axios.get(`/api/payment/global-fees?institutionId=${institutionId}`);
-                const feeStructure: FeeStructureData = response.data;
-                setFeeStructureData(feeStructure);
-
-                // Refresh section details for all mother classes
-                const sectionDetails: SectionFeeDetails = {};
-                for (const motherClass of feeStructure.motherClasses) {
-                    try {
-                        const detailResponse = await axios.get(`/api/payment/global-fees/fees?motherClassId=${motherClass.id}`);
-                        sectionDetails[motherClass.id] = detailResponse.data.globalClassFees || [];
-                    } catch (err) {
-                        console.log(`Error fetching details for section ${motherClass.sectionName}:`, err);
-                        sectionDetails[motherClass.id] = [];
-                    }
-                }
-                setSectionFeeDetails(sectionDetails);
-
-                // Update the mapped fees data
-                const mappedFeesData = feeStructure.motherClasses.map((section) => ({
-                    id: parseInt(section.id.slice(-8), 16),
-                    sectionName: section.sectionName,
-                    globalFees: (sectionDetails[section.id] || [])
-                        .filter((feeObj) => feeObj.globalFees !== null)
-                        .map((feeObj) => {
-                            const fee = feeObj.globalFees!;
-                            return {
-                                id: fee.id,
-                                name: fee.name,
-                                amount: fee.amount,
-                                taxPercentage: fee.taxPercentage,
-                                paymentterms: fee.paymentterms,
-                                penalty: fee.penalty,
-                                description: fee.description,
-                                institutionId: fee.institutionId,
-                                dueDate: feeObj.dueDate
-                            };
-                        })
-                }));
-                setFeesData(mappedFeesData);
-            }
+            await refreshFeeStructureData();
         } catch (err: any) {
             console.error('Failed to toggle fee for section:', err);
             console.error('Error details:', err.response?.data);
@@ -2153,7 +2400,7 @@ export default function Home() {
                                                     )}
                                                     <div className="grid grid-cols-2 gap-1 justify-center">
                                                         <button
-                                                            onClick={() => handleEditGlobalFee(fee.id, '')}
+                                                            onClick={() => handleEditGlobalFee(fee.id)}
                                                             className="px-1.5 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
                                                             title="Edit this fee"
                                                         >
@@ -2243,9 +2490,10 @@ export default function Home() {
                                                                                 <div>Amount: ₹{classFee.globalFees?.amount}</div>
                                                                                 <div>Tax: ₹{((classFee.globalFees?.amount || 0) * (classFee.globalFees?.taxPercentage || 0) / 100).toFixed(2)}</div>
                                                                                 <div>Penalty: ₹{classFee.globalFees?.penalty}</div>
-                                                                                <div>Due: {new Date(classFee.dueDate).toLocaleDateString()}</div>
+                                                                                {/* <div>Due: {new Date(classFee.dueDate).toLocaleDateString()}</div> */}
                                                                             </div>
-                                                                            <button
+                                                                            {/* edit not needed here */}
+                                                                            {/* <button
                                                                                 onClick={(e) => {
                                                                                     e.stopPropagation();
                                                                                     handleEditGlobalFee(globalFee.id, motherClass.id);
@@ -2254,7 +2502,7 @@ export default function Home() {
                                                                                 title="Edit fee details for this section"
                                                                             >
                                                                                 <Pencil className="w-3 h-3" />
-                                                                            </button>
+                                                                            </button> */}
                                                                         </div>
                                                                     )}
                                                                 </div>
@@ -2468,6 +2716,14 @@ export default function Home() {
                 onClose={handleCloseLocalFeeColumnEdit}
                 onSave={handleSaveLocalFeeColumnEdit}
                 editingLocalFeeColumn={editingLocalFeeColumn}
+            />
+
+            {/* --- Global Fee Edit Modal Render --- */}
+            <GlobalFeeEditModal
+                isOpen={isGlobalFeeEditOpen}
+                onClose={handleCloseGlobalFeeEdit}
+                onSave={handleSaveGlobalFeeEdit}
+                editingGlobalFee={editingGlobalFee}
             />
 
         </main>
