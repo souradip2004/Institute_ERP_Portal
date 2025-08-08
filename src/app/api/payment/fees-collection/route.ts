@@ -24,8 +24,7 @@ export async function PATCH(request: Request) {
       feesCollectionId
     } = body;
 
-    // --- 1. Input Validation (Unchanged) ---
-    if (!studentId || !classFeeId || !paymentMethod ||  !feesCollectionId || !amountPaid) {
+    if (!studentId || !classFeeId || !paymentMethod || !feesCollectionId || !amountPaid) {
       return NextResponse.json({error: "Missing required fields in request body."}, {status: 400});
     }
 
@@ -74,19 +73,22 @@ export async function PATCH(request: Request) {
         throw new Error("Fee details (Global/Local) not found for this ClassFee. Please contact the administrator.");
       }
 
+      const now = new Date();
+      const dueDate = classFee.dueDate;
+      const isPenaltyApplied = dueDate < now && feeCollection.status !== PaymentStatus.PAID && feeCollection.status !== PaymentStatus.PARTIAL;
+
       const baseAmount = classFee.globalFees?.amount ?? classFee.localFees?.amount ?? 0;
       const taxPercentage = classFee.globalFees?.taxPercentage ?? classFee.localFees?.taxPercentage ?? 0;
-      const penalty = classFee.globalFees?.penalty ?? classFee.localFees?.penalty ?? 0;
+      const penalty = isPenaltyApplied ? classFee.globalFees?.penalty ?? classFee.localFees?.penalty ?? 0 : 0;
       const totalAmountDue = baseAmount + (baseAmount * taxPercentage / 100) + penalty - feeCollection.amount;
 
-      const dueDate = classFee.dueDate;
 
       if (totalAmountDue <= 0 || !dueDate) {
         throw new Error("Fee details (amount or due date) could not be determined from the linked fee.");
       }
 
       // const currentAmountPaid = feeCollection.amount;
-      const newTotalPaid =  amountPaid;
+      const newTotalPaid = amountPaid;
       console.log("Total payment ", newTotalPaid);
       console.log("Total amount due ", totalAmountDue);
       if (newTotalPaid > totalAmountDue) {
@@ -111,9 +113,9 @@ export async function PATCH(request: Request) {
           id: feeCollection.id
         },
         data: {
-          amount: newTotalPaid, // Update with the new cumulative amount
+          amount: newTotalPaid,
           status: newStatus,
-          paymentDate: paymentTransactionDate, // Record the date of this specific payment
+          paymentDate: paymentTransactionDate,
           paymentMethod: paymentMethod,
           transactionId: transactionId
         }
