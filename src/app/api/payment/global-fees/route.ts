@@ -120,7 +120,7 @@ export async function POST(request: Request) {
         });
 
         for (const motherClassId of fee.motherClassIds) {
-          // --- MODIFICATION START: Fetch semester data "just-in-time" ---
+
           const sectionWithSemester = await tx.classSection.findFirst({
             where: {motherClassId: motherClassId},
             select: {
