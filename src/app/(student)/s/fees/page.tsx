@@ -310,7 +310,7 @@ export default function Home() {
         <main className="bg-gray-50 min-h-screen p-4 md:p-6">
             <div className="w-full">
                 {/* Header */}
-                <div className="bg-white rounded-lg shadow-sm mb-6 max-w-[calc(100vw-370px)] mx-auto">
+                <div className="bg-white rounded-lg shadow-sm mb-6 md:max-w-[calc(100vw-370px)] mx-auto">
                     <div className="px-4 md:px-6 py-4 border-b border-gray-200">
                         <h1 className="text-xl md:text-2xl font-semibold text-gray-900">Fee Payment</h1>
                     </div>
@@ -417,7 +417,7 @@ export default function Home() {
                 </div> */}
 
                 {/* Fee Table */}
-                <div className="bg-white rounded-lg shadow-sm mb-6 max-w-[calc(100vw-370px)] mx-auto">
+                <div className="bg-white rounded-lg shadow-sm mb-6 md:max-w-[calc(100vw-370px)] mx-auto">
                     <div className="px-4 md:px-6 py-4 border-b border-gray-200">
                         <h2 className="text-lg font-semibold text-gray-900">Fee Details</h2>
                         <p className="text-sm text-gray-600 mt-1">Total fees: {filteredFees.length}</p>
