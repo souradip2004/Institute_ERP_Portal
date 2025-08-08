@@ -46,17 +46,16 @@ export function calculateDueDates(
     if (currentDueDate <= endDate) {
       dates.push(new Date(currentDueDate.toISOString()));
     }
-    // Increment for the next potential cycle.
+
     currentDueDate.setMonth(currentDueDate.getMonth() + monthIncrement);
   } while (currentDueDate <= endDate);
-
 
   const lastPushedDate = dates.length > 0 ? dates[dates.length - 1] : null;
   if (lastPushedDate && lastPushedDate.getTime() < endDate.getTime()) {
     dates.push(endDate);
   }
 
-  if(dates.length === 0 && startDate.getTime() === endDate.getTime()){
+  if (dates.length === 0 && startDate.getTime() === endDate.getTime()) {
     dates.push(endDate);
   }
 
@@ -79,6 +78,14 @@ export async function POST(request: Request) {
       // (Validation logic is correct and remains here)
       if (fee.paymentterms === 'ONE_TIME' && !fee.dueDate) {
         return NextResponse.json({error: `The 'dueDate' field is required for fee "${fee.name}" because its payment term is ONE_TIME.`}, {status: 400});
+      }
+
+      if (fee.dueDate) {
+        return NextResponse.json({error: "Due Date should only be passed if paymentterms is ONE_TIME!"}, {status: 400})
+      }
+
+      if (!fee.amount || !fee.name || !fee.paymentterms || !fee.taxPercentage) {
+        return NextResponse.json({error: "Missing required fields!"}, {status: 400})
       }
     }
 
@@ -192,7 +199,6 @@ export async function POST(request: Request) {
 
 interface GlobalFeeUpdatePayload {
   id: string;
-  institutionId: string;
   name?: string;
   description?: string;
   amount?: number;
@@ -205,225 +211,233 @@ interface GlobalFeeUpdatePayload {
 export async function PATCH(request: Request) {
   try {
     const body = await request.json();
-    const globalFeesToUpdate: GlobalFeeUpdatePayload[] = body.fees;
+    const globalFeesToUpdate: GlobalFeeUpdatePayload[] = body.globalFeesToUpdate;
 
     if (!Array.isArray(globalFeesToUpdate) || globalFeesToUpdate.length === 0) {
       return NextResponse.json({error: 'The request body must contain a non-empty `fees` array.'}, {status: 400});
     }
 
     for (const fee of globalFeesToUpdate) {
-      if (!fee.id || !fee.institutionId) {
+      if (!fee.id) {
         throw new Error('Every fee object must have an `id` and `institutionId`.');
       }
       if (fee.paymentterms === 'ONE_TIME' && !fee.dueDate) {
-        throw new Error(`The 'dueDate' is required for fee "${fee.name || fee.id}" because its new payment term is ONE_TIME.`);
+        return NextResponse.json({error: `The 'dueDate' is required for fee "${fee.name || fee.id}" because its new payment term is ONE_TIME.`},
+        {status: 400});
       }
-    }
 
-    const updatedFees = await prisma.$transaction(async (tx) => {
-
-      const allFeeIds = globalFeesToUpdate.map(f => f.id);
-      const allRelatedClassFees = await tx.classFee.findMany({
-        where: { globalFeesId: { in: allFeeIds } },
-        select: { motherClassId: true }
-      });
-
-      const allMotherClassIds = [...new Set(allRelatedClassFees.map(cf => cf.motherClassId))];
-
-      const studentEnrollments = await tx.studentClassEnrollment.findMany({
-        where: {
-          classSection: { motherClassId: { in: allMotherClassIds } },
-          enrollmentStatus: 'ENROLLED'
-        },
-        select: { studentId: true, classSection: { select: { motherClassId: true } } }
-      });
-
-      const studentsByMotherClass = new Map<string, Set<string>>();
-      for (const enrollment of studentEnrollments) {
-        if (enrollment.classSection.motherClassId) {
-          const students = studentsByMotherClass.get(enrollment.classSection.motherClassId) || new Set();
-          students.add(enrollment.studentId);
-          studentsByMotherClass.set(enrollment.classSection.motherClassId, students);
+        if (fee.dueDate) {
+          return NextResponse.json({error: "Due Date should only be passed if paymentterms is ONE_TIME!"}, {status: 400})
         }
       }
 
-      const updatePromises = globalFeesToUpdate.map(async (fee) => {
-        const { id, institutionId, dueDate, ...dataToUpdate } = fee;
+      const updatedFees = await prisma.$transaction(async (tx) => {
 
-        const updatedGlobalFee = await tx.globalFees.update({
-          where: { id: id, institutionId: institutionId },
-          data: dataToUpdate,
+        const allFeeIds = globalFeesToUpdate.map(f => f.id);
+        const allRelatedClassFees = await tx.classFee.findMany({
+          where: {globalFeesId: {in: allFeeIds}},
+          select: {motherClassId: true}
         });
 
-        if (dataToUpdate.paymentterms) {
-          // Find all old ClassFees to get their IDs and associated MotherClasses
-          const oldClassFees = await tx.classFee.findMany({
-            where: { globalFeesId: id },
-            select: { id: true, motherClassId: true }
+        const allMotherClassIds = [...new Set(allRelatedClassFees.map(cf => cf.motherClassId))];
+
+        const studentEnrollments = await tx.studentClassEnrollment.findMany({
+          where: {
+            classSection: {motherClassId: {in: allMotherClassIds}},
+            enrollmentStatus: 'ENROLLED'
+          },
+          select: {studentId: true, classSection: {select: {motherClassId: true}}}
+        });
+
+        const studentsByMotherClass = new Map<string, Set<string>>();
+        for (const enrollment of studentEnrollments) {
+          if (enrollment.classSection.motherClassId) {
+            const students = studentsByMotherClass.get(enrollment.classSection.motherClassId) || new Set();
+            students.add(enrollment.studentId);
+            studentsByMotherClass.set(enrollment.classSection.motherClassId, students);
+          }
+        }
+
+        const updatePromises = globalFeesToUpdate.map(async (fee) => {
+          const {id, dueDate, ...dataToUpdate} = fee;
+
+          const updatedGlobalFee = await tx.globalFees.update({
+            where: {id: id},
+            data: dataToUpdate,
           });
 
-          if (oldClassFees.length > 0) {
-            const oldClassFeeIds = oldClassFees.map(cf => cf.id);
-            const motherClassIdsToRecreate = [...new Set(oldClassFees.map(cf => cf.motherClassId))];
-
-            // Delete all associated children (FeesCollection) first
-            await tx.feesCollection.deleteMany({
-              where: { classFeeId: { in: oldClassFeeIds } }
+          if (dataToUpdate.paymentterms) {
+            // Find all old ClassFees to get their IDs and associated MotherClasses
+            const oldClassFees = await tx.classFee.findMany({
+              where: {globalFeesId: id},
+              select: {id: true, motherClassId: true}
             });
 
-            // Delete the old schedule (ClassFee)
-            await tx.classFee.deleteMany({
-              where: { id: { in: oldClassFeeIds } }
-            });
+            if (oldClassFees.length > 0) {
+              const oldClassFeeIds = oldClassFees.map(cf => cf.id);
+              const motherClassIdsToRecreate = [...new Set(oldClassFees.map(cf => cf.motherClassId))];
 
-            // Re-create the new schedule
-            const feesCollectionToCreate: Prisma.FeesCollectionCreateManyInput[] = [];
-            for (const mcId of motherClassIdsToRecreate) {
-              const section = await tx.classSection.findFirst({
-                where: { motherClassId: mcId },
-                select: { semester: { select: { startDate: true, endDate: true } } }
+              // Delete all associated children (FeesCollection) first
+              await tx.feesCollection.deleteMany({
+                where: {classFeeId: {in: oldClassFeeIds}}
               });
 
-              if (!section?.semester) continue;
+              // Delete the old schedule (ClassFee)
+              await tx.classFee.deleteMany({
+                where: {id: {in: oldClassFeeIds}}
+              });
 
-              const newDueDates = calculateDueDates(section.semester.startDate, section.semester.endDate, dataToUpdate.paymentterms, dueDate);
-              for (const newDueDate of newDueDates) {
-                const newClassFee = await tx.classFee.create({
-                  data: {
-                    globalFeesId: id,
-                    motherClassId: mcId,
-                    dueDate: newDueDate,
-                  }
+              // Re-create the new schedule
+              const feesCollectionToCreate: Prisma.FeesCollectionCreateManyInput[] = [];
+              for (const mcId of motherClassIdsToRecreate) {
+                const section = await tx.classSection.findFirst({
+                  where: {motherClassId: mcId},
+                  select: {semester: {select: {startDate: true, endDate: true}}}
                 });
 
-                const studentIds = studentsByMotherClass.get(mcId);
-                if (studentIds) {
-                  for (const studentId of studentIds) {
-                    feesCollectionToCreate.push({
-                      classFeeId: newClassFee.id,
-                      studentId: studentId,
-                      status: PaymentStatus.PENDING,
-                    });
+                if (!section?.semester) continue;
+
+                const newDueDates = calculateDueDates(section.semester.startDate, section.semester.endDate, dataToUpdate.paymentterms, dueDate);
+                for (const newDueDate of newDueDates) {
+                  const newClassFee = await tx.classFee.create({
+                    data: {
+                      globalFeesId: id,
+                      motherClassId: mcId,
+                      dueDate: newDueDate,
+                    }
+                  });
+
+                  const studentIds = studentsByMotherClass.get(mcId);
+                  if (studentIds) {
+                    for (const studentId of studentIds) {
+                      feesCollectionToCreate.push({
+                        classFeeId: newClassFee.id,
+                        studentId: studentId,
+                        status: PaymentStatus.PENDING,
+                      });
+                    }
                   }
                 }
               }
-            }
-            if (feesCollectionToCreate.length > 0) {
-              await tx.feesCollection.createMany({ data: feesCollectionToCreate, skipDuplicates: true });
+              if (feesCollectionToCreate.length > 0) {
+                await tx.feesCollection.createMany({data: feesCollectionToCreate, skipDuplicates: true});
+              }
             }
           }
-        }
 
-        return updatedGlobalFee;
+          return updatedGlobalFee;
+        });
+
+        return Promise.all(updatePromises);
       });
 
-      return Promise.all(updatePromises);
-    });
+      return NextResponse.json(
+        {message: 'Global fees updated successfully.', data: updatedFees},
+        {status: 200}
+      );
 
-    return NextResponse.json(
-      { message: 'Global fees updated successfully.', data: updatedFees },
-      { status: 200 }
-    );
-
-  } catch (error: any) {
-    console.error('Error updating global fees:', error);
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
-      return NextResponse.json({ error: 'One or more fees to update were not found. Please check IDs and institution link.' }, { status: 404 });
     }
-    return NextResponse.json({ error: error.message || 'An internal server error occurred.' }, { status: 500 });
-  }
-}
-
-export async function DELETE(request: Request) {
-  try {
-
-    const {searchParams} = new URL(request.url);
-    const globalFeesId = searchParams.get('globalFeesId') as string;
-
-    if (!globalFeesId) {
-      return NextResponse.json({error: "GlobalFeesId required"}, {status: 404});
-    }
-
-    const deleted = await prisma.globalFees.delete({
-      where: {
-        id: globalFeesId
+  catch
+    (error: any)
+    {
+      console.error('Error updating global fees:', error);
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+        return NextResponse.json({error: 'One or more fees to update were not found. Please check IDs and institution link.'}, {status: 404});
       }
-    });
-    console.log("deleted: ", deleted);
-
-    return NextResponse.json(deleted, {status: 200});
-
-
-  } catch (e) {
-    console.log("Error in GET: ", e);
-
-    return NextResponse.json({error: "Internal server error. Please try again later."}, {status: 500});
-  }
-}
-
-export async function GET(request: Request) {
-  try {
-    const {searchParams} = new URL(request.url);
-    // const motherClassId = searchParams.get('motherClassId') as string;
-    const institutionId = searchParams.get('institutionId') as string;
-
-    if (!institutionId) {
-      return NextResponse.json({error: "All fields are required !"});
+      return NextResponse.json({error: error.message || 'An internal server error occurred.'}, {status: 500});
     }
+  }
 
-    const globalFees = await prisma.globalFees.findMany({
-      where: {
-        classFees: {
-          some: {
-            motherClass: {
-              institutionId: institutionId
+  export async function DELETE(request: Request) {
+    try {
+
+      const {searchParams} = new URL(request.url);
+      const globalFeesId = searchParams.get('globalFeesId') as string;
+
+      if (!globalFeesId) {
+        return NextResponse.json({error: "GlobalFeesId required"}, {status: 404});
+      }
+
+      const deleted = await prisma.globalFees.delete({
+        where: {
+          id: globalFeesId
+        }
+      });
+      console.log("deleted: ", deleted);
+
+      return NextResponse.json(deleted, {status: 200});
+
+
+    } catch (e) {
+      console.log("Error in GET: ", e);
+
+      return NextResponse.json({error: "Internal server error. Please try again later."}, {status: 500});
+    }
+  }
+
+  export async function GET(request: Request) {
+    try {
+      const {searchParams} = new URL(request.url);
+      // const motherClassId = searchParams.get('motherClassId') as string;
+      const institutionId = searchParams.get('institutionId') as string;
+
+      if (!institutionId) {
+        return NextResponse.json({error: "All fields are required !"});
+      }
+
+      const globalFees = await prisma.globalFees.findMany({
+        where: {
+          classFees: {
+            some: {
+              motherClass: {
+                institutionId: institutionId
+              }
+            }
+          },
+        },
+        include: {
+          classFees: {
+            select: {
+              dueDate: true,
+              id: true,
+              motherClassId: true,
             }
           }
         },
-      },
-      include: {
-        classFees: {
-          select: {
-            dueDate: true,
-            id: true,
-            motherClassId: true,
-          }
+        orderBy: {
+          createdAt: 'desc'
         }
-      },
-      orderBy: {
-        createdAt: 'desc'
-      }
-    });
+      });
 
-    console.log("globalFees: ", globalFees);
+      console.log("globalFees: ", globalFees);
 
-    const motherClasses = await prisma.motherClass.findMany({
-      where: {
-        institutionId: institutionId,
-      },
-      include: {
-        classfee: {
-          where: {
-            globalFees: {
-              isNot: null,
+      const motherClasses = await prisma.motherClass.findMany({
+        where: {
+          institutionId: institutionId,
+        },
+        include: {
+          classfee: {
+            where: {
+              globalFees: {
+                isNot: null,
+              }
+            },
+            select: {
+              dueDate: true,
+              id: true,
             }
-          },
-          select: {
-            dueDate: true,
-            id: true,
           }
         }
-      }
-    })
-    console.log("motherClass: ", globalFees);
+      })
+      console.log("motherClass: ", globalFees);
 
-    return NextResponse.json({
-      globalFees, motherClasses
-    }, {status: 200});
+      return NextResponse.json({
+        globalFees, motherClasses
+      }, {status: 200});
 
-  } catch (e) {
-    console.log(e);
+    } catch (e) {
+      console.log(e);
 
-    return NextResponse.json({error: "Internal server error. Please try again later."}, {status: 500});
+      return NextResponse.json({error: "Internal server error. Please try again later."}, {status: 500});
+    }
   }
-}

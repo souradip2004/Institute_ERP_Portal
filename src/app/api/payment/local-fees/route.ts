@@ -39,6 +39,10 @@ export async function POST(request: Request) {
       if (fee.paymentterms === 'ONE_TIME' && !fee.dueDate) {
         return NextResponse.json({error: `The 'dueDate' field is required for fee "${name}" because its payment term is ONE_TIME.`}, {status: 400});
       }
+
+      if (fee.dueDate) {
+        return NextResponse.json({error: "Due Date should only be passed if paymentterms is ONE_TIME!"}, {status: 400})
+      }
     }
 
     // --- 2. Pre-transaction Validation (Fail-Fast) ---
@@ -310,6 +314,8 @@ export async function GET(request: Request) {
       }
     });
 
+    console.log("Motherclass with students: ", motherClassWithStudents);
+
     if (!motherClassWithStudents) {
       return NextResponse.json({error: 'Class not found!'}, {status: 404});
     }
@@ -337,7 +343,7 @@ export async function GET(request: Request) {
           localFeesOnStudentId: studentLink?.id || null, // The join table record ID, or null
           offsetFee: studentLink?.offsetFee ?? null, // The specific offset, or null
         };
-      });
+      }).filter((feeStatus) => feeStatus.localFeesOnStudentId !== null && feeStatus.offsetFee !== null);
 
       return {
         id: student.id,

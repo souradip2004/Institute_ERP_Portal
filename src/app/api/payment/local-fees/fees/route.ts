@@ -8,7 +8,6 @@ export async function POST(request: Request) {
     const body = await request.json();
     const {studentIds, localFeesId, offsetFee} = body;
 
-    // --- 1. Input Validation ---
     if (
       !Array.isArray(studentIds) ||
       studentIds.length === 0 ||
