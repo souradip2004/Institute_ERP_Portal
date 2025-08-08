@@ -343,7 +343,6 @@ model ClassSection {
   motherClass                   MotherClass?                   @relation(fields: [motherClassId], references: [id], onDelete: Cascade)
   copyChecks                    copyCheck[]
 
-  // classFees                  ClassFee[]
   @@map("class_sections")
 }
 
@@ -648,20 +647,20 @@ model Fees {
   institution Institution @relation(fields: [institutionId], references: [id])
   classFees   ClassFee[] // This `classFees` needs an inverse on `ClassFee`
 
-  @@map("fees") // Added map for consistency
+  @@map("fees")
 }
 
 model GlobalFees {
-  id            String   @id @default(cuid())
+  id            String       @id @default(cuid())
   name          String
   description   String?
   amount        Float
-  taxPercentage Float    @map("tax_percentage")
-  paymentterms  String   @map("payment_terms")
-  penalty       Float    @default(0)
-  institutionId String   @map("institution_id")
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
+  taxPercentage Float        @map("tax_percentage")
+  paymentterms  PaymentTerms @map("payment_terms")
+  penalty       Float        @default(0)
+  institutionId String       @map("institution_id")
+  createdAt     DateTime     @default(now()) @map("created_at")
+  updatedAt     DateTime     @updatedAt @map("updated_at")
 
   institution Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
 
@@ -676,7 +675,7 @@ model LocalFees {
   description       String?
   amount            Float
   taxPercentage     Float                @map("tax_percentage")
-  paymentterms      String               @map("payment_terms")
+  paymentterms      PaymentTerms         @map("payment_terms")
   penalty           Float                @default(0)
   createdAt         DateTime             @default(now()) @map("created_at")
   updatedAt         DateTime             @updatedAt @map("updated_at")
@@ -715,6 +714,7 @@ model FeesCollection {
   paymentMethod String?       @map("payment_method")
   transactionId String?       @map("transaction_id")
   status        PaymentStatus
+  verified      Boolean       @default(false)
   createdAt     DateTime      @default(now()) @map("created_at")
   updatedAt     DateTime      @updatedAt @map("updated_at")
 
@@ -1398,4 +1398,12 @@ enum PaymentStatus {
   OVERDUE
   REFUNDED
   PARTIAL
+}
+
+enum PaymentTerms {
+  MONTHLY
+  QUARTERLY
+  HALF_YEARLY
+  YEARLY
+  ONE_TIME
 }

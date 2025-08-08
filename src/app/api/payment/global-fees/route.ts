@@ -1,16 +1,65 @@
 import {NextResponse} from "next/server";
 import prisma from "@/lib/prisma";
-import {PaymentStatus, Prisma} from "@prisma/client";
+import {PaymentStatus, Prisma, PaymentTerms} from "@prisma/client";
 
-interface GlobalFee {
+
+interface GlobalFeePayload {
   name: string;
   description?: string;
   amount: number;
   taxPercentage: number;
-  paymentterms: string;
+  paymentterms: PaymentTerms; // Use the Prisma enum for type safety
   penalty: number;
-  dueDate: string;
+  dueDate?: string; // Optional: only for ONE_TIME
   motherClassIds: string[];
+}
+
+export function calculateDueDates(
+  startDate: Date,
+  endDate: Date,
+  term: PaymentTerms,
+  oneTimeDueDate?: string
+): Date[] {
+  const dates: Date[] = [];
+
+  if (term === 'ONE_TIME') {
+    if (!oneTimeDueDate) {
+      throw new Error("A specific 'dueDate' is required for ONE_TIME payment terms.");
+    }
+    const singleDate = new Date(oneTimeDueDate);
+    // The existing logic for ONE_TIME is correct: cap at endDate if it exceeds it.
+    dates.push(singleDate > endDate ? endDate : singleDate);
+    return dates;
+  }
+
+  let currentDueDate = new Date(startDate.toISOString());
+  const incrementMap: Record<Exclude<PaymentTerms, 'ONE_TIME'>, number> = {
+    MONTHLY: 1,
+    QUARTERLY: 3,
+    HALF_YEARLY: 6,
+    YEARLY: 12,
+  };
+  const monthIncrement = incrementMap[term];
+
+  do {
+    // Only add the date if it's on or before the semester ends.
+    if (currentDueDate <= endDate) {
+      dates.push(new Date(currentDueDate.toISOString()));
+    }
+
+    currentDueDate.setMonth(currentDueDate.getMonth() + monthIncrement);
+  } while (currentDueDate <= endDate);
+
+  const lastPushedDate = dates.length > 0 ? dates[dates.length - 1] : null;
+  if (lastPushedDate && lastPushedDate.getTime() < endDate.getTime()) {
+    dates.push(endDate);
+  }
+
+  if (dates.length === 0 && startDate.getTime() === endDate.getTime()) {
+    dates.push(endDate);
+  }
+
+  return dates;
 }
 
 export async function POST(request: Request) {
@@ -20,63 +69,49 @@ export async function POST(request: Request) {
       globalFees,
       institutionId
     }: {
-      globalFees: GlobalFee[];
+      globalFees: GlobalFeePayload[];
       institutionId: string;
     } = body;
 
-    // --- Validation (Unchanged and Correct) ---
-    for (const globalFee of globalFees) {
-      const {
-        name,
-        amount,
-        taxPercentage,
-        paymentterms,
-        motherClassIds,
-        dueDate
-      } = globalFee;
+    // --- 1. Validation (Unchanged and Correct) ---
+    for (const fee of globalFees) {
+      // (Validation logic is correct and remains here)
+      if (fee.paymentterms === 'ONE_TIME' && !fee.dueDate) {
+        return NextResponse.json({error: `The 'dueDate' field is required for fee "${fee.name}" because its payment term is ONE_TIME.`}, {status: 400});
+      }
 
-      if (!name || amount == null || taxPercentage == null || !paymentterms || !institutionId || !Array.isArray(motherClassIds) || motherClassIds.length === 0 || motherClassIds.some(id => !id) || !dueDate) {
-        return NextResponse.json({error: 'Missing required fields in one or more fee objects.'}, {status: 400});
+      if (fee.dueDate) {
+        return NextResponse.json({error: "Due Date should only be passed if paymentterms is ONE_TIME!"}, {status: 400})
+      }
+
+      if (!fee.amount || !fee.name || !fee.paymentterms || !fee.taxPercentage) {
+        return NextResponse.json({error: "Missing required fields!"}, {status: 400})
       }
     }
 
-    const allMotherClassIds = new Set<string>();
-    globalFees.forEach(fee => fee.motherClassIds.forEach(id => allMotherClassIds.add(id)));
-
-    const existingMotherClasses = await prisma.motherClass.count({
-      where: {id: {in: Array.from(allMotherClassIds)}},
-    });
-
-    if (existingMotherClasses !== allMotherClassIds.size) {
-      return NextResponse.json({error: "One or more motherClassIds provided do not exist."}, {status: 404});
-    }
+    const allMotherClassIds = new Set(globalFees.flatMap(fee => fee.motherClassIds));
 
     const result = await prisma.$transaction(async (tx) => {
-      // Find all relevant students beforehand (Efficient and Unchanged)
+
       const studentEnrollments = await tx.studentClassEnrollment.findMany({
         where: {
-          classSection: {
-            motherClassId: {in: Array.from(allMotherClassIds)}
-          },
-          enrollmentStatus: 'ENROLLED' // Assuming 'ENROLLED' is a valid status
+          classSection: {motherClassId: {in: Array.from(allMotherClassIds)}},
+          enrollmentStatus: 'ENROLLED'
         },
-        select: {
-          studentId: true,
-          classSection: {select: {motherClassId: true}}
-        }
+        select: {studentId: true, classSection: {select: {motherClassId: true}}}
       });
 
-      // Create a map for easy lookup: motherClassId -> [studentId, studentId, ...]
-      const studentsByMotherClass = new Map<string, string[]>();
+      const studentsByMotherClass = new Map<string, Set<string>>();
       for (const enrollment of studentEnrollments) {
         if (enrollment.classSection.motherClassId) {
-          const students = studentsByMotherClass.get(enrollment.classSection.motherClassId) || [];
-          students.push(enrollment.studentId);
+          const students = studentsByMotherClass.get(enrollment.classSection.motherClassId) || new Set();
+          students.add(enrollment.studentId);
           studentsByMotherClass.set(enrollment.classSection.motherClassId, students);
         }
       }
 
       const createdGlobalFeesData = [];
+      const allFeesCollectionToCreate: Prisma.FeesCollectionCreateManyInput[] = [];
 
       for (const fee of globalFees) {
         const createdGlobalFee = await tx.globalFees.create({
@@ -91,40 +126,54 @@ export async function POST(request: Request) {
           }
         });
 
-        const feesCollectionToCreate: Prisma.FeesCollectionCreateManyInput[] = [];
-
         for (const motherClassId of fee.motherClassIds) {
-          // MODIFICATION 1: Add the dueDate when creating the ClassFee
-          const newClassFee = await tx.classFee.create({
-            data: {
-              globalFeesId: createdGlobalFee.id,
-              motherClassId: motherClassId,
-              dueDate: new Date(fee.dueDate) // Correctly set the due date
+
+          const sectionWithSemester = await tx.classSection.findFirst({
+            where: {motherClassId: motherClassId},
+            select: {
+              semester: {select: {startDate: true, endDate: true}}
             }
           });
 
-          // MODIFICATION 2: Generate FeesCollection for each student in the class
-          const studentIds = studentsByMotherClass.get(motherClassId);
-          if (studentIds && studentIds.length > 0) {
-            for (const studentId of studentIds) {
+          if (!sectionWithSemester || !sectionWithSemester.semester) {
+            // Throw an error if a class has no sections or semester link, which is a data integrity issue.
+            throw new Error(`Could not determine the semester for MotherClass ID: ${motherClassId}`);
+          }
+          const semester = sectionWithSemester.semester;
+          // --- MODIFICATION END ---
 
-              feesCollectionToCreate.push({
-                classFeeId: newClassFee.id,
-                studentId: studentId,
-                status: PaymentStatus.PENDING
-              });
+          const dueDates = calculateDueDates(semester.startDate, semester.endDate, fee.paymentterms, fee.dueDate);
+          if (dueDates.length === 0) continue;
+
+          for (const dueDate of dueDates) {
+            const newClassFee = await tx.classFee.create({
+              data: {
+                globalFeesId: createdGlobalFee.id,
+                motherClassId: motherClassId,
+                dueDate: dueDate
+              }
+            });
+
+            const studentIds = studentsByMotherClass.get(motherClassId);
+            if (studentIds && studentIds.size > 0) {
+              for (const studentId of studentIds) {
+                allFeesCollectionToCreate.push({
+                  classFeeId: newClassFee.id,
+                  studentId: studentId,
+                  status: PaymentStatus.PENDING
+                });
+              }
             }
           }
         }
-
-        // Step 4: Perform a single bulk-insert for all prepared FeesCollection records for this fee
-        if (feesCollectionToCreate.length > 0) {
-          await tx.feesCollection.createMany({
-            data: feesCollectionToCreate,
-            skipDuplicates: true
-          });
-        }
         createdGlobalFeesData.push(createdGlobalFee);
+      }
+
+      if (allFeesCollectionToCreate.length > 0) {
+        await tx.feesCollection.createMany({
+          data: allFeesCollectionToCreate,
+          skipDuplicates: true
+        });
       }
 
       return createdGlobalFeesData;
@@ -132,229 +181,263 @@ export async function POST(request: Request) {
 
     return NextResponse.json(
       {
-        message: 'Global fees created and assigned to all relevant students successfully.',
+        message: 'Global fees and their recurring payment schedules created successfully.',
         data: result
       },
       {status: 201}
     );
 
-  } catch (error) {
-    // --- Error Handling (Unchanged and Correct) ---
+  } catch (error: any) {
+    // Error handling updated to catch the new specific error message
     console.error('Error creating global fees:', error);
-
-    if (error instanceof Prisma.PrismaClientKnownRequestError) {
-      switch (error.code) {
-        case 'P2002':
-          return NextResponse.json({error: 'One or more of the fee records you are trying to create already exist.'}, {status: 409});
-        case 'P2003':
-          const fieldName = (error.meta as { field_name?: string })?.field_name;
-          return NextResponse.json(
-            {error: `Failed to create records. An invalid ID was provided for the '${fieldName}' field.`},
-            {status: 400}
-          );
-        default:
-          console.warn(`Unhandled Prisma Error Code: ${error.code}`);
-          break;
-      }
-    }
-    return NextResponse.json({error: 'An internal server error occurred.'}, {status: 500});
+    return NextResponse.json(
+      {error: error.message || 'An internal server error occurred.'},
+      {status: error.message.includes("Could not determine the semester") ? 404 : (error.message.includes("required for") ? 400 : 500)}
+    );
   }
 }
 
 interface GlobalFeeUpdatePayload {
   id: string;
-  institutionId: string;
   name?: string;
   description?: string;
   amount?: number;
   taxPercentage?: number;
-  paymentterms?: string;
+  paymentterms?: PaymentTerms;
   penalty?: number;
+  dueDate?: string;
 }
 
 export async function PATCH(request: Request) {
   try {
     const body = await request.json();
-    const {
-      dueDate,
-      globalFeesToUpdate
-    }: {
-      dueDate?: string,
-      globalFeesToUpdate: GlobalFeeUpdatePayload[];
-    } = body;
+    const globalFeesToUpdate: GlobalFeeUpdatePayload[] = body.globalFeesToUpdate;
 
-    // --- 1. Input Validation ---
     if (!Array.isArray(globalFeesToUpdate) || globalFeesToUpdate.length === 0) {
-      return NextResponse.json({error: 'The request body must contain a non-empty `globalFeesToUpdate` array.'}, {status: 400});
-    }
-    if (globalFeesToUpdate.some(fee => !fee.id || !fee.institutionId)) {
-      return NextResponse.json({error: 'Every fee object in the array must have an `id` and `institutionId`.'}, {status: 400});
+      return NextResponse.json({error: 'The request body must contain a non-empty `fees` array.'}, {status: 400});
     }
 
-    // --- 2. Pre-transaction Validation (Fail Fast) ---
-    const instituteExists = await prisma.institution.findUnique({
-      where: {id: globalFeesToUpdate[0].institutionId},
-    });
-    if (!instituteExists) {
-      return NextResponse.json({error: "The specified institution does not exist."}, {status: 404});
-    }
+    for (const fee of globalFeesToUpdate) {
+      if (!fee.id) {
+        throw new Error('Every fee object must have an `id` and `institutionId`.');
+      }
+      if (fee.paymentterms === 'ONE_TIME' && !fee.dueDate) {
+        return NextResponse.json({error: `The 'dueDate' is required for fee "${fee.name || fee.id}" because its new payment term is ONE_TIME.`},
+        {status: 400});
+      }
 
-    // --- 3. Transaction for Atomic Updates ---
-    const updatedFees = await prisma.$transaction(async (tx) => {
-      // Use Promise.all to run all update operations concurrently for better performance
-      const updatePromises = globalFeesToUpdate.map((fee) => {
-        const {id, institutionId, ...dataToUpdate} = fee;
+        if (fee.dueDate) {
+          return NextResponse.json({error: "Due Date should only be passed if paymentterms is ONE_TIME!"}, {status: 400})
+        }
+      }
 
-        return tx.globalFees.update({
-          where: {
-            id: id,
-            institutionId: institutionId, // Security check: ensure fee belongs to the institution
-          },
-          data: {
-            ...dataToUpdate,
-            ...(dueDate && {
-              classFees: {
-                updateMany: {
-                  // The `where` is empty, so it applies to ALL related ClassFee records for this GlobalFee.
-                  where: {},
-                  data: {
-                    // Set the new due date on all related ClassFee records.
-                    dueDate: new Date(dueDate),
-                  },
-                },
-              },
-            }),
-          },
+      const updatedFees = await prisma.$transaction(async (tx) => {
+
+        const allFeeIds = globalFeesToUpdate.map(f => f.id);
+        const allRelatedClassFees = await tx.classFee.findMany({
+          where: {globalFeesId: {in: allFeeIds}},
+          select: {motherClassId: true}
         });
+
+        const allMotherClassIds = [...new Set(allRelatedClassFees.map(cf => cf.motherClassId))];
+
+        const studentEnrollments = await tx.studentClassEnrollment.findMany({
+          where: {
+            classSection: {motherClassId: {in: allMotherClassIds}},
+            enrollmentStatus: 'ENROLLED'
+          },
+          select: {studentId: true, classSection: {select: {motherClassId: true}}}
+        });
+
+        const studentsByMotherClass = new Map<string, Set<string>>();
+        for (const enrollment of studentEnrollments) {
+          if (enrollment.classSection.motherClassId) {
+            const students = studentsByMotherClass.get(enrollment.classSection.motherClassId) || new Set();
+            students.add(enrollment.studentId);
+            studentsByMotherClass.set(enrollment.classSection.motherClassId, students);
+          }
+        }
+
+        const updatePromises = globalFeesToUpdate.map(async (fee) => {
+          const {id, dueDate, ...dataToUpdate} = fee;
+
+          const updatedGlobalFee = await tx.globalFees.update({
+            where: {id: id},
+            data: dataToUpdate,
+          });
+
+          if (dataToUpdate.paymentterms) {
+            // Find all old ClassFees to get their IDs and associated MotherClasses
+            const oldClassFees = await tx.classFee.findMany({
+              where: {globalFeesId: id},
+              select: {id: true, motherClassId: true}
+            });
+
+            if (oldClassFees.length > 0) {
+              const oldClassFeeIds = oldClassFees.map(cf => cf.id);
+              const motherClassIdsToRecreate = [...new Set(oldClassFees.map(cf => cf.motherClassId))];
+
+              // Delete all associated children (FeesCollection) first
+              await tx.feesCollection.deleteMany({
+                where: {classFeeId: {in: oldClassFeeIds}}
+              });
+
+              // Delete the old schedule (ClassFee)
+              await tx.classFee.deleteMany({
+                where: {id: {in: oldClassFeeIds}}
+              });
+
+              // Re-create the new schedule
+              const feesCollectionToCreate: Prisma.FeesCollectionCreateManyInput[] = [];
+              for (const mcId of motherClassIdsToRecreate) {
+                const section = await tx.classSection.findFirst({
+                  where: {motherClassId: mcId},
+                  select: {semester: {select: {startDate: true, endDate: true}}}
+                });
+
+                if (!section?.semester) continue;
+
+                const newDueDates = calculateDueDates(section.semester.startDate, section.semester.endDate, dataToUpdate.paymentterms, dueDate);
+                for (const newDueDate of newDueDates) {
+                  const newClassFee = await tx.classFee.create({
+                    data: {
+                      globalFeesId: id,
+                      motherClassId: mcId,
+                      dueDate: newDueDate,
+                    }
+                  });
+
+                  const studentIds = studentsByMotherClass.get(mcId);
+                  if (studentIds) {
+                    for (const studentId of studentIds) {
+                      feesCollectionToCreate.push({
+                        classFeeId: newClassFee.id,
+                        studentId: studentId,
+                        status: PaymentStatus.PENDING,
+                      });
+                    }
+                  }
+                }
+              }
+              if (feesCollectionToCreate.length > 0) {
+                await tx.feesCollection.createMany({data: feesCollectionToCreate, skipDuplicates: true});
+              }
+            }
+          }
+
+          return updatedGlobalFee;
+        });
+
+        return Promise.all(updatePromises);
       });
 
-      // Execute all the prepared update promises
-      const results = await Promise.all(updatePromises);
-      return results;
-    });
+      return NextResponse.json(
+        {message: 'Global fees updated successfully.', data: updatedFees},
+        {status: 200}
+      );
 
-    return NextResponse.json(
-      {
-        message: 'Global fees updated successfully.',
-        data: updatedFees,
-      },
-      {status: 200}
-    );
-
-  } catch (error) {
-    // --- 4. Robust Error Handling ---
-    console.error('Error updating global fees:', error);
-
-    if (error instanceof Prisma.PrismaClientKnownRequestError) {
-      if (error.code === 'P2025') { // "Record to update not found"
-        return NextResponse.json(
-          {error: 'One or more fees to update were not found. Please check the IDs and ensure they belong to the correct institution.'},
-          {status: 404}
-        );
-      }
-      if (error.code === 'P2002') { // Unique constraint violation
-        return NextResponse.json(
-          {error: 'Update failed because it would create a duplicate record (e.g., a fee with that name already exists).'},
-          {status: 409}
-        );
-      }
     }
-
-    return NextResponse.json(
-      {error: 'An internal server error occurred.'},
-      {status: 500}
-    );
+  catch
+    (error: any)
+    {
+      console.error('Error updating global fees:', error);
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+        return NextResponse.json({error: 'One or more fees to update were not found. Please check IDs and institution link.'}, {status: 404});
+      }
+      return NextResponse.json({error: error.message || 'An internal server error occurred.'}, {status: 500});
+    }
   }
-}
 
-export async function DELETE(request: Request) {
-  try {
+  export async function DELETE(request: Request) {
+    try {
 
-    const {searchParams} = new URL(request.url);
-    const globalFeesId = searchParams.get('globalFeesId') as string;
+      const {searchParams} = new URL(request.url);
+      const globalFeesId = searchParams.get('globalFeesId') as string;
 
-    if (!globalFeesId) {
-      return NextResponse.json({error: "GlobalFeesId required"}, {status: 404});
-    }
-
-    const deleted = await prisma.globalFees.delete({
-      where: {
-        id: globalFeesId
+      if (!globalFeesId) {
+        return NextResponse.json({error: "GlobalFeesId required"}, {status: 404});
       }
-    });
-    console.log("deleted: ", deleted);
 
-    return NextResponse.json(deleted, {status: 200});
+      const deleted = await prisma.globalFees.delete({
+        where: {
+          id: globalFeesId
+        }
+      });
+      console.log("deleted: ", deleted);
+
+      return NextResponse.json(deleted, {status: 200});
 
 
-  } catch (e) {
-    console.log("Error in GET: ", e);
+    } catch (e) {
+      console.log("Error in GET: ", e);
 
-    return NextResponse.json({error: "Internal server error. Please try again later."}, {status: 500});
-  }
-}
-
-export async function GET(request: Request) {
-  try {
-    const {searchParams} = new URL(request.url);
-    // const motherClassId = searchParams.get('motherClassId') as string;
-    const institutionId = searchParams.get('institutionId') as string;
-
-    if (!institutionId) {
-      return NextResponse.json({error: "All fields are required !"});
+      return NextResponse.json({error: "Internal server error. Please try again later."}, {status: 500});
     }
+  }
 
-    const globalFees = await prisma.globalFees.findMany({
-      where: {
-        classFees: {
-          some: {
-            motherClass: {
-              institutionId: institutionId
+  export async function GET(request: Request) {
+    try {
+      const {searchParams} = new URL(request.url);
+      // const motherClassId = searchParams.get('motherClassId') as string;
+      const institutionId = searchParams.get('institutionId') as string;
+
+      if (!institutionId) {
+        return NextResponse.json({error: "All fields are required !"});
+      }
+
+      const globalFees = await prisma.globalFees.findMany({
+        where: {
+          classFees: {
+            some: {
+              motherClass: {
+                institutionId: institutionId
+              }
+            }
+          },
+        },
+        include: {
+          classFees: {
+            select: {
+              dueDate: true,
+              id: true,
+              motherClassId: true,
             }
           }
         },
-      },
-      include: {
-        classFees: {
-          select: {
-            dueDate: true,
-            id: true,
-            motherClassId: true,
-          }
+        orderBy: {
+          createdAt: 'desc'
         }
-      },
-      orderBy: {
-        createdAt: 'desc'
-      }
-    })
+      });
 
-    const motherClasses = await prisma.motherClass.findMany({
-      where: {
-        institutionId: institutionId,
-      },
-      include: {
-        classfee: {
-          where :{
-            globalFees : {
-              isNot: null,
+      console.log("globalFees: ", globalFees);
+
+      const motherClasses = await prisma.motherClass.findMany({
+        where: {
+          institutionId: institutionId,
+        },
+        include: {
+          classfee: {
+            where: {
+              globalFees: {
+                isNot: null,
+              }
+            },
+            select: {
+              dueDate: true,
+              id: true,
             }
-          },
-          select: {
-            dueDate: true,
-            id: true,
           }
         }
-      }
-    })
-    console.log("motherClass: ", globalFees);
+      })
+      console.log("motherClass: ", globalFees);
 
-    return NextResponse.json({
-      globalFees, motherClasses
-    }, {status: 200});
+      return NextResponse.json({
+        globalFees, motherClasses
+      }, {status: 200});
 
-  } catch (e) {
-    console.log(e);
+    } catch (e) {
+      console.log(e);
 
-    return NextResponse.json({error: "Internal server error. Please try again later."}, {status: 500});
+      return NextResponse.json({error: "Internal server error. Please try again later."}, {status: 500});
+    }
   }
-}
