@@ -314,7 +314,7 @@ export async function GET(request: Request) {
       }
     });
 
-    console.log("Motherclass with students: ", motherClassWithStudents);
+    console.log("MotherClass with students: ", motherClassWithStudents);
 
     if (!motherClassWithStudents) {
       return NextResponse.json({error: 'Class not found!'}, {status: 404});
