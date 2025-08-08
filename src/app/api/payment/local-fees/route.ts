@@ -335,7 +335,6 @@ export async function GET(request: Request) {
         ])
       );
 
-      // For each student, generate their specific fee statuses by referencing the main class fees list
       const feeStatuses = classLocalFees.map((classFee) => {
         const studentLink = studentFeeLinkMap.get(classFee.id);
         return {
