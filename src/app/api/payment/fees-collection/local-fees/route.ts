@@ -102,6 +102,7 @@ export async function GET(request: Request) {
         classFeeId: detail.id,
         paymentStatus: collectionDetails?.status || 'NOT_GENERATED',
         amountPaid: amountPaid,
+        isVerified: collectionDetails?.verified,
         paymentDate: collectionDetails?.paymentDate,
         paymentMethod: collectionDetails?.paymentMethod,
         transactionId: collectionDetails?.transactionId,

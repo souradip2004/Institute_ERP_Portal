@@ -82,7 +82,6 @@ export async function PATCH(request: Request) {
       const penalty = isPenaltyApplied ? classFee.globalFees?.penalty ?? classFee.localFees?.penalty ?? 0 : 0;
       const totalAmountDue = baseAmount + (baseAmount * taxPercentage / 100) + penalty - feeCollection.amount;
 
-
       if (totalAmountDue <= 0 || !dueDate) {
         throw new Error("Fee details (amount or due date) could not be determined from the linked fee.");
       }
@@ -113,7 +112,7 @@ export async function PATCH(request: Request) {
           id: feeCollection.id
         },
         data: {
-          amount: newTotalPaid,
+          amount: newTotalPaid + feeCollection.amount,
           status: newStatus,
           paymentDate: paymentTransactionDate,
           paymentMethod: paymentMethod,
