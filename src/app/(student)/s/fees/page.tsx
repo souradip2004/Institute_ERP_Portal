@@ -73,7 +73,7 @@ export default function Home() {
         bankName: '',
         branchName: '',
         upiqrCode: '',
-        upilink:' ',
+        upilink: ' ',
     });
     const [selectedTerm, setSelectedTerm] = useState('Spring 2021');
     const [selectedStatus, setSelectedStatus] = useState('All');
@@ -408,19 +408,19 @@ export default function Home() {
                         <p className="text-sm text-gray-600 mt-1">Total fees: {filteredFees.length}</p>
                     </div>
                     <div className="overflow-x-auto">
-                        <table className="w-full">
+                        <table className="min-w-full">
                             <thead className="bg-gray-50 border-b border-gray-200">
                                 <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name & Description</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tax</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Penalty</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Payment Terms</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fee Type</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Transaction ID</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Name & Description</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Amount</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Tax</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Penalty</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Total</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Payment Terms</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Status</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Fee Type</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Transaction ID</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Action</th>
                                 </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
@@ -434,7 +434,7 @@ export default function Home() {
                                     filteredFees.map((fee) => (
                                         <tr key={fee.id} className="hover:bg-gray-50">
                                             <td className="px-6 py-4 text-sm text-gray-900">
-                                                <div>
+                                                <div className="min-w-48">
                                                     <div className="font-medium">{fee.name}</div>
                                                     <div className="text-gray-500 text-xs mt-1">{fee.description}</div>
                                                 </div>
@@ -443,8 +443,8 @@ export default function Home() {
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">₹{fee.tax.toFixed(2)}</td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">₹{fee.penalty.toFixed(2)}</td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">₹{fee.total.toFixed(2)}</td>
-                                            <td className="px-6 py-4 text-sm text-gray-900 max-w-xs">
-                                                <div className="truncate" title={fee.paymentTerms}>{fee.paymentTerms}</div>
+                                            <td className="px-6 py-4 text-sm text-gray-900">
+                                                <div className="max-w-32 truncate" title={fee.paymentTerms}>{fee.paymentTerms}</div>
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${fee.status === 'PAID'
@@ -470,7 +470,7 @@ export default function Home() {
                                                 {fee.transactionId || '-'}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm">
-                                                {fee.status === 'PENDING' && (
+                                                {fee.status !== 'PAID' && (
                                                     <button
                                                         onClick={() => handlePayFee(fee)}
                                                         className="px-3 py-1 bg-indigo-600 text-white text-xs font-medium rounded hover:bg-indigo-700 transition-colors"
