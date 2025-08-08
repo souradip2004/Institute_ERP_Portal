@@ -104,7 +104,13 @@ export default function ViewStudentsComponent({ id }: ViewStudentsProps) {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-800">Student Management</h1>
         <button
-          onClick={() => setIsAddStudentModalOpen(true)}
+          onClick={() => {
+              const verified = JSON.parse(localStorage.getItem("verified") || "false");
+            if (!verified) {
+              alert("Please wait for verification of your account before adding a student.");
+              return;
+            }
+            setIsAddStudentModalOpen(true)}}
           className="px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors"
         >
           Add Student

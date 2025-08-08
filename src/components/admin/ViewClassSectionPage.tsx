@@ -274,7 +274,14 @@ export default function ClassSectionsPage({id}: ViewClassSectionPageProps) {
             <p className="mt-2 text-sm text-gray-600">Manage and view all class sections in your institution</p>
           </div>
           <button
-            onClick={openAddModal}
+            onClick={
+              ()=>{
+                    const verified = JSON.parse(localStorage.getItem("verified") || "false");
+            if (!verified) {
+              alert("Please wait for verification of your account before creating a class section.");
+              return;
+            }
+              openAddModal()}}
             className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-blue-700 transition-colors"
           >
             <PlusCircle className="h-4 w-4"/>
