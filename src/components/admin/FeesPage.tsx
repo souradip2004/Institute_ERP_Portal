@@ -377,7 +377,7 @@ interface LocalFeeAddModalProps {
     sectionId: string | null;
 }
 
-const LocalFeeAddModal: React.FC<LocalFeeAddModalProps> = ({ isOpen, onClose,refresh, onAdd, title, sectionId }) => {
+const LocalFeeAddModal: React.FC<LocalFeeAddModalProps> = ({ isOpen, onClose, refresh, onAdd, title, sectionId }) => {
     const [formData, setFormData] = useState({
         name: '',
         description: '',
@@ -1649,7 +1649,7 @@ export default function Home() {
         if (selectedSectionId === null) return;
         setIsLocalFeeAddOpen(true);
     };
-const refershStudents = () => {
+    const refershStudents = () => {
         if (selectedSectionId !== null) {
             const motherClass = feeStructureData?.motherClasses.find(
                 mc => mc.id.includes(selectedSectionId)
@@ -1661,7 +1661,7 @@ const refershStudents = () => {
     };
     const handleCloseLocalFeeAdd = () => {
         setIsLocalFeeAddOpen(false);
-        
+
     };
 
     const handleAddLocalFee = (newLocalFee: any) => {

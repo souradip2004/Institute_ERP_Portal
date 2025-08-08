@@ -10,12 +10,18 @@ interface GlobalFee {
     name: string;
     description: string;
     amountDue: number;
-    taxPercentage: number;
-    penalty: number;
-    paymentTerms: string;
+    baseAmount: number;
+    taxPercentageIncluded: number;
+    penaltyIncluded: number;
+    isPenaltyApplied: boolean;
     paymentStatus: string;
+    dueDate: string;
     feesCollectionId: string;
     classFeeId: string;
+    amountPaid?: number;
+    paymentDate?: string | null;
+    paymentMethod?: string | null;
+    transactionId?: string | null;
 }
 
 interface LocalFee {
@@ -24,13 +30,15 @@ interface LocalFee {
     name: string;
     description: string;
     amountDue: number;
-    taxPercentage: number;
-    penalty: number;
-    paymentTerms: string;
+    baseAmount: number;
+    taxPercentageIncluded: number;
+    penaltyIncluded: number;
+    isPenaltyApplied: boolean;
     paymentStatus: string;
+    dueDate: string;
     amountPaid: number;
-    paymentDate: string;
-    paymentMethod: string;
+    paymentDate: string | null;
+    paymentMethod: string | null;
     transactionId: string | null;
     feesCollectionId: string;
 }
@@ -40,15 +48,16 @@ interface CombinedFee {
     id: string;
     name: string;
     description: string;
-    amount: number;
-    tax: number;
-    penalty: number;
-    total: number;
-    paymentTerms: string;
+    baseAmount: number;
+    amountDue: number;
+    taxIncluded: number;
+    penaltyAmount: number;
+    isPenaltyApplied: boolean;
+    dueDate: string;
     status: string;
     feeType: 'Global' | 'Local';
     transactionId?: string | null;
-    paymentDate?: string;
+    paymentDate?: string | null;
     amountPaid?: number;
     feesCollectionId?: string;
 }
@@ -96,40 +105,39 @@ export default function Home() {
 
         // Process global fees
         globalFees.forEach(fee => {
-            const taxAmount = (fee.amountDue * fee.taxPercentage) / 100;
-            const total = fee.amountDue + taxAmount + fee.penalty;
-
             combined.push({
                 classFeeId: fee.classFeeId,
                 id: fee.feeId,
                 name: fee.name,
                 description: fee.description,
-                amount: fee.amountDue,
-                tax: taxAmount,
-                penalty: fee.penalty,
-                total: total,
-                paymentTerms: fee.paymentTerms,
+                baseAmount: fee.baseAmount,
+                amountDue: fee.amountDue,
+                taxIncluded: fee.taxPercentageIncluded,
+                penaltyAmount: fee.penaltyIncluded,
+                isPenaltyApplied: fee.isPenaltyApplied,
+                dueDate: fee.dueDate,
                 status: fee.paymentStatus,
                 feeType: 'Global',
+                transactionId: fee.transactionId,
+                paymentDate: fee.paymentDate,
+                amountPaid: fee.amountPaid || 0,
                 feesCollectionId: fee.feesCollectionId
             });
         });
 
         // Process local fees
         localFees.forEach(fee => {
-            const taxAmount = (fee.amountDue * fee.taxPercentage) / 100;
-            const total = fee.amountDue + taxAmount + fee.penalty;
-
             combined.push({
                 classFeeId: fee.classFeeId,
                 id: fee.localFeesId,
                 name: fee.name,
                 description: fee.description,
-                amount: fee.amountDue,
-                tax: taxAmount,
-                penalty: fee.penalty,
-                total: total,
-                paymentTerms: fee.paymentTerms,
+                baseAmount: fee.baseAmount,
+                amountDue: fee.amountDue,
+                taxIncluded: fee.taxPercentageIncluded,
+                penaltyAmount: fee.penaltyIncluded,
+                isPenaltyApplied: fee.isPenaltyApplied,
+                dueDate: fee.dueDate,
                 status: fee.paymentStatus,
                 feeType: 'Local',
                 transactionId: fee.transactionId,
@@ -154,8 +162,9 @@ export default function Home() {
     // Handle payment modal
     const handlePayFee = (fee: CombinedFee) => {
         setSelectedFee(fee);
+        const remainingAmount = fee.amountDue - fee.amountPaid!;
         setPaymentForm({
-            amountPaid: fee.total.toString(),
+            amountPaid: remainingAmount.toString(),
             paymentMethod: 'UPI',
             paymentDate: new Date().toISOString().split('T')[0],
             transactionId: ''
@@ -298,66 +307,72 @@ export default function Home() {
     }
 
     return (
-        <main className="bg-gray-50 min-h-screen p-6">
-            <div className="max-w-7xl mx-auto">
+        <main className="bg-gray-50 min-h-screen p-4 md:p-6">
+            <div className="w-full">
                 {/* Header */}
                 <div className="bg-white rounded-lg shadow-sm mb-6">
-                    <div className="px-6 py-4 border-b border-gray-200">
-                        <h1 className="text-2xl font-semibold text-gray-900">Fee Payment</h1>
+                    <div className="px-4 md:px-6 py-4 border-b border-gray-200">
+                        <h1 className="text-xl md:text-2xl font-semibold text-gray-900">Fee Payment</h1>
                     </div>
 
                     {/* Institution and Student Info */}
-                    <div className="p-6">
-                        <div className="flex items-start gap-6">
-                            <img
-                                src={instituteData?.logoUrl}
-                                alt="Institution Logo"
-                                className="w-32 h-32 object-cover rounded-lg border border-gray-200"
-                            />
-                            <div className="flex-1">
-                                <h2 className="text-2xl font-bold text-indigo-700 mb-2">{instituteData?.name}</h2>
-                                <div className="text-sm text-gray-600 space-y-1">
-                                    <p>Address: {instituteData.city}, {instituteData.state}, {instituteData.country}</p>
-                                    <p>Phone: {instituteData.phone} </p>
-                                    <p>Email: {instituteData.email}</p>
+                    <div className="p-4 md:p-6">
+                        <div className="flex flex-col lg:flex-row items-start gap-6">
+                            <div className="flex flex-col sm:flex-row items-start gap-4 w-full lg:flex-1">
+                                <img
+                                    src={instituteData?.logoUrl}
+                                    alt="Institution Logo"
+                                    className="w-24 h-24 md:w-32 md:h-32 object-cover rounded-lg border border-gray-200 flex-shrink-0"
+                                />
+                                <div className="flex-1 min-w-0">
+                                    <h2 className="text-lg md:text-2xl font-bold text-indigo-700 mb-2 break-words">{instituteData?.name}</h2>
+                                    <div className="text-sm text-gray-600 space-y-1">
+                                        <p className="break-words">Address: {instituteData.city}, {instituteData.state}, {instituteData.country}</p>
+                                        <p className="break-words">Phone: {instituteData.phone}</p>
+                                        <p className="break-words">Email: {instituteData.email}</p>
+                                    </div>
                                 </div>
                             </div>
-                            <div className="grid grid-cols-2 gap-4 min-w-96">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Roll:</label>
-                                    <input
-                                        type="text"
-                                        value={studentData.roll}
-                                        readOnly
-                                        className="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-md text-sm"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Name:</label>
-                                    <input
-                                        type="text"
-                                        value={studentData.name}
-                                        readOnly
-                                        className="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-md text-sm"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Email:</label>
-                                    <input
-                                        type="text"
-                                        value={studentData.email}
-                                        readOnly
-                                        className="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-md text-sm"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Department:</label>
-                                    <input
-                                        type="text"
-                                        value={studentData.departmentName}
-                                        readOnly
-                                        className="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-md text-sm"
-                                    />
+
+                            {/* Student Details */}
+                            <div className="w-full lg:w-auto lg:min-w-0 lg:max-w-md">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Roll:</label>
+                                        <input
+                                            type="text"
+                                            value={studentData.roll}
+                                            readOnly
+                                            className="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-md text-sm"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Name:</label>
+                                        <input
+                                            type="text"
+                                            value={studentData.name}
+                                            readOnly
+                                            className="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-md text-sm"
+                                        />
+                                    </div>
+                                    <div className="sm:col-span-2">
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Email:</label>
+                                        <input
+                                            type="text"
+                                            value={studentData.email}
+                                            readOnly
+                                            className="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-md text-sm"
+                                        />
+                                    </div>
+                                    <div className="sm:col-span-2">
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Department:</label>
+                                        <input
+                                            type="text"
+                                            value={studentData.departmentName}
+                                            readOnly
+                                            className="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-md text-sm"
+                                        />
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -403,30 +418,31 @@ export default function Home() {
 
                 {/* Fee Table */}
                 <div className="bg-white rounded-lg shadow-sm mb-6">
-                    <div className="px-6 py-4 border-b border-gray-200">
+                    <div className="px-4 md:px-6 py-4 border-b border-gray-200">
                         <h2 className="text-lg font-semibold text-gray-900">Fee Details</h2>
                         <p className="text-sm text-gray-600 mt-1">Total fees: {filteredFees.length}</p>
                     </div>
                     <div className="overflow-x-auto">
-                        <table className="min-w-full">
+                        <table className="w-full" style={{ minWidth: '1200px' }}>
                             <thead className="bg-gray-50 border-b border-gray-200">
                                 <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Name & Description</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Amount</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Tax</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Penalty</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Total</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Payment Terms</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Status</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Fee Type</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Transaction ID</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Action</th>
+                                    <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name & Description</th>
+                                    <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Total Amount</th>
+                                    <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Tax (Included)</th>
+                                    <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Penalty</th>
+                                    <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Amount Due</th>
+                                    <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Amount Paid</th>
+                                    <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Due Date</th>
+                                    <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Status</th>
+                                    <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Fee Type</th>
+                                    <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Transaction ID</th>
+                                    <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Action</th>
                                 </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
                                 {filteredFees.length === 0 ? (
                                     <tr>
-                                        <td colSpan={10} className="px-6 py-8 text-center text-gray-500">
+                                        <td colSpan={11} className="px-6 py-8 text-center text-gray-500">
                                             No fees found for the selected criteria
                                         </td>
                                     </tr>
@@ -439,12 +455,26 @@ export default function Home() {
                                                     <div className="text-gray-500 text-xs mt-1">{fee.description}</div>
                                                 </div>
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">₹{fee.amount.toFixed(2)}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">₹{fee.tax.toFixed(2)}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">₹{fee.penalty.toFixed(2)}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">₹{fee.total.toFixed(2)}</td>
-                                            <td className="px-6 py-4 text-sm text-gray-900">
-                                                <div className="max-w-32 truncate" title={fee.paymentTerms}>{fee.paymentTerms}</div>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">₹{fee.baseAmount.toFixed(2)}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                <span className="text-green-600 font-medium">{fee.taxIncluded}%</span>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                {fee.isPenaltyApplied ? (
+                                                    <div className="text-red-600">
+                                                        <div className="font-medium">₹{fee.penaltyAmount.toFixed(2)}</div>
+                                                        <div className="text-xs">Applied</div>
+                                                    </div>
+                                                ) : (
+                                                    <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
+                                                        N/A
+                                                    </span>
+                                                )}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-indigo-600">₹{fee.amountDue.toFixed(2)}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">₹{(fee.amountPaid || 0).toFixed(2)}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                {new Date(fee.dueDate).toLocaleDateString('en-IN')}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${fee.status === 'PAID'
@@ -470,7 +500,7 @@ export default function Home() {
                                                 {fee.transactionId || '-'}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm">
-                                                {fee.status !== 'PAID' && (
+                                                {fee.status !== 'PAID' && fee.amountDue > (fee.amountPaid || 0) && (
                                                     <button
                                                         onClick={() => handlePayFee(fee)}
                                                         className="px-3 py-1 bg-indigo-600 text-white text-xs font-medium rounded hover:bg-indigo-700 transition-colors"
@@ -494,7 +524,7 @@ export default function Home() {
                                     Showing {filteredFees.length} fee(s)
                                 </div>
                                 <div className="text-sm font-medium text-gray-900">
-                                    Total Amount: ₹{filteredFees.reduce((sum, fee) => sum + fee.total, 0).toFixed(2)}
+                                    Total Amount Due: ₹{filteredFees.reduce((sum, fee) => sum + fee.amountDue, 0).toFixed(2)}
                                 </div>
                             </div>
                         </div>
@@ -595,20 +625,34 @@ export default function Home() {
                                 <p className="text-sm text-gray-600 mb-4">{selectedFee.description}</p>
                                 <div className="bg-gray-50 p-3 rounded-md">
                                     <div className="flex justify-between text-sm">
-                                        <span>Amount:</span>
-                                        <span>₹{selectedFee.amount.toFixed(2)}</span>
+                                        <span>Base Amount:</span>
+                                        <span>₹{selectedFee.baseAmount.toFixed(2)}</span>
                                     </div>
                                     <div className="flex justify-between text-sm">
-                                        <span>Tax:</span>
-                                        <span>₹{selectedFee.tax.toFixed(2)}</span>
+                                        <span>Tax (Included):</span>
+                                        <span className="text-green-600">{selectedFee.taxIncluded}%</span>
                                     </div>
+                                    {selectedFee.isPenaltyApplied && (
+                                        <div className="flex justify-between text-sm text-red-600">
+                                            <span>Penalty:</span>
+                                            <span>₹{selectedFee.penaltyAmount.toFixed(2)}</span>
+                                        </div>
+                                    )}
                                     <div className="flex justify-between text-sm">
-                                        <span>Penalty:</span>
-                                        <span>₹{selectedFee.penalty.toFixed(2)}</span>
+                                        <span>Amount Paid:</span>
+                                        <span>₹{(selectedFee.amountPaid || 0).toFixed(2)}</span>
                                     </div>
                                     <div className="flex justify-between text-sm font-medium border-t pt-2 mt-2">
-                                        <span>Total:</span>
-                                        <span>₹{selectedFee.total.toFixed(2)}</span>
+                                        <span>Amount Due:</span>
+                                        <span className="text-indigo-600">₹{selectedFee.amountDue.toFixed(2)}</span>
+                                    </div>
+                                    <div className="flex justify-between text-sm font-medium">
+                                        <span>Remaining:</span>
+                                        <span className="text-red-600">₹{(selectedFee.amountDue - (selectedFee.amountPaid || 0)).toFixed(2)}</span>
+                                    </div>
+                                    <div className="flex justify-between text-sm text-gray-600 mt-2">
+                                        <span>Due Date:</span>
+                                        <span>{new Date(selectedFee.dueDate).toLocaleDateString('en-IN')}</span>
                                     </div>
                                 </div>
                             </div>
@@ -621,11 +665,23 @@ export default function Home() {
                                     <input
                                         type="number"
                                         step="0.01"
+                                        min="0.01"
+                                        max={selectedFee.amountDue - (selectedFee.amountPaid || 0)}
                                         value={paymentForm.amountPaid}
-                                        onChange={(e) => setPaymentForm({ ...paymentForm, amountPaid: e.target.value })}
+                                        onChange={(e) => {
+                                            const value = parseFloat(e.target.value);
+                                            const maxAmount = selectedFee.amountDue - (selectedFee.amountPaid || 0);
+                                            if (value <= maxAmount) {
+                                                setPaymentForm({ ...paymentForm, amountPaid: e.target.value });
+                                            }
+                                        }}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                        placeholder={`Max: ₹${(selectedFee.amountDue - (selectedFee.amountPaid || 0)).toFixed(2)}`}
                                         required
                                     />
+                                    <p className="text-xs text-gray-500 mt-1">
+                                        Maximum payable: ₹{(selectedFee.amountDue - (selectedFee.amountPaid || 0)).toFixed(2)}
+                                    </p>
                                 </div>
 
                                 <div>
