@@ -310,7 +310,7 @@ export default function Home() {
         <main className="bg-gray-50 min-h-screen p-4 md:p-6">
             <div className="w-full">
                 {/* Header */}
-                <div className="bg-white rounded-lg shadow-sm mb-6">
+                <div className="bg-white rounded-lg shadow-sm mb-6 max-w-[calc(100vw-370px)] mx-auto">
                     <div className="px-4 md:px-6 py-4 border-b border-gray-200">
                         <h1 className="text-xl md:text-2xl font-semibold text-gray-900">Fee Payment</h1>
                     </div>
@@ -318,7 +318,7 @@ export default function Home() {
                     {/* Institution and Student Info */}
                     <div className="p-4 md:p-6">
                         <div className="flex flex-col lg:flex-row items-start gap-6">
-                            <div className="flex flex-col sm:flex-row items-start gap-4 w-full lg:flex-1">
+                            <div className="flex flex-col sm:flex-row items-start gap-4 w-full">
                                 <img
                                     src={instituteData?.logoUrl}
                                     alt="Institution Logo"
@@ -417,7 +417,7 @@ export default function Home() {
                 </div> */}
 
                 {/* Fee Table */}
-                <div className="bg-white rounded-lg shadow-sm mb-6">
+                <div className="bg-white rounded-lg shadow-sm mb-6 max-w-[calc(100vw-370px)] mx-auto">
                     <div className="px-4 md:px-6 py-4 border-b border-gray-200">
                         <h2 className="text-lg font-semibold text-gray-900">Fee Details</h2>
                         <p className="text-sm text-gray-600 mt-1">Total fees: {filteredFees.length}</p>
@@ -532,7 +532,7 @@ export default function Home() {
                 </div>
 
                 {/* Payment Details */}
-                <div className="bg-white rounded-lg shadow-sm">
+                <div className="bg-white rounded-lg shadow-sm w-fit mx-auto">
                     <div className="px-6 py-4 border-b border-gray-200">
                         <h2 className="text-xl font-semibold text-indigo-700">{instituteData?.name || 'XYZ Institution'} Payment Details</h2>
                     </div>
@@ -555,44 +555,46 @@ export default function Home() {
                             </div>
 
                             {/* Banking Details */}
-                            <div className="flex-1">
-                                <h3 className="text-lg font-semibold text-indigo-600 mb-4">Banking Details</h3>
-                                <div className="space-y-4">
-                                    <div>
-                                        <label className="block text-sm font-medium text-indigo-600 mb-1">Account Holder Name:</label>
-                                        <input
-                                            type="text"
-                                            value={paymentDetails.accountHolder}
-                                            readOnly
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-50"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-indigo-600 mb-1">Bank Name and Branch Location:</label>
-                                        <input
-                                            type="text"
-                                            value={`${paymentDetails.bankName}, ${paymentDetails.branchName}`}
-                                            readOnly
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-50"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-indigo-600 mb-1">Bank IFSC Code:</label>
-                                        <input
-                                            type="text"
-                                            value={paymentDetails.ifscCode}
-                                            readOnly
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-50"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-indigo-600 mb-1">Bank Account Number:</label>
-                                        <input
-                                            type="text"
-                                            value={paymentDetails.accountNumber}
-                                            readOnly
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-50"
-                                        />
+                            <div className="flex justify-center">
+                                <div className="flex flex-col">
+                                    <h3 className="text-lg font-semibold text-indigo-600 mb-4">Banking Details</h3>
+                                    <div className="space-y-4">
+                                        <div>
+                                            <label className="block text-sm font-medium text-indigo-600 mb-1">Account Holder Name:</label>
+                                            <input
+                                                type="text"
+                                                value={paymentDetails.accountHolder}
+                                                readOnly
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-50"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-indigo-600 mb-1">Bank Name and Branch Location:</label>
+                                            <input
+                                                type="text"
+                                                value={`${paymentDetails.bankName}, ${paymentDetails.branchName}`}
+                                                readOnly
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-50"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-indigo-600 mb-1">Bank IFSC Code:</label>
+                                            <input
+                                                type="text"
+                                                value={paymentDetails.ifscCode}
+                                                readOnly
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-50"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-indigo-600 mb-1">Bank Account Number:</label>
+                                            <input
+                                                type="text"
+                                                value={paymentDetails.accountNumber}
+                                                readOnly
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-50"
+                                            />
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -602,155 +604,157 @@ export default function Home() {
             </div>
 
             {/* Payment Modal */}
-            {showPaymentModal && selectedFee && (
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-2xl flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
-                        <div className="px-6 py-4 border-b border-gray-200">
-                            <div className="flex items-center justify-between">
-                                <h3 className="text-lg font-semibold text-gray-900">Pay Fee</h3>
-                                <button
-                                    onClick={closeModal}
-                                    className="text-gray-400 hover:text-gray-600"
-                                >
-                                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                    </svg>
-                                </button>
-                            </div>
-                        </div>
-
-                        <form onSubmit={handlePaymentSubmit} className="p-6">
-                            <div className="mb-4">
-                                <h4 className="font-medium text-gray-900 mb-2">{selectedFee.name}</h4>
-                                <p className="text-sm text-gray-600 mb-4">{selectedFee.description}</p>
-                                <div className="bg-gray-50 p-3 rounded-md">
-                                    <div className="flex justify-between text-sm">
-                                        <span>Base Amount:</span>
-                                        <span>₹{selectedFee.baseAmount.toFixed(2)}</span>
-                                    </div>
-                                    <div className="flex justify-between text-sm">
-                                        <span>Tax (Included):</span>
-                                        <span className="text-green-600">{selectedFee.taxIncluded}%</span>
-                                    </div>
-                                    {selectedFee.isPenaltyApplied && (
-                                        <div className="flex justify-between text-sm text-red-600">
-                                            <span>Penalty:</span>
-                                            <span>₹{selectedFee.penaltyAmount.toFixed(2)}</span>
-                                        </div>
-                                    )}
-                                    <div className="flex justify-between text-sm">
-                                        <span>Amount Paid:</span>
-                                        <span>₹{(selectedFee.amountPaid || 0).toFixed(2)}</span>
-                                    </div>
-                                    <div className="flex justify-between text-sm font-medium border-t pt-2 mt-2">
-                                        <span>Amount Due:</span>
-                                        <span className="text-indigo-600">₹{selectedFee.amountDue.toFixed(2)}</span>
-                                    </div>
-                                    <div className="flex justify-between text-sm font-medium">
-                                        <span>Remaining:</span>
-                                        <span className="text-red-600">₹{(selectedFee.amountDue - (selectedFee.amountPaid || 0)).toFixed(2)}</span>
-                                    </div>
-                                    <div className="flex justify-between text-sm text-gray-600 mt-2">
-                                        <span>Due Date:</span>
-                                        <span>{new Date(selectedFee.dueDate).toLocaleDateString('en-IN')}</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="space-y-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Amount Paid *
-                                    </label>
-                                    <input
-                                        type="number"
-                                        step="0.01"
-                                        min="0.01"
-                                        max={selectedFee.amountDue - (selectedFee.amountPaid || 0)}
-                                        value={paymentForm.amountPaid}
-                                        onChange={(e) => {
-                                            const value = parseFloat(e.target.value);
-                                            const maxAmount = selectedFee.amountDue - (selectedFee.amountPaid || 0);
-                                            if (value <= maxAmount) {
-                                                setPaymentForm({ ...paymentForm, amountPaid: e.target.value });
-                                            }
-                                        }}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                                        placeholder={`Max: ₹${(selectedFee.amountDue - (selectedFee.amountPaid || 0)).toFixed(2)}`}
-                                        required
-                                    />
-                                    <p className="text-xs text-gray-500 mt-1">
-                                        Maximum payable: ₹{(selectedFee.amountDue - (selectedFee.amountPaid || 0)).toFixed(2)}
-                                    </p>
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Payment Method *
-                                    </label>
-                                    <select
-                                        value={paymentForm.paymentMethod}
-                                        onChange={(e) => setPaymentForm({ ...paymentForm, paymentMethod: e.target.value })}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                                        required
+            {
+                showPaymentModal && selectedFee && (
+                    <div className="fixed inset-0 bg-black/50 backdrop-blur-2xl flex items-center justify-center z-50">
+                        <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+                            <div className="px-6 py-4 border-b border-gray-200">
+                                <div className="flex items-center justify-between">
+                                    <h3 className="text-lg font-semibold text-gray-900">Pay Fee</h3>
+                                    <button
+                                        onClick={closeModal}
+                                        className="text-gray-400 hover:text-gray-600"
                                     >
-                                        <option value="UPI">UPI</option>
-                                        <option value="NEFT">NEFT</option>
-                                        <option value="RTGS">RTGS</option>
-                                        <option value="CASH">Cash</option>
-                                        <option value="CHEQUE">Cheque</option>
-                                    </select>
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Payment Date *
-                                    </label>
-                                    <input
-                                        type="date"
-                                        value={paymentForm.paymentDate}
-                                        onChange={(e) => setPaymentForm({ ...paymentForm, paymentDate: e.target.value })}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                                        required
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Transaction ID *
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={paymentForm.transactionId}
-                                        onChange={(e) => setPaymentForm({ ...paymentForm, transactionId: e.target.value })}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                                        placeholder="Enter transaction ID"
-                                        required
-                                    />
+                                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    </button>
                                 </div>
                             </div>
 
-                            <div className="flex gap-3 mt-6">
-                                <button
-                                    type="button"
-                                    onClick={closeModal}
-                                    className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
-                                    disabled={paymentLoading}
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    type="submit"
-                                    className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors disabled:opacity-50"
-                                    disabled={paymentLoading}
-                                >
-                                    {paymentLoading ? 'Processing...' : 'Submit Payment'}
-                                </button>
-                            </div>
-                        </form>
+                            <form onSubmit={handlePaymentSubmit} className="p-6">
+                                <div className="mb-4">
+                                    <h4 className="font-medium text-gray-900 mb-2">{selectedFee.name}</h4>
+                                    <p className="text-sm text-gray-600 mb-4">{selectedFee.description}</p>
+                                    <div className="bg-gray-50 p-3 rounded-md">
+                                        <div className="flex justify-between text-sm">
+                                            <span>Base Amount:</span>
+                                            <span>₹{selectedFee.baseAmount.toFixed(2)}</span>
+                                        </div>
+                                        <div className="flex justify-between text-sm">
+                                            <span>Tax (Included):</span>
+                                            <span className="text-green-600">{selectedFee.taxIncluded}%</span>
+                                        </div>
+                                        {selectedFee.isPenaltyApplied && (
+                                            <div className="flex justify-between text-sm text-red-600">
+                                                <span>Penalty:</span>
+                                                <span>₹{selectedFee.penaltyAmount.toFixed(2)}</span>
+                                            </div>
+                                        )}
+                                        <div className="flex justify-between text-sm">
+                                            <span>Amount Paid:</span>
+                                            <span>₹{(selectedFee.amountPaid || 0).toFixed(2)}</span>
+                                        </div>
+                                        <div className="flex justify-between text-sm font-medium border-t pt-2 mt-2">
+                                            <span>Amount Due:</span>
+                                            <span className="text-indigo-600">₹{selectedFee.amountDue.toFixed(2)}</span>
+                                        </div>
+                                        <div className="flex justify-between text-sm font-medium">
+                                            <span>Remaining:</span>
+                                            <span className="text-red-600">₹{(selectedFee.amountDue - (selectedFee.amountPaid || 0)).toFixed(2)}</span>
+                                        </div>
+                                        <div className="flex justify-between text-sm text-gray-600 mt-2">
+                                            <span>Due Date:</span>
+                                            <span>{new Date(selectedFee.dueDate).toLocaleDateString('en-IN')}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            Amount Paid *
+                                        </label>
+                                        <input
+                                            type="number"
+                                            step="0.01"
+                                            min="0.01"
+                                            max={selectedFee.amountDue - (selectedFee.amountPaid || 0)}
+                                            value={paymentForm.amountPaid}
+                                            onChange={(e) => {
+                                                const value = parseFloat(e.target.value);
+                                                const maxAmount = selectedFee.amountDue - (selectedFee.amountPaid || 0);
+                                                if (value <= maxAmount) {
+                                                    setPaymentForm({ ...paymentForm, amountPaid: e.target.value });
+                                                }
+                                            }}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                            placeholder={`Max: ₹${(selectedFee.amountDue - (selectedFee.amountPaid || 0)).toFixed(2)}`}
+                                            required
+                                        />
+                                        <p className="text-xs text-gray-500 mt-1">
+                                            Maximum payable: ₹{(selectedFee.amountDue - (selectedFee.amountPaid || 0)).toFixed(2)}
+                                        </p>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            Payment Method *
+                                        </label>
+                                        <select
+                                            value={paymentForm.paymentMethod}
+                                            onChange={(e) => setPaymentForm({ ...paymentForm, paymentMethod: e.target.value })}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                            required
+                                        >
+                                            <option value="UPI">UPI</option>
+                                            <option value="NEFT">NEFT</option>
+                                            <option value="RTGS">RTGS</option>
+                                            <option value="CASH">Cash</option>
+                                            <option value="CHEQUE">Cheque</option>
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            Payment Date *
+                                        </label>
+                                        <input
+                                            type="date"
+                                            value={paymentForm.paymentDate}
+                                            onChange={(e) => setPaymentForm({ ...paymentForm, paymentDate: e.target.value })}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                            required
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            Transaction ID *
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={paymentForm.transactionId}
+                                            onChange={(e) => setPaymentForm({ ...paymentForm, transactionId: e.target.value })}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                            placeholder="Enter transaction ID"
+                                            required
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="flex gap-3 mt-6">
+                                    <button
+                                        type="button"
+                                        onClick={closeModal}
+                                        className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
+                                        disabled={paymentLoading}
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors disabled:opacity-50"
+                                        disabled={paymentLoading}
+                                    >
+                                        {paymentLoading ? 'Processing...' : 'Submit Payment'}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
                     </div>
-                </div>
-            )}
-        </main>
+                )
+            }
+        </main >
     );
 }
