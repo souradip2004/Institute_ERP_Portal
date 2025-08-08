@@ -8,6 +8,7 @@ export async function POST(request: Request) {
     const body = await request.json();
     const {studentIds, localFeesId, offsetFee} = body;
 
+    // --- 1. Input Validation ---
     if (
       !Array.isArray(studentIds) ||
       studentIds.length === 0 ||
@@ -23,52 +24,41 @@ export async function POST(request: Request) {
       );
     }
 
+    // --- 2. Transaction for Atomic Operations ---
     const result = await prisma.$transaction(async (tx) => {
-      // a. Find the associated classFeeId
-      const classFeeLink = await tx.classFee.findFirst({
-        where: {localFeesId: localFeesId},
-        select: {id: true},
-      });
-
-      if (!classFeeLink) {
-        throw new Error(
-          `No ClassFee is associated with the provided localFeesId (${localFeesId}).`
-        );
+      // --- a. Verify that the LocalFee and all Students exist ---
+      const feeExists = await tx.localFees.findUnique({ where: { id: localFeesId } });
+      if (!feeExists) {
+        throw new Error(`The local fee with ID ${localFeesId} was not found.`);
       }
-      const classFeeId = classFeeLink.id;
 
-      // b. Verify all students exist
-      const studentsExistCount = await tx.student.count({
-        where: {id: {in: studentIds}},
-      });
-
+      const studentsExistCount = await tx.student.count({ where: {id: {in: studentIds}} });
       if (studentsExistCount !== studentIds.length) {
-        throw new Error(
-          'One or more of the provided student IDs do not exist.'
-        );
+        throw new Error('One or more of the provided student IDs do not exist.');
       }
 
-      // c. Find existing student-fee links to separate create/update logic
-      const existingLinks = await tx.localFeesOnStudent.findMany({
-        where: {
-          localFeesId: localFeesId,
-          studentId: {in: studentIds},
-        },
-        select: {studentId: true},
+      // --- b. Find the entire payment schedule (all ClassFees) for this LocalFee ---
+      const classFeeSchedule = await tx.classFee.findMany({
+        where: { localFeesId: localFeesId },
+        select: { id: true },
       });
 
-      const existingStudentIds = new Set(
-        existingLinks.map((link) => link.studentId)
-      );
+      if (classFeeSchedule.length === 0) {
+        throw new Error(`Cannot assign fee: No payment schedule (ClassFee records) found for local fee ID ${localFeesId}.`);
+      }
+      const classFeeIds = classFeeSchedule.map(cf => cf.id);
 
-      const studentIdsToUpdate = studentIds.filter((id) =>
-        existingStudentIds.has(id)
-      );
-      const studentIdsToCreate = studentIds.filter(
-        (id) => !existingStudentIds.has(id)
-      );
+      // --- c. Find existing student-fee links to separate create/update logic ---
+      const existingLinks = await tx.localFeesOnStudent.findMany({
+        where: { localFeesId: localFeesId, studentId: {in: studentIds} },
+        select: { studentId: true },
+      });
+      const existingStudentIds = new Set(existingLinks.map(link => link.studentId));
 
-      // e. Update existing records
+      const studentIdsToUpdate = studentIds.filter(id => existingStudentIds.has(id));
+      const studentIdsToCreate = studentIds.filter(id => !existingStudentIds.has(id));
+
+      // --- d. Perform bulk update for existing student links ---
       let updatedCount = 0;
       if (studentIdsToUpdate.length > 0) {
         const updateResult = await tx.localFeesOnStudent.updateMany({
@@ -76,54 +66,47 @@ export async function POST(request: Request) {
             localFeesId: localFeesId,
             studentId: {in: studentIdsToUpdate},
           },
-          data: {offsetFee: offsetFee},
+          data: { offsetFee: offsetFee }, // Only update the offset
         });
         updatedCount = updateResult.count;
       }
 
+      // --- e. Perform bulk create for new student links and their billable items ---
       let createdCount = 0;
       if (studentIdsToCreate.length > 0) {
-
-        const studentFeeLinksToCreate = studentIdsToCreate.map((studentId) => ({
+        // Create the LocalFeesOnStudent links first
+        const studentFeeLinksToCreate = studentIdsToCreate.map(studentId => ({
           studentId: studentId,
           localFeesId: localFeesId,
           offsetFee: offsetFee,
         }));
-
         const createStudentLinksResult = await tx.localFeesOnStudent.createMany({
           data: studentFeeLinksToCreate,
         });
         createdCount = createStudentLinksResult.count;
 
-        const existingFeesCollections = await tx.feesCollection.findMany({
-          where: {
-            classFeeId: classFeeId,
-            studentId: { in: studentIdsToCreate }
-          },
-          select: { studentId: true }
-        });
-        const studentIdsWithExistingCollection = new Set(
-          existingFeesCollections.map((fc) => fc.studentId)
-        );
-
-        // Filter out students who, for some reason, already have a collection record
-        const studentIdsForNewCollectionCreation = studentIdsToCreate.filter(
-          (id) => !studentIdsWithExistingCollection.has(id)
-        );
-
-        if (studentIdsForNewCollectionCreation.length > 0) {
-          const feesCollectionToCreate = studentIdsForNewCollectionCreation.map(
-            (studentId) => ({
+        // Now, prepare the full set of FeesCollection records for the new students
+        const feesCollectionToCreate: Prisma.FeesCollectionCreateManyInput[] = [];
+        for (const studentId of studentIdsToCreate) {
+          for (const classFeeId of classFeeIds) {
+            feesCollectionToCreate.push({
               classFeeId: classFeeId,
               studentId: studentId,
-              status: PaymentStatus.PENDING
-            })
-          );
-          await tx.feesCollection.createMany({data: feesCollectionToCreate});
+              status: PaymentStatus.PENDING,
+            });
+          }
+        }
+
+        // Bulk-create all the new bills at once
+        if (feesCollectionToCreate.length > 0) {
+          await tx.feesCollection.createMany({
+            data: feesCollectionToCreate,
+            skipDuplicates: true // Important for safety
+          });
         }
       }
 
-      // g. Return a detailed result from the transaction
+      // --- f. Return a detailed result ---
       return {
         message: 'Fee assignment and billing operation completed.',
         createdCount,
@@ -132,40 +115,24 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json(result, {status: 200});
-  } catch (error: any) {
 
+  } catch (error: any) {
     console.error('Error assigning local fee to students:', error);
 
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
-
-      if (error.code === 'P2002') {
+      if (error.code === 'P2002') { // Unique constraint violation
         const fields = (error.meta as {target?: string[]})?.target?.join(', ');
-        return NextResponse.json(
-          {
-            error: `Database unique constraint failed on the following fields: ${fields}.`,
-          },
-          {status: 409} // 409 Conflict is a more appropriate status code
-        );
-      }
-
-      if (error.code === 'P2025') {
-        return NextResponse.json(
-          {error: error.meta?.cause || 'A required record was not found.'},
-          {status: 404}
-        );
+        return NextResponse.json({ error: `Database unique constraint failed on fields: ${fields}.` }, {status: 409});
       }
     }
 
-    if (
-      error.message.includes('not exist') ||
-      error.message.includes('No ClassFee')
-    ) {
+    // Custom error messages for better frontend feedback
+    if (error.message.includes('not found') || error.message.includes('not exist') || error.message.includes('No payment schedule')) {
       return NextResponse.json({error: error.message}, {status: 404});
     }
 
-    // Generic fallback for all other errors
     return NextResponse.json(
-      {error: 'An unexpected error occurred during the transaction.'},
+      {error: 'An unexpected error occurred.'},
       {status: 500}
     );
   }
@@ -176,69 +143,116 @@ interface DeletionRecord {
   studentId: string;
 }
 
+interface DeletionRecord {
+  localFeeOnStudentId: string;
+  studentId: string;
+}
+
 export async function DELETE(request: Request) {
   try {
     const body = await request.json();
-    const recordsToDelete: DeletionRecord[] = body.records;
+    const records: DeletionRecord[] = body.records;
 
-    // --- 1. Input Validation ---
-    if (!Array.isArray(recordsToDelete) || recordsToDelete.length === 0) {
+    // --- 1. Input Validation (Unchanged) ---
+    if (!Array.isArray(records) || records.length === 0) {
       return NextResponse.json(
-        {
-          error:
-            'The request body must contain a non-empty `records` array.',
-        },
-        { status: 400 }
+        {error: 'The request body must contain a non-empty `records` array.'},
+        {status: 400}
       );
     }
-
-    // Validate the structure of each object in the array
-    for (const record of recordsToDelete) {
+    for (const record of records) {
       if (!record.localFeeOnStudentId || !record.studentId) {
         return NextResponse.json(
-          {
-            error:
-              'Each object in the array must contain both `localFeeOnStudentId` and `studentId`.',
-          },
-          { status: 400 }
+          {error: 'Each object in the array must contain both `localFeeOnStudentId` and `studentId`.'},
+          {status: 400}
         );
       }
     }
 
-    const whereClause = {
-      OR: recordsToDelete.map((record) => ({
-        id: record.localFeeOnStudentId,
-        studentId: record.studentId,
-      })),
-    };
 
-    const deleteResult = await prisma.localFeesOnStudent.deleteMany({
-      where: whereClause,
+    const result = await prisma.$transaction(async (tx) => {
+      // --- a. First, find the valid records to delete and get their associated localFeesId ---
+      const recordsToDelete = await tx.localFeesOnStudent.findMany({
+        where: {
+          OR: records.map(record => ({
+            id: record.localFeeOnStudentId,
+            studentId: record.studentId,
+          })),
+        },
+        select: {
+          id: true,
+          studentId: true,
+          localFeesId: true,
+        },
+      });
+
+      if (recordsToDelete.length === 0) {
+        // No records matched the input, so there's nothing to do.
+        return {deletedLinksCount: 0, deletedBillsCount: 0};
+      }
+
+      const uniqueLocalFeeIds = [...new Set(recordsToDelete.map(r => r.localFeesId))];
+      const relatedClassFees = await tx.classFee.findMany({
+        where: { localFeesId: { in: uniqueLocalFeeIds } },
+        select: { id: true, localFeesId: true },
+      });
+
+      const classFeeMap = new Map<string, string[]>();
+      for (const cf of relatedClassFees) {
+        const ids = classFeeMap.get(cf.localFeesId!) || [];
+        ids.push(cf.id);
+        classFeeMap.set(cf.localFeesId!, ids);
+      }
+
+      // --- c. Construct the precise WHERE clause to delete the correct FeesCollection records ---
+      const feesCollectionDeletionConditions: Prisma.FeesCollectionWhereInput[] = [];
+      for (const record of recordsToDelete) {
+        const classFeeIds = classFeeMap.get(record.localFeesId);
+        if (classFeeIds && classFeeIds.length > 0) {
+          // This condition targets bills for a specific student for a specific fee schedule.
+          feesCollectionDeletionConditions.push({
+            studentId: record.studentId,
+            classFeeId: { in: classFeeIds },
+          });
+        }
+      }
+
+      let deletedBillsCount = 0;
+      if (feesCollectionDeletionConditions.length > 0) {
+        const deleteBillsResult = await tx.feesCollection.deleteMany({
+          where: { OR: feesCollectionDeletionConditions },
+        });
+        deletedBillsCount = deleteBillsResult.count;
+      }
+
+      const idsToDelete = recordsToDelete.map(r => r.id);
+      const deleteLinksResult = await tx.localFeesOnStudent.deleteMany({
+        where: { id: { in: idsToDelete } },
+      });
+
+      return {
+        deletedLinksCount: deleteLinksResult.count,
+        deletedBillsCount,
+      };
     });
 
-    if (deleteResult.count === 0) {
+    if (result.deletedLinksCount === 0) {
       return NextResponse.json(
-        {
-          message: 'No matching records found to delete.',
-          deletedCount: 0
-        },
-        { status: 404 }
+        {message: 'No matching student fee links found to delete.', ...result},
+        {status: 404}
       );
     }
 
     return NextResponse.json(
-      {
-        message: 'Student fee links deleted successfully.',
-        deletedCount: deleteResult.count,
-      },
-      { status: 200 }
+      {message: 'Student fee links and associated bills deleted successfully.', ...result},
+      {status: 200}
     );
-  } catch (error: any) {
 
+  } catch (error: any) {
     console.error('Failed to bulk delete student fee links:', error);
     return NextResponse.json(
-      { error: 'An unexpected error occurred.' },
-      { status: 500 }
+      {error: 'An unexpected error occurred.'},
+      {status: 500}
     );
   } finally {
     await prisma.$disconnect();

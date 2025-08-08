@@ -12,7 +12,6 @@ interface LocalFeePayload {
   penalty?: number;
   dueDate?: string;
   motherClassId: string;
-  studentIds: string[];
 }
 
 export async function POST(request: Request) {
@@ -23,16 +22,18 @@ export async function POST(request: Request) {
       institutionId
     }: {
       localFees: LocalFeePayload[];
-      institutionId: string; // Keep for potential validation
+      institutionId: string;
     } = body;
 
+    // --- 1. Input Validation ---
     if (!institutionId || !Array.isArray(localFees) || localFees.length === 0) {
       return NextResponse.json({error: 'institutionId and a non-empty localFees array are required.'}, {status: 400});
     }
 
+    // Comprehensive validation for each fee object
     for (const fee of localFees) {
-      const {name, amount, taxPercentage, paymentterms, motherClassId, studentIds} = fee;
-      if (!name || amount == null || taxPercentage == null || !paymentterms || !motherClassId || !Array.isArray(studentIds) || studentIds.length === 0) {
+      const { name, amount, taxPercentage, paymentterms, motherClassId } = fee;
+      if (!name || amount == null || taxPercentage == null || !paymentterms || !motherClassId) {
         return NextResponse.json({error: `Missing required fields for fee: "${name}"`}, {status: 400});
       }
       if (fee.paymentterms === 'ONE_TIME' && !fee.dueDate) {
@@ -40,23 +41,17 @@ export async function POST(request: Request) {
       }
     }
 
+    // --- 2. Pre-transaction Validation (Fail-Fast) ---
     const allMotherClassIds = [...new Set(localFees.map(f => f.motherClassId))];
-    const allStudentIds = [...new Set(localFees.flatMap(f => f.studentIds))];
-
-    const existingMotherClassesCount = await prisma.motherClass.count({where: {id: {in: allMotherClassIds}}});
-    const existingStudentsCount = await prisma.student.count({where: {id: {in: allStudentIds}}});
+    const existingMotherClassesCount = await prisma.motherClass.count({ where: { id: { in: allMotherClassIds } } });
 
     if (existingMotherClassesCount !== allMotherClassIds.length) {
       return NextResponse.json({error: "One or more motherClassIds provided do not exist."}, {status: 404});
-    }
-    if (existingStudentsCount !== allStudentIds.length) {
-      return NextResponse.json({error: "One or more studentIds provided do not exist."}, {status: 404});
     }
 
     // --- 3. Transaction for Atomic Creation ---
     const result = await prisma.$transaction(async (tx) => {
       const createdFeesResult = [];
-      const allFeesCollectionToCreate: Prisma.FeesCollectionCreateManyInput[] = [];
 
       for (const fee of localFees) {
         // --- a. Create the LocalFees master record ---
@@ -71,55 +66,31 @@ export async function POST(request: Request) {
           },
         });
 
-        // --- b. Link this fee to the specified students ---
-        const studentLinksData = fee.studentIds.map(studentId => ({
-          localFeesId: createdFee.id,
-          studentId: studentId
-        }));
-        await tx.localFeesOnStudent.createMany({data: studentLinksData, skipDuplicates: true});
-
-        // --- c. Get semester details for due date calculation ---
+        // --- b. Get semester details for due date calculation ---
         const section = await tx.classSection.findFirst({
-          where: {motherClassId: fee.motherClassId},
-          select: {semester: {select: {startDate: true, endDate: true}}}
+          where: { motherClassId: fee.motherClassId },
+          select: { semester: { select: { startDate: true, endDate: true } } }
         });
         if (!section?.semester) {
           throw new Error(`Could not determine the semester for MotherClass ID: ${fee.motherClassId}`);
         }
 
-        // --- d. Generate the payment schedule (due dates) ---
+        // --- c. Generate the payment schedule (due dates) ---
         const dueDates = calculateDueDates(section.semester.startDate, section.semester.endDate, fee.paymentterms, fee.dueDate);
 
-        // --- e. Create a ClassFee and FeesCollection for each cycle ---
+        // --- d. Create a ClassFee for each payment cycle ---
+        // This loop now only creates the ClassFee schedule.
         for (const dueDate of dueDates) {
-          // Create a ClassFee for this payment cycle
-          const newClassFee = await tx.classFee.create({
+          await tx.classFee.create({
             data: {
               localFeesId: createdFee.id,
               motherClassId: fee.motherClassId,
               dueDate: dueDate,
             },
           });
-
-          // For this ClassFee, prepare a FeesCollection record for each assigned student
-          for (const studentId of fee.studentIds) {
-            allFeesCollectionToCreate.push({
-              classFeeId: newClassFee.id,
-              studentId: studentId,
-              status: PaymentStatus.PENDING,
-            });
-          }
         }
 
         createdFeesResult.push(createdFee);
-      }
-
-      // --- f. Bulk-create all pending bills at once ---
-      if (allFeesCollectionToCreate.length > 0) {
-        await tx.feesCollection.createMany({
-          data: allFeesCollectionToCreate,
-          skipDuplicates: true
-        });
       }
 
       return createdFeesResult;
@@ -127,7 +98,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json(
       {
-        message: 'Local fees and their recurring payment schedules created successfully for the specified students.',
+        message: 'Local fees and their recurring class schedules created successfully.',
         data: result,
       },
       {status: 201}
@@ -135,10 +106,9 @@ export async function POST(request: Request) {
 
   } catch (error: any) {
     console.error("Error creating local fees: ", error);
-    // More specific error handling
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
       if (error.code === 'P2003') { // Foreign key constraint failed
-        return NextResponse.json({error: "A provided ID (e.g., for a student or class) does not exist."}, {status: 404});
+        return NextResponse.json({ error: "A provided motherClassId does not exist." }, { status: 404 });
       }
     }
     return NextResponse.json(
@@ -158,7 +128,6 @@ interface UpdateLocalFeePayload {
   paymentterms?: PaymentTerms;
   dueDate?: string;
 }
-
 export async function PATCH(request: Request) {
   try {
     const body = await request.json();
@@ -182,75 +151,51 @@ export async function PATCH(request: Request) {
     const updatedFees = await prisma.$transaction(async (tx) => {
       // Use Promise.all to run all update operations concurrently
       const updatePromises = localFeesToUpdate.map(async (fee) => {
-        const {id, dueDate, ...dataToUpdate} = fee;
+        const { id, dueDate, ...dataToUpdate } = fee;
 
         // --- a. Update the main LocalFee record with simple data ---
         const updatedLocalFee = await tx.localFees.update({
-          where: {id: id},
-          data: dataToUpdate,
+          where: { id: id },
+          data: dataToUpdate
         });
 
-        // --- b. If payment terms changed, regenerate the entire schedule ---
         if (dataToUpdate.paymentterms) {
-          // Find the single MotherClass and all students associated with this fee
+          // Find the single MotherClass this fee is linked to
           const firstClassFee = await tx.classFee.findFirst({
-            where: {localFeesId: id},
-            select: {motherClassId: true},
-          });
-          const assignedStudents = await tx.localFeesOnStudent.findMany({
-            where: {localFeesId: id},
-            select: {studentId: true},
+            where: { localFeesId: id },
+            select: { motherClassId: true },
           });
 
-          if (!firstClassFee || assignedStudents.length === 0) {
-            // If the fee isn't linked to any class or student, there's no schedule to regenerate.
-            console.warn(`LocalFee ${id} has no schedule to regenerate. Skipping schedule update.`);
+          // If there's no schedule, there's nothing to regenerate.
+          if (!firstClassFee) {
+            console.warn(`LocalFee ${id} has no class schedule to regenerate. Skipping schedule update.`);
             return updatedLocalFee;
           }
-
           const motherClassId = firstClassFee.motherClassId;
-          const studentIds = assignedStudents.map(s => s.studentId);
 
-          // --- c. Delete the old schedule ---
-          const oldClassFeeIds = (await tx.classFee.findMany({
-            where: {localFeesId: id},
-            select: {id: true}
-          })).map(cf => cf.id);
-          if (oldClassFeeIds.length > 0) {
-            await tx.feesCollection.deleteMany({where: {classFeeId: {in: oldClassFeeIds}}});
-            await tx.classFee.deleteMany({where: {id: {in: oldClassFeeIds}}});
-          }
+          // --- c. Delete ONLY the old ClassFee schedule ---
+          await tx.classFee.deleteMany({ where: { localFeesId: id } });
 
-          // --- d. Re-create the new schedule ---
+          // --- d. Re-create the new ClassFee schedule ---
           const section = await tx.classSection.findFirst({
-            where: {motherClassId: motherClassId},
-            select: {semester: {select: {startDate: true, endDate: true}}}
+            where: { motherClassId: motherClassId },
+            select: { semester: { select: { startDate: true, endDate: true } } }
           });
           if (!section?.semester) {
             throw new Error(`Could not determine semester for the class linked to LocalFee ID ${id}.`);
           }
 
           const newDueDates = calculateDueDates(section.semester.startDate, section.semester.endDate, dataToUpdate.paymentterms, dueDate);
-          const feesCollectionToCreate: Prisma.FeesCollectionCreateManyInput[] = [];
 
+          // Create the new ClassFee records.
           for (const newDueDate of newDueDates) {
-            const newClassFee = await tx.classFee.create({
+            await tx.classFee.create({
               data: {
                 localFeesId: id,
                 motherClassId: motherClassId,
                 dueDate: newDueDate,
               }
             });
-            for (const studentId of studentIds) {
-              feesCollectionToCreate.push({
-                classFeeId: newClassFee.id,
-                studentId: studentId,
-                status: PaymentStatus.PENDING,
-              });
-            }
-          }
-          if (feesCollectionToCreate.length > 0) {
-            await tx.feesCollection.createMany({data: feesCollectionToCreate, skipDuplicates: true});
           }
         }
 
@@ -261,22 +206,21 @@ export async function PATCH(request: Request) {
     });
 
     return NextResponse.json(
-      {message: 'Local fees updated successfully.', data: updatedFees},
-      {status: 200}
+      { message: 'Local fees and their class schedules updated successfully.', data: updatedFees },
+      { status: 200 }
     );
 
   } catch (error: any) {
     console.error('Error updating local fees:', error);
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
-      return NextResponse.json({error: 'One or more fees to update were not found. Please check the IDs.'}, {status: 404});
+      return NextResponse.json({ error: 'One or more fees to update were not found. Please check the IDs.' }, { status: 404 });
     }
     return NextResponse.json(
-      {error: error.message || 'An internal server error occurred.'},
-      {status: error.message.includes("Could not determine") ? 404 : (error.message.includes("required for") ? 400 : 500)}
+      { error: error.message || 'An internal server error occurred.' },
+      { status: error.message.includes("Could not determine") ? 404 : (error.message.includes("required for") ? 400 : 500) }
     );
   }
 }
-
 
 export async function DELETE(request: Request) {
   try {
