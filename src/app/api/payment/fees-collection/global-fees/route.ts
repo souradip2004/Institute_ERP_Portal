@@ -1,9 +1,10 @@
-import { NextResponse } from 'next/server';
+import {NextResponse} from 'next/server';
 import prisma from '@/lib/prisma';
+import {PaymentStatus} from '@prisma/client'; // Import PaymentStatus enum
 
 export async function GET(request: Request) {
   try {
-    const { searchParams } = new URL(request.url);
+    const {searchParams} = new URL(request.url);
     const institutionId = searchParams.get('institutionId');
     const studentId = searchParams.get('studentId');
     const motherClassId = searchParams.get('motherClassId');
@@ -11,67 +12,69 @@ export async function GET(request: Request) {
     if (!institutionId || !studentId || !motherClassId) {
       return NextResponse.json({
         error: "Missing required parameters. 'institutionId', 'studentId', and 'motherClassId' are required."
-      }, { status: 400 });
+      }, {status: 400});
     }
 
     const feeDetails = await prisma.classFee.findMany({
       where: {
-        // Find class fees linked to this specific class
         motherClassId: motherClassId,
-        // Ensure we are only fetching Global Fees, not Local Fees
-        globalFeesId: {
-          not: null
-        },
-        // Security: Ensure the fee belongs to the specified institution
-        globalFees: {
-          institutionId: institutionId,
-        }
+        globalFeesId: {not: null},
+        globalFees: {institutionId: institutionId},
       },
       include: {
-        // Include the full details of the global fee
-        globalFees: true,
-        // Include the collection records, but ONLY for the specified student
+        globalFees: true, // Includes all global fee details
         feesCollections: {
-          where: {
-            studentId: studentId
-          }
+          where: {studentId: studentId}, // Only get collections for this student
         }
       }
     });
 
-    // 3. Transform the data into a structured, user-friendly response
+    const now = new Date();
+
     const structuredResponse = feeDetails
     .filter(detail => detail.globalFees) // Filter out any nulls just in case
     .map(detail => {
-      // The 'feesCollections' array will have either one item (if a record exists for the student)
-      // or zero items. We extract the single record or return null.
       const collectionDetails = detail.feesCollections[0] || null;
-      const amountDue = parseFloat((detail.globalFees!.amount + detail.globalFees!.penalty + ((detail.globalFees!.taxPercentage / 100.00) * detail.globalFees!.amount) - collectionDetails.amount).toFixed(2));
+      const globalFee = detail.globalFees!;
 
+      const isPenaltyApplied = detail.dueDate < now && collectionDetails?.status !== PaymentStatus.PAID && collectionDetails?.status !== PaymentStatus.PARTIAL;
+
+      const penaltyToAdd = isPenaltyApplied ? globalFee.penalty : 0;
+
+      const baseAmount = globalFee.amount;
+
+      const taxAmount = (baseAmount * globalFee.taxPercentage) / 100;
+      const totalBillable = baseAmount + taxAmount + penaltyToAdd;
+      console.log("Total billable ", totalBillable);
+      const amountPaid = collectionDetails?.amount || 0;
+      console.log("Amount paid ", amountPaid);
+      const amountDue = parseFloat((totalBillable - amountPaid).toFixed(2));
 
       return {
-        feeId: detail.globalFees!.id,
-        name: detail.globalFees!.name,
-        description: detail.globalFees!.description,
+        feeId: globalFee.id,
+        name: globalFee.name,
+        description: globalFee.description,
         amountDue,
-        taxPercentage: detail.globalFees!.taxPercentage,
-        penalty: detail.globalFees!.penalty,
-        paymentTerms: detail.globalFees!.paymentterms,
+        baseAmount: totalBillable,
+        taxPercentageIncluded: globalFee.taxPercentage,
+        penaltyIncluded: globalFee.penalty,
+        isPenaltyApplied,
+        paymentTerms: globalFee.paymentterms,
+        dueDate: detail.dueDate,
         classFeeId: detail.id,
-        // Student-specific payment information
-        paymentStatus: collectionDetails.status || 'NOT_GENERATED', // Provides a clear status if no record was found
-        amountPaid: collectionDetails.amount, // This will be the amount from the collection record
+        paymentStatus: collectionDetails?.status || 'NOT_GENERATED',
+        amountPaid: amountPaid,
         paymentDate: collectionDetails?.paymentDate,
         paymentMethod: collectionDetails?.paymentMethod,
         transactionId: collectionDetails?.transactionId,
-        feesCollectionId: collectionDetails?.id || null // The ID of the specific fee collection record
+        feesCollectionId: collectionDetails?.id || null,
       };
     });
 
-    return NextResponse.json(structuredResponse, { status: 200 });
+    return NextResponse.json(structuredResponse, {status: 200});
 
   } catch (error) {
-    console.error("Error fetching student fee details: ", error);
-    return NextResponse.json({ error: "An internal server error occurred." }, { status: 500 });
+    console.error("Error fetching student global fee details: ", error);
+    return NextResponse.json({error: "An internal server error occurred."}, {status: 500});
   }
 }

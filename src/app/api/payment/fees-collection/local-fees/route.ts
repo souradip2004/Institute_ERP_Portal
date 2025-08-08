@@ -1,6 +1,6 @@
 import {NextResponse} from 'next/server';
 import prisma from '@/lib/prisma';
-import {Student} from '@prisma/client'; // Assuming Student model might be needed for validation
+import {PaymentStatus, Student} from '@prisma/client'; // Assuming Student model might be needed for validation
 
 export async function GET(request: Request) {
   try {
@@ -8,7 +8,7 @@ export async function GET(request: Request) {
     const studentId = searchParams.get('studentId');
     const institutionId = searchParams.get('institutionId');
 
-    // 1. Validate all required parameters
+    // 1. Validation (Unchanged)
     if (!studentId || !institutionId) {
       return NextResponse.json({
         error: "Missing required parameters. 'studentId' and 'institutionId' are required."
@@ -31,23 +31,17 @@ export async function GET(request: Request) {
       }, {status: 404});
     }
 
-    // 3. Find all MotherClass IDs for the student's active enrollments
+    // 2. Find all MotherClass IDs for the student's active enrollments (Unchanged)
     const enrollments = await prisma.studentClassEnrollment.findMany({
       where: {
         studentId: studentId,
         enrollmentStatus: 'ENROLLED',
         classSection: {
-          motherClassId: {
-            not: null
-          }
+          motherClassId: {not: null}
         }
       },
       select: {
-        classSection: {
-          select: {
-            motherClassId: true
-          }
-        }
+        classSection: {select: {motherClassId: true}}
       }
     });
 
@@ -56,66 +50,62 @@ export async function GET(request: Request) {
     .filter((id): id is string => id !== null);
 
     if (studentMotherClassIds.length === 0) {
-
       return NextResponse.json([], {status: 200});
     }
 
     const feeDetails = await prisma.classFee.findMany({
       where: {
-        // Filter for fees related to the student's classes
-        motherClassId: {
-          in: studentMotherClassIds,
-        },
-        // Ensure we are only fetching Local Fees
-        localFeesId: {
-          not: null,
-        },
-        // And that the local fee has been explicitly assigned to this student
+        motherClassId: {in: studentMotherClassIds},
+        localFeesId: {not: null},
         localFees: {
-          studentsLocalFees: {
-            some: {
-              studentId: studentId,
-            },
-          },
+          studentsLocalFees: {some: {studentId: studentId}},
         },
       },
       include: {
-        // Include the full details of the local fee
         localFees: true,
-        // Include the collection records, but ONLY for the specified student
         feesCollections: {
-          where: {
-            studentId: studentId,
-          },
-        },
+          where: {studentId: studentId}
+        }
       },
     });
 
-    // 5. Transform the data into a structured, user-friendly response
-    const structuredResponse = feeDetails
-    .filter(detail => detail.localFees) // Ensure localFees is not null
-    .map(detail => {
-      // The 'feesCollections' array will have at most one item due to the where clause
-      const collectionDetails = detail.feesCollections[0] || null;
+    const now = new Date();
 
-      const amountDue = parseFloat((detail.localFees!.amount + detail.localFees!.penalty + ((detail.localFees!.taxPercentage / 100.00) * detail.localFees!.amount) - collectionDetails.amount).toFixed(2));
+    const structuredResponse = feeDetails
+    .filter(detail => detail.localFees) // Ensure localFees object exists
+    .map(detail => {
+      const collectionDetails = detail.feesCollections[0] || null;
+      const localFee = detail.localFees!;
+
+
+      const isPenaltyApplied = detail.dueDate < now && collectionDetails?.status !== PaymentStatus.PAID;
+
+      const penaltyToAdd = isPenaltyApplied ? localFee.penalty : 0;
+
+      const baseAmount = localFee.amount;
+      const taxAmount = (baseAmount * localFee.taxPercentage) / 100;
+      const totalBillable = baseAmount + taxAmount + penaltyToAdd;
+      const amountPaid = collectionDetails?.amount || 0;
+      const amountDue = parseFloat((totalBillable - amountPaid).toFixed(2));
 
       return {
-        localFeesId: detail.localFees!.id,
-        name: detail.localFees!.name,
-        description: detail.localFees!.description,
+        localFeesId: localFee.id,
+        name: localFee.name,
+        description: localFee.description,
         amountDue,
-        taxPercentage: detail.localFees!.taxPercentage,
-        penalty: detail.localFees!.penalty,
-        paymentTerms: detail.localFees!.paymentterms,
+        baseAmount: totalBillable,
+        taxPercentageIncluded: localFee.taxPercentage,
+        penaltyIncluded: localFee.penalty,
+        isPenaltyApplied, // The new boolean field
+        paymentTerms: localFee.paymentterms,
+        dueDate: detail.dueDate, // Good to return the due date for context
         classFeeId: detail.id,
-        // Student-specific payment information
-        paymentStatus: collectionDetails.status || 'NOT_GENERATED',
-        amountPaid: collectionDetails.amount,
+        paymentStatus: collectionDetails?.status || 'NOT_GENERATED',
+        amountPaid: amountPaid,
         paymentDate: collectionDetails?.paymentDate,
         paymentMethod: collectionDetails?.paymentMethod,
         transactionId: collectionDetails?.transactionId,
-        feesCollectionId: collectionDetails?.id || null
+        feesCollectionId: collectionDetails?.id || null,
       };
     });
 
