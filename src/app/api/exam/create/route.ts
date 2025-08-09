@@ -127,6 +127,7 @@ export async function POST(req: NextRequest) {
         endTime: new Date(endTime),
       },
     });
+
     console.log("Questions payload:", questions);
     const marks = parseFloat((parseFloat(totalMarks) / questions.length).toFixed(2));
     // Then create questions for the exam

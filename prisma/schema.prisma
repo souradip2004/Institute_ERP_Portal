@@ -477,6 +477,7 @@ model Question {
   examId          String         @map("exam_id")
   questionText    String         @map("question_text")
   questionType    QuestionType   @map("question_type")
+  qNo             Int
   marks           Float          @default(0)
   difficultyLevel String         @map("difficulty_level")
   correctAnswer   Json           @map("correct_answer")
