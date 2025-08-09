@@ -2604,6 +2604,8 @@ export default function Home() {
                                                         console.log('enrollment.id ---', enrollment.id)
                                                         console.log('institute id ---', studentResponse.institute)
                                                         console.log('motherclass.id ---', motherClassIdForStudentList)
+                                                        const url = `/a/fees/student/?institutionId=${studentResponse.institute}&studentId=${enrollment.id}&motherClassId=${motherClassIdForStudentList}`;
+                                                        window.location.href = url;
                                                     }}
                                                 >
                                                     <td className="px-4 py-4 font-medium text-slate-900 whitespace-nowrap">
