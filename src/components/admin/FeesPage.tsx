@@ -1479,6 +1479,7 @@ export default function Home() {
     // --- NEW --- State for Global Fee Add Modal ---
     const [isGlobalFeeAddOpen, setIsGlobalFeeAddOpen] = useState(false);
     const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null);
+    const [motherClassIdForStudentList, setMotherClassIdForStudentList] = useState<string | null>(null);
     const [studentResponse, setStudentResponse] = useState<StudentResponse | null>(null);
     const [loadingStudents, setLoadingStudents] = useState(false);
     // --- NEW --- State for Local Fee Add Modal ---
@@ -1809,6 +1810,7 @@ export default function Home() {
             );
             if (motherClass) {
                 fetchStudents(motherClass.id);
+                setMotherClassIdForStudentList(motherClass.id);
             }
         }
     };
@@ -2597,6 +2599,12 @@ export default function Home() {
                                                 <tr
                                                     key={enrollment.id}
                                                     className="bg-white border-b last:border-b-0 hover:bg-slate-50"
+                                                    onClick={() => {
+                                                        console.log('clicked on student')
+                                                        console.log('enrollment.id ---', enrollment.id)
+                                                        console.log('institute id ---', studentResponse.institute)
+                                                        console.log('motherclass.id ---', motherClassIdForStudentList)
+                                                    }}
                                                 >
                                                     <td className="px-4 py-4 font-medium text-slate-900 whitespace-nowrap">
                                                         {enrollment.user.name}
@@ -2620,7 +2628,11 @@ export default function Home() {
                                                             <td key={fee.id} className="px-4 py-4 text-center">
                                                                 <div className="flex flex-col items-center">
                                                                     <button
-                                                                        onClick={() => handleFeeToggle(enrollment.id, fee.id, isAssigned, feeLink?.localFeesOnStudentId)}
+                                                                        onClick={() => {
+                                                                            e.stopPropagation();
+                                                                            handleFeeToggle(enrollment.id, fee.id, isAssigned, feeLink?.localFeesOnStudentId)
+
+                                                                        }}
                                                                         className={`w-6 h-6 rounded border-2 flex items-center justify-center transition-colors ${isAssigned
                                                                             ? 'bg-green-500 border-green-500 text-white hover:bg-green-600'
                                                                             : 'bg-white border-slate-300 hover:border-slate-400'
