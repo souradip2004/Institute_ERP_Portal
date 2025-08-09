@@ -104,6 +104,10 @@ interface LocalFee {
     penalty: number;
     createdAt: string;
     updatedAt: string;
+    classFees: {
+        dueDate: string;
+        id: string;
+    }[];
 }
 
 interface FeeLink {
@@ -1868,7 +1872,7 @@ export default function Home() {
                 const recordsToDelete = studentResponse.studentEnrollments
                     .map(enrollment => {
                         const feeLink = enrollment.feeLinks.find(link => link.localFeeId === localFeeId);
-                        if (feeLink?.localFeesOnStudentId) {
+                        if (feeLink && feeLink.localFeesOnStudentId) {
                             return {
                                 studentId: enrollment.id,
                                 localFeeOnStudentId: feeLink.localFeesOnStudentId
@@ -1944,7 +1948,7 @@ export default function Home() {
     };
 
     // --- NEW --- Handlers for Local Fee Column Edit Modal ---
-    const handleOpenLocalFeeColumnEdit = (localFee: any) => {
+    const handleOpenLocalFeeColumnEdit = (localFee: LocalFee) => {
         const dueDate = localFee.classFees && localFee.classFees.length > 0
             ? new Date(localFee.classFees[0].dueDate).toISOString().split('T')[0]
             : new Date().toISOString().split('T')[0];
@@ -2622,9 +2626,10 @@ export default function Home() {
                                                         </span>
                                                     </td>
                                                     {studentResponse.localFees.map((fee) => {
-                                                        // const feeLink = enrollment.feeLinks.find(link => link.localFeeId === fee.id);
-                                                        const feeLink = enrollment.feeLinks[0];
-                                                        const isAssigned = feeLink?.localFeesOnStudentId !== null;
+                                                        const feeLink = enrollment.feeLinks.find(link => link.localFeeId === fee.id);
+
+                                                        // Check if student is assigned to this fee - feeLink exists and has localFeesOnStudentId
+                                                        const isAssigned = feeLink && feeLink.localFeesOnStudentId !== null;
                                                         const totalAmount = fee.amount + (feeLink?.offsetFee || 0);
 
                                                         return (
@@ -2633,7 +2638,7 @@ export default function Home() {
                                                                     <button
                                                                         onClick={(e) => {
                                                                             e.stopPropagation();
-                                                                            handleFeeToggle(enrollment.id, fee.id, isAssigned, feeLink?.localFeesOnStudentId)
+                                                                            handleFeeToggle(enrollment.id, fee.id, !!isAssigned, feeLink?.localFeesOnStudentId)
 
                                                                         }}
                                                                         className={`w-6 h-6 rounded border-2 flex items-center justify-center transition-colors ${isAssigned
