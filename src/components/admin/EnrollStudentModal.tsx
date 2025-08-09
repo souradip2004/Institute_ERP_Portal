@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, {useState, useEffect, useMemo} from 'react';
 import axios from 'axios';
 
 // Interface for the batch data received from the API
@@ -19,15 +19,21 @@ interface EnrollStudentModalProps {
   onEnrollmentSuccess: () => void;
 }
 
-export default function EnrollStudentModal({ isOpen, onClose, studentId, onEnrollmentSuccess }: EnrollStudentModalProps) {
+export default function EnrollStudentModal({isOpen, onClose, studentId, onEnrollmentSuccess}: EnrollStudentModalProps) {
   const [batches, setBatches] = useState<Batch[]>([]);
   const [selectedBatchId, setSelectedBatchId] = useState('');
   const [selectedClassSectionId, setSelectedClassSectionId] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [instituteId, setInstituteId] = useState();
 
   useEffect(() => {
     // Fetch batches only when the modal is opened
+    const instituteId = JSON.parse(localStorage.getItem('user')!).institutionId;
+    if (!instituteId) {
+      return;
+    }
+    setInstituteId(instituteId);
     if (isOpen) {
       const fetchBatches = async () => {
         setLoading(true);
@@ -49,7 +55,7 @@ export default function EnrollStudentModal({ isOpen, onClose, studentId, onEnrol
       setSelectedClassSectionId('');
       setError(null);
     }
-  }, [isOpen]);
+  }, [isOpen, instituteId]);
 
   // Memoize the class sections to avoid re-calculating on every render
   const availableClassSections = useMemo(() => {
@@ -92,11 +98,13 @@ export default function EnrollStudentModal({ isOpen, onClose, studentId, onEnrol
     <div className="fixed inset-0 bg-gray-600/50 backdrop-blur-sm flex items-center justify-center z-50">
       <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-lg mx-4">
         <h2 className="text-xl font-bold text-gray-800 mb-4">Enroll Student in a Class</h2>
-        {error && <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-md mb-4">{error}</div>}
+        {error &&
+					<div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-md mb-4">{error}</div>}
         <form onSubmit={handleSubmit}>
           <div className="space-y-4">
             <div>
-              <label htmlFor="batch-select" className="block text-sm font-medium text-gray-700 mb-1">Select Batch</label>
+              <label htmlFor="batch-select" className="block text-sm font-medium text-gray-700 mb-1">Select
+                Batch</label>
               <select
                 id="batch-select"
                 value={selectedBatchId}
@@ -116,7 +124,8 @@ export default function EnrollStudentModal({ isOpen, onClose, studentId, onEnrol
               </select>
             </div>
             <div>
-              <label htmlFor="class-section-select" className="block text-sm font-medium text-gray-700 mb-1">Select Class Section</label>
+              <label htmlFor="class-section-select" className="block text-sm font-medium text-gray-700 mb-1">Select
+                Class Section</label>
               <select
                 id="class-section-select"
                 value={selectedClassSectionId}

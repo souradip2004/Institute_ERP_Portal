@@ -100,7 +100,7 @@ export default function ViewStudentsComponent({ id }: ViewStudentsProps) {
   }
 
   return (
-    <div className="container mx-auto p-4">
+    <div className="container mx-auto p-1.5 md:p-4">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-800">Student Management</h1>
         <button

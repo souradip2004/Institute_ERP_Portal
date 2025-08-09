@@ -1,5 +1,6 @@
 import prisma from "@/lib/prisma";
-import { StudentClassEnrollment } from "@prisma/client";
+import {StudentClassEnrollment} from "@prisma/client";
+import {NextResponse} from "next/server";
 
 export interface CreateEnrollmentDTO {
   studentId: string;
@@ -19,25 +20,25 @@ export class StudentClassEnrollmentService {
           select: {
             id: true,
             studentRoll: true,
-            user: { select: { name: true } },
+            user: {select: {name: true}},
           }
         },
         classSection: {
           select: {
             id: true,
             sectionName: true,
-            batch: { select: { batchName: true } },
+            batch: {select: {batchName: true}},
           },
         },
       },
-      orderBy: { createdAt: "desc" },
+      orderBy: {createdAt: "desc"},
     });
   }
 
   async createEnrollment(
     data: CreateEnrollmentDTO
   ): Promise<StudentClassEnrollment> {
-    const { studentId, classSectionId, enrollmentStatus = "ENROLLED" } = data;
+    const {studentId, classSectionId, enrollmentStatus = "ENROLLED"} = data;
 
     // Validate required fields
     if (!studentId || !classSectionId) {
@@ -47,13 +48,25 @@ export class StudentClassEnrollmentService {
     // Uncomment for Redis/BullMQ integration
     // return await enrollQueue.add('create-enrollment', { data });
 
+    const studentAlreadyEnrolled = await prisma.studentClassEnrollment.findFirst({
+      where: {
+        studentId,
+        classSectionId
+      },
+      select: {
+        classSection: true
+      }
+    });
+
+    if (studentAlreadyEnrolled) {
+      throw new Error(`Student already enrolled in ${studentAlreadyEnrolled.classSection.sectionName} `)
+    }
+
     return prisma.studentClassEnrollment.create({
       data: {
         studentId,
         classSectionId,
         enrollmentStatus,
-        createdAt: new Date(),
-        updatedAt: new Date(),
       },
     });
   }
@@ -64,24 +77,24 @@ export class StudentClassEnrollmentService {
     if (!studentId) throw new Error("Student ID is required");
 
     return prisma.studentClassEnrollment.findMany({
-      where: { studentId },
+      where: {studentId},
       include: {
         student: {
           select: {
             id: true,
             studentRoll: true,
-            user: { select: { name: true } },
+            user: {select: {name: true}},
           },
         },
         classSection: {
           select: {
             id: true,
             sectionName: true,
-            batch: { select: { batchName: true } },
+            batch: {select: {batchName: true}},
           },
         },
       },
-      orderBy: { createdAt: "desc" },
+      orderBy: {createdAt: "desc"},
     });
   }
 
@@ -89,26 +102,26 @@ export class StudentClassEnrollmentService {
     if (!id) throw new Error("Enrollment ID is required");
 
     return prisma.studentClassEnrollment
-      .findMany({
-        where: { studentId: id },
-        include: {
-          student: {
-            select: {
-              id: true,
-              studentRoll: true,
-              user: { select: { name: true } },
-            },
-          },
-          classSection: {
-            select: {
-              id: true,
-              sectionName: true,
-              batch: { select: { batchName: true } },
-            },
+    .findMany({
+      where: {studentId: id},
+      include: {
+        student: {
+          select: {
+            id: true,
+            studentRoll: true,
+            user: {select: {name: true}},
           },
         },
-      })
-      .then((enrollments) => enrollments[0] || null);
+        classSection: {
+          select: {
+            id: true,
+            sectionName: true,
+            batch: {select: {batchName: true}},
+          },
+        },
+      },
+    })
+    .then((enrollments) => enrollments[0] || null);
   }
 
   async updateEnrollment(
@@ -117,11 +130,11 @@ export class StudentClassEnrollmentService {
   ): Promise<StudentClassEnrollment> {
     if (!id) throw new Error("Enrollment ID is required");
 
-    const { enrollmentStatus } = data;
+    const {enrollmentStatus} = data;
 
     // Check if enrollment exists
     const existingEnrollment = await prisma.studentClassEnrollment.findUnique({
-      where: { id },
+      where: {id},
     });
     if (!existingEnrollment) throw new Error("Enrollment not found");
 
@@ -129,7 +142,7 @@ export class StudentClassEnrollmentService {
     // return await enrollQueue.add('update-enrollment', { identity: id, data });
 
     return prisma.studentClassEnrollment.update({
-      where: { id },
+      where: {id},
       data: {
         enrollmentStatus,
         updatedAt: new Date(),
@@ -141,13 +154,13 @@ export class StudentClassEnrollmentService {
     if (!id) throw new Error("Enrollment ID is required");
 
     const existingEnrollment = await prisma.studentClassEnrollment.findUnique({
-      where: { id },
+      where: {id},
     });
     if (!existingEnrollment) throw new Error("Enrollment not found");
 
     // Uncomment for Redis/BullMQ integration
     // await enrollQueue.add('delete-enrollment', { identity: id });
 
-    await prisma.studentClassEnrollment.delete({ where: { id } });
+    await prisma.studentClassEnrollment.delete({where: {id}});
   }
 }
