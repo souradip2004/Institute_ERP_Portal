@@ -8,21 +8,19 @@ export async function GET(
   req: NextRequest
 ) {
   try {
-
     console.log("API hit");
     const searchParams = req.nextUrl.searchParams;
     const examSubmissionId = searchParams.get('id') as string;
     const studentId = searchParams.get('studentId') as string;
 
-
     if (!examSubmissionId || !studentId) {
       return NextResponse.json(
-        { error: "Missing required parameters: id, examId, and studentId" },
-        { status: 400 }
+        {error: "Missing required parameters: id, examId, and studentId"},
+        {status: 400}
       );
     }
 
-    // Get teacher record
+    // Get student record
     const student = await prisma.student.findFirst({
       where: {id: studentId}
     });
@@ -30,7 +28,7 @@ export async function GET(
       return NextResponse.json({error: "Student record not found"}, {status: 403});
     }
 
-    // Get the exam with detailed question information
+    // Get the exam submission with detailed question and answer script information
     const examSubmission = await prisma.examSubmission.findUnique({
       where: {
         id: examSubmissionId,
@@ -38,6 +36,11 @@ export async function GET(
       },
       include: {
         answerScripts: {
+          orderBy: {
+            question: {
+              qNo: 'asc',
+            },
+          },
           select: {
             id: true,
             studentAnswer: true,
@@ -47,6 +50,7 @@ export async function GET(
             diagramImgURL: true,
             question: {
               select: {
+                qNo: true,
                 questionText: true,
                 questionType: true,
                 correctAnswer: true,
@@ -57,12 +61,12 @@ export async function GET(
               }
             }
           }
-        }
+        },
       }
     });
 
     if (!examSubmission) {
-      return NextResponse.json({error: "Exam not found"}, {status: 404});
+      return NextResponse.json({error: "Exam submission not found"}, {status: 404});
     }
 
     return NextResponse.json({examSubmission});
