@@ -25,21 +25,21 @@ export default function EnrollStudentModal({isOpen, onClose, studentId, onEnroll
   const [selectedClassSectionId, setSelectedClassSectionId] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [instituteId, setInstituteId] = useState();
 
   useEffect(() => {
     // Fetch batches only when the modal is opened
     const instituteId = JSON.parse(localStorage.getItem('user')!).institutionId;
+    console.log(instituteId)
     if (!instituteId) {
       return;
     }
-    setInstituteId(instituteId);
+
     if (isOpen) {
       const fetchBatches = async () => {
         setLoading(true);
         setError(null);
         try {
-          const response = await axios.get<Batch[]>('/api/batches');
+          const response = await axios.get<Batch[]>(`/api/batches?instituteId=${instituteId}`);
           setBatches(response.data);
         } catch (err) {
           setError('Failed to fetch batches. Please try again.');
@@ -55,7 +55,7 @@ export default function EnrollStudentModal({isOpen, onClose, studentId, onEnroll
       setSelectedClassSectionId('');
       setError(null);
     }
-  }, [isOpen, instituteId]);
+  }, [isOpen]);
 
   // Memoize the class sections to avoid re-calculating on every render
   const availableClassSections = useMemo(() => {

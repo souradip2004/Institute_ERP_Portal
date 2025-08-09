@@ -4,7 +4,7 @@ import {useState, useEffect, FormEvent} from "react";
 import {Card} from "@/components/ui/card";
 import Loader from "@/components/ui/Loader";
 import {Button} from "../ui/button";
-import { set } from "mongoose";
+import {set} from "mongoose";
 
 interface Department {
   id: string;
@@ -25,8 +25,8 @@ interface ClassSection {
   id: string;
   sectionName: string;
   teacherId: string;
-  isOptional:boolean;
-  motherClassId:string;
+  isOptional: boolean;
+  motherClassId: string;
 }
 
 interface AddStudentProps {
@@ -36,7 +36,7 @@ interface AddStudentProps {
   onSuccess: () => void;
 }
 
-export default function AddStudentModal({id, isOpen, onClose, onSuccess}: AddStudentProps){
+export default function AddStudentModal({id, isOpen, onClose, onSuccess}: AddStudentProps) {
   const [classData, setClassData] = useState<ClassSection[]>([]);
   const [departmentData, setDepartmentData] = useState<Department[]>([]);
   const [batchData, setBatchData] = useState<Batch[]>([]);
@@ -44,24 +44,27 @@ export default function AddStudentModal({id, isOpen, onClose, onSuccess}: AddStu
   const [error, setError] = useState<string | null>(null);
   const [showNewDepartment, setShowNewDepartment] = useState(false);
   const [multiplestudent, setMultiplestudent] = useState(false);
- const [motherClasses, setMotherClasses] = useState([]);
-  const [selectedMotherClassId, setSelectedMotherClassId] = useState<string | null>(null);
-    useEffect(() => {
-      const fetchAndProcessMotherClasses = async () => {
-        try {
-          const user = localStorage.getItem("user");
-          const institutionId = user ? JSON.parse(user).institutionId : null;
-          if (!institutionId) return;
-  
-          const response = await fetch(`/api/institutions/${institutionId}/motherclass`);
-          const data = await response.json();
-           setMotherClasses(data);
-        }catch(error){
-          console.log(error)
-        }}
-        fetchAndProcessMotherClasses()
-      },[])
-  
+  const [motherClasses, setMotherClasses] = useState([]);
+  const [instituteId, setInstituteId] = useState("");
+
+  useEffect(() => {
+    const fetchAndProcessMotherClasses = async () => {
+      try {
+        const user = localStorage.getItem("user");
+        const institutionId = user ? JSON.parse(user).institutionId : null;
+        setInstituteId(institutionId);
+        if (!institutionId) return;
+
+        const response = await fetch(`/api/institutions/${institutionId}/motherclass`);
+        const data = await response.json();
+        setMotherClasses(data);
+      } catch (error) {
+        console.log(error)
+      }
+    }
+    fetchAndProcessMotherClasses()
+  }, [])
+
   const [studentData, setStudentData] = useState({
     rollNumber: "",
     department: "",
@@ -70,9 +73,9 @@ export default function AddStudentModal({id, isOpen, onClose, onSuccess}: AddStu
     institutionid: id,
     newDepartment: "",
     batch: "",
-    name:"",
+    name: "",
     classes: [] as string[],
-    motherclasses:[] as string[]
+    motherclasses: [] as string[]
   });
 
   useEffect(() => {
@@ -131,7 +134,7 @@ export default function AddStudentModal({id, isOpen, onClose, onSuccess}: AddStu
   const fetchBatches = async () => {
     try {
       setLoading(true);
-      const response = await fetch("/api/batches");
+      const response = await fetch(`/api/batches?instituteId=${instituteId}`);
       if (!response.ok) throw new Error("Failed to fetch batches");
       const data = await response.json();
       const filteredBatches = data.filter((batch: Batch) => batch.department.id === studentData.department);
@@ -184,7 +187,7 @@ export default function AddStudentModal({id, isOpen, onClose, onSuccess}: AddStu
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const verified = JSON.parse(localStorage.getItem("verified") || "false"); // Get verification status from localStorage
-     if(!verified){
+    if (!verified) {
       alert("You are not yet verified to perform this action. Please wait for verification");
       return;
     }
@@ -216,8 +219,8 @@ export default function AddStudentModal({id, isOpen, onClose, onSuccess}: AddStu
           const data = await sendemail.json();
           console.log("Error sending welcome email:", data.error);
         }
-        let allclasses=[...studentData.classes,...(classData.filter((c)=>studentData.motherclasses.includes(c.motherClassId)&&!c.isOptional).map((d)=>d.id))]
-                  console.log(allclasses)
+        let allclasses = [...studentData.classes, ...(classData.filter((c) => studentData.motherclasses.includes(c.motherClassId) && !c.isOptional).map((d) => d.id))]
+        console.log(allclasses)
 
         const studentResponse = await fetch("/api/students", {
           method: "POST",
@@ -254,7 +257,7 @@ export default function AddStudentModal({id, isOpen, onClose, onSuccess}: AddStu
       const rollNumbers = studentData.rollNumber.split(",").map((roll) => roll.trim());
       const emails = studentData.email.split(",").map((email) => email.trim()).filter(Boolean);
 
-      const names=studentData.name.split(",").map((name)=>name.trim());
+      const names = studentData.name.split(",").map((name) => name.trim());
       if (rollNumbers.length !== emails.length) {
         setError("Roll numbers and emails count do not match");
         return;
@@ -289,7 +292,7 @@ export default function AddStudentModal({id, isOpen, onClose, onSuccess}: AddStu
             const data = await sendemail.json();
             console.log("Error sending welcome email:", data.error);
           }
-        let allclasses=[...studentData.classes,...(classData.filter((c)=>studentData.motherclasses.includes(c.motherClassId)&&!c.isOptional).map((d)=>d.id))]
+          let allclasses = [...studentData.classes, ...(classData.filter((c) => studentData.motherclasses.includes(c.motherClassId) && !c.isOptional).map((d) => d.id))]
           console.log(allclasses)
           const studentResponse = await fetch("/api/students", {
             method: "POST",
@@ -332,12 +335,12 @@ export default function AddStudentModal({id, isOpen, onClose, onSuccess}: AddStu
       rollNumber: "",
       department: "",
       email: "",
-      name:"",
+      name: "",
       password: "",
       institutionid: id,
       newDepartment: "",
       batch: "",
-      motherclasses:[],
+      motherclasses: [],
       classes: [],
     });
     setShowNewDepartment(false);
@@ -347,7 +350,8 @@ export default function AddStudentModal({id, isOpen, onClose, onSuccess}: AddStu
 
   return (
     <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4">
-      <Card className="bg-white w-full max-w-md shadow-lg rounded-lg max-h-[90vh] overflow-scroll"> {/* Added max-h and overflow-hidden here */}
+      <Card
+        className="bg-white w-full max-w-md shadow-lg rounded-lg max-h-[90vh] overflow-scroll"> {/* Added max-h and overflow-hidden here */}
         <div className="p-6 flex flex-col h-full"> {/* Added flex flex-col h-full */}
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-xl font-bold text-gray-800">Add New Student</h2>
@@ -362,7 +366,8 @@ export default function AddStudentModal({id, isOpen, onClose, onSuccess}: AddStu
           {loading && <Loader size="medium" message="Processing..."/>}
 
           {!loading && (
-            <form onSubmit={handleSubmit} className="flex flex-col flex-grow overflow-y-auto space-y-4 pr-2"> {/* Added flex-grow, overflow-y-auto and pr-2 for scrollbar */}
+            <form onSubmit={handleSubmit}
+                  className="flex flex-col flex-grow overflow-y-auto space-y-4 pr-2"> {/* Added flex-grow, overflow-y-auto and pr-2 for scrollbar */}
               <Button
                 variant="outline"
                 className="w-full mb-4"
@@ -434,7 +439,7 @@ export default function AddStudentModal({id, isOpen, onClose, onSuccess}: AddStu
                   />
                 </div>
               )}
-              
+
               {/* Password */}
               {!multiplestudent && (
                 <div>
@@ -537,25 +542,25 @@ export default function AddStudentModal({id, isOpen, onClose, onSuccess}: AddStu
                 </div>
 
               </div>
-               {/* Classes (multi-select) */}
+              {/* Classes (multi-select) */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Optional Classes</label>
                 <div className="border p-2 rounded-md max-h-40 overflow-y-auto">
-                    {classData.filter((c) => c.isOptional).map((c) => (
+                  {classData.filter((c) => c.isOptional).map((c) => (
                     <label key={c.id} className="flex items-center space-x-2">
                       <input
-                      type="checkbox"
-                      value={c.id}
-                      checked={studentData.classes.includes(c.id)}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        setStudentData((prev) => ({
-                        ...prev,
-                        classes: e.target.checked
-                          ? [...prev.classes, value]
-                          : prev.classes.filter((id) => id !== value),
-                        }));
-                      }}
+                        type="checkbox"
+                        value={c.id}
+                        checked={studentData.classes.includes(c.id)}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          setStudentData((prev) => ({
+                            ...prev,
+                            classes: e.target.checked
+                              ? [...prev.classes, value]
+                              : prev.classes.filter((id) => id !== value),
+                          }));
+                        }}
                       />
                       <span>{c.sectionName}</span>
                     </label>

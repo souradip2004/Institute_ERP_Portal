@@ -1,5 +1,5 @@
 import prisma from "@/lib/prisma";
-import { Batch } from "@prisma/client";
+import {Batch, Prisma} from "@prisma/client";
 
 export interface CreateBatchDTO {
   batchName: string;
@@ -16,25 +16,44 @@ export interface UpdateBatchDTO {
 
 export interface BatchFilter {
   departmentId?: string;
+  instituteId?: string;
 }
 
 export class BatchService {
   async getAllBatches(filters: BatchFilter = {}): Promise<Batch[]> {
-    const { departmentId } = filters;
+    const {departmentId, instituteId} = filters;
+    console.log("InstituteId ", instituteId)
+
     return prisma.batch.findMany({
-      where: { departmentId },
+      where: {
+        departmentId,
+        department: {
+          institutionId: instituteId,
+        }
+      },
       include: {
-        department: { select: { id: true, name: true, code: true } },
+        department: {
+          select: {
+            id: true,
+            name: true,
+            code: true,
+          },
+        },
         students: {
           select: {
             id: true,
             studentRoll: true,
-            user: { select: { name: true } },
+            user: {select: {name: true}},
           },
         },
-        classSections: { select: { id: true, sectionName: true } },
+        classSections: {
+          select: {
+            id: true,
+            sectionName: true,
+          },
+        },
       },
-      orderBy: { createdAt: "desc" },
+      orderBy: {createdAt: 'desc'},
     });
   }
 
@@ -55,17 +74,17 @@ export class BatchService {
     if (!id) throw new Error("Batch ID is required");
 
     return prisma.batch.findUnique({
-      where: { id },
+      where: {id},
       include: {
-        department: { select: { id: true, name: true, code: true } },
+        department: {select: {id: true, name: true, code: true}},
         students: {
           select: {
             id: true,
             studentRoll: true,
-            user: { select: { name: true } },
+            user: {select: {name: true}},
           },
         },
-        classSections: { select: { id: true, sectionName: true } },
+        classSections: {select: {id: true, sectionName: true}},
       },
     });
   }
@@ -73,17 +92,17 @@ export class BatchService {
   async updateBatch(id: string, data: UpdateBatchDTO): Promise<Batch> {
     if (!id) throw new Error("Batch ID is required");
 
-    const { batchName, year, maxStudents } = data;
+    const {batchName, year, maxStudents} = data;
 
     // Check if batch exists
-    const existingBatch = await prisma.batch.findUnique({ where: { id } });
+    const existingBatch = await prisma.batch.findUnique({where: {id}});
     if (!existingBatch) throw new Error("Batch not found");
 
     // Uncomment for Redis/BullMQ integration
     // return await batchQueue.add('update-batch', { identity: id, data });
 
     return prisma.batch.update({
-      where: { id },
+      where: {id},
       data: {
         batchName,
         year,
@@ -96,18 +115,18 @@ export class BatchService {
   async deleteBatch(id: string): Promise<void> {
     if (!id) throw new Error("Batch ID is required");
 
-    const existingBatch = await prisma.batch.findUnique({ where: { id } });
+    const existingBatch = await prisma.batch.findUnique({where: {id}});
     if (!existingBatch) throw new Error("Batch not found");
 
     // Uncomment for Redis/BullMQ integration
     // await batchQueue.add('delete-batch', { identity: id });
 
-    await prisma.batch.delete({ where: { id } });
+    await prisma.batch.delete({where: {id}});
   }
 
   async fetchBatchesByDepartment(departmentId: string) {
     return prisma.batch.findMany({
-      where: { departmentId },
+      where: {departmentId},
     });
   }
 }

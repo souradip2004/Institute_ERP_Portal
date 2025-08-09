@@ -8,7 +8,8 @@ export class BatchController {
     try {
       const url = new URL(req.url);
       const departmentId = url.searchParams.get('departmentId') || undefined;
-      const filters: BatchFilter = { departmentId };
+      const instituteId = url.searchParams.get('instituteId') || undefined;
+      const filters: BatchFilter = { departmentId, instituteId };
 
       const batches = await batchService.getAllBatches(filters);
       return NextResponse.json(batches);

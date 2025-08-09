@@ -3,7 +3,7 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import axios from "axios";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import {useEffect, useState} from "react";
 
 interface ClassSectionFormProps {
   teacherId: string;
@@ -18,10 +18,15 @@ export default function ClassSectionForm({ teacherId }: ClassSectionFormProps) {
     semesterId: "",
     maxStudents: 50,
   });
+  const [instituteId, setInstituteId] = useState("");
+
+  useEffect(() => {
+    setInstituteId(JSON.parse(localStorage.getItem("user")!).institutionId);
+  }, [])
 
   const { data: batches } = useQuery({
     queryKey: ["batches", teacherId],
-    queryFn: async () => (await axios.get("/api/batches")).data,
+    queryFn: async () => (await axios.get(`/api/batches?instituteId=${instituteId}`)).data,
   });
 
   const { data: courses } = useQuery({

@@ -205,7 +205,8 @@ export default function AddClassModal({id, userid, isOpen, onClose}: AddClassPro
       return;
     }
 
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/batches`, {
+    const instituteId = JSON.parse(localStorage.getItem("user")!).institutionId;
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/batches?instituteId=${instituteId}`, {
       method: "GET",
       headers: {"Content-Type": "application/json"},
     })
@@ -850,7 +851,7 @@ export default function AddClassModal({id, userid, isOpen, onClose}: AddClassPro
               {/* --- MODIFIED SECTION --- */}
               <div className="flex flex-col gap-1.5">
                 <label className="text-sm font-medium text-gray-600 whitespace-nowrap mt-2 ">
-                  Course Credits/Marks  <span className={"text-red-500"}>*</span>
+                  Course Credits/Marks <span className={"text-red-500"}>*</span>
                 </label>
                 <input
                   type="number"
