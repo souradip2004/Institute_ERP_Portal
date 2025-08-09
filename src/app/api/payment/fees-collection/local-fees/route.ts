@@ -8,7 +8,6 @@ export async function GET(request: Request) {
     const studentId = searchParams.get('studentId');
     const institutionId = searchParams.get('institutionId');
 
-    // 1. Validation (Unchanged)
     if (!studentId || !institutionId) {
       return NextResponse.json({
         error: "Missing required parameters. 'studentId' and 'institutionId' are required."
@@ -70,17 +69,31 @@ export async function GET(request: Request) {
     });
 
     const now = new Date();
+    const updatedFeeDetails = async (id: string) => {
+      return prisma.feesCollection.update({
+        where: {id},
+        data: {
+          status: PaymentStatus.OVERDUE,
+          penaltyApplied: true
+        }
+      })
+    }
 
-    const structuredResponse = feeDetails
-    .filter(detail => detail.localFees) // Ensure localFees object exists
+    const structuredResponse = await Promise.all(feeDetails
     .map(detail => {
-      const collectionDetails = detail.feesCollections[0] || null;
+      const collectionDetails = detail.feesCollections[0];
       const localFee = detail.localFees!;
+      let isAdminPenaltyApplied: boolean;
 
+      if ((collectionDetails.status === PaymentStatus.PENDING || collectionDetails.status === PaymentStatus.PARTIAL) && detail.dueDate < now) {
+        updatedFeeDetails(collectionDetails.id);
+        isAdminPenaltyApplied = true;
+      } else {
+        isAdminPenaltyApplied = collectionDetails.penaltyApplied;
+      }
+      // const isPenaltyApplied = detail.dueDate < now && collectionDetails?.status !== PaymentStatus.PAID;
 
-      const isPenaltyApplied = detail.dueDate < now && collectionDetails?.status !== PaymentStatus.PAID;
-
-      const penaltyToAdd = isPenaltyApplied ? localFee.penalty : 0;
+      const penaltyToAdd = isAdminPenaltyApplied ? localFee.penalty : 0;
 
       const baseAmount = localFee.amount;
       const taxAmount = (baseAmount * localFee.taxPercentage) / 100;
@@ -96,19 +109,19 @@ export async function GET(request: Request) {
         baseAmount: totalBillable,
         taxPercentageIncluded: localFee.taxPercentage,
         penaltyIncluded: localFee.penalty,
-        isPenaltyApplied, // The new boolean field
+        isPenaltyApplied: isAdminPenaltyApplied, // The new boolean field
         paymentTerms: localFee.paymentterms,
-        dueDate: detail.dueDate, // Good to return the due date for context
+        dueDate: detail.dueDate,
         classFeeId: detail.id,
-        paymentStatus: collectionDetails?.status || 'NOT_GENERATED',
+        paymentStatus: collectionDetails.status,
         amountPaid: amountPaid,
-        isVerified: collectionDetails?.verified,
-        paymentDate: collectionDetails?.paymentDate,
-        paymentMethod: collectionDetails?.paymentMethod,
-        transactionId: collectionDetails?.transactionId,
-        feesCollectionId: collectionDetails?.id || null,
+        isVerified: collectionDetails.verified,
+        paymentDate: collectionDetails.paymentDate,
+        paymentMethod: collectionDetails.paymentMethod,
+        transactionId: collectionDetails.transactionId,
+        feesCollectionId: collectionDetails.id,
       };
-    });
+    }));
 
     return NextResponse.json(structuredResponse, {status: 200});
 
