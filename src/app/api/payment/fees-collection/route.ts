@@ -75,7 +75,7 @@ export async function PATCH(request: Request) {
 
       const now = new Date();
       const dueDate = classFee.dueDate;
-      const isPenaltyApplied = dueDate < now && feeCollection.status !== PaymentStatus.PAID && feeCollection.status !== PaymentStatus.PARTIAL;
+      const isPenaltyApplied = dueDate < now && feeCollection.status !== PaymentStatus.PAID;
 
       const baseAmount = classFee.globalFees?.amount ?? classFee.localFees?.amount ?? 0;
       const taxPercentage = classFee.globalFees?.taxPercentage ?? classFee.localFees?.taxPercentage ?? 0;
@@ -103,7 +103,6 @@ export async function PATCH(request: Request) {
         // If it's not fully paid and the payment date is after the due date, it's OVERDUE
         newStatus = PaymentStatus.OVERDUE;
       } else {
-        // Otherwise, it's a partial payment made on time
         newStatus = PaymentStatus.PARTIAL;
       }
 
@@ -114,6 +113,7 @@ export async function PATCH(request: Request) {
         data: {
           amount: newTotalPaid + feeCollection.amount,
           status: newStatus,
+          penaltyApplied: isPenaltyApplied,
           paymentDate: paymentTransactionDate,
           paymentMethod: paymentMethod,
           transactionId: transactionId

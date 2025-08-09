@@ -1,6 +1,6 @@
 import {NextResponse} from 'next/server';
 import prisma from '@/lib/prisma';
-import {PaymentStatus} from '@prisma/client'; // Import PaymentStatus enum
+import {PaymentStatus} from '@prisma/client';
 
 export async function GET(request: Request) {
   try {
@@ -22,24 +22,40 @@ export async function GET(request: Request) {
         globalFees: {institutionId: institutionId},
       },
       include: {
-        globalFees: true, // Includes all global fee details
+        globalFees: true,
         feesCollections: {
-          where: {studentId: studentId}, // Only get collections for this student
+          where: {studentId: studentId},
         }
       }
     });
 
     const now = new Date();
 
-    const structuredResponse = feeDetails
-    .filter(detail => detail.globalFees) // Filter out any nulls just in case
+    const updatedFeeDetails = async (id: string) => {
+      return prisma.feesCollection.update({
+        where: {id},
+        data: {
+          status: PaymentStatus.OVERDUE,
+          penaltyApplied: true
+        }
+      })
+    }
+
+    const structuredResponse = await Promise.all(feeDetails
     .map(detail => {
-      const collectionDetails = detail.feesCollections[0] || null;
+      const collectionDetails = detail.feesCollections[0];
       const globalFee = detail.globalFees!;
 
-      const isPenaltyApplied = detail.dueDate < now && collectionDetails?.status !== PaymentStatus.PAID && collectionDetails?.status !== PaymentStatus.PARTIAL;
+      let adminPenaltyApplied: boolean;
+      if ((collectionDetails.status === PaymentStatus.PENDING || collectionDetails.status === PaymentStatus.PARTIAL) && detail.dueDate < now) {
+        updatedFeeDetails(collectionDetails.id);
+        adminPenaltyApplied = true;
+      } else {
+        adminPenaltyApplied = collectionDetails.penaltyApplied;
+      }
 
-      const penaltyToAdd = isPenaltyApplied ? globalFee.penalty : 0;
+      // console.log("Fee collection details: ", detail.feesCollections);
+      const penaltyToAdd = (adminPenaltyApplied) ? globalFee.penalty : 0;
 
       const baseAmount = globalFee.amount;
 
@@ -50,6 +66,7 @@ export async function GET(request: Request) {
       console.log("Amount paid ", amountPaid);
       const amountDue = parseFloat((totalBillable - amountPaid).toFixed(2));
 
+
       return {
         feeId: globalFee.id,
         name: globalFee.name,
@@ -58,7 +75,7 @@ export async function GET(request: Request) {
         baseAmount: totalBillable,
         taxPercentageIncluded: globalFee.taxPercentage,
         penaltyIncluded: globalFee.penalty,
-        isPenaltyApplied,
+        isPenaltyApplied: adminPenaltyApplied,
         paymentTerms: globalFee.paymentterms,
         dueDate: detail.dueDate,
         classFeeId: detail.id,
@@ -70,7 +87,7 @@ export async function GET(request: Request) {
         transactionId: collectionDetails?.transactionId,
         feesCollectionId: collectionDetails?.id || null,
       };
-    });
+    }));
 
     return NextResponse.json(structuredResponse, {status: 200});
 
