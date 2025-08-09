@@ -2622,7 +2622,8 @@ export default function Home() {
                                                         </span>
                                                     </td>
                                                     {studentResponse.localFees.map((fee) => {
-                                                        const feeLink = enrollment.feeLinks.find(link => link.localFeeId === fee.id);
+                                                        // const feeLink = enrollment.feeLinks.find(link => link.localFeeId === fee.id);
+                                                        const feeLink = enrollment.feeLinks[0];
                                                         const isAssigned = feeLink?.localFeesOnStudentId !== null;
                                                         const totalAmount = fee.amount + (feeLink?.offsetFee || 0);
 
