@@ -22,6 +22,7 @@ export async function GET(
     if (!teacher) {
       return NextResponse.json({error: "Teacher record not found"}, {status: 403});
     }
+
     const student = await prisma.student.findFirst({where: {id: studentId}});
     if (!student) {
       return NextResponse.json({error: "Student record not found"}, {status: 403});
