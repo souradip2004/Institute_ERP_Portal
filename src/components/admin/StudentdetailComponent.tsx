@@ -4,7 +4,7 @@ import StudentAttendance from './StudentAttendance';
 import {FiEdit} from 'react-icons/fi';
 import EditStudentModal from './EditStudentModal';
 import EnrollStudentModal from "@/components/admin/EnrollStudentModal";
-import { UnenrollConfirmationModal } from './UnenrollConfirmationModal';
+import {UnenrollConfirmationModal} from './UnenrollConfirmationModal';
 
 export interface StudentDetail {
   id: string;
@@ -228,7 +228,8 @@ export default function StudentDetail({studentId, onBack}: StudentDetailProps) {
         onConfirm={handleDeleteStudentEnrollments}
         className={selectedEnrollment?.name || ''}
       />
-      <div className="border-b border-gray-200 px-6 pb-1.5 md:py-4 flex flex-col md:flex-row justify-between md:items-center space-y-2">
+      <div
+        className="border-b border-gray-200 px-6 pb-1.5 md:py-4 flex flex-col md:flex-row justify-between md:items-center space-y-2">
         <div className="flex items-center space-x-3">
           <h2 className="text-xl font-bold text-gray-800">Student Detail</h2>
 
@@ -264,7 +265,18 @@ export default function StudentDetail({studentId, onBack}: StudentDetailProps) {
         <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg p-6 mb-6">
           <div className="flex items-center mb-4">
             <div
-              className="w-16 h-16 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center text-white text-xl font-bold mr-4">
+              className="
+              flex
+              items-center
+              justify-center
+              h-14 w-14
+              md:h-16 md:w-16
+              mr-4
+              bg-gradient-to-r from-purple-500 to-blue-500
+              text-white text-xl font-bold
+              rounded-full
+            "
+            >
               {student.user.name.charAt(0).toUpperCase()}
             </div>
             <div>
@@ -415,7 +427,8 @@ export default function StudentDetail({studentId, onBack}: StudentDetailProps) {
             </InfoSection>
 
             <div>
-              <div className={"flex flex-col md:flex-row items-center justify-between space-y-3 space-x-4 mb-2.5 md:px-4"}>
+              <div
+                className={"flex flex-col md:flex-row items-center justify-between space-y-3 space-x-4 mb-2.5 md:px-4"}>
                 <h3 className="text-lg font-medium leading-6 text-gray-900 md:mb-4">
                   Enrolled Classes ({student.classEnrollments?.length || 0})
                 </h3>
