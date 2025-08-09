@@ -2630,7 +2630,7 @@ export default function Home() {
                                                             <td key={fee.id} className="px-4 py-4 text-center">
                                                                 <div className="flex flex-col items-center">
                                                                     <button
-                                                                        onClick={() => {
+                                                                        onClick={(e) => {
                                                                             e.stopPropagation();
                                                                             handleFeeToggle(enrollment.id, fee.id, isAssigned, feeLink?.localFeesOnStudentId)
 
