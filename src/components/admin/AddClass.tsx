@@ -333,13 +333,14 @@ export default function AddClassModal({id, userid, isOpen, onClose}: AddClassPro
         headers: {"Content-Type": "application/json"},
         body: JSON.stringify({
           sectionName: classData.sectionName,
-          institution: JSON.parse(localStorage.getItem("user") || "{}")?.institutionId // Assuming user data in localStorage
+          institution: JSON.parse(localStorage.getItem("user")!).institutionId // Assuming user data in localStorage
         })
       });
       if (motherClassResponse.ok) {
         const motherRes = await motherClassResponse.json();
         motherClassIdToSubmit = motherRes.id;
       } else {
+
         console.error("Failed to create MotherClass:", await motherClassResponse.text());
         alert("Failed to create MotherClass. Please try again.");
         return; // Stop submission if MotherClass creation fails

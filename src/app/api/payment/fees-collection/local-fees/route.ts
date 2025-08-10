@@ -1,12 +1,13 @@
 import {NextResponse} from 'next/server';
 import prisma from '@/lib/prisma';
-import {PaymentStatus, PaymentTransaction} from '@prisma/client';
+import {PaymentStatus} from '@prisma/client';
 
 export async function GET(request: Request) {
   try {
     const {searchParams} = new URL(request.url);
     const studentId = searchParams.get('studentId');
     const institutionId = searchParams.get('institutionId');
+    const isDeleted: boolean = (searchParams.get('isDeleted') || false) as boolean;
 
     if (!studentId || !institutionId) {
       return NextResponse.json({
@@ -44,18 +45,18 @@ export async function GET(request: Request) {
         localFeesId: {not: null},
         // Ensure we only fetch fees specifically assigned to this student
         localFees: {
-          studentsLocalFees: {some: {studentId: studentId}},
+          isDeleted,
+          studentsLocalFees: {some: {studentId}},
         },
       },
       include: {
         localFees: true, // Includes details like name, penalty, tax
         feesCollections: {
-          where: {studentId: studentId},
+          where: {studentId},
           include: {
-            // Nest the include to get all transactions for the collection
             paymentTransactions: {
               orderBy: {
-                paymentDate: 'desc' // Show most recent payments first
+                paymentDate: 'desc'
               }
             }
           }

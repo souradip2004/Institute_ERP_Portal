@@ -32,7 +32,7 @@ export async function POST(request: Request) {
 
     // Comprehensive validation for each fee object
     for (const fee of localFees) {
-      const { name, amount, taxPercentage, paymentterms, motherClassId } = fee;
+      const {name, amount, taxPercentage, paymentterms, motherClassId} = fee;
       if (!name || amount == null || taxPercentage == null || !paymentterms || !motherClassId) {
         return NextResponse.json({error: `Missing required fields for fee: "${name}"`}, {status: 400});
       }
@@ -47,7 +47,7 @@ export async function POST(request: Request) {
 
     // --- 2. Pre-transaction Validation (Fail-Fast) ---
     const allMotherClassIds = [...new Set(localFees.map(f => f.motherClassId))];
-    const existingMotherClassesCount = await prisma.motherClass.count({ where: { id: { in: allMotherClassIds } } });
+    const existingMotherClassesCount = await prisma.motherClass.count({where: {id: {in: allMotherClassIds}}});
 
     if (existingMotherClassesCount !== allMotherClassIds.length) {
       return NextResponse.json({error: "One or more motherClassIds provided do not exist."}, {status: 404});
@@ -72,8 +72,8 @@ export async function POST(request: Request) {
 
         // --- b. Get semester details for due date calculation ---
         const section = await tx.classSection.findFirst({
-          where: { motherClassId: fee.motherClassId },
-          select: { semester: { select: { startDate: true, endDate: true } } }
+          where: {motherClassId: fee.motherClassId},
+          select: {semester: {select: {startDate: true, endDate: true}}}
         });
         if (!section?.semester) {
           throw new Error(`Could not determine the semester for MotherClass ID: ${fee.motherClassId}`);
@@ -112,7 +112,7 @@ export async function POST(request: Request) {
     console.error("Error creating local fees: ", error);
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
       if (error.code === 'P2003') { // Foreign key constraint failed
-        return NextResponse.json({ error: "A provided motherClassId does not exist." }, { status: 404 });
+        return NextResponse.json({error: "A provided motherClassId does not exist."}, {status: 404});
       }
     }
     return NextResponse.json(
@@ -132,6 +132,7 @@ interface UpdateLocalFeePayload {
   paymentterms?: PaymentTerms;
   dueDate?: string;
 }
+
 export async function PATCH(request: Request) {
   try {
     const body = await request.json();
@@ -155,19 +156,19 @@ export async function PATCH(request: Request) {
     const updatedFees = await prisma.$transaction(async (tx) => {
       // Use Promise.all to run all update operations concurrently
       const updatePromises = localFeesToUpdate.map(async (fee) => {
-        const { id, dueDate, ...dataToUpdate } = fee;
+        const {id, dueDate, ...dataToUpdate} = fee;
 
         // --- a. Update the main LocalFee record with simple data ---
         const updatedLocalFee = await tx.localFees.update({
-          where: { id: id },
+          where: {id: id},
           data: dataToUpdate
         });
 
         if (dataToUpdate.paymentterms) {
           // Find the single MotherClass this fee is linked to
           const firstClassFee = await tx.classFee.findFirst({
-            where: { localFeesId: id },
-            select: { motherClassId: true },
+            where: {localFeesId: id},
+            select: {motherClassId: true},
           });
 
           // If there's no schedule, there's nothing to regenerate.
@@ -178,12 +179,12 @@ export async function PATCH(request: Request) {
           const motherClassId = firstClassFee.motherClassId;
 
           // --- c. Delete ONLY the old ClassFee schedule ---
-          await tx.classFee.deleteMany({ where: { localFeesId: id } });
+          await tx.classFee.deleteMany({where: {localFeesId: id}});
 
           // --- d. Re-create the new ClassFee schedule ---
           const section = await tx.classSection.findFirst({
-            where: { motherClassId: motherClassId },
-            select: { semester: { select: { startDate: true, endDate: true } } }
+            where: {motherClassId: motherClassId},
+            select: {semester: {select: {startDate: true, endDate: true}}}
           });
           if (!section?.semester) {
             throw new Error(`Could not determine semester for the class linked to LocalFee ID ${id}.`);
@@ -210,18 +211,18 @@ export async function PATCH(request: Request) {
     });
 
     return NextResponse.json(
-      { message: 'Local fees and their class schedules updated successfully.', data: updatedFees },
-      { status: 200 }
+      {message: 'Local fees and their class schedules updated successfully.', data: updatedFees},
+      {status: 200}
     );
 
   } catch (error: any) {
     console.error('Error updating local fees:', error);
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
-      return NextResponse.json({ error: 'One or more fees to update were not found. Please check the IDs.' }, { status: 404 });
+      return NextResponse.json({error: 'One or more fees to update were not found. Please check the IDs.'}, {status: 404});
     }
     return NextResponse.json(
-      { error: error.message || 'An internal server error occurred.' },
-      { status: error.message.includes("Could not determine") ? 404 : (error.message.includes("required for") ? 400 : 500) }
+      {error: error.message || 'An internal server error occurred.'},
+      {status: error.message.includes("Could not determine") ? 404 : (error.message.includes("required for") ? 400 : 500)}
     );
   }
 }
@@ -236,9 +237,12 @@ export async function DELETE(request: Request) {
       return NextResponse.json({error: "localFeesId required !"}, {status: 400});
     }
 
-    const deleted = await prisma.localFees.delete({
+    const deleted = await prisma.localFees.update({
       where: {
         id: localFeesId
+      },
+      data: {
+        isDeleted: true
       }
     });
 
@@ -271,7 +275,8 @@ export async function GET(request: Request) {
           some: {
             motherClassId: motherClassId
           }
-        }
+        },
+        isDeleted: false
       },
       include: {
         classFees: {

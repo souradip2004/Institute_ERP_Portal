@@ -1,5 +1,5 @@
 import prisma from "@/lib/prisma";
-import { ClassSection } from "@prisma/client";
+import {ClassSection} from "@prisma/client";
 
 export interface CreateClassSectionDTO {
   sectionName: string;
@@ -8,8 +8,8 @@ export interface CreateClassSectionDTO {
   semesterId: string;
   teacherId: string;
   maxStudents?: number;
-  motherClassId?:string;
-  optional?:boolean;
+  motherClassId?: string;
+  optional?: boolean;
 }
 
 export interface UpdateClassSectionDTO {
@@ -30,21 +30,21 @@ export class ClassSectionService {
   async getAllClassSections(
     filters: ClassSectionFilter = {}
   ): Promise<ClassSection[]> {
-    const { batchId, courseId } = filters;
+    const {batchId, courseId} = filters;
     return prisma.classSection.findMany({
       where: {
         batchId,
       },
       include: {
-        batch: { select: { id: true, batchName: true, year: true } },
+        batch: {select: {id: true, batchName: true, year: true}},
         semester: {
-          select: { id: true, name: true, startDate: true, endDate: true },
+          select: {id: true, name: true, startDate: true, endDate: true},
         },
         teacher: {
           select: {
             id: true,
             teacherCode: true,
-            user: { select: { name: true } },
+            user: {select: {name: true}},
           },
         },
         _count: {
@@ -53,7 +53,7 @@ export class ClassSectionService {
           }
         }
       },
-      orderBy: { createdAt: "desc" },
+      orderBy: {createdAt: "desc"},
     });
   }
 
@@ -73,7 +73,7 @@ export class ClassSectionService {
     if (!sectionName || !batchId || !courseId || !semesterId || !teacherId) {
       console.error(
         "Missing required fields for creating class section",
-        { sectionName, batchId, courseId, semesterId, teacherId }
+        {sectionName, batchId, courseId, semesterId, teacherId}
       );
       throw new Error(
         "sectionName, batchId, courseId, semesterId, and teacherId are required"
@@ -90,13 +90,13 @@ export class ClassSectionService {
         semesterId,
         motherClassId,
         teacherId,
-        isOptional:optional,
+        isOptional: optional,
         maxStudents,
         createdAt: new Date(),
         updatedAt: new Date(),
       },
     });
-    const teacherclass=await prisma.teacherCourseSectionRelation.create({
+    const teacherclass = await prisma.teacherCourseSectionRelation.create({
       data: {
         teacherId,
         classSectionId: create.id,
@@ -112,26 +112,26 @@ export class ClassSectionService {
     if (!id) throw new Error("Class Section ID is required");
 
     return prisma.classSection.findUnique({
-      where: { id },
+      where: {id},
       include: {
-        batch: { select: { id: true, batchName: true, year: true } },
+        batch: {select: {id: true, batchName: true, year: true}},
         semester: {
-          select: { id: true, name: true, startDate: true, endDate: true },
+          select: {id: true, name: true, startDate: true, endDate: true},
         },
         teacher: {
           select: {
             id: true,
             teacherCode: true,
-            user: { select: { name: true } },
+            user: {select: {name: true}},
           },
         },
         studentEnrollments: {
-          select: { id: true, studentId: true, enrollmentStatus: true },
+          select: {id: true, studentId: true, enrollmentStatus: true},
         },
         attendanceSessions: {
-          select: { id: true, sessionDate: true, sessionType: true },
+          select: {id: true, sessionDate: true, sessionType: true},
         },
-        exams: { select: { id: true, title: true, examDate: true } },
+        exams: {select: {id: true, title: true, examDate: true}},
       },
     });
   }
@@ -153,7 +153,7 @@ export class ClassSectionService {
 
     // Check if class section exists
     const existingClassSection = await prisma.classSection.findUnique({
-      where: { id },
+      where: {id},
     });
     if (!existingClassSection) throw new Error("Class Section not found");
 
@@ -161,7 +161,7 @@ export class ClassSectionService {
     // return await classSectionQueue.add('update-section', { identity: id, data });
 
     return prisma.classSection.update({
-      where: { id },
+      where: {id},
       data: {
         sectionName,
         batchId,
@@ -177,13 +177,13 @@ export class ClassSectionService {
     if (!id) throw new Error("Class Section ID is required");
 
     const existingClassSection = await prisma.classSection.findUnique({
-      where: { id },
+      where: {id},
     });
     if (!existingClassSection) throw new Error("Class Section not found");
 
     // Uncomment for Redis/BullMQ integration
     // await classSectionQueue.add('delete-section', { identity: id });
 
-    await prisma.classSection.delete({ where: { id } });
+    await prisma.classSection.delete({where: {id}});
   }
 }

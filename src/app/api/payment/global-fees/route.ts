@@ -358,9 +358,12 @@ export async function PATCH(request: Request) {
         return NextResponse.json({error: "GlobalFeesId required"}, {status: 404});
       }
 
-      const deleted = await prisma.globalFees.delete({
+      const deleted = await prisma.globalFees.update({
         where: {
           id: globalFeesId
+        },
+        data: {
+          isDeleted: true,
         }
       });
       console.log("deleted: ", deleted);
@@ -394,6 +397,7 @@ export async function PATCH(request: Request) {
               }
             }
           },
+          isDeleted: false
         },
         include: {
           classFees: {

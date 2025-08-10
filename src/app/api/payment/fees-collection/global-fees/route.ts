@@ -8,6 +8,7 @@ export async function GET(request: Request) {
     const institutionId = searchParams.get('institutionId');
     const studentId = searchParams.get('studentId');
     const motherClassId = searchParams.get('motherClassId');
+    const isDeleted: boolean = (searchParams.get('isDeleted') || false) as boolean;
 
     if (!institutionId || !studentId || !motherClassId) {
       return NextResponse.json({
@@ -20,7 +21,7 @@ export async function GET(request: Request) {
       where: {
         motherClassId: motherClassId,
         globalFeesId: {not: null},
-        globalFees: {institutionId: institutionId},
+        globalFees: {institutionId: institutionId, isDeleted},
       },
       include: {
         globalFees: true,

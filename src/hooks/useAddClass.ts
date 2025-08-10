@@ -38,6 +38,11 @@ export function useAddClass() {
       alert("Class added successfully!");
       return true;
     } catch (err: any) {
+
+      await fetch(`/api/motherclass/${newClass.motherClassId}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+      });
       setError(err.message);
       alert(`Error: ${err.message}`);
       return false;

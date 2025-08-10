@@ -17,9 +17,6 @@ export async function GET(
       );
     }
 
-    // --- 2. Prisma Query ---
-    // This query directly fetches all LocalFees that are linked to the specified
-    // MotherClass through the ClassFee model. It's the most efficient way to get the data.
     const localFees = await prisma.localFees.findMany({
       where: {
         classFees: {
