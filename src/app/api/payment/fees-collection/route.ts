@@ -1,15 +1,14 @@
-import {NextResponse} from 'next/server';
 import {PrismaClient, PaymentStatus} from '@prisma/client';
+import {NextResponse} from "next/server";
 
 const prisma = new PrismaClient();
 
 interface FeePaymentPayload {
   studentId: string;
-  classFeeId: string;
   amountPaid: number;
-  paymentMethod: string;
+  paymentMethod?: string;
   transactionId?: string;
-  feesCollectionId: string;
+  isCashPayment?: boolean;
 }
 
 export async function PATCH(request: Request) {
@@ -17,123 +16,177 @@ export async function PATCH(request: Request) {
     const body: FeePaymentPayload = await request.json();
     const {
       studentId,
-      classFeeId,
       amountPaid,
       paymentMethod,
       transactionId,
-      feesCollectionId
+      isCashPayment = false,
     } = body;
 
-    if (!studentId || !classFeeId || !paymentMethod || !feesCollectionId || !amountPaid) {
-      return NextResponse.json({error: "Missing required fields in request body."}, {status: 400});
+    // --- 1. Initial Validations ---
+    if (!studentId || !amountPaid) {
+      return NextResponse.json({error: "studentId and amountPaid are required."}, {status: 400});
     }
-
+    if (transactionId && isCashPayment) {
+      return NextResponse.json({error: "transactionId cannot be provided for a cash payment."}, {status: 400});
+    }
     if (amountPaid <= 0) {
       return NextResponse.json({error: "Payment amount must be positive."}, {status: 400});
     }
+    if (!isCashPayment && !paymentMethod) {
+      return NextResponse.json({error: "paymentMethod is required for non-cash payments."}, {status: 400});
+    }
 
-    const updatedFeeCollection = await prisma.$transaction(async (tx) => {
+    const finalPaymentMethod = isCashPayment ? "Cash" : paymentMethod;
 
-      const classFee = await tx.classFee.findUnique({
-        where: {id: classFeeId},
-        select: {
-          id: true,
-          dueDate: true,
-          globalFees: {
+    const result = await prisma.$transaction(async (tx) => {
+      // --- 2. Fetch all outstanding fees to calculate total debt ---
+      const outstandingFees = await tx.feesCollection.findMany({
+        where: {
+          studentId: studentId,
+          status: {not: PaymentStatus.PAID}
+        },
+        include: {
+          classFee: {
             select: {
-              amount: true,
-              taxPercentage: true,
-              penalty: true
+              dueDate: true,
+              globalFees: {select: {amount: true, taxPercentage: true, penalty: true}},
+              localFees: {select: {amount: true, taxPercentage: true, penalty: true}}
             }
           },
-          localFees: {
-            select:
-              {
-                amount: true,
-                taxPercentage: true,
-                penalty: true
-              }
-          },
-        }
-      });
-
-      if (!classFee) {
-        throw new Error("ClassFee not found.");
-      }
-
-      const feeCollection = await tx.feesCollection.findUnique({
-        where: {id: feesCollectionId, studentId: studentId}
-      });
-
-      if (!feeCollection) {
-        throw new Error("No pending fee found for this student and fee collection ID.");
-      }
-
-      if (!classFee.globalFees && !classFee.localFees) {
-        throw new Error("Fee details (Global/Local) not found for this ClassFee. Please contact the administrator.");
-      }
-
-      const now = new Date();
-      const dueDate = classFee.dueDate;
-      const isPenaltyApplied = dueDate < now && feeCollection.status !== PaymentStatus.PAID;
-
-      const baseAmount = classFee.globalFees?.amount ?? classFee.localFees?.amount ?? 0;
-      const taxPercentage = classFee.globalFees?.taxPercentage ?? classFee.localFees?.taxPercentage ?? 0;
-      const penalty = isPenaltyApplied ? classFee.globalFees?.penalty ?? classFee.localFees?.penalty ?? 0 : 0;
-      const totalAmountDue = baseAmount + (baseAmount * taxPercentage / 100) + penalty - feeCollection.amount;
-
-      if (totalAmountDue <= 0 || !dueDate) {
-        throw new Error("Fee details (amount or due date) could not be determined from the linked fee.");
-      }
-
-      // const currentAmountPaid = feeCollection.amount;
-      const newTotalPaid = amountPaid;
-      console.log("Total payment ", newTotalPaid);
-      console.log("Total amount due ", totalAmountDue);
-      if (newTotalPaid > totalAmountDue) {
-        throw new Error(`Overpayment detected. Amount due: ${totalAmountDue}, current amount paid: ${amountPaid}`);
-      }
-
-      let newStatus: PaymentStatus;
-      const paymentTransactionDate = new Date();
-
-      if (newTotalPaid === totalAmountDue) {
-        newStatus = PaymentStatus.PAID;
-      } else if (paymentTransactionDate > dueDate) {
-        // If it's not fully paid and the payment date is after the due date, it's OVERDUE
-        newStatus = PaymentStatus.OVERDUE;
-      } else {
-        newStatus = PaymentStatus.PARTIAL;
-      }
-
-      const updatedRecord = await tx.feesCollection.update({
-        where: {
-          id: feeCollection.id
+          // IMPORTANT: We need the verification status to calculate the true balance
+          paymentTransactions: {
+            select: {
+              amount: true,
+              verified: true
+            }
+          }
         },
-        data: {
-          amount: newTotalPaid + feeCollection.amount,
-          status: newStatus,
-          penaltyApplied: isPenaltyApplied,
-          paymentDate: paymentTransactionDate,
-          paymentMethod: paymentMethod,
-          transactionId: transactionId
+        orderBy: {
+          classFee: {dueDate: 'asc'}
         }
       });
 
-      return updatedRecord;
+      if (outstandingFees.length === 0) {
+        throw new Error("No pending fees found for this student.");
+      }
+
+      // --- 3. Calculate Total Outstanding Balance ---
+      let totalOutstandingBalance = 0;
+      for (const feeCollection of outstandingFees) {
+        const baseFee = feeCollection.classFee.globalFees ?? feeCollection.classFee.localFees;
+        if (!baseFee || !feeCollection.classFee.dueDate) {
+          continue; // Skip fees without proper configuration
+        }
+
+        const now = new Date();
+        const isOverdue = feeCollection.classFee.dueDate < now;
+        const penalty = isOverdue ? baseFee.penalty : 0;
+        const totalFeeAmount = baseFee.amount + (baseFee.amount * baseFee.taxPercentage / 100) + penalty;
+
+        const alreadyPaidVerified = feeCollection.paymentTransactions
+        .filter(t => t.verified)
+        .reduce((sum, t) => sum + t.amount, 0);
+
+        const scholarship = feeCollection.scholarshipAmt;
+        const amountStillDue = totalFeeAmount - alreadyPaidVerified - scholarship;
+
+        if (amountStillDue > 0) {
+          totalOutstandingBalance += amountStillDue;
+        }
+      }
+
+      // Round to 2 decimal places to avoid floating point issues
+      totalOutstandingBalance = parseFloat(totalOutstandingBalance.toFixed(2));
+
+      // --- 4. Overpayment Validation ---
+      if (amountPaid > totalOutstandingBalance) {
+        throw new Error(`Overpayment not allowed. Total amount due is ${totalOutstandingBalance.toFixed(2)}, but a payment of ${amountPaid} was provided.`);
+      }
+
+      // --- 5. Apply payment across fees (logic remains the same) ---
+      let remainingAmountToApply = amountPaid;
+      const createdTransactions = [];
+      const paymentDate = new Date();
+
+      for (const feeCollection of outstandingFees) {
+        if (remainingAmountToApply <= 0) break;
+
+        const baseFee = feeCollection.classFee.globalFees ?? feeCollection.classFee.localFees;
+        if (!baseFee || !feeCollection.classFee.dueDate) continue;
+
+        const now = new Date();
+        const isOverdue = feeCollection.classFee.dueDate < now;
+        const penalty = isOverdue ? baseFee.penalty : 0;
+        const totalFeeAmount = baseFee.amount + (baseFee.amount * baseFee.taxPercentage / 100) + penalty;
+
+        const alreadyPaidVerified = feeCollection.paymentTransactions
+        .filter(t => t.verified)
+        .reduce((sum, t) => sum + t.amount, 0);
+
+        const scholarship = feeCollection.scholarshipAmt;
+        const amountStillDue = totalFeeAmount - alreadyPaidVerified - scholarship;
+
+        if (amountStillDue <= 0) continue;
+
+        const paymentForThisFee = Math.min(remainingAmountToApply, amountStillDue);
+
+        if (paymentForThisFee > 0) {
+          const newTransaction = await tx.paymentTransaction.create({
+            data: {
+              amount: paymentForThisFee,
+              paymentMethod: finalPaymentMethod,
+              transactionId: transactionId,
+              cashPayment: isCashPayment,
+              paymentDate: paymentDate,
+              feesCollectionId: feeCollection.id,
+              // All new transactions are unverified by default
+              verified: false,
+            }
+          });
+          createdTransactions.push(newTransaction);
+
+          remainingAmountToApply -= paymentForThisFee;
+
+          // Status update logic now only considers verified payments + the one just made
+          const newTotalPaid = alreadyPaidVerified + paymentForThisFee;
+          let newStatus: PaymentStatus;
+
+          if (newTotalPaid >= totalFeeAmount - scholarship) {
+            newStatus = PaymentStatus.PAID;
+          } else if (now > feeCollection.classFee.dueDate) {
+            newStatus = PaymentStatus.OVERDUE;
+          } else {
+            newStatus = PaymentStatus.PARTIAL;
+          }
+
+          await tx.feesCollection.update({
+            where: {id: feeCollection.id},
+            data: {
+              status: newStatus,
+              lastestPaymentDate: paymentDate,
+              penaltyApplied: penalty > 0,
+            }
+          });
+        }
+      }
+
+      return {createdTransactions};
     });
 
-    return NextResponse.json(updatedFeeCollection, {status: 200});
+    return NextResponse.json({
+      message: "Payment processed successfully.",
+      transactions: result.createdTransactions,
+    }, {status: 200});
 
   } catch (error: any) {
     console.error("Error processing fee payment: ", error);
-    // Provide specific error messages back to the client
-    if (error.message.includes("Overpayment detected") ||
-      error.message.includes("not found") ||
-      error.message.includes("could not be determined")) {
-      return NextResponse.json({error: error.message}, {status: 400}); // Bad Request
+    // Handle the specific overpayment error
+    if (error.message.includes("Overpayment not allowed")) {
+      return NextResponse.json({error: error.message}, {status: 400});
     }
-
-    return NextResponse.json({error: "An internal server error occurred."}, {status: 500});
+    if (error.message.includes("No pending fees")) {
+      return NextResponse.json({error: error.message}, {status: 404});
+    }
+    return NextResponse.json({error: "An internal server error occurred.", details: error.message}, {status: 500});
   }
 }

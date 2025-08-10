@@ -709,12 +709,11 @@ model ClassFee {
 }
 
 model PaymentTransaction {
-  id            String  @id @default(cuid())
-  amount        Float   @default(0.0)
-  paymentMethod String? @map("payment_method")
-  transactionId String?
-  cashPayment   Boolean @default(false)
-
+  id               String          @id @default(cuid())
+  amount           Float           @default(0.0)
+  paymentMethod    String?         @map("payment_method")
+  transactionId    String?
+  cashPayment      Boolean         @default(false)
   verified         Boolean         @default(false)
   feesCollectionId String?         @default("fees_collection_id")
   paymentDate      DateTime?       @map("payment_date") @db.Date
@@ -732,6 +731,7 @@ model FeesCollection {
   status              PaymentStatus
   verified            Boolean              @default(false)
   penaltyApplied      Boolean              @default(false)
+  lastestPaymentDate  DateTime?            @map("latest_payment_date") @db.Date
   createdAt           DateTime             @default(now()) @map("created_at")
   updatedAt           DateTime             @updatedAt @map("updated_at")
   paymentTransactions PaymentTransaction[]

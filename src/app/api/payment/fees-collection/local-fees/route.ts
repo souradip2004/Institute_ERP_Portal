@@ -1,6 +1,6 @@
 import {NextResponse} from 'next/server';
 import prisma from '@/lib/prisma';
-import {PaymentStatus, Student} from '@prisma/client'; // Assuming Student model might be needed for validation
+import {PaymentStatus, PaymentTransaction} from '@prisma/client';
 
 export async function GET(request: Request) {
   try {
@@ -14,34 +14,19 @@ export async function GET(request: Request) {
       }, {status: 400});
     }
 
-    const student = await prisma.student.findUnique({
-      where: {
-        id: studentId,
-        department: {
-          institutionId: institutionId
-        }
-      },
+    // --- 1. Validate Student and get their active classes ---
+    const student = await prisma.student.findFirst({
+      where: {id: studentId, department: {institutionId: institutionId}},
       select: {id: true}
     });
 
     if (!student) {
-      return NextResponse.json({
-        error: "Student not found in the specified institution."
-      }, {status: 404});
+      return NextResponse.json({error: "Student not found in the specified institution."}, {status: 404});
     }
 
-    // 2. Find all MotherClass IDs for the student's active enrollments (Unchanged)
     const enrollments = await prisma.studentClassEnrollment.findMany({
-      where: {
-        studentId: studentId,
-        enrollmentStatus: 'ENROLLED',
-        classSection: {
-          motherClassId: {not: null}
-        }
-      },
-      select: {
-        classSection: {select: {motherClassId: true}}
-      }
+      where: {studentId: studentId, enrollmentStatus: 'ENROLLED', classSection: {motherClassId: {not: null}}},
+      select: {classSection: {select: {motherClassId: true}}}
     });
 
     const studentMotherClassIds = enrollments
@@ -49,79 +34,136 @@ export async function GET(request: Request) {
     .filter((id): id is string => id !== null);
 
     if (studentMotherClassIds.length === 0) {
-      return NextResponse.json([], {status: 200});
+      return NextResponse.json([], {status: 200}); // No classes, so no fees
     }
 
+    // --- 2. Fetch all relevant Local Fee data in one go ---
     const feeDetails = await prisma.classFee.findMany({
       where: {
         motherClassId: {in: studentMotherClassIds},
         localFeesId: {not: null},
+        // Ensure we only fetch fees specifically assigned to this student
         localFees: {
           studentsLocalFees: {some: {studentId: studentId}},
         },
       },
       include: {
-        localFees: true,
+        localFees: true, // Includes details like name, penalty, tax
         feesCollections: {
-          where: {studentId: studentId}
+          where: {studentId: studentId},
+          include: {
+            // Nest the include to get all transactions for the collection
+            paymentTransactions: {
+              orderBy: {
+                paymentDate: 'desc' // Show most recent payments first
+              }
+            }
+          }
         }
       },
     });
 
     const now = new Date();
-    const updatedFeeDetails = async (id: string) => {
-      return prisma.feesCollection.update({
-        where: {id},
-        data: {
-          status: PaymentStatus.OVERDUE,
-          penaltyApplied: true
-        }
-      })
-    }
+    const feeCollectionsToUpdate: string[] = [];
 
-    const structuredResponse = await Promise.all(feeDetails
-    .map(detail => {
+    // --- 3. Process the data and prepare the response ---
+    const structuredResponse = feeDetails.map(detail => {
       const collectionDetails = detail.feesCollections[0];
       const localFee = detail.localFees!;
-      let isAdminPenaltyApplied: boolean;
 
-      if ((collectionDetails.status === PaymentStatus.PENDING || collectionDetails.status === PaymentStatus.PARTIAL) && detail.dueDate < now) {
-        updatedFeeDetails(collectionDetails.id);
-        isAdminPenaltyApplied = true;
-      } else {
-        isAdminPenaltyApplied = collectionDetails.penaltyApplied;
+      // Handle cases where a fee is assigned but not yet generated in feesCollections
+      if (!collectionDetails) {
+        const baseAmount = localFee.amount;
+        const taxAmount = (baseAmount * localFee.taxPercentage) / 100;
+        const totalBillable = baseAmount + taxAmount;
+        return {
+          localFeesId: localFee.id,
+          name: localFee.name,
+          description: localFee.description,
+          amountDue: parseFloat(totalBillable.toFixed(2)),
+          baseAmount,
+          totalBillable,
+          taxPercentageIncluded: localFee.taxPercentage,
+          penaltyIncluded: localFee.penalty,
+          isPenaltyApplied: false,
+          paymentTerms: localFee.paymentterms,
+          dueDate: detail.dueDate,
+          classFeeId: detail.id,
+          paymentStatus: 'NOT_GENERATED',
+          amountPaid: 0,
+          isVerified: false,
+          scholarshipAmount: 0,
+          feesCollectionId: null,
+          paymentTransactions: []
+        };
       }
-      // const isPenaltyApplied = detail.dueDate < now && collectionDetails?.status !== PaymentStatus.PAID;
 
-      const penaltyToAdd = isAdminPenaltyApplied ? localFee.penalty : 0;
+      // --- 4. Dynamic Status and Penalty Calculation ---
+      let currentStatus = collectionDetails.status;
+      let isPenaltyApplied = collectionDetails.penaltyApplied;
 
+      if ((currentStatus === PaymentStatus.PENDING || currentStatus === PaymentStatus.PARTIAL) && detail.dueDate < now) {
+        currentStatus = PaymentStatus.OVERDUE;
+        isPenaltyApplied = true;
+        if (!feeCollectionsToUpdate.includes(collectionDetails.id)) {
+          feeCollectionsToUpdate.push(collectionDetails.id);
+        }
+      }
+
+      const penaltyToAdd = isPenaltyApplied ? localFee.penalty : 0;
       const baseAmount = localFee.amount;
       const taxAmount = (baseAmount * localFee.taxPercentage) / 100;
       const totalBillable = baseAmount + taxAmount + penaltyToAdd;
-      const amountPaid = collectionDetails?.amount || 0;
-      const amountDue = parseFloat((totalBillable - amountPaid).toFixed(2));
 
+      // --- 5. Calculate Final Amount Due with scholarship and verified payments ---
+      const scholarshipAmount = collectionDetails.scholarshipAmt || 0;
+
+      const amountPaid = collectionDetails.paymentTransactions
+      .filter(transaction => transaction.verified)
+      .reduce((sum, transaction) => sum + transaction.amount, 0);
+
+      const amountDue = Math.max(0.0, parseFloat((totalBillable - scholarshipAmount - amountPaid).toFixed(2)));
+
+      // --- 6. Construct the final object for the response ---
       return {
         localFeesId: localFee.id,
         name: localFee.name,
         description: localFee.description,
         amountDue,
-        baseAmount: totalBillable,
+        baseAmount,
+        totalBillable,
         taxPercentageIncluded: localFee.taxPercentage,
         penaltyIncluded: localFee.penalty,
-        isPenaltyApplied: isAdminPenaltyApplied, // The new boolean field
+        isPenaltyApplied,
         paymentTerms: localFee.paymentterms,
         dueDate: detail.dueDate,
         classFeeId: detail.id,
-        paymentStatus: collectionDetails.status,
-        amountPaid: amountPaid,
-        isVerified: collectionDetails.verified,
-        paymentDate: collectionDetails.paymentDate,
-        paymentMethod: collectionDetails.paymentMethod,
-        transactionId: collectionDetails.transactionId,
+        paymentStatus: currentStatus,
+        amountPaid: parseFloat(amountPaid.toFixed(2)),
+        scholarshipAmount: parseFloat(scholarshipAmount.toFixed(2)),
+        isVerified: collectionDetails.paymentTransactions.every(t => t.verified),
         feesCollectionId: collectionDetails.id,
+        paymentTransactions: collectionDetails.paymentTransactions.map(t => ({
+          id: t.id,
+          amount: t.amount,
+          paymentDate: t.paymentDate,
+          paymentMethod: t.paymentMethod,
+          transactionId: t.transactionId,
+          verified: t.verified
+        })),
       };
-    }));
+    });
+
+    // --- 7. Perform Database Update (Fire-and-forget) ---
+    if (feeCollectionsToUpdate.length > 0) {
+      await prisma.feesCollection.updateMany({
+        where: {id: {in: feeCollectionsToUpdate}},
+        data: {
+          status: PaymentStatus.OVERDUE,
+          penaltyApplied: true
+        }
+      });
+    }
 
     return NextResponse.json(structuredResponse, {status: 200});
 
