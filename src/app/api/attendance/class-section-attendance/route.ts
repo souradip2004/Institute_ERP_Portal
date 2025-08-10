@@ -5,6 +5,11 @@ const prisma = new PrismaClient();
 
 type DailyAttendanceStatus = AttendanceStatus | 'NOT_MARKED';
 
+const getDayOfWeek = (date: Date): number => {
+  // We use UTC day to be consistent with how dates are stored and compared.
+  return date.getUTCDay();
+}
+
 export async function GET(request: Request) {
   // 1. Extract and validate mandatory parameters
   const {searchParams} = new URL(request.url);
@@ -27,20 +32,25 @@ export async function GET(request: Request) {
   }
 
   try {
-    // 2. NEW: Find the very first session to determine the valid start date
-    const firstSession = await prisma.attendanceSession.findFirst({
+    // *** NEW: Find all sessions to determine the schedule and first session date ***
+    const allSessions = await prisma.attendanceSession.findMany({
       where: {classSectionId: classSectionId},
-      orderBy: {sessionDate: 'asc'}, // Get the earliest session
+      orderBy: {sessionDate: 'asc'},
       select: {sessionDate: true},
     });
 
     // Handle case where this class section has NO sessions scheduled at all
-    if (!firstSession) {
+    if (allSessions.length === 0) {
       return NextResponse.json(
         {message: 'This class section has no attendance sessions scheduled yet.'},
         {status: 404}
       );
     }
+
+    // *** NEW: Calculate the unique days of the week for the schedule ***
+    const scheduledDays = [...new Set(allSessions.map(session => getDayOfWeek(session.sessionDate)))];
+    const firstSession = allSessions[0];
+
 
     // Normalize dates to compare only the day, ignoring time
     const startDateOfSessions = new Date(firstSession.sessionDate);
@@ -51,7 +61,12 @@ export async function GET(request: Request) {
     if (requestDate < startDateOfSessions) {
       const formattedStartDate = startDateOfSessions.toISOString().split('T')[0];
       return NextResponse.json(
-        {message: `The requested date is before the first session date of ${formattedStartDate}.`},
+        // *** MODIFIED RESPONSE ***
+        {
+          message: `The requested date is before the first session date of ${formattedStartDate}.`,
+          scheduledDays: scheduledDays, // Include schedule info
+          sessionStartDate: formattedStartDate,
+        },
         {status: 400} // 400 Bad Request is appropriate for an invalid parameter
       );
     }
@@ -89,10 +104,17 @@ export async function GET(request: Request) {
       },
     });
 
+    console.log("Attendance Session: ", sessionForDay);
+
     // Handle case where a session was expected but not found on this specific day
     if (!sessionForDay) {
+      // *** MODIFIED RESPONSE ***
       return NextResponse.json(
-        {message: 'No attendance session was scheduled for this class on the specified date.'},
+        {
+          message: 'No attendance session was scheduled for this class on the specified date.',
+          scheduledDays: scheduledDays, // Include schedule info
+          sessionStartDate: firstSession.sessionDate.toISOString().split('T')[0],
+        },
         {status: 404}
       );
     }
@@ -124,7 +146,7 @@ export async function GET(request: Request) {
     const studentDetailsList = enrolledStudents.map(({student}) => {
       const performance = student.performanceMetrics[0];
       const status: DailyAttendanceStatus = attendanceStatusMap.get(student.id) || 'NOT_MARKED';
-
+      console.log("Attendance performance: ", performance);
       return {
         studentId: student.id,
         studentName: student.user.name,
@@ -135,11 +157,13 @@ export async function GET(request: Request) {
     });
 
     // 7. Construct the final response
+    // *** MODIFIED RESPONSE ***
     const responseData = {
       teacherId: sessionForDay.teacher.id,
       teacherName: sessionForDay.teacher.user.name,
       teacherEmail: sessionForDay.teacher.user.email,
       sessionStartDate: firstSession.sessionDate.toISOString().split('T')[0],
+      scheduledDays: scheduledDays, // Include schedule info
       classSectionName: sessionForDay.classSection.sectionName,
       courseName: sessionForDay.course.name,
       date: dateParam,
@@ -203,11 +227,25 @@ export async function PATCH(request: Request) {
           classSectionId: classSectionId,
           sessionDate: {gte: dayStart, lt: dayEnd},
         },
+        include: {
+          classSection: {
+            include: {
+              semester: true,
+            }
+          }
+        }
       });
 
       if (!sessionForDay) {
         // We must throw an error inside a transaction to trigger a rollback
         throw new Error('No attendance session was scheduled for this class on the specified date.');
+      }
+
+      if (sessionForDay.status !== 'COMPLETED') {
+        await tx.attendanceSession.update({
+          where: {id: sessionForDay.id},
+          data: {status: 'COMPLETED'}
+        })
       }
 
       // Step B: Find if an attendance record already exists for this student in this session
@@ -256,6 +294,7 @@ export async function PATCH(request: Request) {
             status: {in: ['PRESENT', 'LATE']},
             attendanceSession: {
               classSectionId: classSectionId,
+              status: 'COMPLETED',
             },
           }
         })
@@ -265,16 +304,35 @@ export async function PATCH(request: Request) {
       const newAttendancePercentage = totalSessions > 0 ? (attendedSessions / totalSessions) * 100 : 0;
 
       // Update the performance metric record
-      await tx.studentPerformanceMetric.updateMany({
+      const existingMetric = await prisma.studentPerformanceMetric.findFirst({
         where: {
           studentId: studentId,
-          classSectionId: classSectionId,
-        },
-        data: {
-          // Round to two decimal places
-          attendancePercentage: parseFloat(newAttendancePercentage.toFixed(2)),
+          classSectionId: sessionForDay.classSectionId,
+          semesterId: sessionForDay.classSection.semesterId,
         }
       });
+
+      if (existingMetric) {
+        await tx.studentPerformanceMetric.update({
+          where: {id: existingMetric.id},
+          data: {
+            attendancePercentage: parseFloat(newAttendancePercentage.toFixed(2)),
+          }
+        });
+      } else {
+        await tx.studentPerformanceMetric.create({
+          data: {
+            studentId: studentId,
+            classSectionId: sessionForDay.classSectionId,
+            semesterId: sessionForDay.classSection.semesterId,
+            attendancePercentage: parseFloat(newAttendancePercentage.toFixed(2)),
+            overallGradePoints: 0,
+            assignmentCompletionRate: 0,
+            detailedMetrics: {},
+            performanceCategory: 'SATISFACTORY',
+          }
+        })
+      }
 
       return {success: true};
     });

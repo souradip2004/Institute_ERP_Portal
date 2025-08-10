@@ -508,7 +508,7 @@ export class AttendanceTeacherService {
             const presentCount = await prisma.attendance.count({
               where: {
                 studentId: studentId,
-                status: 'PRESENT',
+                status: {in: ['PRESENT', 'LATE']},
                 attendanceSession: {
                   courseId: session.courseId,
                   classSectionId: session.classSectionId,

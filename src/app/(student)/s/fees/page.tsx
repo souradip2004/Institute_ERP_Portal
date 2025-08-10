@@ -164,7 +164,7 @@ export default function Home() {
         setSelectedFee(fee);
         const remainingAmount = fee.amountDue - fee.amountPaid!;
         setPaymentForm({
-            amountPaid: remainingAmount.toString(),
+            amountPaid: fee.amountDue.toString(),
             paymentMethod: 'UPI',
             paymentDate: new Date().toISOString().split('T')[0],
             transactionId: ''
@@ -500,7 +500,7 @@ export default function Home() {
                                                 {fee.transactionId || '-'}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm">
-                                                {fee.status !== 'PAID' && fee.amountDue > (fee.amountPaid || 0) && (
+                                                {fee.status !== 'PAID' && (
                                                     <button
                                                         onClick={() => handlePayFee(fee)}
                                                         className="px-3 py-1 bg-indigo-600 text-white text-xs font-medium rounded hover:bg-indigo-700 transition-colors"
@@ -651,7 +651,7 @@ export default function Home() {
                                         </div>
                                         <div className="flex justify-between text-sm font-medium">
                                             <span>Remaining:</span>
-                                            <span className="text-red-600">₹{(selectedFee.amountDue - (selectedFee.amountPaid || 0)).toFixed(2)}</span>
+                                            <span className="text-red-600">₹{(selectedFee.baseAmount - (selectedFee.amountPaid || 0)).toFixed(2)}</span>
                                         </div>
                                         <div className="flex justify-between text-sm text-gray-600 mt-2">
                                             <span>Due Date:</span>
@@ -667,23 +667,23 @@ export default function Home() {
                                         </label>
                                         <input
                                             type="number"
-                                            step="0.01"
-                                            min="0.01"
-                                            max={selectedFee.amountDue - (selectedFee.amountPaid || 0)}
+                                            step="1"
+                                            min="0.00"
+                                            max={selectedFee.amountDue || 0}
                                             value={paymentForm.amountPaid}
                                             onChange={(e) => {
                                                 const value = parseFloat(e.target.value);
-                                                const maxAmount = selectedFee.amountDue - (selectedFee.amountPaid || 0);
+                                                const maxAmount = selectedFee.amountDue;
                                                 if (value <= maxAmount) {
                                                     setPaymentForm({ ...paymentForm, amountPaid: e.target.value });
                                                 }
                                             }}
                                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                                            placeholder={`Max: ₹${(selectedFee.amountDue - (selectedFee.amountPaid || 0)).toFixed(2)}`}
+                                            placeholder={`Max: ₹${(selectedFee.amountDue).toFixed(2)}`}
                                             required
                                         />
                                         <p className="text-xs text-gray-500 mt-1">
-                                            Maximum payable: ₹{(selectedFee.amountDue - (selectedFee.amountPaid || 0)).toFixed(2)}
+                                            Maximum payable: ₹{(selectedFee.amountDue || 0).toFixed(2)}
                                         </p>
                                     </div>
 
