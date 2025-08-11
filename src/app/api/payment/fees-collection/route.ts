@@ -49,8 +49,28 @@ export async function PATCH(request: Request) {
           classFee: {
             select: {
               dueDate: true,
-              globalFees: {select: {amount: true, taxPercentage: true, penalty: true}},
-              localFees: {select: {amount: true, taxPercentage: true, penalty: true}}
+              globalFees: {
+                select: {
+                  amount: true,
+                  taxPercentage: true,
+                  penalty: true
+                }
+              },
+              localFees: {
+                select: {
+                  amount: true,
+                  taxPercentage: true,
+                  penalty: true,
+                  studentsLocalFees: {
+                    where: {
+                      studentId
+                    },
+                    select: {
+                      offsetFee: true,
+                    }
+                  }
+                },
+              },
             }
           },
           // IMPORTANT: We need the verification status to calculate the true balance
@@ -74,14 +94,18 @@ export async function PATCH(request: Request) {
       let totalOutstandingBalance = 0;
       for (const feeCollection of outstandingFees) {
         const baseFee = feeCollection.classFee.globalFees ?? feeCollection.classFee.localFees;
+
+        let offset = 0;
+        if (feeCollection.classFee.localFees) {
+          offset = feeCollection.classFee.localFees.studentsLocalFees[0].offsetFee ?? 0;
+        }
         if (!baseFee || !feeCollection.classFee.dueDate) {
-          continue; // Skip fees without proper configuration
+          continue;
         }
 
-        const now = new Date();
-        const isOverdue = feeCollection.classFee.dueDate < now;
+        const isOverdue = feeCollection.status === PaymentStatus.OVERDUE && feeCollection.penaltyApplied;
         const penalty = isOverdue ? baseFee.penalty : 0;
-        const totalFeeAmount = baseFee.amount + (baseFee.amount * baseFee.taxPercentage / 100) + penalty;
+        const totalFeeAmount = baseFee.amount + (baseFee.amount * baseFee.taxPercentage / 100) + penalty - offset;
 
         const alreadyPaidVerified = feeCollection.paymentTransactions
         .filter(t => t.verified)
@@ -95,10 +119,8 @@ export async function PATCH(request: Request) {
         }
       }
 
-      // Round to 2 decimal places to avoid floating point issues
       totalOutstandingBalance = parseFloat(totalOutstandingBalance.toFixed(2));
 
-      // --- 4. Overpayment Validation ---
       if (amountPaid > totalOutstandingBalance) {
         throw new Error(`Overpayment not allowed. Total amount due is ${totalOutstandingBalance.toFixed(2)}, but a payment of ${amountPaid} was provided.`);
       }
@@ -112,12 +134,15 @@ export async function PATCH(request: Request) {
         if (remainingAmountToApply <= 0) break;
 
         const baseFee = feeCollection.classFee.globalFees ?? feeCollection.classFee.localFees;
-        if (!baseFee || !feeCollection.classFee.dueDate) continue;
+        if (!baseFee) continue;
+        let offset = 0;
+        if (feeCollection.classFee.localFees) {
+          offset = feeCollection.classFee.localFees.studentsLocalFees[0].offsetFee ?? 0;
+        }
 
-        const now = new Date();
-        const isOverdue = feeCollection.classFee.dueDate < now;
+        const isOverdue = feeCollection.status === PaymentStatus.OVERDUE && feeCollection.penaltyApplied;
         const penalty = isOverdue ? baseFee.penalty : 0;
-        const totalFeeAmount = baseFee.amount + (baseFee.amount * baseFee.taxPercentage / 100) + penalty;
+        const totalFeeAmount = baseFee.amount + (baseFee.amount * baseFee.taxPercentage / 100) + penalty - offset;
 
         const alreadyPaidVerified = feeCollection.paymentTransactions
         .filter(t => t.verified)
@@ -138,22 +163,19 @@ export async function PATCH(request: Request) {
               transactionId: transactionId,
               cashPayment: isCashPayment,
               paymentDate: paymentDate,
-              feesCollectionId: feeCollection.id,
-              // All new transactions are unverified by default
-              verified: false,
+              feesCollectionId: feeCollection.id
             }
           });
           createdTransactions.push(newTransaction);
 
           remainingAmountToApply -= paymentForThisFee;
 
-          // Status update logic now only considers verified payments + the one just made
           const newTotalPaid = alreadyPaidVerified + paymentForThisFee;
           let newStatus: PaymentStatus;
 
           if (newTotalPaid >= totalFeeAmount - scholarship) {
             newStatus = PaymentStatus.PAID;
-          } else if (now > feeCollection.classFee.dueDate) {
+          } else if (isOverdue) {
             newStatus = PaymentStatus.OVERDUE;
           } else {
             newStatus = PaymentStatus.PARTIAL;
@@ -162,9 +184,8 @@ export async function PATCH(request: Request) {
           await tx.feesCollection.update({
             where: {id: feeCollection.id},
             data: {
+              lastestPaymentDate: new Date(),
               status: newStatus,
-              lastestPaymentDate: paymentDate,
-              penaltyApplied: penalty > 0,
             }
           });
         }
