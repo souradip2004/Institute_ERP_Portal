@@ -10,7 +10,6 @@
 */
 -- AlterTable
 ALTER TABLE "fees_collections" DROP COLUMN "amount",
-DROP COLUMN "cash_payment",
 DROP COLUMN "payment_date",
 DROP COLUMN "payment_method",
 DROP COLUMN "transaction_id";

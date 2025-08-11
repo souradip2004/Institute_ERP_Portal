@@ -50,7 +50,16 @@ export async function GET(request: Request) {
         },
       },
       include: {
-        localFees: true, // Includes details like name, penalty, tax
+        localFees: {
+          include: {
+            studentsLocalFees: {
+              where: {studentId},
+              select: {
+                offsetFee: true,
+              }
+            }
+          }
+        },
         feesCollections: {
           where: {studentId},
           include: {
@@ -64,6 +73,8 @@ export async function GET(request: Request) {
       },
     });
 
+    console.log("Fee Details: ", feeDetails);
+
     const now = new Date();
     const feeCollectionsToUpdate: string[] = [];
 
@@ -71,7 +82,7 @@ export async function GET(request: Request) {
     const structuredResponse = feeDetails.map(detail => {
       const collectionDetails = detail.feesCollections[0];
       const localFee = detail.localFees!;
-
+      console.log("Fee collection details: ", detail.feesCollections, "classFeeId ", detail.id);
       // Handle cases where a fee is assigned but not yet generated in feesCollections
       if (!collectionDetails) {
         const baseAmount = localFee.amount;
@@ -99,22 +110,22 @@ export async function GET(request: Request) {
         };
       }
 
-      // --- 4. Dynamic Status and Penalty Calculation ---
       let currentStatus = collectionDetails.status;
-      let isPenaltyApplied = collectionDetails.penaltyApplied;
+      let isPenaltyApplied = collectionDetails.penaltyApplied && currentStatus === PaymentStatus.OVERDUE;
 
       if ((currentStatus === PaymentStatus.PENDING || currentStatus === PaymentStatus.PARTIAL) && detail.dueDate < now) {
         currentStatus = PaymentStatus.OVERDUE;
-        isPenaltyApplied = true;
         if (!feeCollectionsToUpdate.includes(collectionDetails.id)) {
           feeCollectionsToUpdate.push(collectionDetails.id);
         }
       }
 
+      const offsetFee = localFee.studentsLocalFees[0].offsetFee;
+      // console.log("Offset fee: ", offsetFee);
       const penaltyToAdd = isPenaltyApplied ? localFee.penalty : 0;
       const baseAmount = localFee.amount;
       const taxAmount = (baseAmount * localFee.taxPercentage) / 100;
-      const totalBillable = baseAmount + taxAmount + penaltyToAdd;
+      const totalBillable = baseAmount + taxAmount + penaltyToAdd - offsetFee;
 
       // --- 5. Calculate Final Amount Due with scholarship and verified payments ---
       const scholarshipAmount = collectionDetails.scholarshipAmt || 0;
@@ -152,6 +163,7 @@ export async function GET(request: Request) {
           transactionId: t.transactionId,
           verified: t.verified
         })),
+
       };
     });
 
@@ -160,8 +172,7 @@ export async function GET(request: Request) {
       await prisma.feesCollection.updateMany({
         where: {id: {in: feeCollectionsToUpdate}},
         data: {
-          status: PaymentStatus.OVERDUE,
-          penaltyApplied: true
+          status: PaymentStatus.OVERDUE
         }
       });
     }

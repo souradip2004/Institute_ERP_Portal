@@ -72,11 +72,10 @@ export async function GET(request: Request) {
       }
 
       let currentStatus = collectionDetails.status;
-      let isPenaltyApplied = collectionDetails.penaltyApplied;
+      let isPenaltyApplied = collectionDetails.penaltyApplied && currentStatus === PaymentStatus.OVERDUE;
 
       if ((currentStatus === PaymentStatus.PENDING || currentStatus === PaymentStatus.PARTIAL) && detail.dueDate < now) {
         currentStatus = PaymentStatus.OVERDUE;
-        isPenaltyApplied = true;
         if (!feeCollectionsToUpdate.includes(collectionDetails.id)) {
           feeCollectionsToUpdate.push(collectionDetails.id);
         }
@@ -124,12 +123,12 @@ export async function GET(request: Request) {
       };
     });
 
+    console.log("Fees collection to update ", feeCollectionsToUpdate)
     if (feeCollectionsToUpdate.length > 0) {
       await prisma.feesCollection.updateMany({
         where: {id: {in: feeCollectionsToUpdate}},
         data: {
-          status: PaymentStatus.OVERDUE,
-          penaltyApplied: true
+          status: PaymentStatus.OVERDUE
         }
       });
     }
