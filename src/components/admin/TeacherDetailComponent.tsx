@@ -67,16 +67,16 @@ export default function TeacherDetail({ teacher, onBack }: TeacherDetailProps) {
   const statusStyle = STATUS_STYLES[teacher.employmentStatus] || '';
 
   const InfoItem = ({ label, value, className = '' }: { label: string; value: string; className?: string }) => (
-    <div className="grid grid-cols-2">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 sm:gap-0">
       <p className="text-sm font-medium text-gray-500">{label}</p>
-      <p className={`text-sm ${className}`}>{value}</p>
+      <p className={`text-sm break-words break-all ${className}`}>{value}</p>
     </div>
   );
 
   const InfoSection = ({ title, children }: { title: string; children: React.ReactNode }) => (
     <div>
-      <h3 className="text-lg font-medium leading-6 text-gray-900 mb-4">{title}</h3>
-      <div className="bg-gray-50 p-4 rounded-md space-y-3">
+      <h3 className="text-base sm:text-lg font-medium leading-6 text-gray-900 mb-4">{title}</h3>
+      <div className="bg-gray-50 p-3 sm:p-4 rounded-md space-y-3">
         {children}
       </div>
     </div>
@@ -84,17 +84,17 @@ export default function TeacherDetail({ teacher, onBack }: TeacherDetailProps) {
 
   return (
     <div className="bg-white shadow rounded-lg">
-      <div className="border-b border-gray-200 px-6 py-4 flex justify-between items-center">
-        <h2 className="text-xl font-bold text-gray-800">Teacher Detail</h2>
+      <div className="border-b border-gray-200 px-4 sm:px-6 py-4 flex justify-between items-center">
+        <h2 className="text-lg sm:text-xl font-bold text-gray-800">Teacher Detail</h2>
         {/*<div className="flex space-x-2">
           <span className={`px-3 py-1 inline-flex text-sm leading-5 font-semibold rounded-full ${statusStyle}`}>
             {teacher.employmentStatus.replace('_', ' ')}
           </span>
         </div>*/}
       </div>
-      
-      <div className="p-6">
-        <div className="grid md:grid-cols-2 gap-6">
+
+      <div className="p-4 sm:p-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="space-y-6">
             <InfoSection title="Personal Information">
               <InfoItem label="Teacher Code" value={teacher.teacherCode} />
@@ -102,23 +102,23 @@ export default function TeacherDetail({ teacher, onBack }: TeacherDetailProps) {
               <InfoItem label="Email" value={teacher.user.email} />
             </InfoSection>
           </div>
-          
+
           <div className="space-y-6">
-             <InfoSection title="Account Information">
+            <InfoSection title="Account Information">
               <InfoItem label="User ID" value={teacher.userId} />
               <InfoItem label="Email Verified" value={teacher.user.emailVerified ? 'Yes' : 'No'} />
               <InfoItem label="Role" value={teacher.user.role} />
               <InfoItem label="Created At" value={formatDate(teacher.user.createdAt)} />
               <InfoItem label="Last Updated" value={formatDate(teacher.user.updatedAt)} />
             </InfoSection>
-            
-           
+
+
           </div>
         </div>
       </div>
-      
-      <div className="border-t border-gray-200 px-6 py-4 flex justify-end space-x-3">
-        <button 
+
+      <div className="border-t border-gray-200 px-4 sm:px-6 py-4 flex justify-end space-x-3">
+        <button
           type="button"
           onClick={onBack}
           className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-purple-700 hover:bg-purple-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors"

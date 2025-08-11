@@ -312,7 +312,7 @@ export default function LandingPage() {
 
 
                 {/* Decorative background elements */}
-                <div className="absolute top-5 right-5 text-purple-100/50 z-10">
+                <div className="absolute top-5 right-5  text-purple-100/50 z-10">
                     <AtomIcon />
                 </div>
                 {/* <div className="absolute -top-12 -left-12 w-72 h-72 bg-purple-50/50 rounded-full z-0"></div> */}
@@ -322,7 +322,7 @@ export default function LandingPage() {
                     <div className="block md:hidden w-[80%] h-[80%] object-cover z-10">
                         <img src="/mainscreen.png" alt="Hero" className="object-cover" />
                     </div>
-                    <div className="relative container mx-auto flex px-6 py-6 sm:py-32 z-10 md:ml-24">
+                    <div className="relative container mx-auto flex px-2 md:px-6 py-6 sm:py-32 z-10 md:ml-24">
                         <div className="max-w-2xl text-left">
                             <div className="flex flex-col items-start gap-2">
                                 <h2 className="text-2xl md:text-3xl font-medium text-gray-800">Smart</h2>
@@ -350,7 +350,7 @@ export default function LandingPage() {
                                 </li>
                             </ul>
 
-                            <button className="mt-12 bg-purple-900 hover:bg-purple-800 text-white font-bold text-xl py-4 px-36 rounded-lg transition-colors shadow-lg hover:shadow-xl" onClick={() => window.location.href = "/register"}>
+                            <button className="mt-12 bg-purple-900 hover:bg-purple-800 text-white font-bold text-xl py-4 px-20 md:px-36 rounded-lg transition-colors shadow-lg hover:shadow-xl" onClick={() => window.location.href = "/register"}>
                                 Get Started
                             </button>
                         </div>

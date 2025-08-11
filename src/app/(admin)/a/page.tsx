@@ -23,8 +23,8 @@ export default async function AdminPage() {
   // Fetch user details
   const userRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/${userId}`, { cache: "no-store" });
   const userData = await userRes.json();
-  const userVerfied=userData.isVerified;
-  const coins= userData.coins || 0; // Default to 0 if coins are not set
+  const userVerfied = userData.isVerified;
+  const coins = userData.coins || 0; // Default to 0 if coins are not set
   let institutionData = null;
 
   // Fetch institution details if institutionId exists
@@ -46,14 +46,16 @@ export default async function AdminPage() {
   }
   console.log(institutionData)
   const id = institutionData.id
-/*  const teachers = await fetchTeachers(institutionData.id);
-  const students = await fetchStudents();
-  const classes = await fetchClasses();*/
+  /*  const teachers = await fetchTeachers(institutionData.id);
+    const students = await fetchStudents();
+    const classes = await fetchClasses();*/
 
   return (
     // Removed the outer <div> with display: "flex"
     <>
-      <Sider id={id} userId={userId} logo={institutielogo} name={institutionData.name} primaryColor={institutionData.primaryColor} verified={userVerfied} coins={coins} />
+      <div className="">
+        <Sider id={id} userId={userId} logo={institutielogo} name={institutionData.name} primaryColor={institutionData.primaryColor} verified={userVerfied} coins={coins} />
+      </div>
     </>
   );
 }
