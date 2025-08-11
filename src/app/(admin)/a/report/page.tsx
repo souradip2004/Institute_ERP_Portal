@@ -99,7 +99,6 @@ export default function ReportCard(){
           {name}
         </div>
 
-        <div><strong>Overall Percentage:</strong> <span className="text-green-600 font-medium">87.4%</span></div>
       </div>
 
       <div className="bg-gradient-to-r from-indigo-200 to-purple-200 px-4 py-2 rounded-t-md font-semibold">

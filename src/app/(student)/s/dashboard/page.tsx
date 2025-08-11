@@ -3,6 +3,9 @@ import { useEffect, useState } from 'react';
 import AnnouncementCard from '@/components/student/AnnouncementCard';
 import ClassCard from '@/components/student/ClassCard';
 import Loader from '@/components/ui/Loader';
+// Assuming lucide-react is installed or available in your environment
+// If not, you might need to run: npm install lucide-react
+import { ChevronDown } from 'lucide-react';
 
 interface Announcement {
   id: string;
@@ -73,6 +76,12 @@ interface StudentDetails {
   }>
 }
 
+interface GroupedSection {
+  id: string; // Unique ID for the section group, e.g., "A", "B"
+  section: string;
+  subjects: string[];
+}
+
 export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [userData, setUserData] = useState<User | null>(null);
@@ -80,6 +89,13 @@ export default function Dashboard() {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [todayClasses, setTodayClasses] = useState<ClassSession[]>([]);
   const [error, setError] = useState<string | null>(null);
+  // State to manage which section is expanded
+  const [expandedSectionId, setExpandedSectionId] = useState<string | null>(null);
+
+  // Function to toggle the expanded state of a section
+  const handleSectionClick = (sectionId: string) => {
+    setExpandedSectionId(prevId => (prevId === sectionId ? null : sectionId));
+  };
 
   const authenticatedFetch = async (url: string): Promise<Response> => {
     try {
@@ -243,6 +259,26 @@ export default function Dashboard() {
     loadDashboardData();
   }, []);
 
+  // Function to group class enrollments by section name
+  const groupSections = (enrollments: StudentDetails['classEnrollments']): GroupedSection[] => {
+    if (!enrollments) return [];
+
+    const sectionMap = enrollments.reduce((acc, curr) => {
+      const [section, subject] = curr.classSection.sectionName.split("-");
+      if (!acc[section]) {
+        acc[section] = { id: section, section: section, subjects: [] };
+      }
+      if (subject) {
+        acc[section].subjects.push(subject);
+      }
+      return acc;
+    }, {} as Record<string, GroupedSection>);
+
+    return Object.values(sectionMap);
+  };
+
+  const groupedSections = groupSections(studentDetails?.classEnrollments);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[calc(100vh-64px)]">
@@ -269,7 +305,7 @@ export default function Dashboard() {
   let yearSection = 'Student';
   if (studentDetails) {
     const year = studentDetails.currentYear || 1;
-    const yearSuffix = year === 1 ? 'st' : year === 2 ? 'nd' : year === 3 ? 'rd' : 'th';
+    // const yearSuffix = year === 1 ? 'st' : year === 2 ? 'nd' : year === 3 ? 'rd' : 'th'; // Not used in current display
 
     // Try to get section name from class enrollments first
     let sectionName = 'A';
@@ -279,7 +315,9 @@ export default function Dashboard() {
         enrollment => enrollment.classSection && enrollment.classSection.sectionName
       );
       if (activeEnrollment) {
-        sectionName = activeEnrollment.classSection.sectionName;
+        // Extract only the section part (e.g., "A" from "A-Physics")
+        const [section] = activeEnrollment.classSection.sectionName.split("-");
+        sectionName = section;
       }
     } else if (studentDetails.batch?.batchName) {
       // Fallback to batch name if no class section is available
@@ -298,7 +336,6 @@ export default function Dashboard() {
     <div className="p-8">
       <div className="flex justify-between items-center mb-4 mt-8 sm:mb-8 sm:mt-0" >
         <div>
-          {/* <h1 className="text-gray-400 text-sm mb-1">Student Dashboard / My Classes</h1> */}
           <div className="flex flex-col">
             <h2 className="text-2xl font-semibold">Hello, {studentName}</h2>
             <p className="text-gray-500">{yearSection}</p>
@@ -358,38 +395,61 @@ export default function Dashboard() {
               No classes scheduled for today.
             </div>
           )}
-            {studentDetails?.classEnrollments && studentDetails.classEnrollments.length > 0 && (
-            <div className="col-span-full mt-8">
-              <h4 className="text-lg font-semibold mb-3">Your Sections</h4>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-              {studentDetails.classEnrollments.map((c) => {
-                const [section, subject] = c.classSection.sectionName.split("-");
-                return (
-                <div
-                  key={c.id}
-                  className="bg-white border border-indigo-200 rounded-xl px-6 py-4 shadow flex flex-col"
-                >
-                  <div className="flex items-center mb-2">
-                  <span className="inline-block bg-indigo-600 text-white rounded-full px-3 py-1 text-sm font-semibold mr-2">
-                    Class {section}
-                  </span>
-                  {subject && (
-                    <span className="inline-block bg-indigo-100 text-indigo-700 rounded-full px-3 py-1 text-sm font-medium">
-                    {subject}
-                    </span>
-                  )}
-                  </div>
-                  <div className="text-gray-500 text-sm">
-                  Enrollment ID: <span className="font-mono">{c.id}</span>
-                  </div>
-                </div>
-                );
-              })}
-              </div>
-            </div>
-            )}
         </div>
       </div>
+      
+      {groupedSections.length > 0 && (
+        <div className="col-span-full mt-8">
+          <h4 className="text-xl font-semibold mb-3">Your Classes</h4>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            {groupedSections.map((group) => (
+              <div
+                key={group.id}
+                className="bg-white border border-indigo-200 rounded-xl shadow overflow-hidden
+                           transition-all duration-300 hover:shadow-lg"
+              >
+                {/* Section Header (Clickable) */}
+                <div
+                  className="flex justify-between items-center px-6 py-4 cursor-pointer
+                             bg-indigo-50 hover:bg-indigo-100 transition-colors duration-200"
+                  onClick={() => handleSectionClick(group.id)}
+                >
+                  <div className="flex items-center">
+                    <span className="inline-block bg-indigo-600 text-white rounded-full px-3 py-1 text-sm font-semibold mr-2">
+                       {group.section}
+                    </span>
+                    {group.subjects.length > 0 && (
+                      <p className="text-gray-600 text-sm">{group.subjects.length} subjects</p>
+                    )}
+                  </div>
+                  <ChevronDown
+                    className={`h-5 w-5 text-indigo-600 transition-transform duration-300
+                                ${expandedSectionId === group.id ? 'rotate-180' : ''}`}
+                  />
+                </div>
+
+                {/* Subjects Content (Collapsible) */}
+                <div
+                  className={`px-6 pt-0 transition-all duration-300 ease-in-out
+                              ${expandedSectionId === group.id ? 'max-h-screen pb-4' : 'max-h-0 overflow-hidden'}`}
+                >
+                  {group.subjects.length > 0 ? (
+                    <ul className="list-disc list-inside space-y-2 text-gray-700">
+                      {group.subjects.map((subject, index) => (
+                        <li key={index} className="font-medium">
+                          {subject}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-gray-500 py-2">No subjects found for this section.</p>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

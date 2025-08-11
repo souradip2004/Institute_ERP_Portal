@@ -35,7 +35,6 @@ export function useAddClass() {
         throw new Error(data.error || "Failed to add class");
       }
 
-      alert("Class added successfully!");
       return true;
     } catch (err: any) {
 

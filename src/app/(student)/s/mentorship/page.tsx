@@ -9,7 +9,7 @@ import React from "react";
 
 const Mentorship = () => {
 
-  const SPEECH_KEY = "5cgtafcR3A0Cl6szTwjHr48KtVTXTHJLfaK2z8Rhh5KAD10yxjpMJQQJ99AKACYeBjFXJ3w3AAAYACOGXOKF";      // or a hard-coded test key
+  const SPEECH_KEY = "6zQzqxHdwbLPgH305XlO9WwdUCwAi7vKCmO3Iey4ns86u0cKi6gQJQQJ99BFACYeBjFXJ3w3AAAYACOGNXmu";      // or a hard-coded test key
   const SPEECH_REGION = "eastus"; // e.g. "eastus"
 
   const [activeTab, setActiveTab] = useState("Week")
@@ -23,7 +23,7 @@ const Mentorship = () => {
   const [input, setInput] = useState("");
   const recognizerRef = React.useRef(null);
   const autoSendTimeoutRef = React.useRef(null);
-  const timeTabs = ["Week", "Month", "All Time"]
+  const timeTabs = []
 
   useEffect(() => {
     const fetchStudentResults = async () => {
@@ -431,9 +431,7 @@ const Mentorship = () => {
             >
               <RefreshCw size={20} />
             </button>
-            <button className="p-2 rounded-full hover:bg-indigo-700 transition-colors">
-              <Download size={20} />
-            </button>
+          
           </div>
         </div>
         {/* Chat Messages Area */}

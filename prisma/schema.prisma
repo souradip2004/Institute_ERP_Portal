@@ -189,7 +189,6 @@ model Student {
   feesCollections       FeesCollection[]
   localFees             LocalFeesOnStudent[]
 
-  @@unique([departmentId, studentRoll])
   @@index([studentRoll])
   @@map("students")
 }
