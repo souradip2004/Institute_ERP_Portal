@@ -310,6 +310,12 @@ export async function GET(request: Request) {
     const {searchParams} = new URL(request.url);
     // const motherClassId = searchParams.get('motherClassId') as string;
     const institutionId = searchParams.get('institutionId') as string;
+    const isDeleted = searchParams.get('isDeleted')
+
+    let deleted = false;
+    if (isDeleted === 'true') {
+      deleted = true;
+    }
 
     if (!institutionId) {
       return NextResponse.json({error: "All fields are required !"});
@@ -324,7 +330,7 @@ export async function GET(request: Request) {
             }
           }
         },
-        isDeleted: false
+        isDeleted: deleted
       },
       include: {
         classFees: {
@@ -342,6 +348,7 @@ export async function GET(request: Request) {
 
     console.log("globalFees: ", globalFees);
 
+
     const motherClasses = await prisma.motherClass.findMany({
       where: {
         institutionId: institutionId,
@@ -350,7 +357,7 @@ export async function GET(request: Request) {
         classfee: {
           where: {
             globalFees: {
-              isNot: null,
+              isDeleted: deleted,
             }
           },
           select: {
@@ -359,7 +366,7 @@ export async function GET(request: Request) {
           }
         }
       }
-    })
+    });
     console.log("motherClass: ", globalFees);
 
     return NextResponse.json({

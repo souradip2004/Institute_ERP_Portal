@@ -7,7 +7,12 @@ export async function GET(request: Request) {
     const {searchParams} = new URL(request.url);
     const studentId = searchParams.get('studentId');
     const institutionId = searchParams.get('institutionId');
-    const isDeleted: boolean = (searchParams.get('isDeleted') || false) as boolean;
+    const isDeleted = searchParams.get('isDeleted');
+
+    let deleted = false;
+    if (isDeleted === 'true') {
+      deleted = true
+    }
 
     if (!studentId || !institutionId) {
       return NextResponse.json({
@@ -45,7 +50,7 @@ export async function GET(request: Request) {
         localFeesId: {not: null},
         // Ensure we only fetch fees specifically assigned to this student
         localFees: {
-          isDeleted,
+          isDeleted: deleted,
           studentsLocalFees: {some: {studentId}},
         },
       },
@@ -77,6 +82,7 @@ export async function GET(request: Request) {
 
     const now = new Date();
     const feeCollectionsToUpdate: string[] = [];
+    const feesCollectionToVerify: string[] = [];
 
     // --- 3. Process the data and prepare the response ---
     const structuredResponse = feeDetails.map(detail => {
@@ -125,23 +131,25 @@ export async function GET(request: Request) {
       const penaltyToAdd = isPenaltyApplied ? localFee.penalty : 0;
       const baseAmount = localFee.amount;
       const taxAmount = (baseAmount * localFee.taxPercentage) / 100;
-      const totalBillable = baseAmount + taxAmount + penaltyToAdd - offsetFee;
-
-      // --- 5. Calculate Final Amount Due with scholarship and verified payments ---
       const scholarshipAmount = collectionDetails.scholarshipAmt || 0;
+
+      let totalBillable = (baseAmount - scholarshipAmount) + taxAmount + penaltyToAdd - offsetFee;
+      if (baseAmount - scholarshipAmount <= 0) {
+        totalBillable = 0;
+        feesCollectionToVerify.push(collectionDetails.id);
+      }
 
       const amountPaid = collectionDetails.paymentTransactions
       .filter(transaction => transaction.verified)
       .reduce((sum, transaction) => sum + transaction.amount, 0);
 
-      const amountDue = Math.max(0.0, parseFloat((totalBillable - scholarshipAmount - amountPaid).toFixed(2)));
+      const amountDue = Math.max(0.0, parseFloat((totalBillable - amountPaid).toFixed(2)));
 
-      // --- 6. Construct the final object for the response ---
       return {
         localFeesId: localFee.id,
         name: localFee.name,
         description: localFee.description,
-        amountDue,
+        amountDue: baseAmount - scholarshipAmount <= 0 ? 0 : amountDue,
         baseAmount,
         totalBillable,
         taxPercentageIncluded: localFee.taxPercentage,
@@ -150,10 +158,10 @@ export async function GET(request: Request) {
         paymentTerms: localFee.paymentterms,
         dueDate: detail.dueDate,
         classFeeId: detail.id,
-        paymentStatus: currentStatus,
-        amountPaid: parseFloat(amountPaid.toFixed(2)),
+        paymentStatus: currentStatus || (baseAmount - scholarshipAmount <= 0 && 'PAID'),
+        amountPaid: parseFloat(amountPaid.toFixed(2)) || (baseAmount - scholarshipAmount),
         scholarshipAmount: parseFloat(scholarshipAmount.toFixed(2)),
-        isVerified: collectionDetails.paymentTransactions.every(t => t.verified),
+        isVerified: collectionDetails.paymentTransactions.every(t => t.verified) || (baseAmount - scholarshipAmount <= 0),
         feesCollectionId: collectionDetails.id,
         paymentTransactions: collectionDetails.paymentTransactions.map(t => ({
           id: t.id,
@@ -173,6 +181,16 @@ export async function GET(request: Request) {
         where: {id: {in: feeCollectionsToUpdate}},
         data: {
           status: PaymentStatus.OVERDUE
+        }
+      });
+    }
+
+    if (feesCollectionToVerify.length > 0) {
+      await prisma.feesCollection.updateMany({
+        where: {id: {in: feesCollectionToVerify}},
+        data: {
+          verified: true,
+          status: PaymentStatus.PAID
         }
       });
     }

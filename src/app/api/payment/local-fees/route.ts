@@ -1,5 +1,5 @@
 import {NextResponse} from 'next/server';
-import {Prisma, PaymentStatus, PaymentTerms} from '@prisma/client';
+import {PaymentTerms, Prisma} from '@prisma/client';
 import prisma from '@/lib/prisma';
 import {calculateDueDates} from "@/app/api/payment/global-fees/route";
 
@@ -151,7 +151,7 @@ export async function PATCH(request: Request) {
     const updatedFees = await prisma.$transaction(async (tx) => {
       // Use Promise.all to run all update operations concurrently
       const updatePromises = localFeesToUpdate.map(async (fee) => {
-        const {id,  ...dataToUpdate} = fee;
+        const {id, ...dataToUpdate} = fee;
 
         // --- a. Update the main LocalFee record with simple data ---
         const updatedLocalFee = await tx.localFees.update({
@@ -216,7 +216,12 @@ export async function GET(request: Request) {
   try {
     const {searchParams} = new URL(request.url);
     const motherClassId = searchParams.get('motherClassId');
+    const isDeleted = searchParams.get('isDeleted');
 
+    let deleted = false;
+    if (isDeleted === 'true') {
+      deleted = true;
+    }
     if (!motherClassId) {
       return NextResponse.json(
         {error: 'motherClassId is required!'},
@@ -231,7 +236,7 @@ export async function GET(request: Request) {
             motherClassId: motherClassId
           }
         },
-        isDeleted: false
+        isDeleted: deleted
       },
       include: {
         classFees: {
@@ -259,6 +264,11 @@ export async function GET(request: Request) {
                   include: {
                     user: {select: {name: true, email: true}},
                     localFees: {
+                      where: {
+                        localFees: {
+                          isDeleted: deleted
+                        }
+                      },
                       select: {
                         localFeesId: true,
                         id: true,
@@ -324,8 +334,7 @@ export async function GET(request: Request) {
       {status: 200}
     );
 
-  } catch
-    (e) {
+  } catch (e) {
     console.error(e); // Log the actual error on the server
     return NextResponse.json(
       {error: 'Internal server error. Please try again later.'},
