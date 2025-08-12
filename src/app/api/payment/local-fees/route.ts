@@ -1,5 +1,5 @@
 import {NextResponse} from 'next/server';
-import {Prisma, PaymentStatus, PaymentTerms} from '@prisma/client';
+import {PaymentTerms, Prisma} from '@prisma/client';
 import prisma from '@/lib/prisma';
 import {calculateDueDates} from "@/app/api/payment/global-fees/route";
 
@@ -129,8 +129,6 @@ interface UpdateLocalFeePayload {
   amount?: number;
   taxPercentage?: number;
   penalty?: number;
-  paymentterms?: PaymentTerms;
-  dueDate?: string;
 }
 
 export async function PATCH(request: Request) {
@@ -147,62 +145,19 @@ export async function PATCH(request: Request) {
       if (!fee.id) {
         throw new Error('Every fee object in the array must have an `id`.');
       }
-      if (fee.paymentterms === 'ONE_TIME' && !fee.dueDate) {
-        throw new Error(`The 'dueDate' is required for fee ID "${fee.id}" because its new payment term is ONE_TIME.`);
-      }
+
     }
 
-    // --- 2. Transaction for Atomic "Delete and Recreate" Logic ---
     const updatedFees = await prisma.$transaction(async (tx) => {
       // Use Promise.all to run all update operations concurrently
       const updatePromises = localFeesToUpdate.map(async (fee) => {
-        const {id, dueDate, ...dataToUpdate} = fee;
+        const {id, ...dataToUpdate} = fee;
 
         // --- a. Update the main LocalFee record with simple data ---
         const updatedLocalFee = await tx.localFees.update({
           where: {id: id},
           data: dataToUpdate
         });
-
-        if (dataToUpdate.paymentterms) {
-          // Find the single MotherClass this fee is linked to
-          const firstClassFee = await tx.classFee.findFirst({
-            where: {localFeesId: id},
-            select: {motherClassId: true},
-          });
-
-          // If there's no schedule, there's nothing to regenerate.
-          if (!firstClassFee) {
-            console.warn(`LocalFee ${id} has no class schedule to regenerate. Skipping schedule update.`);
-            return updatedLocalFee;
-          }
-          const motherClassId = firstClassFee.motherClassId;
-
-          // --- c. Delete ONLY the old ClassFee schedule ---
-          await tx.classFee.deleteMany({where: {localFeesId: id}});
-
-          // --- d. Re-create the new ClassFee schedule ---
-          const section = await tx.classSection.findFirst({
-            where: {motherClassId: motherClassId},
-            select: {semester: {select: {startDate: true, endDate: true}}}
-          });
-          if (!section?.semester) {
-            throw new Error(`Could not determine semester for the class linked to LocalFee ID ${id}.`);
-          }
-
-          const newDueDates = calculateDueDates(section.semester.startDate, section.semester.endDate, dataToUpdate.paymentterms, dueDate);
-
-          // Create the new ClassFee records.
-          for (const newDueDate of newDueDates) {
-            await tx.classFee.create({
-              data: {
-                localFeesId: id,
-                motherClassId: motherClassId,
-                dueDate: newDueDate,
-              }
-            });
-          }
-        }
 
         return updatedLocalFee;
       });
@@ -261,7 +216,12 @@ export async function GET(request: Request) {
   try {
     const {searchParams} = new URL(request.url);
     const motherClassId = searchParams.get('motherClassId');
+    const isDeleted = searchParams.get('isDeleted');
 
+    let deleted = false;
+    if (isDeleted === 'true') {
+      deleted = true;
+    }
     if (!motherClassId) {
       return NextResponse.json(
         {error: 'motherClassId is required!'},
@@ -276,7 +236,7 @@ export async function GET(request: Request) {
             motherClassId: motherClassId
           }
         },
-        isDeleted: false
+        isDeleted: deleted
       },
       include: {
         classFees: {
@@ -304,6 +264,11 @@ export async function GET(request: Request) {
                   include: {
                     user: {select: {name: true, email: true}},
                     localFees: {
+                      where: {
+                        localFees: {
+                          isDeleted: deleted
+                        }
+                      },
                       select: {
                         localFeesId: true,
                         id: true,
@@ -369,8 +334,7 @@ export async function GET(request: Request) {
       {status: 200}
     );
 
-  } catch
-    (e) {
+  } catch (e) {
     console.error(e); // Log the actual error on the server
     return NextResponse.json(
       {error: 'Internal server error. Please try again later.'},

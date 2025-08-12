@@ -111,14 +111,12 @@ export default function ReportCard() {
 
       <div className="grid grid-cols-2 gap-4 text-sm mb-8">
         <div>
-          <strong>Roll:</strong>{' '}
+          <strong>Name:</strong>{' '}
           {typeof window !== 'undefined' && localStorage.getItem('user')
             ? JSON.parse(localStorage.getItem('user') || '{}').name
             : 'N/A'}
         </div>
 
-        <div><strong>Overall Percentage:</strong> <span className="text-green-600 font-medium">87.4%</span>
-        </div>
       </div>
 
       <div className="bg-gradient-to-r from-indigo-200 to-purple-200 px-4 py-2 rounded-t-md font-semibold">

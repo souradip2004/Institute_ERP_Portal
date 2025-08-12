@@ -264,7 +264,6 @@ export async function GET(request: Request) {
   try {
     const {searchParams} = new URL(request.url);
     const motherClassId = searchParams.get('motherClassId') as string;
-
     if (!motherClassId) {
       return NextResponse.json({error: "Missing required fields"}, {status: 400})
     }
@@ -276,7 +275,7 @@ export async function GET(request: Request) {
       include: {
         globalFees: true
       }
-    })
+    });
 
     console.log("globalClassFee: ", globalClassFee)
 

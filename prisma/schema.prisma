@@ -189,7 +189,6 @@ model Student {
   feesCollections       FeesCollection[]
   localFees             LocalFeesOnStudent[]
 
-  @@unique([departmentId, studentRoll])
   @@index([studentRoll])
   @@map("students")
 }
@@ -713,13 +712,13 @@ model PaymentTransaction {
   amount           Float           @default(0.0)
   paymentMethod    String?         @map("payment_method")
   transactionId    String?
-  cashPayment      Boolean         @default(false)
+  cashPayment      Boolean         @default(false) @map("cash_payment")
   verified         Boolean         @default(false)
   feesCollectionId String?         @default("fees_collection_id")
-  paymentDate      DateTime?       @map("payment_date") @db.Date
+  paymentDate      DateTime        @map("payment_date") @db.Date
   createdAt        DateTime        @default(now()) @map("created_at")
   updatedAt        DateTime        @updatedAt @map("updated_at")
-  FeesCollection   FeesCollection? @relation(fields: [feesCollectionId], references: [id])
+  FeesCollection   FeesCollection? @relation(fields: [feesCollectionId], references: [id], onDelete: Cascade)
 }
 
 model FeesCollection {
@@ -730,7 +729,7 @@ model FeesCollection {
   scholarshipAmt      Float                @default(0.0) @map("scholarship_amt")
   status              PaymentStatus
   verified            Boolean              @default(false)
-  penaltyApplied      Boolean              @default(false)
+  penaltyApplied      Boolean              @default(true)
   lastestPaymentDate  DateTime?            @map("latest_payment_date") @db.Date
   createdAt           DateTime             @default(now()) @map("created_at")
   updatedAt           DateTime             @updatedAt @map("updated_at")

@@ -167,8 +167,8 @@ export default function ExamsPage() {
   const [pdfUrl, setPdfUrl] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [numLongQuestions, setNumLongQuestions] = useState<string>("1");
-  const [numMCQQuestions, setNumMCQQuestions] = useState<string>("1");
+  const [numLongQuestions, setNumLongQuestions] = useState<string>("0");
+  const [numMCQQuestions, setNumMCQQuestions] = useState<string>("0");
   const [questionMode, setQuestionMode] = useState(false) // false for AI, true for Manual
 
   // New states for additional exam fields
@@ -979,7 +979,7 @@ export default function ExamsPage() {
 
       // Generate MCQ questions if pages were selected for it
       if (mcqPageImages.length > 0) {
-        const generateMcqQuestions = await axios.post(`https://question-generation-2-5c1d46f-v3.app.beam.cloud`, {
+        const generateMcqQuestions = await axios.post(`https://question-generation-2-5c1d46f-v5.app.beam.cloud`, {
           img_url_list: mcqPageImages,
           no_of_questions: parseInt(numMCQQuestions) * 2,
           uid: uuidV4(),
@@ -1026,7 +1026,7 @@ export default function ExamsPage() {
 
       // Generate Long Answer questions if pages were selected for it
       if (longPageImages.length > 0) {
-        const generateLongQuestions = await axios.post(`https://question-generation-2-5c1d46f-v3.app.beam.cloud`, {
+        const generateLongQuestions = await axios.post(`https://question-generation-2-5c1d46f-v5.app.beam.cloud`, {
           img_url_list: longPageImages,
           no_of_questions: parseInt(numLongQuestions) * 2,
           uid: uuidV4(),
@@ -1571,7 +1571,7 @@ export default function ExamsPage() {
                         type="number"
                         value={numLongQuestions}
                         min={0}
-                        disabled={selectedQuestionType !== 'LONG_ANSWER' && selectedQuestionType !== 'Both'}
+                       // disabled={selectedQuestionType !== 'LONG_ANSWER' && selectedQuestionType !== 'Both'}
                         onChange={(e) => setNumLongQuestions(e.target.value)}
                         className="w-full px-4 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors"
                       />

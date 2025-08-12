@@ -92,7 +92,7 @@ export default function TeacherAssignmentsPage({params}: TeacherAssignmentsPageP
           setClassName(classDetailsData.name || classDetailsData.className ||
             (classDetailsData.batch ? `Class ${classDetailsData.batch.batchName}` : 'Class'));
           setSection(classDetailsData.section || classDetailsData.sectionName || 'A');
-          notify.success('Class details loaded successfully');
+       //   notify.success('Class details loaded successfully');
         } else {
           // Use sample data if API fails
           setClassName('Class 9th');
@@ -130,7 +130,7 @@ export default function TeacherAssignmentsPage({params}: TeacherAssignmentsPageP
           };
         }));
         setAssignments(processedData);
-        notify.success('Assignments loaded successfully');
+     //   notify.success('Assignments loaded successfully');
       } catch (error: unknown) {
         console.error('Error fetching assignments:', error);
         setError(error instanceof Error ? error.message : 'Failed to load assignments');

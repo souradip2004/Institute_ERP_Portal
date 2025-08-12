@@ -24,6 +24,7 @@ interface AssignmentSubmission {
   obtainedPoints?: number;
   maxPoints?: number;
   submissionUrl?: string; // Add submission URL
+  attachments?: any[]; // Added attachments for submission
 }
 
 interface StudentData {
@@ -45,6 +46,7 @@ interface RawAssignment {
     status: string;
     obtainedPoints?: number;
     submissionUrl?: string;
+    attachments?: any[]; // Added attachments for raw submission
   }[];
   attachments: any[];
   maxPoints?: number;
@@ -54,7 +56,7 @@ interface RawAssignment {
 
 export default function AssignmentsPage() {
   const [ongoingAssignments, setOngoingAssignments] = useState<Assignment[]>([]);
-  const [submittedAssignments, setSubmittedAssignments] = useState([]);
+  const [submittedAssignments, setSubmittedAssignments] = useState<Assignment[]>([]);
   const [gradedAssignments, setGradedAssignments] = useState<Assignment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -62,6 +64,9 @@ export default function AssignmentsPage() {
   const [rawAssignmentData, setRawAssignmentData] = useState<RawAssignment[]>([]);
   const [debugMode, setDebugMode] = useState(false);
   const [classSections, setClassSections] = useState<any[]>([]);
+  
+  // New state to track downloaded assignments
+  const [downloadedAssignments, setDownloadedAssignments] = useState<Set<string>>(new Set());
 
   // Refs for file inputs
   const fileInputRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
@@ -121,11 +126,10 @@ export default function AssignmentsPage() {
       }
       setClassSections(classd);
 
-      const classSectionId = userData.classSectionId; // Assuming this is still present for the primary class
+      const classSectionId = userData.classSectionId;
 
       let data: RawAssignment[] = [];
       if (classSectionId) {
-        // Fetch from the new API endpoint with classSectionId if available
         const response = await fetch(`/api/assignments/my-assignments?classSectionId=${classSectionId}&user=${studentId}`);
         if (!response.ok) {
           throw Error('Failed to fetch assignments for the specific class section.');
@@ -133,7 +137,6 @@ export default function AssignmentsPage() {
         data = await response.json();
       } else {
         console.warn('No classSectionId found in user data, fetching all assignments.');
-        // Fall back to original API if no classSectionId is found
         const response = await fetch(`/api/assignments`);
         if (!response.ok) {
           throw Error('Failed to fetch all assignments.');
@@ -306,16 +309,12 @@ export default function AssignmentsPage() {
           onChange={(event) => {
             const file = event.target.files?.[0];
             if (file) {
-              // Store the file temporarily or directly pass to a submit handler
-              // For simplicity, we'll make the submit button available
-              // after a file is selected and let its onClick handle submission.
-              // In a more complex app, you might use state to track selected file.
               const submitBtn = document.getElementById(`submit-btn-${assignment.id}`);
               if (submitBtn) {
                 submitBtn.onclick = () => handleSubmitAssignment(assignment, file);
-                submitBtn.removeAttribute('disabled'); // Enable submit button
+                submitBtn.removeAttribute('disabled');
                 submitBtn.textContent = `Submit "${file.name}"`;
-                submitBtn.style.backgroundColor = ''; // Reset background if it was grayed out
+                submitBtn.style.backgroundColor = '';
                 submitBtn.style.cursor = 'pointer';
               }
             } else {
@@ -323,7 +322,7 @@ export default function AssignmentsPage() {
               if (submitBtn) {
                 submitBtn.setAttribute('disabled', 'true');
                 submitBtn.textContent = 'Submit Now';
-                submitBtn.style.backgroundColor = 'gray'; // Visually disable
+                submitBtn.style.backgroundColor = 'gray';
                 submitBtn.style.cursor = 'not-allowed';
               }
             }
@@ -338,8 +337,8 @@ export default function AssignmentsPage() {
           </Button>
           <Button
             id={`submit-btn-${assignment.id}`}
-            onClick={() => alert("Please upload a file first.")} // Initial state: prompt to upload
-            disabled={true} // Initially disabled
+            onClick={() => alert("Please upload a file first.")}
+            disabled={true}
             className="bg-gray-400 text-white font-medium px-3 py-1.5 rounded-lg w-full md:w-auto cursor-not-allowed"
           >
             Submit Now
@@ -365,6 +364,11 @@ export default function AssignmentsPage() {
 
   const toggleDebugMode = () => {
     setDebugMode(!debugMode);
+  };
+  
+  // New handler for download click
+  const handleDownloadClick = (assignmentId: string) => {
+    setDownloadedAssignments(prev => new Set(prev.add(assignmentId)));
   };
 
   if (loading) {
@@ -456,16 +460,23 @@ export default function AssignmentsPage() {
                               : 'N/A'}
                         </div>
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-blue-600">
-                        <Link
-                          href={assignment?.attachments || ''}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center hover:text-blue-800"
-                        >
-                          <Download className="h-4 w-4 mr-1 sm:mr-2" />
-                          <span className="hidden sm:inline">Download</span>
-                        </Link>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        {downloadedAssignments.has(assignment.id) ? (
+                          <span className="text-green-600 font-medium flex items-center">
+                            <Download className="h-4 w-4 mr-1 sm:mr-2" /> Downloaded
+                          </span>
+                        ) : (
+                          <Link
+                            href={assignment?.attachments || ''}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center text-blue-600 hover:text-blue-800"
+                            onClick={() => handleDownloadClick(assignment.id)}
+                          >
+                            <Download className="h-4 w-4 mr-1 sm:mr-2" />
+                            <span className="hidden sm:inline">Download</span>
+                          </Link>
+                        )}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
                         <span className="px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800">
@@ -513,9 +524,6 @@ export default function AssignmentsPage() {
                 <th className="px-4 py-3 text-left text-xs sm:text-sm font-semibold text-gray-600 bg-gray-50 min-w-[100px]">
                   Status
                 </th>
-                {/* <th className="px-4 py-3 text-left text-xs sm:text-sm font-semibold text-gray-600 bg-gray-50 min-w-[120px]">
-                  Actions
-                </th> */}
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -524,7 +532,6 @@ export default function AssignmentsPage() {
                   const studentSubmission = assignment.submissions?.find(sub =>
                     sub.studentId === (studentData?.studentId || studentData?.id)
                   );
-                  console.log(studentSubmission)
                   return (
                     <tr key={assignment.id} className="hover:bg-gray-50">
                       <td className="px-4 py-3 text-gray-700 break-words whitespace-normal">
@@ -540,16 +547,23 @@ export default function AssignmentsPage() {
                               : 'N/A'}
                         </div>
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-blue-600">
-                        <Link
-                          href={assignment?.attachments || ''}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center hover:text-blue-800"
-                        >
-                          <Download className="h-4 w-4 mr-1 sm:mr-2" />
-                          <span className="hidden sm:inline">Assignment</span>
-                        </Link>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        {downloadedAssignments.has(`assignment-${assignment.id}`) ? (
+                          <span className="text-green-600 font-medium flex items-center">
+                            <Download className="h-4 w-4 mr-1 sm:mr-2" /> Downloaded
+                          </span>
+                        ) : (
+                          <Link
+                            href={assignment?.attachments || ''}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center text-blue-600 hover:text-blue-800"
+                            onClick={() => handleDownloadClick(`assignment-${assignment.id}`)}
+                          >
+                            <Download className="h-4 w-4 mr-1 sm:mr-2" />
+                            <span className="hidden sm:inline">Assignment</span>
+                          </Link>
+                        )}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-purple-600">
                         {studentSubmission?.attachments ? (
@@ -568,10 +582,10 @@ export default function AssignmentsPage() {
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
                         <span className="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800">
-                          {getStatusDisplay(assignment)}
+                          {/*getStatusDisplay(assignment)*/}
+                          submitted
                         </span>
                       </td>
-                      {/* <td className="px-4 py-3">{getActionButton(assignment)}</td> */}
                     </tr>
                   );
                 })
@@ -636,16 +650,23 @@ export default function AssignmentsPage() {
                               : 'N/A'}
                         </div>
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-blue-600">
-                        <Link
-                          href={assignment?.attachments || ''}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center hover:text-blue-800"
-                        >
-                          <Download className="h-4 w-4 mr-1 sm:mr-2" />
-                          <span className="hidden sm:inline">Assignment</span>
-                        </Link>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        {downloadedAssignments.has(`assignment-${assignment.id}`) ? (
+                          <span className="text-green-600 font-medium flex items-center">
+                            <Download className="h-4 w-4 mr-1 sm:mr-2" /> Downloaded
+                          </span>
+                        ) : (
+                          <Link
+                            href={assignment?.attachments || ''}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center text-blue-600 hover:text-blue-800"
+                            onClick={() => handleDownloadClick(`assignment-${assignment.id}`)}
+                          >
+                            <Download className="h-4 w-4 mr-1 sm:mr-2" />
+                            <span className="hidden sm:inline">Assignment</span>
+                          </Link>
+                        )}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-purple-600">
                         {studentSubmission?.submissionUrl ? (

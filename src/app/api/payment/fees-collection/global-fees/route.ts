@@ -8,8 +8,12 @@ export async function GET(request: Request) {
     const institutionId = searchParams.get('institutionId');
     const studentId = searchParams.get('studentId');
     const motherClassId = searchParams.get('motherClassId');
-    const isDeleted: boolean = (searchParams.get('isDeleted') || false) as boolean;
+    const isDeleted = searchParams.get('isDeleted') ;
 
+    let deleted = false;
+    if (isDeleted === 'true') {
+      deleted = true
+    }
     if (!institutionId || !studentId || !motherClassId) {
       return NextResponse.json({
         error: "Missing required parameters. 'institutionId', 'studentId', and 'motherClassId' are required."
@@ -21,7 +25,7 @@ export async function GET(request: Request) {
       where: {
         motherClassId: motherClassId,
         globalFeesId: {not: null},
-        globalFees: {institutionId: institutionId, isDeleted},
+        globalFees: {institutionId: institutionId, isDeleted: deleted},
       },
       include: {
         globalFees: true,
@@ -40,6 +44,7 @@ export async function GET(request: Request) {
 
     const now = new Date();
     const feeCollectionsToUpdate: string[] = [];
+    const feesCollectionToVerify: string[] = [];
 
     const structuredResponse = feeDetails.map(detail => {
       const collectionDetails = detail.feesCollections[0];
@@ -72,11 +77,10 @@ export async function GET(request: Request) {
       }
 
       let currentStatus = collectionDetails.status;
-      let isPenaltyApplied = collectionDetails.penaltyApplied;
+      let isPenaltyApplied = collectionDetails.penaltyApplied && currentStatus === PaymentStatus.OVERDUE;
 
       if ((currentStatus === PaymentStatus.PENDING || currentStatus === PaymentStatus.PARTIAL) && detail.dueDate < now) {
         currentStatus = PaymentStatus.OVERDUE;
-        isPenaltyApplied = true;
         if (!feeCollectionsToUpdate.includes(collectionDetails.id)) {
           feeCollectionsToUpdate.push(collectionDetails.id);
         }
@@ -85,21 +89,24 @@ export async function GET(request: Request) {
       const penaltyToAdd = isPenaltyApplied ? globalFee.penalty : 0;
       const baseAmount = globalFee.amount;
       const taxAmount = (baseAmount * globalFee.taxPercentage) / 100;
-      const totalBillable = baseAmount + taxAmount + penaltyToAdd;
-
       const scholarshipAmount = collectionDetails.scholarshipAmt || 0;
+      if (baseAmount - scholarshipAmount <= 0) {
+        feesCollectionToVerify.push(collectionDetails.id);
+      }
+      const totalBillable = (baseAmount - scholarshipAmount) + taxAmount + penaltyToAdd;
+      console.log("Base amt ", baseAmount, " scholarship amount ", scholarshipAmount, "total Billable ", totalBillable)
 
       const amountPaid = collectionDetails.paymentTransactions
       .filter(transaction => transaction.verified)
       .reduce((sum, transaction) => sum + transaction.amount, 0);
 
-      const amountDue = Math.max(0.0, parseFloat((totalBillable - scholarshipAmount - amountPaid).toFixed(2)));
+      const amountDue = Math.max(0.0, parseFloat((totalBillable - amountPaid).toFixed(2)));
 
       return {
         feeId: globalFee.id,
         name: globalFee.name,
         description: globalFee.description,
-        amountDue,
+        amountDue: baseAmount - scholarshipAmount <= 0 ? 0 : amountDue,
         baseAmount,
         totalBillable,
         taxPercentageIncluded: globalFee.taxPercentage,
@@ -108,10 +115,10 @@ export async function GET(request: Request) {
         paymentTerms: globalFee.paymentterms,
         dueDate: detail.dueDate,
         classFeeId: detail.id,
-        paymentStatus: currentStatus,
-        amountPaid: parseFloat(amountPaid.toFixed(2)),
+        paymentStatus: currentStatus || (baseAmount - scholarshipAmount <= 0 && 'PAID'),
+        amountPaid: parseFloat(amountPaid.toFixed(2)) || (scholarshipAmount),
         scholarshipAmount: parseFloat(scholarshipAmount.toFixed(2)), // Include scholarship in the response
-        isVerified: collectionDetails.paymentTransactions.every(t => t.verified),
+        isVerified: collectionDetails.paymentTransactions.every(t => t.verified) || (baseAmount - scholarshipAmount <= 0),
         feesCollectionId: collectionDetails.id,
         paymentTransactions: collectionDetails.paymentTransactions.map(t => ({
           id: t.id,
@@ -124,12 +131,23 @@ export async function GET(request: Request) {
       };
     });
 
+    console.log("Fees collection to update ", feeCollectionsToUpdate)
     if (feeCollectionsToUpdate.length > 0) {
       await prisma.feesCollection.updateMany({
         where: {id: {in: feeCollectionsToUpdate}},
         data: {
-          status: PaymentStatus.OVERDUE,
-          penaltyApplied: true
+          status: PaymentStatus.OVERDUE
+        }
+      });
+    }
+
+    console.log("Fees collection to verify ", feesCollectionToVerify)
+    if (feesCollectionToVerify.length > 0) {
+      await prisma.feesCollection.updateMany({
+        where: {id: {in: feesCollectionToVerify}},
+        data: {
+          verified: true,
+          status: PaymentStatus.PAID
         }
       });
     }

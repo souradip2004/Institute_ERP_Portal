@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import Link from "next/link";
 import { LogoutButton } from "@/components/auth/logout-button";
 import Loader from '@/components/ui/Loader';
@@ -14,6 +14,13 @@ interface Notification {
   replyText?: string;
   createdAt: string;
   replyExists: boolean;
+  studentId: string;
+}
+
+interface GroupedNotification {
+  studentId: string;
+  studentName: string;
+  notifications: Notification[];
 }
 
 interface Assignment {
@@ -43,20 +50,60 @@ interface ClassAttendance {
   percentage: number;
 }
 
+const ChatBubble: React.FC<{
+  message: string;
+  timestamp: string;
+  isSender: boolean;
+  primaryColor: string;
+}> = ({ message, timestamp, isSender, primaryColor }) => {
+  const bubbleStyles = isSender
+    ? {
+        backgroundColor: primaryColor,
+        color: 'white',
+        borderRadius: '1.25rem 1.25rem 0.25rem 1.25rem',
+        alignSelf: 'flex-end',
+      }
+    : {
+        backgroundColor: '#E5E7EB',
+        color: '#1F2937',
+        borderRadius: '1.25rem 1.25rem 1.25rem 0.25rem',
+        alignSelf: 'flex-start',
+      };
+
+  return (
+    <div
+      className={`relative py-2 px-4 shadow-sm text-sm max-w-[80%]`}
+      style={bubbleStyles}
+    >
+      <p className="pr-12">{message}</p>
+      <span
+        className={`absolute bottom-1 text-xs ${
+          isSender ? 'right-2 text-white/75' : 'right-2 text-gray-500'
+        }`}
+      >
+        {timestamp}
+      </span>
+    </div>
+  );
+};
+
 export default function TeacherDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [groupedNotifications, setGroupedNotifications] = useState<GroupedNotification[]>([]);
+  const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [exams, setExams] = useState<Exam[]>([]);
   const [teacherName, setTeacherName] = useState('John Mathew');
-  const [teacherAttendance, setTeacherAttendance] = useState(97); // Default non-zero value to match UI
+  const [teacherAttendance, setTeacherAttendance] = useState(97);
   const [classAttendance, setClassAttendance] = useState<ClassAttendance[]>([]);
   const [teacherId, setTeacherId] = useState<string | null>(null);
   const [classSectionId, setClassSectionId] = useState<string | null>(null);
   const [primaryColor, setPrimaryColor] = useState<string>('#3B82F6');
 
-  // Helper function to convert hex to rgba
+  // Create a ref for each student's chat container
+  const chatRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
+
   const hexToRgba = (hex: string, alpha: number = 1) => {
     const cleanHex = hex.replace('#', '');
     const r = parseInt(cleanHex.substr(0, 2), 16);
@@ -68,12 +115,9 @@ export default function TeacherDashboardPage() {
   useEffect(() => {
     const temp = localStorage.getItem('primaryColor');
     if (temp) {
-      console.log('Primary color loaded from localStorage:', temp);
       setPrimaryColor(temp);
     } else {
-      // Set a default color if none exists
-      console.log('No primary color found, using default blue');
-      setPrimaryColor('#3B82F6'); // Default blue color
+      setPrimaryColor('#3B82F6');
     }
   }, []);
 
@@ -93,27 +137,18 @@ export default function TeacherDashboardPage() {
         if (userData) {
           try {
             const parsedUserData = JSON.parse(userData);
-            console.log('Parsed user data:', parsedUserData);
-
             if (parsedUserData.name) {
               setTeacherName(parsedUserData.name);
             }
-
-            // Set teacher ID immediately
             if (parsedUserData.teacherId) {
-              console.log('Setting teacher ID from teacherId:', parsedUserData.teacherId);
               setTeacherId(parsedUserData.teacherId);
             } else {
               setTeacherId(null);
-              console.log('No teacher ID found in user data');
             }
-
             setClassSectionId(parsedUserData.classSectionId);
           } catch (error) {
             console.error('Error parsing user data from localStorage:', error);
           }
-        } else {
-          console.log('No user data found in localStorage');
         }
       }
     };
@@ -125,25 +160,19 @@ export default function TeacherDashboardPage() {
     const loadData = async () => {
       try {
         setLoading(true);
-        // Wait for teacherId to be set
         if (!teacherId) {
-          console.log('Waiting for teacher ID to be set...');
           return;
         }
 
-        console.log('Loading data for teacher ID:', teacherId);
-        // Execute all data fetching operations in parallel
         const [attendanceResult] = await Promise.allSettled([
           fetchAttendanceData()
         ]);
 
-        // Handle attendance data
         if (attendanceResult.status === 'fulfilled') {
           setTeacherAttendance(attendanceResult.value.teacherAttendance);
           setClassAttendance(attendanceResult.value.classAttendance);
         }
 
-        // Fetch other data types
         await fetchNotifications();
         await fetchAssignments();
         await fetchExams();
@@ -156,12 +185,21 @@ export default function TeacherDashboardPage() {
     };
 
     loadData();
-  }, [teacherId]); // Add teacherId as dependency
+  }, [teacherId]);
+
+  // Auto-scroll effect
+  useEffect(() => {
+    expandedGroups.forEach(studentId => {
+      const chatContainer = chatRefs.current[studentId];
+      if (chatContainer) {
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+      }
+    });
+  }, [groupedNotifications, expandedGroups]);
 
   const fetchNotifications = async () => {
     try {
       if (!teacherId) {
-        console.log('No teacherId available for fetching notifications');
         return;
       }
 
@@ -169,127 +207,161 @@ export default function TeacherDashboardPage() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        console.error('Error fetching notifications:', errorData);
         throw new Error('Failed to fetch notifications');
       }
 
       const data = await response.json();
-      console.log('Received notifications:', data);
-      const processedNotifications = data.map((notification: Notification) => ({
-        ...notification,
-        replyExists: !!notification.replyText?.trim() // Set true if replyText is a non-empty string
-      }));
 
-      setNotifications(processedNotifications);
+      const grouped = data.reduce((acc: { [key: string]: GroupedNotification }, notification: Notification) => {
+        const studentId = notification.studentId || "unknown"; 
+        const studentName = notification.title.split(":")[0]?.trim() || "Unknown Student";
+        
+        if (!acc[studentId]) {
+          acc[studentId] = {
+            studentId,
+            studentName,
+            notifications: [],
+          };
+        }
+        acc[studentId].notifications.push({
+          ...notification,
+          replyExists: !!notification.replyText?.trim(),
+        });
+        return acc;
+      }, {});
 
+      setGroupedNotifications(Object.values(grouped));
     } catch (error) {
       console.error('Error in fetchNotifications:', error);
-      setNotifications([]);
+      setGroupedNotifications([]);
     }
   };
 
-
   const handleReplyChange = (notificationId: string, text: string) => {
-    setNotifications(prevState => prevState.map(notification =>
-      notification.id === notificationId
-        ? { ...notification, replyText: text }
-        : notification
-    ))
+    setGroupedNotifications(prevState =>
+      prevState.map(group => ({
+        ...group,
+        notifications: group.notifications.map(notification =>
+          notification.id === notificationId
+            ? { ...notification, replyText: text }
+            : notification
+        )
+      }))
+    );
   };
 
   const handleReplySubmit = async (notificationId: string) => {
-    // 1. Find the specific notification from the state
-    const notification = notifications.find(n => n.id === notificationId);
+    let notificationToUpdate: Notification | undefined;
+    groupedNotifications.forEach(group => {
+      const found = group.notifications.find(n => n.id === notificationId);
+      if (found) {
+        notificationToUpdate = found;
+      }
+    });
 
-    // 2. Check if the replyText exists and is not just empty spaces
-    if (notification?.replyText?.trim()) {
+    if (notificationToUpdate?.replyText?.trim()) {
       try {
         const response = await axios.put(
           '/api/notifications/saveReply',
           {
             notificationId,
             teacherId,
-            replyText: notification.replyText
+            replyText: notificationToUpdate.replyText
           }
         );
 
-        // 4. Correctly update state with the API response
         if (response.data && response.data.notifications) {
           const updatedNotifications = response.data.notifications.map((n: Notification) => ({
             ...n,
-            replyExists: !!n.replyText?.trim()
+            replyExists: !!n.replyText?.trim(),
           }));
 
-          setNotifications(updatedNotifications);
+          const grouped = updatedNotifications.reduce((acc: { [key: string]: GroupedNotification }, notification: Notification) => {
+            const studentId = notification.studentId || "unknown";
+            const studentName = notification.title.split(":")[0]?.trim() || "Unknown Student";
+            if (!acc[studentId]) {
+              acc[studentId] = { studentId, studentName, notifications: [] };
+            }
+            acc[studentId].notifications.push(notification);
+            return acc;
+          }, {});
+          setGroupedNotifications(Object.values(grouped));
         }
       } catch (err) {
         console.error("Failed to submit reply:", err);
       }
     }
   };
+
   const markNotificationsAsRead = async (notificationIds: string[]) => {
     try {
       if (teacherId) {
-        try {
-          setNotifications(prevNotifications =>
-            prevNotifications.map(notification => {
-              if (notificationIds.includes(notification.id)) {
-                return {
-                  ...notification,
-                  isRead: true
-                }
-              }
+        setGroupedNotifications(prevNotifications =>
+          prevNotifications.map(group => ({
+            ...group,
+            notifications: group.notifications.map(notification =>
+              notificationIds.includes(notification.id)
+                ? { ...notification, isRead: true }
+                : notification
+            )
+          }))
+        );
 
-              return notification;
-            })
-          )
-
-          const response = await axios.put(
-            '/api/notifications',
-            {
-              notificationIds,
-              teacherId
-            }
-          );
-
-          // Update local state after successful API call
-          console.log("Notification update response:", response.data);
-          if (response.data && response.data.notifications) {
-            const updatedNotificationsFromServer = response.data.notifications;
-
-            const processedNotifications = updatedNotificationsFromServer.map((n: Notification) => ({
-              ...n,
-              replyExists: !!n.replyText?.trim()
-            }));
-
-            setNotifications(processedNotifications);
+        const response = await axios.put(
+          '/api/notifications',
+          {
+            notificationIds,
+            teacherId
           }
+        );
 
-        } catch (apiError) {
-          console.error('API update error:', apiError);
+        if (response.data && response.data.notifications) {
+          const updatedNotificationsFromServer = response.data.notifications;
+
+          const processedNotifications = updatedNotificationsFromServer.map((n: Notification) => ({
+            ...n,
+            replyExists: !!n.replyText?.trim(),
+          }));
+
+          const grouped = processedNotifications.reduce((acc: { [key: string]: GroupedNotification }, notification: Notification) => {
+            const studentId = notification.studentId || "unknown";
+            const studentName = notification.title.split(":")[0]?.trim() || "Unknown Student";
+            if (!acc[studentId]) {
+              acc[studentId] = { studentId, studentName, notifications: [] };
+            }
+            acc[studentId].notifications.push(notification);
+            return acc;
+          }, {});
+
+          setGroupedNotifications(Object.values(grouped));
         }
-      }
 
+      }
     } catch (error) {
       console.error('Error marking notifications as read:', error);
+    }
+  };
+
+  const handleMarkAllAsRead = () => {
+    const allUnreadIds: string[] = groupedNotifications
+      .flatMap(group => group.notifications)
+      .filter(notification => !notification.isRead)
+      .map(notification => notification.id);
+    
+    if (allUnreadIds.length > 0) {
+      markNotificationsAsRead(allUnreadIds);
     }
   };
 
   const fetchAssignments = async () => {
     try {
       if (!teacherId) {
-        console.log('No teacherId available for fetching assignments');
         return;
       }
-
-      const response = await fetch(`/api/teachers/${teacherId}/dashboardDetail`, {
-        credentials: 'include'
-      });
-
+      const response = await fetch(`/api/teachers/${teacherId}/dashboardDetail`, { credentials: 'include' });
       if (!response.ok) {
         throw new Error('Failed to fetch dashboard data');
       }
-
       const data = await response.json();
       if (data && data.assignments) {
         setAssignments(data.assignments);
@@ -305,18 +377,12 @@ export default function TeacherDashboardPage() {
   const fetchExams = async () => {
     try {
       if (!teacherId) {
-        console.log('No teacherId available for fetching exams');
         return;
       }
-
-      const response = await fetch(`/api/teachers/${teacherId}/dashboardDetail`, {
-        credentials: 'include'
-      });
-
+      const response = await fetch(`/api/teachers/${teacherId}/dashboardDetail`, { credentials: 'include' });
       if (!response.ok) {
         throw new Error('Failed to fetch dashboard data');
       }
-
       const data = await response.json();
       if (data && data.exams) {
         setExams(data.exams);
@@ -331,20 +397,13 @@ export default function TeacherDashboardPage() {
 
   const fetchAttendanceData = async (): Promise<{ teacherAttendance: number, classAttendance: ClassAttendance[] }> => {
     try {
-      // First, try to get the teacherId from state
-      const currentTeacherId = teacherId || "teacher123"; // Use stored teacherId or fallback
-
-      // Try to fetch teacher's attendance summary
-      let teacherAttendanceValue = 97; // Default to a reasonable value
+      const currentTeacherId = teacherId || "teacher123";
+      let teacherAttendanceValue = 97;
       try {
-        const summaryResponse = await fetch(`/api/teachers/${currentTeacherId}/attendance/summary`, {
-          credentials: 'include'
-        });
-
+        const summaryResponse = await fetch(`/api/teachers/${currentTeacherId}/attendance/summary`, { credentials: 'include' });
         if (summaryResponse.ok) {
           const summaryData = await summaryResponse.json();
           if (summaryData && typeof summaryData.percentage !== 'undefined') {
-            // Remove % sign if present and convert to number
             teacherAttendanceValue = typeof summaryData.percentage === 'string'
               ? Number(summaryData.percentage.replace('%', ''))
               : Number(summaryData.percentage);
@@ -354,24 +413,17 @@ export default function TeacherDashboardPage() {
         console.error("Error fetching teacher attendance:", error);
       }
 
-      // Try to fetch classes taught by this teacher
       let classes = [];
       try {
-        const classesResponse = await fetch(`/api/teachers/${currentTeacherId}/classes`, {
-          credentials: 'include'
-        });
-
+        const classesResponse = await fetch(`/api/teachers/${currentTeacherId}/classes`, { credentials: 'include' });
         if (classesResponse.ok) {
           const classesData = await classesResponse.json();
-          classes = Array.isArray(classesData)
-            ? classesData
-            : (classesData?.classes || []);
+          classes = Array.isArray(classesData) ? classesData : (classesData?.classes || []);
         }
       } catch (error) {
         console.error("Error fetching teacher's classes:", error);
       }
 
-      // If no classes were found from the API, use fallback classes
       if (classes.length === 0) {
         classes = [
           { id: "class1", name: "Mathematics", section: "Section A" },
@@ -380,28 +432,19 @@ export default function TeacherDashboardPage() {
         ];
       }
 
-      // For each class, fetch attendance data
       const attendancePromises = classes.map(async (classInfo: any) => {
         try {
           const classId = classInfo.id || classInfo.classId;
           if (!classId) return null;
-
-          const attendanceResponse = await fetch(`/api/classes/${classId}/attendance`, {
-            credentials: 'include'
-          });
-
+          const attendanceResponse = await fetch(`/api/classes/${classId}/attendance`, { credentials: 'include' });
           if (attendanceResponse.ok) {
             const attendanceData = await attendanceResponse.json();
-
-            // Convert percentage to number, ensuring it's a proper number
             let percentageValue = 0;
             if (typeof attendanceData?.percentage !== 'undefined') {
-              // Handle different formats that might come from the API
               percentageValue = typeof attendanceData.percentage === 'string'
                 ? Number(attendanceData.percentage.replace('%', ''))
                 : Number(attendanceData.percentage);
             }
-
             return {
               id: classId,
               name: classInfo.name || classInfo.className || "Unnamed Class",
@@ -418,7 +461,6 @@ export default function TeacherDashboardPage() {
       const attendanceResults = await Promise.all(attendancePromises);
       let validAttendance = attendanceResults.filter(item => item !== null) as ClassAttendance[];
 
-      // Use fallback data if no valid attendance data was found
       if (validAttendance.length === 0) {
         validAttendance = [
           { id: "class1", name: "Mathematics", sectionName: "Section A", percentage: 95 },
@@ -444,14 +486,12 @@ export default function TeacherDashboardPage() {
     }
   };
 
-  const handleMarkSelectedAsRead = () => {
-
-    if (notifications.length > 0) {
-
-      markNotificationsAsRead(notifications.map(notification => notification.id));
-
-    }
-
+  const toggleGroup = (studentId: string) => {
+    setExpandedGroups(prev =>
+      prev.includes(studentId)
+        ? prev.filter(id => id !== studentId)
+        : [...prev, studentId]
+    );
   };
 
   const getTimeAgo = (dateString: string) => {
@@ -460,9 +500,9 @@ export default function TeacherDashboardPage() {
     const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
 
     if (diffInMinutes < 1) return 'Just now';
-    if (diffInMinutes < 60) return `${diffInMinutes} min ago`;
-    if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)} hours ago`;
-    return `${Math.floor(diffInMinutes / 1440)} days ago`;
+    if (diffInMinutes < 60) return `${diffInMinutes}m`;
+    if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}h`;
+    return `${Math.floor(diffInMinutes / 1440)}d`;
   };
 
   const getNotificationIcon = (type: string) => {
@@ -495,201 +535,116 @@ export default function TeacherDashboardPage() {
   }
 
   return (
-
     <div className="min-h-screen bg-gray-100 p-4">
       <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
         <div className="bg-white p-6 rounded-lg shadow-sm flex justify-between items-center border-t-4" style={{ borderTopColor: primaryColor }}>
           <div>
             <h1 className="text-2xl font-bold" style={{ color: primaryColor }}>Teacher Dashboard</h1>
             <p className="text-gray-500">{teacherName}</p>
-            {/* Debug indicator - remove this after testing */}
-            {/* <div className="text-xs text-gray-400 mt-1">
-              Primary Color: {primaryColor}
-            </div> */}
           </div>
-          {/* <div className="flex items-center">
-            <div className="bg-gray-100 rounded-full px-4 py-2 mr-4">
-            </div>
-            <LogoutButton/>
-          </div> */}
         </div>
 
-        {/* Notifications Section */}
         <div className="bg-white p-6 rounded-lg shadow-sm border-l-4" style={{ borderLeftColor: primaryColor }}>
-          {/*<h2 className="text-xl font-semibold mb-4">Notifications</h2>*/}
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-semibold" style={{ color: primaryColor }}>Notifications</h2>
-            {notifications.length > 0 && notifications.some(notification => !notification.isRead) && <button
-              onClick={handleMarkSelectedAsRead}
-              className="px-4 py-2 text-sm font-medium text-white rounded-lg hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2"
-              style={{
-                backgroundColor: primaryColor,
-                '--tw-ring-color': primaryColor
-              } as React.CSSProperties}
-            >
-              Mark all as Read ({notifications.length})
-            </button>}
-
-
+            {groupedNotifications.length > 0 && (
+              <button
+                onClick={handleMarkAllAsRead}
+                className="px-4 py-2 text-sm font-medium text-white rounded-lg hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2"
+                style={{
+                  backgroundColor: primaryColor,
+                  '--tw-ring-color': primaryColor
+                } as React.CSSProperties}
+              >
+                Mark all as Read
+              </button>
+            )}
           </div>
           <div className="space-y-4">
-            {notifications.length > 0 ? (
-              notifications.map((notification) => (
-                <div key={notification.id} className="p-4 border-b last:border-0">
-                  <div className="flex items-start space-x-4">
-                    {/* Checkbox */}
-
-                    {/* Icon and Content */}
-                    <div className="flex-1">
-                      <div className="flex items-start">
-                        <div className="mr-4 mt-1 text-2xl">
-                          {getNotificationIcon(notification.notificationType)}
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex justify-between items-start mb-1">
-                            <div className={"flex space-x-4"}>
-                              <h3 id={`notification-title-${notification.id}`}
-                                className="font-medium">{notification.title}</h3>
-
-                              <div className={"flex items-center space-x-2"}>
-                                <input
-                                  type="checkbox"
-                                  className="h-4 w-4 border-gray-300 rounded border-2"
-                                  style={{
-                                    accentColor: primaryColor,
-                                    borderColor: notification.isRead ? primaryColor : '#D1D5DB'
-                                  }}
-                                  checked={notification.isRead}
-                                  disabled={notification.isRead}
-                                  onChange={() => markNotificationsAsRead([notification.id])}
-                                  aria-labelledby={`notification-title-${notification.id}`}
-                                />
-                                <span className={""}>Mark as read</span>
-                              </div>
-                            </div>
-                            <span className="text-sm text-gray-500">
-                              {getTimeAgo(notification.createdAt)}
-                            </span>
-                          </div>
-                          <p className="text-gray-600 mb-3">"{notification.message}"</p>
-
+            {groupedNotifications.length > 0 ? (
+              groupedNotifications.map((group) => (
+                <div key={group.studentId} className="border-b last:border-0 pb-4">
+                  <button
+                    onClick={() => toggleGroup(group.studentId)}
+                    className="w-full text-left p-4 flex justify-between items-center bg-gray-50 hover:bg-gray-100 transition-colors duration-200 rounded-md"
+                  >
+                    <div className="flex items-center space-x-4">
+                      <span className="text-2xl">👨‍🎓</span>
+                      <h3 className="font-medium text-gray-800">{group.studentName}</h3>
+                      <span className="text-sm text-gray-500">
+                        ({group.notifications.filter(n => !n.isRead).length} unread)
+                      </span>
+                    </div>
+                    <span>
+                      {expandedGroups.includes(group.studentId) ? '▲' : '▼'}
+                    </span>
+                  </button>
+                  {expandedGroups.includes(group.studentId) && (
+                    <div
+                      ref={(el) => (chatRefs.current[group.studentId] = el)}
+                      className="p-4 space-y-4 flex flex-col items-start w-full max-h-96 overflow-y-auto"
+                    >
+                      {group.notifications.slice().reverse().map((notification) => (
+                        <React.Fragment key={notification.id}>
+                          <ChatBubble
+                            message={notification.message}
+                            timestamp={getTimeAgo(notification.createdAt)}
+                            isSender={false}
+                            primaryColor={primaryColor}
+                          />
                           {notification.replyExists ? (
-                            // If a reply IS saved, display it as text
-                            <div className="mt-2 p-2 bg-gray-100 rounded-md">
-                              <p className="text-sm font-medium text-gray-800">Your reply:</p>
-                              <p className="text-sm text-gray-600">"{notification.replyText}"</p>
+                            <div className="w-full flex justify-end">
+                              <ChatBubble
+                                message={notification.replyText || ''}
+                                timestamp={getTimeAgo(notification.createdAt)}
+                                isSender={true}
+                                primaryColor={primaryColor}
+                              />
                             </div>
                           ) : (
-                            // If NO reply is saved, show the input field and button
-                            <div className="flex items-center space-x-2">
-                              <input
-                                type="text"
-                                placeholder="Type your reply..."
-                                value={notification.replyText || ''}
-                                onChange={(e) => handleReplyChange(notification.id, e.target.value)}
-                                className="flex-grow p-2 border border-gray-300 rounded-md shadow-sm sm:text-sm focus:outline-none focus:ring-2 focus:ring-offset-2"
-                                style={{
-                                  '--tw-ring-color': primaryColor
-                                } as React.CSSProperties}
-                                onFocus={(e) => {
-                                  e.target.style.borderColor = primaryColor;
-                                  e.target.style.boxShadow = `0 0 0 2px ${hexToRgba(primaryColor, 0.25)}`;
-                                }}
-                                onBlur={(e) => {
-                                  e.target.style.borderColor = '#D1D5DB';
-                                  e.target.style.boxShadow = 'none';
-                                }}
-                              />
-                              <button
-                                onClick={() => handleReplySubmit(notification.id)}
-                                disabled={!notification.replyText?.trim()}
-                                className="px-4 py-2 text-sm font-medium text-white rounded-lg hover:opacity-90 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all duration-200"
-                                style={{
-                                  backgroundColor: !notification.replyText?.trim() ? '#9CA3AF' : primaryColor,
-                                  boxShadow: !notification.replyText?.trim() ? 'none' : `0 2px 4px ${hexToRgba(primaryColor, 0.3)}`
-                                }}
-                              >
-                                Reply
-                              </button>
+                            <div className="w-full flex justify-end mt-2">
+                              <div className="flex items-center space-x-2 w-full max-w-[80%]">
+                                <input
+                                  type="text"
+                                  placeholder="Type your reply..."
+                                  value={notification.replyText || ''}
+                                  onChange={(e) => handleReplyChange(notification.id, e.target.value)}
+                                  className="flex-grow p-2 border border-gray-300 rounded-md shadow-sm sm:text-sm focus:outline-none focus:ring-2 focus:ring-offset-2"
+                                  style={{
+                                    '--tw-ring-color': primaryColor
+                                  } as React.CSSProperties}
+                                  onFocus={(e) => {
+                                    e.target.style.borderColor = primaryColor;
+                                    e.target.style.boxShadow = `0 0 0 2px ${hexToRgba(primaryColor, 0.25)}`;
+                                  }}
+                                  onBlur={(e) => {
+                                    e.target.style.borderColor = '#D1D5DB';
+                                    e.target.style.boxShadow = 'none';
+                                  }}
+                                />
+                                <button
+                                  onClick={() => handleReplySubmit(notification.id)}
+                                  disabled={!notification.replyText?.trim()}
+                                  className="px-4 py-2 text-sm font-medium text-white rounded-lg hover:opacity-90 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all duration-200"
+                                  style={{
+                                    backgroundColor: !notification.replyText?.trim() ? '#9CA3AF' : primaryColor,
+                                    boxShadow: !notification.replyText?.trim() ? 'none' : `0 2px 4px ${hexToRgba(primaryColor, 0.3)}`
+                                  }}
+                                >
+                                  Reply
+                                </button>
+                              </div>
                             </div>
                           )}
-
-                        </div>
-                      </div>
+                        </React.Fragment>
+                      ))}
                     </div>
-                  </div>
+                  )}
                 </div>
               ))
             ) : (
               <p className="text-gray-500 text-center py-4">No notifications</p>
             )}
-          </div>
-        </div>
-
-        {/* Attendance Section */}
-        {/*
-
-        <div className="bg-white p-6 rounded-lg shadow-sm">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-semibold">Attendance</h2>
-            <Link href={"/t/attendance" as any} className="text-blue-600 hover:text-blue-900">
-              View Detailed Attendance
-            </Link>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-
-            <div>
-              <h3 className="text-lg font-medium mb-4">Your Attendance</h3>
-              <div className="flex justify-center">
-                <div className="relative w-40 h-40">
-                  <div className="w-40 h-40 rounded-full border-8 border-yellow-200 flex items-center justify-center">
-                    <span className="text-3xl font-bold">{teacherAttendance}%</span>
-                  </div>
-                  <svg className="absolute top-0 left-0 w-40 h-40 -rotate-90">
-                    <circle
-                      cx="80"
-                      cy="80"
-                      r="72"
-                      fill="transparent"
-                      stroke="#FFD54F"
-                      strokeWidth="16"
-                      strokeDasharray={`${teacherAttendance * 4.52} 452`}
-                    />
-                  </svg>
-                </div>
-              </div>
-            </div>
-            <div>
-              <h3 className="text-lg font-medium mb-4">Class Attendance</h3>
-              {classAttendance.length > 0 ? (
-                <div className="space-y-5">
-                  {classAttendance.map((classItem) => (
-                    <div key={classItem.id}>
-                      <div className="flex justify-between items-center mb-1">
-                        <p className="text-sm font-medium">{classItem.name}</p>
-                        <p className="text-sm font-medium">{classItem.percentage}%</p>
-                      </div>
-                      <div className="flex items-center mb-2">
-                        <p className="text-xs text-gray-500 w-20">Section: {classItem.sectionName}</p>
-                        <div className="flex-1 bg-gray-200 rounded-full h-3">
-                          <div
-                            className={`h-3 rounded-full ${classItem.percentage > 90 ? 'bg-green-600' :
-                              classItem.percentage > 80 ? 'bg-blue-500' :
-                                classItem.percentage > 70 ? 'bg-yellow-500' : 'bg-red-500'
-                              }`}
-                            style={{ width: `${classItem.percentage}%` }}
-                          ></div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-gray-500 text-center py-4">No class attendance data available</p>
-              )}
-            </div>
           </div>
         </div>
 
@@ -711,7 +666,6 @@ export default function TeacherDashboardPage() {
                   <th className="text-left py-3 font-semibold" style={{ color: primaryColor }}>Due Date</th>
                   <th className="text-left py-3 font-semibold" style={{ color: primaryColor }}>Submissions</th>
                   <th className="text-left py-3 font-semibold" style={{ color: primaryColor }}>Status</th>
-
                 </tr>
               </thead>
               <tbody>
@@ -730,7 +684,6 @@ export default function TeacherDashboardPage() {
                       <td className="py-3">{assignment.dueDate}</td>
                       <td className="py-3">{assignment.submissions}</td>
                       <td className="py-3">{assignment.status}</td>
-
                     </tr>
                   ))
                 ) : (

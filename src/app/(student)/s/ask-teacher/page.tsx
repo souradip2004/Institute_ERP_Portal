@@ -1,6 +1,6 @@
 "use client";
-import React, {useState, useEffect} from 'react';
-import {useRouter} from 'next/navigation';
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Loader from '@/components/ui/Loader';
 
@@ -29,7 +29,6 @@ interface Notification {
   };
 }
 
-
 interface Teacher {
   id: string;
   userId: string;
@@ -53,10 +52,14 @@ interface Message {
   isRead?: boolean;
 }
 
+interface GroupedTeachers {
+  [departmentName: string]: Teacher[];
+}
+
 export default function AskTeacherPage() {
   const router = useRouter();
   const [teachers, setTeachers] = useState<Teacher[]>([]);
-  const [teacherCode, setTeacherCode] = useState<any[]>([]);
+  const [teacherCode, setTeacherCode] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedTeacher, setSelectedTeacher] = useState<Teacher | null>(null);
@@ -64,44 +67,54 @@ export default function AskTeacherPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [studentId, setStudentId] = useState<string>();
+  const [groupedTeachers, setGroupedTeachers] = useState<GroupedTeachers>({});
+  const [showDepartment, setShowDepartment] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        const user = localStorage.getItem("user")
+        const user = localStorage.getItem("user");
         if (!user) {
           router.push('/login');
           return;
         }
         const userData = JSON.parse(user);
+        
+        // Fetch student details to get enrolled classes and teacher codes
         const classdetails = await fetch(`/api/students/${userData.studentId}`, {
           method: "GET",
           headers: {
             'Content-Type': 'application/json',
           }
-        })
+        });
+
         if (!classdetails.ok) {
-          alert("no classes found")
+          setError("Failed to fetch student classes.");
+          setLoading(false);
           return;
         }
         const classes = await classdetails.json();
         const classenrollments = classes?.classEnrollments;
-        const classd = []
-        for (let i = 0; i < classenrollments.length; i++) {
-          const teacher = await fetch(`/api/class-sections/${classenrollments[i].classSectionId}`, {
+        const studentTeacherCodes: string[] = [];
+
+        // Fetch teacher codes for each enrolled class
+        for (const enrollment of classenrollments) {
+          const teacher = await fetch(`/api/class-sections/${enrollment.classSectionId}`, {
               method: "GET",
               headers: {
                 'Content-Type': 'application/json',
               }
             }
-          )
+          );
           if (teacher.ok) {
             const teachers = await teacher.json();
-            classd.push(teachers?.teacher?.teacherCode)
+            if (teachers?.teacher?.teacherCode) {
+              studentTeacherCodes.push(teachers.teacher.teacherCode);
+            }
           }
         }
-        setTeacherCode(classd)
-        await fetchTeachers();
+        setTeacherCode(studentTeacherCodes);
+        await fetchTeachers(studentTeacherCodes);
       } catch (error) {
         console.error("Error fetching user data:", error);
         setError("Failed to load user data. Please refresh the page.");
@@ -169,7 +182,7 @@ export default function AskTeacherPage() {
     fetchMessages();
   }, [selectedTeacher]);
 
-  const fetchTeachers = async () => {
+  const fetchTeachers = async (studentTeacherCodes: string[]) => {
     try {
       setLoading(true);
       const response = await fetch('/api/teachers', {
@@ -185,14 +198,37 @@ export default function AskTeacherPage() {
         throw new Error(errorData.error || 'Failed to fetch teachers');
       }
 
-      const data = await response.json();
-      setTeachers(data);
+      const allTeachers: Teacher[] = await response.json();
+
+      // Filter teachers to only include those associated with the student's classes
+      const filteredTeachers = allTeachers.filter(teacher => 
+        studentTeacherCodes.includes(teacher.teacherCode)
+      );
+
+      // Set the filtered teachers state
+      setTeachers(filteredTeachers);
+
+      // Group the filtered teachers by department name
+      const departmentsWithTeachers: GroupedTeachers = {};
+      filteredTeachers.forEach((teacher: Teacher) => {
+        const departmentName = teacher.department?.name || 'Unassigned';
+        if (!departmentsWithTeachers[departmentName]) {
+          departmentsWithTeachers[departmentName] = [];
+        }
+        departmentsWithTeachers[departmentName].push(teacher);
+      });
+      setGroupedTeachers(departmentsWithTeachers);
+
       setLoading(false);
     } catch (err) {
       console.error('Error fetching teachers:', err);
       setError('Failed to load teachers. Please try again later.');
       setLoading(false);
     }
+  };
+
+  const handleDepartmentClick = (departmentName: string) => {
+    setShowDepartment(departmentName === showDepartment ? null : departmentName);
   };
 
   const handleTeacherClick = (teacher: Teacher) => {
@@ -249,8 +285,6 @@ export default function AskTeacherPage() {
       alert(error instanceof Error ? error.message : 'Failed to send message.');
     }
   };
-
-  // --- The rest of your JSX rendering logic remains the same ---
 
   if (loading) {
     return (
@@ -352,22 +386,33 @@ export default function AskTeacherPage() {
       <div className="mb-8 mt-8 sm:mt-0">
         <h2 className="text-2xl font-semibold text-gray-800">Your Teachers</h2>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {teachers.length > 0 ? (
-          teachers.filter(teacher => teacherCode.includes(teacher.teacherCode)).map((teacher) => (
-            <div key={teacher.id} className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-              <h3 className="text-lg font-medium mb-3 text-purple-700">
-                {teacher.department?.name}
-              </h3>
-              <div
-                className="flex items-center p-2 hover:bg-gray-100 rounded-md cursor-pointer"
-                onClick={() => handleTeacherClick(teacher)}
+      <div className="grid grid-cols-1 gap-8">
+        {Object.keys(groupedTeachers).length > 0 ? (
+          Object.keys(groupedTeachers).map((departmentName) => (
+            <div key={departmentName} className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+              <div 
+                className="flex items-center justify-between cursor-pointer" 
+                onClick={() => handleDepartmentClick(departmentName)}
               >
-                <div className="h-10 w-10 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 font-bold mr-3">
-                  {teacher.user.name.charAt(0)}
-                </div>
-                <span className="text-gray-700">{teacher.user.name}</span>
+                <h3 className="text-lg font-medium text-purple-700">{departmentName}</h3>
+                <span className="text-gray-500">{showDepartment === departmentName ? '▲' : '▼'}</span>
               </div>
+              {showDepartment === departmentName && (
+                <div className="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {groupedTeachers[departmentName].map((teacher) => (
+                    <div
+                      key={teacher.id}
+                      className="flex items-center p-2 hover:bg-gray-100 rounded-md cursor-pointer"
+                      onClick={() => handleTeacherClick(teacher)}
+                    >
+                      <div className="h-10 w-10 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 font-bold mr-3">
+                        {teacher.user.name.charAt(0)}
+                      </div>
+                      <span className="text-gray-700">{teacher.user.name}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           ))
         ) : (
