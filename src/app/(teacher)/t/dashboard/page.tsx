@@ -58,35 +58,36 @@ const ChatBubble: React.FC<{
 }> = ({ message, timestamp, isSender, primaryColor }) => {
   const bubbleStyles = isSender
     ? {
-        backgroundColor: primaryColor,
-        color: 'white',
-        borderRadius: '1.25rem 1.25rem 0.25rem 1.25rem',
-        alignSelf: 'flex-end',
-      }
+      backgroundColor: primaryColor,
+      color: 'white',
+      borderRadius: '1.25rem 1.25rem 0.25rem 1.25rem',
+      alignSelf: 'flex-end',
+    }
     : {
-        backgroundColor: '#E5E7EB',
-        color: '#1F2937',
-        borderRadius: '1.25rem 1.25rem 1.25rem 0.25rem',
-        alignSelf: 'flex-start',
-      };
+      backgroundColor: '#E5E7EB',
+      color: '#1F2937',
+      borderRadius: '1.25rem 1.25rem 1.25rem 0.25rem',
+      alignSelf: 'flex-start',
+    };
 
   return (
     <div
       className={`relative py-2 px-4 shadow-sm text-sm max-w-[80%]`}
       style={bubbleStyles}
     >
-      <p className="pr-12">{message}</p>
+      {/* Apply text wrapping to the paragraph */}
+      <p className="pr-12" style={{ overflowWrap: 'break-word', wordWrap: 'break-word' }}>
+        {message}
+      </p>
       <span
-        className={`absolute bottom-1 text-xs ${
-          isSender ? 'right-2 text-white/75' : 'right-2 text-gray-500'
-        }`}
+        className={`absolute bottom-1 text-xs ${isSender ? 'right-2 text-white/75' : 'right-2 text-gray-500'
+          }`}
       >
         {timestamp}
       </span>
     </div>
   );
 };
-
 export default function TeacherDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -213,9 +214,9 @@ export default function TeacherDashboardPage() {
       const data = await response.json();
 
       const grouped = data.reduce((acc: { [key: string]: GroupedNotification }, notification: Notification) => {
-        const studentId = notification.studentId || "unknown"; 
+        const studentId = notification.studentId || "unknown";
         const studentName = notification.title.split(":")[0]?.trim() || "Unknown Student";
-        
+
         if (!acc[studentId]) {
           acc[studentId] = {
             studentId,
@@ -347,7 +348,7 @@ export default function TeacherDashboardPage() {
       .flatMap(group => group.notifications)
       .filter(notification => !notification.isRead)
       .map(notification => notification.id);
-    
+
     if (allUnreadIds.length > 0) {
       markNotificationsAsRead(allUnreadIds);
     }
@@ -602,8 +603,11 @@ export default function TeacherDashboardPage() {
                               />
                             </div>
                           ) : (
+                            //  group.notifications[0]?.id === notification.id && (
+
+
                             <div className="w-full flex justify-end mt-2">
-                              <div className="flex items-center space-x-2 w-full max-w-[80%]">
+<div className="flex items-center space-x-2 w-full sm:max-w-[50%] lg:max-w-[80%]">
                                 <input
                                   type="text"
                                   placeholder="Type your reply..."
@@ -635,6 +639,7 @@ export default function TeacherDashboardPage() {
                                 </button>
                               </div>
                             </div>
+                            //)
                           )}
                         </React.Fragment>
                       ))}

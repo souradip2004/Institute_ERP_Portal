@@ -122,14 +122,24 @@ export default function ExamsPage() {
     const now = new Date();
     const startTime = new Date(exam.startTime);
     const endTime = new Date(exam.endTime);
-
+    console.log("Exam start time: ", startTime, " Exam end time: ", endTime, " Current time: ", now);
     if (startTime > now) {
       return 'Upcoming';
     } else if (startTime <= now && endTime > now) {
       return 'Ongoing';
     } else if (endTime <= now) {
-      return 'Exam Ended';
+      if(endTime< startTime ) {
+       
+        if (
+          startTime <= now &&
+          typeof exam.durationMinutes === 'number' &&
+          (startTime.getTime() + exam.durationMinutes * 60 * 1000 > now.getTime())
+        ) {
+          return "Ongoing"
+        } 
     }
+    return 'Exam Ended';
+  }
     return exam.status;
   };
   useEffect(() => {
@@ -332,7 +342,7 @@ export default function ExamsPage() {
       setError('Exam has not started yet.');
       return;
     }
-    if (now > examEnd) {
+    if (typeof exam.durationMinutes === 'number' && now.getTime() > examStart.getTime() + exam.durationMinutes * 60 * 1000) {
       setError('Exam has already ended.');
       return;
     }

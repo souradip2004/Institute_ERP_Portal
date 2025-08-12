@@ -34,7 +34,16 @@ export default function TodaySessionsList({ teacherId }: TodaySessionsListProps)
           `/api/teachers/${teacherId}/attendance/today`
         );
 
-        setSessions(response.data.sessions);
+        // Filter the sessions to only show the ones for the current date
+        const today = new Date();
+        const todaySessions = response.data.sessions.filter(session => {
+          const sessionDate = new Date(session.date);
+          return sessionDate.getFullYear() === today.getFullYear() &&
+                 sessionDate.getMonth() === today.getMonth() &&
+                 sessionDate.getDate() === today.getDate();
+        });
+
+        setSessions(todaySessions);
         localStorage.setItem('userId', response.data.userId);
         localStorage.setItem('teacherId', response.data.teacherId);
         console.log('Response:', response.data);
@@ -161,13 +170,7 @@ export default function TodaySessionsList({ teacherId }: TodaySessionsListProps)
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                    {sessions
-                    .filter(
-                      (session) =>
-                      new Date(session.date).toLocaleDateString() ===
-                      new Date().toLocaleDateString()
-                    )
-                    .map((session) => (
+                  {sessions.map((session) => (
                     <tr key={session.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm font-medium text-gray-900">{session.classSection.name}</div>

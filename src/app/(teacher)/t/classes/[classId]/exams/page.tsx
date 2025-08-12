@@ -1669,92 +1669,95 @@ export default function ExamsPage() {
                     </div>
                   )}
 
-                  {pdfPageImages.length > 0 && (
-                    <div className="mt-6 border-t pt-6">
-                      <h3 className="text-lg font-semibold text-gray-800 mb-4 text-center">PDF
-                        Preview & Page
-                        Configuration</h3>
-                      <div className="grid grid-cols-12 gap-6 min-h-[500px] max-h-[80vh]">
-                        {/* Left Side: PDF Preview (No changes here) */}
-                        <div
-                          className="col-span-12 md:col-span-7 lg:col-span-8 bg-white p-4 border rounded-lg max-h-[75vh] shadow-inner overflow-y-scroll">
-                          <div className="space-y-4">
-                            {pdfPageImages.map((imgSrc, index) => (
-                              <div key={index} id={`page-preview-${index + 1}`}
-                                className="border rounded-lg p-2">
-                                <img src={imgSrc} alt={`Page ${index + 1}`}
-                                  className="w-full h-auto rounded shadow" />
-                                <p className="text-center text-sm font-medium text-gray-600 mt-2">Page {index + 1}</p>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
+                 {pdfPageImages.length > 0 && (
+  <div className="mt-6 border-t pt-6">
+    <h3 className="text-lg font-semibold text-gray-800 mb-4 text-center">PDF
+      Preview & Page
+      Configuration</h3>
+    <div className="grid grid-cols-12 gap-6">
+      {/* Left Side: PDF Preview */}
+      {/* On mobile, this will be full width (col-span-12). */}
+      {/* On medium screens and up, it will take up 7 columns (md:col-span-7). */}
+      <div
+        className="col-span-12 md:col-span-7 bg-white p-4 border rounded-lg max-h-[75vh] shadow-inner overflow-y-scroll">
+        <div className="space-y-4">
+          {pdfPageImages.map((imgSrc, index) => (
+            <div key={index} id={`page-preview-${index + 1}`}
+              className="border rounded-lg p-2">
+              <img src={imgSrc} alt={`Page ${index + 1}`}
+                className="w-full h-auto rounded shadow" />
+              <p className="text-center text-sm font-medium text-gray-600 mt-2">Page {index + 1}</p>
+            </div>
+          ))}
+        </div>
+      </div>
 
-                        {/* Right Side: Page Configuration (Updated) */}
-                        <div
-                          className="col-span-12 md:col-span-5 lg:col-span-4 flex flex-col gap-4">
-                          {/* --- Page Range and Type Selection UI --- */}
-                          <div
-                            className="p-4 bg-gray-50 border rounded-lg shadow-sm space-y-4">
-                            <div>
-                              <h4 className="font-semibold text-gray-700 mb-3">Select Page
-                                Range</h4>
-                              <div className="flex items-center gap-2 mb-3">
-                                <input
-                                  type="number"
-                                  value={startPage}
-                                  onChange={(e) => setStartPage(e.target.value)}
-                                  className="w-full px-3 py-1.5 rounded-md border border-gray-300 text-center"
-                                  placeholder="Start"
-                                  min="1"
-                                />
-                                <span className="text-gray-600">to</span>
-                                <input
-                                  type="number"
-                                  value={endPage}
-                                  onChange={(e) => setEndPage(e.target.value)}
-                                  className="w-full px-3 py-1.5 rounded-md border border-gray-300 text-center"
-                                  placeholder="End"
-                                  max={pdfPageImages.length}
-                                />
-                              </div>
-                              <button
-                                onClick={handleApplyPageRange}
-                                className="w-full bg-indigo-600 text-white font-medium py-2 px-4 rounded-md hover:bg-indigo-700 transition-colors"
-                              >
-                                Apply Range
-                              </button>
-                              {selectedPages.length > 0 && (
-                                <p className="text-sm text-center text-green-700 mt-2">
-                                  Active range:
-                                  Page {selectedPages[0]} to {selectedPages[selectedPages.length - 1]}
-                                </p>
-                              )}
-                            </div>
+      {/* Right Side: Page Configuration */}
+      {/* On mobile, this will also be full width (col-span-12). */}
+      {/* On medium screens and up, it will take up 5 columns (md:col-span-5). */}
+      {/* It will now stack below the PDF preview on small screens. */}
+      <div
+        className="col-span-12 md:col-span-5 flex flex-col gap-4">
+        {/* --- Page Range and Type Selection UI --- */}
+        <div
+          className="p-4 bg-gray-50 border rounded-lg shadow-sm space-y-4">
+          <div>
+            <h4 className="font-semibold text-gray-700 mb-3">Select Page
+              Range</h4>
+            <div className="flex items-center gap-2 mb-3">
+              <input
+                type="number"
+                value={startPage}
+                onChange={(e) => setStartPage(e.target.value)}
+                className="w-full px-3 py-1.5 rounded-md border border-gray-300 text-center"
+                placeholder="Start"
+                min="1"
+              />
+              <span className="text-gray-600">to</span>
+              <input
+                type="number"
+                value={endPage}
+                onChange={(e) => setEndPage(e.target.value)}
+                className="w-full px-3 py-1.5 rounded-md border border-gray-300 text-center"
+                placeholder="End"
+                max={pdfPageImages.length}
+              />
+            </div>
+            <button
+              onClick={handleApplyPageRange}
+              className="w-full bg-indigo-600 text-white font-medium py-2 px-4 rounded-md hover:bg-indigo-700 transition-colors"
+            >
+              Apply Range
+            </button>
+            {selectedPages.length > 0 && (
+              <p className="text-sm text-center text-green-700 mt-2">
+                Active range:
+                Page {selectedPages[0]} to {selectedPages[selectedPages.length - 1]}
+              </p>
+            )}
+          </div>
 
-                            <hr />
+          <hr />
 
-                            <div>
-                              <h4 className="font-semibold text-gray-700 mb-3">Select
-                                Question Type</h4>
-                              <select
-                                value={selectedQuestionType}
-                                onChange={(e) => setSelectedQuestionType(e.target.value as 'MCQ' | 'LONG_ANSWER' | 'Both')}
-                                className="w-full px-3 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-purple-500"
-                              >
-                                <option value="MCQ">MCQ Questions</option>
-                                <option value="LONG_ANSWER">Long Answer Questions
-                                </option>
-                                <option value="Both">Both MCQ and Long Answer</option>
-                              </select>
-                            </div>
-                          </div>
-                        </div>
-
-
-                      </div>
-                    </div>
-                  )}
+          <div>
+            <h4 className="font-semibold text-gray-700 mb-3">Select
+              Question Type</h4>
+            <select
+              value={selectedQuestionType}
+              onChange={(e) => setSelectedQuestionType(e.target.value as 'MCQ' | 'LONG_ANSWER' | 'Both')}
+              className="w-full px-3 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-purple-500"
+            >
+              <option value="MCQ">MCQ Questions</option>
+              <option value="LONG_ANSWER">Long Answer Questions
+              </option>
+              <option value="Both">Both MCQ and Long Answer</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
                 </div>
               )}
 
