@@ -42,7 +42,7 @@ interface FormData {
   //numTeachers: number;
   //institutionDocument: File | null;
 }
-interface Verification{
+interface Verification {
   approxStudents: number;
   numTeachers: number;
   institutionDocument: string;
@@ -66,10 +66,10 @@ export default function CreateInstitutionForm({ userId, email }: CreateInstituti
     },
   });
   const verify = useForm<Verification>({
-    defaultValues:{
-      approxStudents:0,
-      numTeachers:0,
-      institutionDocument:""
+    defaultValues: {
+      approxStudents: 0,
+      numTeachers: 0,
+      institutionDocument: ""
     }
   })
 
@@ -177,7 +177,7 @@ export default function CreateInstitutionForm({ userId, email }: CreateInstituti
 
       if (!updateUserRes.ok) throw new Error("Failed to update user.");
       console.log("User Updated Successfully!");
-      const res1=await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/emails/verification`, {
+      const res1 = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/emails/verification`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -269,9 +269,21 @@ export default function CreateInstitutionForm({ userId, email }: CreateInstituti
               <Input
                 type="tel"
                 placeholder="Enter phone number"
-                {...form.register("phone")}
+                {...form.register("phone", {
+                  pattern: {
+                    value: /^[0-9+\-\s()]*$/,
+                    message: "Please enter a valid phone number"
+                  }
+                })}
                 className="w-full"
+                onInput={(e) => {
+                  const target = e.target as HTMLInputElement;
+                  target.value = target.value.replace(/[^0-9+\-\s()]/g, '');
+                }}
               />
+              {form.formState.errors.phone && (
+                <p className="text-sm text-red-500 mt-1">{form.formState.errors.phone.message}</p>
+              )}
             </div>
           </div>
 
@@ -331,7 +343,7 @@ export default function CreateInstitutionForm({ userId, email }: CreateInstituti
               />
             </div>
           </div>
-         <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <FormLabel className="flex items-center gap-2 mb-2">
                 Approx. Number of Students
@@ -362,33 +374,114 @@ export default function CreateInstitutionForm({ userId, email }: CreateInstituti
               <Upload className="h-4 w-4 text-indigo-500" />
               Upload Institution Document (ID Card or Proof of Address)
             </FormLabel>
-            <Input
-              type="file"
-              accept="application/pdf,image/*"
-              onChange={handleFileChangeInstitutionDocument}
-              className="w-full"
-            />
+            <div className="space-y-3">
+              <Input
+                type="file"
+                accept="application/pdf,image/*"
+                onChange={handleFileChangeInstitutionDocument}
+                className="w-full"
+              />
+              {institutionDocumentFile && (
+                <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <div className="flex-shrink-0">
+                        {institutionDocumentFile.type.startsWith('image/') ? (
+                          <img
+                            src={institutionDocumentPreview || ''}
+                            alt="Document Preview"
+                            className="h-12 w-12 object-cover rounded border"
+                          />
+                        ) : (
+                          <div className="h-12 w-12 bg-red-100 dark:bg-red-900/20 rounded border flex items-center justify-center">
+                            <Upload className="h-6 w-6 text-red-600 dark:text-red-400" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                          {institutionDocumentFile.name}
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          {(institutionDocumentFile.size / 1024 / 1024).toFixed(2)} MB
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setInstitutionDocumentFile(null);
+                        setInstitutionDocumentPreview(null);
+                      }}
+                      className="text-red-500 border-red-300 hover:bg-red-50 dark:border-red-700 dark:text-red-400 dark:hover:bg-red-900/20"
+                    >
+                      Remove
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
             {verify.formState.errors.institutionDocument && (
               <p className="text-sm text-red-500 mt-1">Please upload a valid document.</p>
             )}
-          </div> 
+          </div>
           <div>
             <FormLabel className="flex items-center gap-2 mb-2">
               <Upload className="h-4 w-4 text-indigo-500" />
               Institution Logo
             </FormLabel>
-            <Input
-              type="file"
-              accept="image/*"
-              onChange={handleFileChange}
-              className="w-full"
-            />
-            {logoPreview && (
-              <div className="mt-4 flex items-center gap-4">
-                <img src={logoPreview} alt="Logo Preview" className="h-20 w-20 object-contain" />
-                <p className="text-sm text-gray-500">{logoFile?.name}</p>
-              </div>
-            )}
+            <div className="space-y-3">
+              <Input
+                type="file"
+                accept="image/*"
+                onChange={handleFileChange}
+                className="w-full"
+              />
+              {logoPreview && logoFile && (
+                <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                    <div className="flex-shrink-0 mx-auto sm:mx-0">
+                      <div className="relative">
+                        <img
+                          src={logoPreview}
+                          alt="Logo Preview"
+                          className="h-20 w-20 object-contain rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700"
+                        />
+                        <div className="absolute -top-2 -right-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setLogoFile(null);
+                              setLogoPreview(null);
+                            }}
+                            className="h-6 w-6 p-0 rounded-full bg-red-500 text-white border-red-500 hover:bg-red-600 hover:border-red-600"
+                          >
+                            <XCircle className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex-1 text-center sm:text-left">
+                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        {logoFile.name}
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        {(logoFile.size / 1024 / 1024).toFixed(2)} MB • {logoFile.type}
+                      </p>
+                      <div className="mt-2">
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400">
+                          Ready to upload
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
             {form.formState.errors.logoUrl && (
               <p className="text-sm text-red-500 mt-1">Please upload an institution logo.</p>
             )}
@@ -399,35 +492,60 @@ export default function CreateInstitutionForm({ userId, email }: CreateInstituti
               <Palette className="h-4 w-4 text-indigo-500" />
               Primary Color
             </FormLabel>
-            <div className="flex items-center gap-3">
-              <Button
-                type="button"
-                onClick={() => setShowColorPicker(!showColorPicker)}
-                className="flex items-center gap-2 bg-gray-200 text-gray-800 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
-              >
-                <div
-                  className="w-5 h-5 rounded-full border border-gray-400"
-                  style={{ backgroundColor: selectedColor }}
-                ></div>
-                {showColorPicker ? "Hide Color Picker" : "Choose Primary Color"}
-              </Button>
-              {showColorPicker && (
+            <div className="space-y-3">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
                 <Button
                   type="button"
-                  variant="outline"
-                  onClick={handleCancelColorPicker}
-                  className="flex items-center gap-2 text-red-500 border-red-300 hover:bg-red-50 dark:border-red-700 dark:text-red-400 dark:hover:bg-red-900/20"
+                  onClick={() => setShowColorPicker(!showColorPicker)}
+                  className="flex items-center gap-2 bg-gray-200 text-gray-800 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 w-full sm:w-auto"
                 >
-                  <XCircle className="h-4 w-4" />
-                  Cancel
+                  <div
+                    className="w-5 h-5 rounded-full border border-gray-400 flex-shrink-0"
+                    style={{ backgroundColor: selectedColor }}
+                  ></div>
+                  <span className="truncate">
+                    {showColorPicker ? "Hide Color Picker" : "Choose Primary Color"}
+                  </span>
                 </Button>
+                {showColorPicker && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleCancelColorPicker}
+                    className="flex items-center gap-2 text-red-500 border-red-300 hover:bg-red-50 dark:border-red-700 dark:text-red-400 dark:hover:bg-red-900/20 w-full sm:w-auto"
+                  >
+                    <XCircle className="h-4 w-4" />
+                    Cancel
+                  </Button>
+                )}
+              </div>
+
+              {/* Color preview card */}
+              <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-700">
+                <div className="flex items-center gap-3">
+                  <div
+                    className="w-8 h-8 rounded-lg border-2 border-white shadow-sm flex-shrink-0"
+                    style={{ backgroundColor: selectedColor }}
+                  ></div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                      Selected Color
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 font-mono">
+                      {selectedColor.toUpperCase()}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {showColorPicker && (
+                <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700 shadow-sm">
+                  <div className="flex justify-center">
+                    <HexColorPicker color={selectedColor} onChange={handleColorChange} />
+                  </div>
+                </div>
               )}
             </div>
-            {showColorPicker && (
-              <div className="mt-4">
-                <HexColorPicker color={selectedColor} onChange={handleColorChange} />
-              </div>
-            )}
             <Input
               type="hidden"
               {...form.register("primaryColor")}

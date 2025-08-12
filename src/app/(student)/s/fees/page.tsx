@@ -90,14 +90,14 @@ export default function Home() {
     const [feesData, setFeesData] = useState<CombinedFee[]>([]);
     const [filteredFees, setFilteredFees] = useState<CombinedFee[]>([]);
     const [showPaymentModal, setShowPaymentModal] = useState(false);
-    const [selectedFee, setSelectedFee] = useState<CombinedFee | null>(null);
     const [paymentForm, setPaymentForm] = useState({
-        amountPaid: '',
+        amountPaid: 0,
         paymentMethod: 'UPI',
-        paymentDate: new Date().toISOString().split('T')[0],
-        transactionId: ''
+        transactionId: '',
+        isCashPayment: false
     });
-    const [paymentLoading, setPaymentLoading] = useState(false);
+    const [paymentSubmitted, setPaymentSubmitted] = useState(false);
+    const [submittingPayment, setSubmittingPayment] = useState(false);
 
     // Combine and transform fees data
     const combineFeesData = (globalFees: GlobalFee[], localFees: LocalFee[]): CombinedFee[] => {
@@ -159,77 +159,65 @@ export default function Home() {
         }
     }, [feesData, selectedStatus]);
 
-    // Handle payment modal
-    const handlePayFee = (fee: CombinedFee) => {
-        setSelectedFee(fee);
-        const remainingAmount = fee.amountDue - fee.amountPaid!;
+    // Calculate total amount due
+    const totalAmountDue = useMemo(() => {
+        return filteredFees.reduce((sum, fee) => sum + fee.amountDue, 0);
+    }, [filteredFees]);
+
+    // Handle payment modal open
+    const handlePayFeeClick = () => {
         setPaymentForm({
-            amountPaid: fee.amountDue.toString(),
+            amountPaid: totalAmountDue,
             paymentMethod: 'UPI',
-            paymentDate: new Date().toISOString().split('T')[0],
-            transactionId: ''
+            transactionId: '',
+            isCashPayment: false
         });
+        setPaymentSubmitted(false);
         setShowPaymentModal(true);
     };
 
+    // Handle payment form submission
     const handlePaymentSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!selectedFee) return;
+        setSubmittingPayment(true);
 
-        setPaymentLoading(true);
         try {
             const user = localStorage.getItem('user');
             if (!user) return;
+
             const userData = JSON.parse(user);
             const studentId = userData.studentId;
 
-            const paymentData = {
-                studentId: studentId,
-                classFeeId: selectedFee.classFeeId,
-                amountPaid: parseFloat(paymentForm.amountPaid),
+            const requestBody = {
+                amountPaid: paymentForm.amountPaid,
                 paymentMethod: paymentForm.paymentMethod,
-                paymentDate: paymentForm.paymentDate,
+                studentId: studentId,
                 transactionId: paymentForm.transactionId,
-                feesCollectionId: selectedFee.feesCollectionId
+                isCashPayment: paymentForm.isCashPayment
             };
 
-            await axios.patch('/api/payment/fees-collection', paymentData);
+            await axios.patch('/api/payment/fees-collection', requestBody);
 
-            // Refresh fees data
-            const institutionId = userData.institutionId;
-            const studentInfo = studentData as any;
-
-            const [globalFeesResponse, localFeesResponse] = await Promise.all([
-                axios.get(`/api/payment/fees-collection/global-fees?institutionId=${institutionId}&studentId=${studentId}&motherClassId=${studentInfo.motherclassId}`),
-                axios.get(`/api/payment/fees-collection/local-fees?institutionId=${institutionId}&studentId=${studentId}`)
-            ]);
-
-            const globalFees: GlobalFee[] = globalFeesResponse.data || [];
-            const localFees: LocalFee[] = localFeesResponse.data || [];
-            const combinedFees = combineFeesData(globalFees, localFees);
-            setFeesData(combinedFees);
-
-            setShowPaymentModal(false);
-            setSelectedFee(null);
-            alert('Payment submitted successfully!');
+            setPaymentSubmitted(true);
         } catch (error) {
-            console.error('Payment error:', error);
-            alert('Payment failed. Please try again.');
+            console.error('Payment submission error:', error);
+            alert('Failed to submit payment. Please try again.');
         } finally {
-            setPaymentLoading(false);
+            setSubmittingPayment(false);
         }
     };
 
-    const closeModal = () => {
+    // Handle modal close
+    const handleModalClose = () => {
         setShowPaymentModal(false);
-        setSelectedFee(null);
-        setPaymentForm({
-            amountPaid: '',
-            paymentMethod: 'UPI',
-            paymentDate: new Date().toISOString().split('T')[0],
-            transactionId: ''
-        });
+        setPaymentSubmitted(false);
+        if (paymentSubmitted) {
+            // Refresh the page data after successful payment
+            window.location.reload();
+        }
     };
+
+
 
     useEffect(() => {
         const fetchData = async () => {
@@ -416,14 +404,37 @@ export default function Home() {
                     </div>
                 </div> */}
 
+
                 {/* Fee Table */}
                 <div className="bg-white rounded-lg shadow-sm mb-6 md:max-w-[calc(100vw-370px)] mx-auto">
                     <div className="px-4 md:px-6 py-4 border-b border-gray-200">
                         <h2 className="text-lg font-semibold text-gray-900">Fee Details</h2>
                         <p className="text-sm text-gray-600 mt-1">Total fees: {filteredFees.length}</p>
+
+                        {/* Summary */}
+                        {filteredFees.length > 0 && (
+                            <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
+                                <div className="flex justify-between items-center">
+                                    <div className="text-sm font-medium text-gray-900">
+                                        Total Amount Due: ₹{totalAmountDue.toFixed(2)}
+                                    </div>
+                                    <div>
+                                        <button
+                                            onClick={handlePayFeeClick}
+                                            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md transition-colors"
+                                        >
+                                            Pay fee
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
                     </div>
+
+
                     <div className="overflow-x-auto">
-                        <table className="w-full" style={{ minWidth: '1200px' }}>
+                        <table className="w-full" style={{ minWidth: '1100px' }}>
                             <thead className="bg-gray-50 border-b border-gray-200">
                                 <tr>
                                     <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name & Description</th>
@@ -436,13 +447,12 @@ export default function Home() {
                                     <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Status</th>
                                     <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Fee Type</th>
                                     <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Transaction ID</th>
-                                    <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Action</th>
                                 </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
                                 {filteredFees.length === 0 ? (
                                     <tr>
-                                        <td colSpan={11} className="px-6 py-8 text-center text-gray-500">
+                                        <td colSpan={10} className="px-6 py-8 text-center text-gray-500">
                                             No fees found for the selected criteria
                                         </td>
                                     </tr>
@@ -499,16 +509,6 @@ export default function Home() {
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                                 {fee.transactionId || '-'}
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm">
-                                                {fee.status !== 'PAID' && (
-                                                    <button
-                                                        onClick={() => handlePayFee(fee)}
-                                                        className="px-3 py-1 bg-indigo-600 text-white text-xs font-medium rounded hover:bg-indigo-700 transition-colors"
-                                                    >
-                                                        Pay Fee
-                                                    </button>
-                                                )}
-                                            </td>
                                         </tr>
                                     ))
                                 )}
@@ -524,7 +524,7 @@ export default function Home() {
                                     Showing {filteredFees.length} fee(s)
                                 </div>
                                 <div className="text-sm font-medium text-gray-900">
-                                    Total Amount Due: ₹{filteredFees.reduce((sum, fee) => sum + fee.amountDue, 0).toFixed(2)}
+                                    Total Amount Due: ₹{totalAmountDue.toFixed(2)}
                                 </div>
                             </div>
                         </div>
@@ -604,157 +604,158 @@ export default function Home() {
             </div>
 
             {/* Payment Modal */}
-            {
-                showPaymentModal && selectedFee && (
-                    <div className="fixed inset-0 bg-black/50 backdrop-blur-2xl flex items-center justify-center z-50">
-                        <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
-                            <div className="px-6 py-4 border-b border-gray-200">
-                                <div className="flex items-center justify-between">
-                                    <h3 className="text-lg font-semibold text-gray-900">Pay Fee</h3>
-                                    <button
-                                        onClick={closeModal}
-                                        className="text-gray-400 hover:text-gray-600"
-                                    >
-                                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                        </svg>
-                                    </button>
-                                </div>
+            {showPaymentModal && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+                        <div className="px-6 py-4 border-b border-gray-200">
+                            <div className="flex justify-between items-center">
+                                <h3 className="text-lg font-semibold text-gray-900">Payment Details</h3>
+                                <button
+                                    onClick={handleModalClose}
+                                    className="text-gray-400 hover:text-gray-600 text-xl"
+                                >
+                                    ×
+                                </button>
                             </div>
+                        </div>
 
-                            <form onSubmit={handlePaymentSubmit} className="p-6">
-                                <div className="mb-4">
-                                    <h4 className="font-medium text-gray-900 mb-2">{selectedFee.name}</h4>
-                                    <p className="text-sm text-gray-600 mb-4">{selectedFee.description}</p>
-                                    <div className="bg-gray-50 p-3 rounded-md">
-                                        <div className="flex justify-between text-sm">
-                                            <span>Base Amount:</span>
-                                            <span>₹{selectedFee.baseAmount.toFixed(2)}</span>
-                                        </div>
-                                        <div className="flex justify-between text-sm">
-                                            <span>Tax (Included):</span>
-                                            <span className="text-green-600">{selectedFee.taxIncluded}%</span>
-                                        </div>
-                                        {selectedFee.isPenaltyApplied && (
-                                            <div className="flex justify-between text-sm text-red-600">
-                                                <span>Penalty:</span>
-                                                <span>₹{selectedFee.penaltyAmount.toFixed(2)}</span>
-                                            </div>
-                                        )}
-                                        <div className="flex justify-between text-sm">
-                                            <span>Amount Paid:</span>
-                                            <span>₹{(selectedFee.amountPaid || 0).toFixed(2)}</span>
-                                        </div>
-                                        <div className="flex justify-between text-sm font-medium border-t pt-2 mt-2">
-                                            <span>Amount Due:</span>
-                                            <span className="text-indigo-600">₹{selectedFee.amountDue.toFixed(2)}</span>
-                                        </div>
-                                        <div className="flex justify-between text-sm font-medium">
-                                            <span>Remaining:</span>
-                                            <span className="text-red-600">₹{(selectedFee.baseAmount - (selectedFee.amountPaid || 0)).toFixed(2)}</span>
-                                        </div>
-                                        <div className="flex justify-between text-sm text-gray-600 mt-2">
-                                            <span>Due Date:</span>
-                                            <span>{new Date(selectedFee.dueDate).toLocaleDateString('en-IN')}</span>
+                        <div className="p-6">
+                            {!paymentSubmitted ? (
+                                <form onSubmit={handlePaymentSubmit} className="space-y-4">
+                                    {/* Total Amount Due */}
+                                    <div className="bg-gray-50 p-4 rounded-lg">
+                                        <div className="text-sm text-gray-600 mb-2">Total Amount Due</div>
+                                        <div className="text-2xl font-bold text-indigo-600">₹{totalAmountDue.toFixed(2)}</div>
+                                        <div className="text-xs text-gray-500 mt-1">
+                                            (Tax and penalty included if applicable)
                                         </div>
                                     </div>
-                                </div>
 
-                                <div className="space-y-4">
+                                    {/* Payment Method Toggle */}
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            Amount Paid *
-                                        </label>
-                                        <input
-                                            type="number"
-                                            step="1"
-                                            min="0.00"
-                                            max={selectedFee.amountDue || 0}
-                                            value={paymentForm.amountPaid}
-                                            onChange={(e) => {
-                                                const value = parseFloat(e.target.value);
-                                                const maxAmount = selectedFee.amountDue;
-                                                if (value <= maxAmount) {
-                                                    setPaymentForm({ ...paymentForm, amountPaid: e.target.value });
-                                                }
-                                            }}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                                            placeholder={`Max: ₹${(selectedFee.amountDue).toFixed(2)}`}
-                                            required
-                                        />
-                                        <p className="text-xs text-gray-500 mt-1">
-                                            Maximum payable: ₹{(selectedFee.amountDue || 0).toFixed(2)}
-                                        </p>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">Payment Method</label>
+                                        <div className="flex space-x-4">
+                                            <label className="flex items-center">
+                                                <input
+                                                    type="radio"
+                                                    name="paymentType"
+                                                    checked={!paymentForm.isCashPayment}
+                                                    onChange={() => setPaymentForm(prev => ({
+                                                        ...prev,
+                                                        isCashPayment: false,
+                                                        paymentMethod: 'UPI'
+                                                    }))}
+                                                    className="mr-2"
+                                                />
+                                                <span className="text-sm">Online (UPI/Bank)</span>
+                                            </label>
+                                            <label className="flex items-center">
+                                                <input
+                                                    type="radio"
+                                                    name="paymentType"
+                                                    checked={paymentForm.isCashPayment}
+                                                    onChange={() => setPaymentForm(prev => ({
+                                                        ...prev,
+                                                        isCashPayment: true,
+                                                        paymentMethod: 'CASH'
+                                                    }))}
+                                                    className="mr-2"
+                                                />
+                                                <span className="text-sm">Cash (Offline)</span>
+                                            </label>
+                                        </div>
                                     </div>
 
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            Payment Method *
-                                        </label>
-                                        <select
-                                            value={paymentForm.paymentMethod}
-                                            onChange={(e) => setPaymentForm({ ...paymentForm, paymentMethod: e.target.value })}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                                            required
-                                        >
-                                            <option value="UPI">UPI</option>
-                                            <option value="NEFT">NEFT</option>
-                                            <option value="RTGS">RTGS</option>
-                                            <option value="CASH">Cash</option>
-                                            <option value="CHEQUE">Cheque</option>
-                                        </select>
-                                    </div>
+                                    {/* Payment Method Dropdown (for online payments) */}
+                                    {!paymentForm.isCashPayment && (
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Online Payment Method</label>
+                                            <select
+                                                value={paymentForm.paymentMethod}
+                                                onChange={(e) => setPaymentForm(prev => ({ ...prev, paymentMethod: e.target.value }))}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                                required
+                                            >
+                                                <option value="UPI">UPI</option>
+                                                <option value="BANK_TRANSFER">Bank Transfer</option>
+                                                <option value="NET_BANKING">Net Banking</option>
+                                            </select>
+                                        </div>
+                                    )}
 
+                                    {/* Transaction ID */}
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            Payment Date *
-                                        </label>
-                                        <input
-                                            type="date"
-                                            value={paymentForm.paymentDate}
-                                            onChange={(e) => setPaymentForm({ ...paymentForm, paymentDate: e.target.value })}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                                            required
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            Transaction ID *
+                                            {paymentForm.isCashPayment ? 'Receipt Number (Optional)' : 'Transaction ID'}
                                         </label>
                                         <input
                                             type="text"
                                             value={paymentForm.transactionId}
-                                            onChange={(e) => setPaymentForm({ ...paymentForm, transactionId: e.target.value })}
+                                            onChange={(e) => setPaymentForm(prev => ({ ...prev, transactionId: e.target.value }))}
+                                            placeholder={paymentForm.isCashPayment ? 'Enter receipt number if available' : 'Enter UPI/Bank transaction ID'}
                                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                                            placeholder="Enter transaction ID"
+                                            required={!paymentForm.isCashPayment}
+                                        />
+                                    </div>
+
+                                    {/* Amount Paid */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Amount Paid</label>
+                                        <input
+                                            type="number"
+                                            step="0.01"
+                                            min="0"
+                                            max={totalAmountDue}
+                                            value={paymentForm.amountPaid}
+                                            onChange={(e) => setPaymentForm(prev => ({ ...prev, amountPaid: parseFloat(e.target.value) || 0 }))}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                                             required
                                         />
                                     </div>
-                                </div>
 
-                                <div className="flex gap-3 mt-6">
+                                    {/* Submit Button */}
+                                    <div className="flex space-x-3 pt-4">
+                                        <button
+                                            type="button"
+                                            onClick={handleModalClose}
+                                            className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            type="submit"
+                                            disabled={submittingPayment}
+                                            className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:bg-indigo-400 transition-colors"
+                                        >
+                                            {submittingPayment ? 'Submitting...' : 'Submit Payment'}
+                                        </button>
+                                    </div>
+                                </form>
+                            ) : (
+                                /* Success Message */
+                                <div className="text-center py-8">
+                                    <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                        <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                        </svg>
+                                    </div>
+                                    <h4 className="text-lg font-semibold text-gray-900 mb-2">Payment Info Submitted!</h4>
+                                    <p className="text-sm text-gray-600 mb-6">
+                                        Please wait for institution admin to verify the payment and your total amount due will be reduced.
+                                    </p>
                                     <button
-                                        type="button"
-                                        onClick={closeModal}
-                                        className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
-                                        disabled={paymentLoading}
+                                        onClick={handleModalClose}
+                                        className="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors"
                                     >
-                                        Cancel
-                                    </button>
-                                    <button
-                                        type="submit"
-                                        className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors disabled:opacity-50"
-                                        disabled={paymentLoading}
-                                    >
-                                        {paymentLoading ? 'Processing...' : 'Submit Payment'}
+                                        Close
                                     </button>
                                 </div>
-                            </form>
+                            )}
                         </div>
                     </div>
-                )
-            }
+                </div>
+            )}
+
         </main >
     );
 }

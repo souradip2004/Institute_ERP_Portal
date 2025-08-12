@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState ,Suspense} from "react";
+import React, { useEffect, useState, Suspense } from "react";
 import axios from "axios";
 import { useSearchParams } from "next/navigation";
 
@@ -137,11 +137,13 @@ const StudentFeesPage: React.FC = () => {
     const [combinedFees, setCombinedFees] = useState<CombinedFee[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [toggleLoading, setToggleLoading] = useState<{ [key: string]: boolean }>({});
 
     // Get URL parameters
     const institutionId = searchParams?.get('institutionId');
     const studentId = searchParams?.get('studentId');
     const motherClassId = searchParams?.get('motherClassId');
+    const [adminId, setAdminId] = useState<string | null>(null);
 
     useEffect(() => {
         if (institutionId && studentId && motherClassId) {
@@ -188,14 +190,133 @@ const StudentFeesPage: React.FC = () => {
         }
     };
 
+    useEffect(() => {
+        const temp = localStorage.getItem('user');
+        if (temp) {
+            const user = JSON.parse(temp);
+            setAdminId(user?.id);
+        }
+    }, [])
+
+
     const handlePenaltyToggle = async (feeId: string, feeType: 'global' | 'local', currentStatus: boolean) => {
-        // TODO: Implement penalty toggle API call
-        console.log(`Toggle penalty for ${feeType} fee ${feeId}: ${!currentStatus}`);
+        const toggleKey = `penalty-${feeType}-${feeId}`;
+
+        try {
+            setToggleLoading(prev => ({ ...prev, [toggleKey]: true }));
+
+            const fee = combinedFees.find(f => f.id === feeId && f.feeType === feeType);
+            if (!fee) {
+                console.error('Fee not found');
+                return;
+            }
+
+            const response = await axios.patch('/api/payment/fees-collection/penalty', {
+                applyPenalty: !currentStatus,
+                feesCollectionId: fee.feesCollectionId,
+                userId: adminId
+            });
+
+            if (response.status === 200) {
+                // Update the local state
+                setCombinedFees(prevFees =>
+                    prevFees.map(f =>
+                        f.id === feeId && f.feeType === feeType
+                            ? { ...f, isPenaltyApplied: !currentStatus }
+                            : f
+                    )
+                );
+
+                // Also update the respective arrays
+                if (feeType === 'global') {
+                    setGlobalFees(prevFees =>
+                        prevFees.map(f =>
+                            f.feeId === feeId
+                                ? { ...f, isPenaltyApplied: !currentStatus }
+                                : f
+                        )
+                    );
+                } else {
+                    setLocalFees(prevFees =>
+                        prevFees.map(f =>
+                            f.localFeesId === feeId
+                                ? { ...f, isPenaltyApplied: !currentStatus }
+                                : f
+                        )
+                    );
+                }
+            }
+        } catch (error: any) {
+            console.error('Error toggling penalty:', error);
+            setError(error.response?.data?.message || 'Failed to toggle penalty');
+        } finally {
+            setToggleLoading(prev => ({ ...prev, [toggleKey]: false }));
+        }
     };
 
     const handleVerifiedToggle = async (feeId: string, feeType: 'global' | 'local', currentStatus: boolean) => {
-        // TODO: Implement verified toggle API call
-        console.log(`Toggle verified for ${feeType} fee ${feeId}: ${!currentStatus}`);
+        const toggleKey = `verified-${feeType}-${feeId}`;
+
+        try {
+            setToggleLoading(prev => ({ ...prev, [toggleKey]: true }));
+
+            const fee = combinedFees.find(f => f.id === feeId && f.feeType === feeType);
+            if (!fee) {
+                console.error('Fee not found');
+                return;
+            }
+
+            // For verification, we need to find the transaction ID
+            // Assuming the transaction ID is stored in the fee object
+            if (!fee.transactionId) {
+                setError('No transaction ID found for this fee');
+                return;
+            }
+
+            const response = await axios.patch('/api/payment/fees-collection/verify', {
+                feesCollectionId: fee.feesCollectionId,
+                userId: adminId,
+                transactions: [{
+                    id: fee.transactionId,
+                    verified: !currentStatus
+                }]
+            });
+
+            if (response.status === 200) {
+                // Update the local state
+                setCombinedFees(prevFees =>
+                    prevFees.map(f =>
+                        f.id === feeId && f.feeType === feeType
+                            ? { ...f, isVerified: !currentStatus }
+                            : f
+                    )
+                );
+
+                // Also update the respective arrays
+                if (feeType === 'global') {
+                    setGlobalFees(prevFees =>
+                        prevFees.map(f =>
+                            f.feeId === feeId
+                                ? { ...f, isVerified: !currentStatus }
+                                : f
+                        )
+                    );
+                } else {
+                    setLocalFees(prevFees =>
+                        prevFees.map(f =>
+                            f.localFeesId === feeId
+                                ? { ...f, isVerified: !currentStatus }
+                                : f
+                        )
+                    );
+                }
+            }
+        } catch (error: any) {
+            console.error('Error toggling verification:', error);
+            setError(error.response?.data?.message || 'Failed to toggle verification');
+        } finally {
+            setToggleLoading(prev => ({ ...prev, [toggleKey]: false }));
+        }
     };
 
     const formatDate = (dateString: string) => {
@@ -288,8 +409,8 @@ const StudentFeesPage: React.FC = () => {
                         <div>
                             <label className="block text-sm font-medium text-gray-700">Enrollment Status</label>
                             <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${student.enrollmentStatus === 'ACTIVE'
-                                    ? 'bg-green-100 text-green-800'
-                                    : 'bg-red-100 text-red-800'
+                                ? 'bg-green-100 text-green-800'
+                                : 'bg-red-100 text-red-800'
                                 }`}>
                                 {student.enrollmentStatus}
                             </span>
@@ -369,8 +490,8 @@ const StudentFeesPage: React.FC = () => {
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${fee.feeType === 'global'
-                                                    ? 'bg-blue-100 text-blue-800'
-                                                    : 'bg-purple-100 text-purple-800'
+                                                ? 'bg-blue-100 text-blue-800'
+                                                : 'bg-purple-100 text-purple-800'
                                                 }`}>
                                                 {fee.feeType.toUpperCase()}
                                             </span>
@@ -389,10 +510,10 @@ const StudentFeesPage: React.FC = () => {
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${fee.paymentStatus === 'PENDING'
-                                                    ? 'bg-yellow-100 text-yellow-800'
-                                                    : fee.paymentStatus === 'PAID'
-                                                        ? 'bg-green-100 text-green-800'
-                                                        : 'bg-red-100 text-red-800'
+                                                ? 'bg-yellow-100 text-yellow-800'
+                                                : fee.paymentStatus === 'PAID'
+                                                    ? 'bg-green-100 text-green-800'
+                                                    : 'bg-red-100 text-red-800'
                                                 }`}>
                                                 {fee.paymentStatus}
                                             </span>
@@ -411,31 +532,48 @@ const StudentFeesPage: React.FC = () => {
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <button
                                                 onClick={() => handlePenaltyToggle(fee.id, fee.feeType, fee.isPenaltyApplied)}
-                                                className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${fee.isPenaltyApplied
-                                                        ? 'bg-red-500 border-red-500 text-white'
+                                                disabled={toggleLoading[`penalty-${fee.feeType}-${fee.id}`]}
+                                                className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${toggleLoading[`penalty-${fee.feeType}-${fee.id}`]
+                                                    ? 'bg-gray-200 border-gray-300 cursor-not-allowed'
+                                                    : fee.isPenaltyApplied
+                                                        ? 'bg-red-500 border-red-500 text-white hover:bg-red-600'
                                                         : 'border-gray-300 hover:border-red-400'
                                                     }`}
                                             >
-                                                {fee.isPenaltyApplied && (
+                                                {toggleLoading[`penalty-${fee.feeType}-${fee.id}`] ? (
+                                                    <div className="w-3 h-3 border border-gray-400 border-t-transparent rounded-full animate-spin"></div>
+                                                ) : fee.isPenaltyApplied ? (
                                                     <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                                                         <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                                                     </svg>
-                                                )}
+                                                ) : null}
                                             </button>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <button
                                                 onClick={() => handleVerifiedToggle(fee.id, fee.feeType, fee.isVerified)}
-                                                className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${fee.isVerified
-                                                        ? 'bg-green-500 border-green-500 text-white'
-                                                        : 'border-gray-300 hover:border-green-400'
+                                                disabled={toggleLoading[`verified-${fee.feeType}-${fee.id}`] || !fee.transactionId}
+                                                className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${!fee.transactionId
+                                                    ? 'bg-gray-100 border-gray-200 cursor-not-allowed opacity-50'
+                                                    : toggleLoading[`verified-${fee.feeType}-${fee.id}`]
+                                                        ? 'bg-gray-200 border-gray-300 cursor-not-allowed'
+                                                        : fee.isVerified
+                                                            ? 'bg-green-500 border-green-500 text-white hover:bg-green-600'
+                                                            : 'border-gray-300 hover:border-green-400'
                                                     }`}
+                                                title={!fee.transactionId ? 'No transaction ID available for verification' : ''}
                                             >
-                                                {fee.isVerified && (
+                                                {toggleLoading[`verified-${fee.feeType}-${fee.id}`] ? (
+                                                    <div className="w-3 h-3 border border-gray-400 border-t-transparent rounded-full animate-spin"></div>
+                                                ) : fee.isVerified ? (
                                                     <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                                                         <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                                                     </svg>
-                                                )}
+                                                ) : !fee.transactionId ? (
+                                                    <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                                                    </svg>
+                                                ) : null}
                                             </button>
                                         </td>
                                     </tr>
@@ -494,5 +632,5 @@ const LoadingSpinner: React.FC = () => (
         <StudentFeesPage />
     </Suspense>
 );
-    
+
 export default LoadingSpinner;
