@@ -1,13 +1,13 @@
 "use client";
 
-import React, {useState, useEffect} from 'react';
-import {Card} from "@/components/ui/card";
-import ClassSectionsList, {ClassSection} from '@/components/admin/ClassSectionsListComponent';
+import React, { useState, useEffect } from 'react';
+import { Card } from "@/components/ui/card";
+import ClassSectionsList, { ClassSection } from '@/components/admin/ClassSectionsListComponent';
 import ClassSectionDetail from '@/components/admin/ClassSectionDetailComponent';
-import {ClassSectionDetail as ClassSectionDetailType} from '@/components/admin/ClassSectionDetailComponent';
+import { ClassSectionDetail as ClassSectionDetailType } from '@/components/admin/ClassSectionDetailComponent';
 import Loader from '@/components/ui/Loader';
 import AddClassModal from '@/components/admin/AddClass';
-import {PlusCircle} from 'lucide-react';
+import { PlusCircle } from 'lucide-react';
 import axios from "axios";
 
 interface Teacher {
@@ -69,7 +69,7 @@ interface ViewClassSectionPageProps {
   id: string;
 }
 
-export default function ClassSectionsPage({id}: ViewClassSectionPageProps) {
+export default function ClassSectionsPage({ id }: ViewClassSectionPageProps) {
   const [classSections, setClassSections] = useState<ClassSection[]>([]);
   const [activeSection, setActiveSection] = useState<"viewClassSections" | "viewClassSectionDetail">("viewClassSections");
   const [selectedClassSection, setSelectedClassSection] = useState<ClassSectionDetailType | null>(null);
@@ -126,30 +126,30 @@ export default function ClassSectionsPage({id}: ViewClassSectionPageProps) {
       // Filter sections by teacher ID
       const teacherIds = filteredTeachers.map(t => t.id);
       const filteredClassSections = data
-      .filter((section: ApiClassSection) =>
-        section && section.teacherId && teacherIds.includes(section.teacherId)
-      )
-      .map((section: ApiClassSection) => {
-        // Make sure every section has at least the required fields
-        return {
-          id: section.id || '',
-          sectionName: section.sectionName || 'Unnamed Section',
-          motherClassId: section.motherClassId,
-          teacherId: section.teacherId || '',
-          batchId: section.batchId || '',
-          courseId: section.courseId || '',
-          isOptional: section.isOptional || false,
-          semesterId: section.semesterId || '',
-          maxStudents: section.maxStudents || 0,
-          createdAt: section.createdAt || new Date().toISOString(),
-          updatedAt: section.updatedAt || new Date().toISOString(),
-          batch: section.batch || {},
-          course: section.course || {},
-          semester: section.semester || {},
-          teacher: section.teacher || {user: {}},
-          _count: section._count
-        };
-      });
+        .filter((section: ApiClassSection) =>
+          section && section.teacherId && teacherIds.includes(section.teacherId)
+        )
+        .map((section: ApiClassSection) => {
+          // Make sure every section has at least the required fields
+          return {
+            id: section.id || '',
+            sectionName: section.sectionName || 'Unnamed Section',
+            motherClassId: section.motherClassId,
+            teacherId: section.teacherId || '',
+            batchId: section.batchId || '',
+            courseId: section.courseId || '',
+            isOptional: section.isOptional || false,
+            semesterId: section.semesterId || '',
+            maxStudents: section.maxStudents || 0,
+            createdAt: section.createdAt || new Date().toISOString(),
+            updatedAt: section.updatedAt || new Date().toISOString(),
+            batch: section.batch || {},
+            course: section.course || {},
+            semester: section.semester || {},
+            teacher: section.teacher || { user: {} },
+            _count: section._count
+          };
+        });
 
       setClassSections(filteredClassSections as ClassSection[]);
       setError(null);
@@ -239,7 +239,7 @@ export default function ClassSectionsPage({id}: ViewClassSectionPageProps) {
   }
 
   if (isLoading) {
-    return <Loader fullScreen message="Loading class sections..."/>;
+    return <Loader fullScreen message="Loading class sections..." />;
   }
 
   if (error) {
@@ -249,7 +249,7 @@ export default function ClassSectionsPage({id}: ViewClassSectionPageProps) {
           <div className="flex items-center gap-3 mb-4">
             <svg className="h-6 w-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
-                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
             </svg>
             <h3 className="text-lg font-medium text-red-800">Error</h3>
           </div>
@@ -268,23 +268,24 @@ export default function ClassSectionsPage({id}: ViewClassSectionPageProps) {
   return (
     <div className="container mx-auto p-6">
       <div className="mb-8">
-        <div className="flex justify-between items-center">
+        <div className="flex flex-col md:flex-row justify-between items-center">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Class Sections Management</h1>
             <p className="mt-2 text-sm text-gray-600">Manage and view all class sections in your institution</p>
           </div>
           <button
             onClick={
-              ()=>{
-                    const verified = JSON.parse(localStorage.getItem("verified") || "false");
-            if (!verified) {
-              alert("Please wait for verification of your account before creating a class section.");
-              return;
-            }
-              openAddModal()}}
+              () => {
+                const verified = JSON.parse(localStorage.getItem("verified") || "false");
+                if (!verified) {
+                  alert("Please wait for verification of your account before creating a class section.");
+                  return;
+                }
+                openAddModal()
+              }}
             className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-blue-700 transition-colors"
           >
-            <PlusCircle className="h-4 w-4"/>
+            <PlusCircle className="h-4 w-4" />
             <span>Add Class Section</span>
           </button>
         </div>
