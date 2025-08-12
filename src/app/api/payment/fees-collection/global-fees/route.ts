@@ -125,7 +125,7 @@ export async function GET(request: Request) {
           amount: t.amount,
           paymentDate: t.paymentDate,
           paymentMethod: t.paymentMethod,
-          transactionId: t.transactionId,
+          transactionIdSubmitted: t.transactionId,
           verified: t.verified
         }))
       };
