@@ -219,7 +219,7 @@ export function QuestionConfigForm({ parsedData, onSubmit }: QuestionConfigFormP
                     type="number"
                     min="0"
                     step="0.5"
-                    value={questionConfigs[questionNumber]?.biasedMarks || 1}
+                    value={questionConfigs[questionNumber]?.biasedMarks }
                     onChange={(e) => handleConfigChange(
                       questionNumber,
                       'biasedMarks',
@@ -239,7 +239,7 @@ export function QuestionConfigForm({ parsedData, onSubmit }: QuestionConfigFormP
                     min="0"
                     step="0.1"
                     max={questionConfigs[questionNumber]?.marks || 1}
-                    value={questionConfigs[questionNumber]?.thresholdMarks || 0.5}
+                    value={questionConfigs[questionNumber]?.thresholdMarks || 0}
                     onChange={(e) => handleConfigChange(
                       questionNumber,
                       'thresholdMarks',

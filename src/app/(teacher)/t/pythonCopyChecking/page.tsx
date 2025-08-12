@@ -324,6 +324,7 @@ export default function TeacherPage({ params }: { params: { id: string } }) {
   };
 
   const handleConfigSubmit = (configData: any) => {
+    console.log('Configuration submitted:', configData);
     setConfigData(configData);
     saveConfigurationAndAnswerKey(configData);
     setSaveConfiguration(false);
@@ -474,7 +475,7 @@ export default function TeacherPage({ params }: { params: { id: string } }) {
                         <td className="p-2 border">{student.rollNo}</td>
                         <td className="p-2 border">{student.user.email}</td>
                         <td className="p-2 border">{student.status}</td>
-                        <td className="p-2 border">{student?.marks ? student.marks : "Null"}</td>
+                        <td className="p-2 border">{student?.marks?student.marks:student.marks&&Number(student.marks)==0?0:"Not Checked"}</td>
                         <td className="p-2 border">
                           {/* Multiple file input */}
                           <input
