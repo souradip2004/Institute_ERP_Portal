@@ -80,12 +80,22 @@ interface Student {
     }>;
 }
 
+interface PaymentTransaction {
+    id: string;
+    amount: number;
+    paymentDate: string;
+    paymentMethod: string;
+    transactionIdSubmitted: string;
+    verified: boolean;
+}
+
 interface GlobalFee {
     feeId: string;
     name: string;
     description: string;
     amountDue: number;
     baseAmount: number;
+    totalBillable: number;
     taxPercentageIncluded: number;
     penaltyIncluded: number;
     isPenaltyApplied: boolean;
@@ -94,11 +104,10 @@ interface GlobalFee {
     classFeeId: string;
     paymentStatus: string;
     amountPaid: number;
+    scholarshipAmount: number;
     isVerified: boolean;
-    paymentDate: string | null;
-    paymentMethod: string | null;
-    transactionId: string | null;
     feesCollectionId: string;
+    paymentTransactions: PaymentTransaction[];
 }
 
 interface LocalFee {
@@ -107,6 +116,7 @@ interface LocalFee {
     description: string;
     amountDue: number;
     baseAmount: number;
+    totalBillable: number;
     taxPercentageIncluded: number;
     penaltyIncluded: number;
     isPenaltyApplied: boolean;
@@ -115,11 +125,10 @@ interface LocalFee {
     classFeeId: string;
     paymentStatus: string;
     amountPaid: number;
+    scholarshipAmount: number;
     isVerified: boolean;
-    paymentDate: string | null;
-    paymentMethod: string | null;
-    transactionId: string | null;
     feesCollectionId: string;
+    paymentTransactions: PaymentTransaction[];
 }
 
 interface CombinedFee extends Omit<GlobalFee, 'feeId'> {
@@ -163,18 +172,34 @@ const StudentFeesPage: React.FC = () => {
                 axios.get(`/api/payment/fees-collection/local-fees?institutionId=${institutionId}&studentId=${studentId}`)
             ]);
 
+            // Debug logging to understand the response structure
+            console.log('API Responses:', {
+                student: studentResponse.data,
+                globalFees: globalFeesResponse.data,
+                localFees: localFeesResponse.data
+            });
+
             setStudent(studentResponse.data);
-            setGlobalFees(globalFeesResponse.data);
-            setLocalFees(localFeesResponse.data);
+
+            // Handle the new API response structure
+            const globalFeesData = Array.isArray(globalFeesResponse.data?.structuredResponse)
+                ? globalFeesResponse.data.structuredResponse
+                : [];
+            const localFeesData = Array.isArray(localFeesResponse.data?.structuredResponse)
+                ? localFeesResponse.data.structuredResponse
+                : [];
+
+            setGlobalFees(globalFeesData);
+            setLocalFees(localFeesData);
 
             // Combine fees for table display
             const combined: CombinedFee[] = [
-                ...globalFeesResponse.data.map((fee: GlobalFee) => ({
+                ...globalFeesData.map((fee: GlobalFee) => ({
                     ...fee,
                     id: fee.feeId,
                     feeType: 'global' as const
                 })),
-                ...localFeesResponse.data.map((fee: LocalFee) => ({
+                ...localFeesData.map((fee: LocalFee) => ({
                     ...fee,
                     id: fee.localFeesId,
                     feeType: 'local' as const
@@ -184,7 +209,16 @@ const StudentFeesPage: React.FC = () => {
             setCombinedFees(combined);
         } catch (err: any) {
             console.error('Error fetching data:', err);
-            setError(err.response?.data?.message || 'Failed to fetch data');
+
+            // More detailed error message
+            let errorMessage = 'Failed to fetch data';
+            if (err.response?.data?.message) {
+                errorMessage = err.response.data.message;
+            } else if (err.message) {
+                errorMessage = err.message;
+            }
+
+            setError(errorMessage);
         } finally {
             setLoading(false);
         }
@@ -254,8 +288,8 @@ const StudentFeesPage: React.FC = () => {
         }
     };
 
-    const handleVerifiedToggle = async (feeId: string, feeType: 'global' | 'local', currentStatus: boolean) => {
-        const toggleKey = `verified-${feeType}-${feeId}`;
+    const handleVerifiedToggle = async (feeId: string, feeType: 'global' | 'local', transactionId: string, currentStatus: boolean) => {
+        const toggleKey = `verified-${feeType}-${feeId}-${transactionId}`;
 
         try {
             setToggleLoading(prev => ({ ...prev, [toggleKey]: true }));
@@ -266,28 +300,26 @@ const StudentFeesPage: React.FC = () => {
                 return;
             }
 
-            // For verification, we need to find the transaction ID
-            // Assuming the transaction ID is stored in the fee object
-            if (!fee.transactionId) {
-                setError('No transaction ID found for this fee');
-                return;
-            }
-
             const response = await axios.patch('/api/payment/fees-collection/verify', {
                 feesCollectionId: fee.feesCollectionId,
                 userId: adminId,
                 transactions: [{
-                    id: fee.transactionId,
+                    id: transactionId,
                     verified: !currentStatus
                 }]
             });
 
             if (response.status === 200) {
-                // Update the local state
+                // Update the local state for the specific transaction
                 setCombinedFees(prevFees =>
                     prevFees.map(f =>
                         f.id === feeId && f.feeType === feeType
-                            ? { ...f, isVerified: !currentStatus }
+                            ? {
+                                ...f,
+                                paymentTransactions: f.paymentTransactions.map(t =>
+                                    t.id === transactionId ? { ...t, verified: !currentStatus } : t
+                                )
+                            }
                             : f
                     )
                 );
@@ -297,7 +329,12 @@ const StudentFeesPage: React.FC = () => {
                     setGlobalFees(prevFees =>
                         prevFees.map(f =>
                             f.feeId === feeId
-                                ? { ...f, isVerified: !currentStatus }
+                                ? {
+                                    ...f,
+                                    paymentTransactions: f.paymentTransactions.map(t =>
+                                        t.id === transactionId ? { ...t, verified: !currentStatus } : t
+                                    )
+                                }
                                 : f
                         )
                     );
@@ -305,7 +342,12 @@ const StudentFeesPage: React.FC = () => {
                     setLocalFees(prevFees =>
                         prevFees.map(f =>
                             f.localFeesId === feeId
-                                ? { ...f, isVerified: !currentStatus }
+                                ? {
+                                    ...f,
+                                    paymentTransactions: f.paymentTransactions.map(t =>
+                                        t.id === transactionId ? { ...t, verified: !currentStatus } : t
+                                    )
+                                }
                                 : f
                         )
                     );
@@ -438,7 +480,7 @@ const StudentFeesPage: React.FC = () => {
                     </div>
 
                     <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-gray-200">
+                        <table className="min-w-full divide-y divide-gray-200" style={{ minWidth: '1400px' }}>
                             <thead className="bg-gray-50">
                                 <tr>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -466,19 +508,16 @@ const StudentFeesPage: React.FC = () => {
                                         Payment Status
                                     </th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Transaction ID
+                                        Payment Transactions
                                     </th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Penalty Applied
-                                    </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Verified
                                     </th>
                                 </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
                                 {combinedFees.map((fee, index) => (
-                                    <tr key={`${fee.feeType}-${fee.id}-${index}`} className="hover:bg-gray-50">
+                                    <tr key={`${fee.feeType}-${fee.id}-${index}`} className="border-b border-gray-100">
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <div>
                                                 <div className="text-sm font-medium text-gray-900">{fee.name}</div>
@@ -518,15 +557,76 @@ const StudentFeesPage: React.FC = () => {
                                                 {fee.paymentStatus}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm">
-                                            {fee.transactionId ? (
-                                                <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-xs font-medium">
-                                                    {fee.transactionId}
-                                                </span>
+                                        <td className="px-4 py-4 text-sm" style={{ minWidth: '350px', maxWidth: '400px' }}>
+                                            {fee.paymentTransactions && fee.paymentTransactions.length > 0 ? (
+                                                <div className="space-y-3 max-h-96 overflow-y-auto">
+                                                    {fee.paymentTransactions.map((transaction, txIndex) => (
+                                                        <div key={transaction.id} className="bg-white border border-gray-200 rounded-lg p-3 shadow-sm">
+                                                            <div className="flex items-start justify-between mb-3">
+                                                                <div className="flex items-center space-x-2">
+                                                                    <span className="inline-flex items-center justify-center w-6 h-6 bg-blue-100 text-blue-800 text-xs font-bold rounded-full">
+                                                                        {txIndex + 1}
+                                                                    </span>
+                                                                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${transaction.verified
+                                                                        ? 'bg-green-100 text-green-800'
+                                                                        : 'bg-yellow-100 text-yellow-800'
+                                                                        }`}>
+                                                                        {transaction.verified ? 'Verified' : 'Pending'}
+                                                                    </span>
+                                                                </div>
+                                                                <button
+                                                                    onClick={() => handleVerifiedToggle(fee.id, fee.feeType, transaction.id, transaction.verified)}
+                                                                    disabled={toggleLoading[`verified-${fee.feeType}-${fee.id}-${transaction.id}`]}
+                                                                    className={`w-6 h-6 rounded border-2 flex items-center justify-center transition-colors ${toggleLoading[`verified-${fee.feeType}-${fee.id}-${transaction.id}`]
+                                                                        ? 'bg-gray-200 border-gray-300 cursor-not-allowed'
+                                                                        : transaction.verified
+                                                                            ? 'bg-green-500 border-green-500 text-white hover:bg-green-600'
+                                                                            : 'border-gray-300 hover:border-green-400 hover:bg-green-50'
+                                                                        }`}
+                                                                    title={`${transaction.verified ? 'Unverify' : 'Verify'} transaction`}
+                                                                >
+                                                                    {toggleLoading[`verified-${fee.feeType}-${fee.id}-${transaction.id}`] ? (
+                                                                        <div className="w-3 h-3 border border-gray-400 border-t-transparent rounded-full animate-spin"></div>
+                                                                    ) : transaction.verified ? (
+                                                                        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                                                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                                                        </svg>
+                                                                    ) : (
+                                                                        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                                                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                                                        </svg>
+                                                                    )}
+                                                                </button>
+                                                            </div>
+                                                            <div className="space-y-2">
+                                                                <div className="flex justify-between items-center">
+                                                                    <span className="text-xs text-gray-500 font-medium">Amount:</span>
+                                                                    <span className="text-sm font-semibold text-green-600">{formatCurrency(transaction.amount)}</span>
+                                                                </div>
+                                                                <div className="flex justify-between items-center">
+                                                                    <span className="text-xs text-gray-500 font-medium">Method:</span>
+                                                                    <span className="text-sm font-medium text-gray-900">{transaction.paymentMethod}</span>
+                                                                </div>
+                                                                <div className="flex justify-between items-center">
+                                                                    <span className="text-xs text-gray-500 font-medium">Date:</span>
+                                                                    <span className="text-sm font-medium text-gray-900">{formatDate(transaction.paymentDate)}</span>
+                                                                </div>
+                                                                <div className="flex justify-between items-start">
+                                                                    <span className="text-xs text-gray-500 font-medium">TX ID:</span>
+                                                                    <span className="text-xs font-mono text-blue-600 bg-blue-50 px-2 py-1 rounded text-right break-all max-w-32">
+                                                                        {transaction.transactionIdSubmitted}
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
                                             ) : (
-                                                <span className="bg-red-100 text-red-800 px-2 py-1 rounded text-xs font-medium">
-                                                    Not Submitted
-                                                </span>
+                                                <div className="flex items-center justify-center py-4">
+                                                    <span className="bg-red-100 text-red-800 px-3 py-2 rounded-lg text-sm font-medium">
+                                                        No Transactions
+                                                    </span>
+                                                </div>
                                             )}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
@@ -545,33 +645,6 @@ const StudentFeesPage: React.FC = () => {
                                                 ) : fee.isPenaltyApplied ? (
                                                     <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                                                         <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                                    </svg>
-                                                ) : null}
-                                            </button>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <button
-                                                onClick={() => handleVerifiedToggle(fee.id, fee.feeType, fee.isVerified)}
-                                                disabled={toggleLoading[`verified-${fee.feeType}-${fee.id}`] || !fee.transactionId}
-                                                className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${!fee.transactionId
-                                                    ? 'bg-gray-100 border-gray-200 cursor-not-allowed opacity-50'
-                                                    : toggleLoading[`verified-${fee.feeType}-${fee.id}`]
-                                                        ? 'bg-gray-200 border-gray-300 cursor-not-allowed'
-                                                        : fee.isVerified
-                                                            ? 'bg-green-500 border-green-500 text-white hover:bg-green-600'
-                                                            : 'border-gray-300 hover:border-green-400'
-                                                    }`}
-                                                title={!fee.transactionId ? 'No transaction ID available for verification' : ''}
-                                            >
-                                                {toggleLoading[`verified-${fee.feeType}-${fee.id}`] ? (
-                                                    <div className="w-3 h-3 border border-gray-400 border-t-transparent rounded-full animate-spin"></div>
-                                                ) : fee.isVerified ? (
-                                                    <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                                                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                                    </svg>
-                                                ) : !fee.transactionId ? (
-                                                    <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                                                        <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
                                                     </svg>
                                                 ) : null}
                                             </button>
