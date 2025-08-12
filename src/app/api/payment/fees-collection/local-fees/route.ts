@@ -84,6 +84,7 @@ export async function GET(request: Request) {
     const feeCollectionsToUpdate: string[] = [];
     const feesCollectionToVerify: string[] = [];
 
+    let isVerificationPending = false;
     // --- 3. Process the data and prepare the response ---
     const structuredResponse = feeDetails.map(detail => {
       const collectionDetails = detail.feesCollections[0];
@@ -126,6 +127,7 @@ export async function GET(request: Request) {
         }
       }
 
+
       const offsetFee = localFee.studentsLocalFees[0].offsetFee;
       // console.log("Offset fee: ", offsetFee);
       const penaltyToAdd = isPenaltyApplied ? localFee.penalty : 0;
@@ -145,6 +147,10 @@ export async function GET(request: Request) {
 
       const amountDue = Math.max(0.0, parseFloat((totalBillable - amountPaid).toFixed(2)));
 
+      if (!isPenaltyApplied) {
+        isVerificationPending = (collectionDetails.paymentTransactions.some(t => !t.verified) && (baseAmount - scholarshipAmount > 0));
+      }
+
       return {
         localFeesId: localFee.id,
         name: localFee.name,
@@ -161,7 +167,7 @@ export async function GET(request: Request) {
         paymentStatus: currentStatus || (baseAmount - scholarshipAmount <= 0 && 'PAID'),
         amountPaid: parseFloat(amountPaid.toFixed(2)) || (baseAmount - scholarshipAmount),
         scholarshipAmount: parseFloat(scholarshipAmount.toFixed(2)),
-        isVerified: collectionDetails.paymentTransactions.every(t => t.verified) || (baseAmount - scholarshipAmount <= 0),
+        isVerified: (collectionDetails.paymentTransactions.length > 0 && collectionDetails.paymentTransactions.every(t => t.verified)) || (baseAmount - scholarshipAmount <= 0),
         feesCollectionId: collectionDetails.id,
         paymentTransactions: collectionDetails.paymentTransactions.map(t => ({
           id: t.id,
@@ -195,7 +201,7 @@ export async function GET(request: Request) {
       });
     }
 
-    return NextResponse.json(structuredResponse, {status: 200});
+    return NextResponse.json({isVerificationPending, structuredResponse}, {status: 200});
 
   } catch (error) {
     console.error("Error fetching student local fee details: ", error);

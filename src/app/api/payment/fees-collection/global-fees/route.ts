@@ -8,7 +8,7 @@ export async function GET(request: Request) {
     const institutionId = searchParams.get('institutionId');
     const studentId = searchParams.get('studentId');
     const motherClassId = searchParams.get('motherClassId');
-    const isDeleted = searchParams.get('isDeleted') ;
+    const isDeleted = searchParams.get('isDeleted');
 
     let deleted = false;
     if (isDeleted === 'true') {
@@ -46,6 +46,7 @@ export async function GET(request: Request) {
     const feeCollectionsToUpdate: string[] = [];
     const feesCollectionToVerify: string[] = [];
 
+    let isVerificationPending = false;
     const structuredResponse = feeDetails.map(detail => {
       const collectionDetails = detail.feesCollections[0];
       const globalFee = detail.globalFees!;
@@ -101,7 +102,9 @@ export async function GET(request: Request) {
       .reduce((sum, transaction) => sum + transaction.amount, 0);
 
       const amountDue = Math.max(0.0, parseFloat((totalBillable - amountPaid).toFixed(2)));
-
+      if (!isVerificationPending) {
+        isVerificationPending = collectionDetails.paymentTransactions.some(t => !t.verified) && (baseAmount - scholarshipAmount > 0)
+      }
       return {
         feeId: globalFee.id,
         name: globalFee.name,
@@ -118,7 +121,7 @@ export async function GET(request: Request) {
         paymentStatus: currentStatus || (baseAmount - scholarshipAmount <= 0 && 'PAID'),
         amountPaid: parseFloat(amountPaid.toFixed(2)) || (scholarshipAmount),
         scholarshipAmount: parseFloat(scholarshipAmount.toFixed(2)), // Include scholarship in the response
-        isVerified: collectionDetails.paymentTransactions.every(t => t.verified) || (baseAmount - scholarshipAmount <= 0),
+        isVerified: (collectionDetails.paymentTransactions.length > 0 && collectionDetails.paymentTransactions.every(t => t.verified)) || (baseAmount - scholarshipAmount <= 0),
         feesCollectionId: collectionDetails.id,
         paymentTransactions: collectionDetails.paymentTransactions.map(t => ({
           id: t.id,
@@ -152,7 +155,7 @@ export async function GET(request: Request) {
       });
     }
 
-    return NextResponse.json(structuredResponse, {status: 200});
+    return NextResponse.json({isVerificationPending, structuredResponse}, {status: 200});
 
   } catch (error) {
     console.error("Error fetching student global fee details: ", error);
