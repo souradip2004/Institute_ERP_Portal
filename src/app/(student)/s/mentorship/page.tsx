@@ -181,10 +181,10 @@ const Mentorship = () => {
     recognizer.recognized = (_, e) => {
       if (e.result.reason === SpeechSDK.ResultReason.RecognizedSpeech) {
         const finalText = e.result.text.trim()
-        setInput(finalText)
+        setMessage(finalText)
         if (finalText) {
           autoSendTimeoutRef.current = setTimeout(() => {
-            handleSendMessage(finalText)
+            handleSendMessage()
             setInput("")
             autoSendTimeoutRef.current = null
             setMicActive(false)
@@ -294,13 +294,13 @@ const Mentorship = () => {
         className="flex-1 resize-none overflow-hidden rounded-2xl bg-transparent px-2 py-1 text-base focus:outline-none placeholder:text-gray-400 md:text-lg"
         value={micActive ? input : message}
         onChange={(e) => {
-          if (micActive) setInput(e.target.value)
+          if (micActive) setMessage(e.target.value)
           else setMessage(e.target.value)
         }}
         onKeyDown={(e) => {
           if (e.key === "Enter") {
             e.preventDefault()
-            if (micActive) handleSendMessage(input)
+            if (micActive) handleSendMessage()
             else handleSendMessage()
           }
         }}
@@ -312,7 +312,7 @@ const Mentorship = () => {
             ? "text-gray-400"
             : "bg-indigo-600 text-white hover:bg-indigo-700"
         }`}
-        onClick={() => (micActive ? handleSendMessage(input) : handleSendMessage())}
+        onClick={() => (micActive ? handleSendMessage() : handleSendMessage())}
         disabled={loading || (!micActive && !message.trim())}
       >
         <Send size={22} />
