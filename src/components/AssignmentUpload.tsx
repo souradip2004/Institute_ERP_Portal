@@ -334,6 +334,7 @@ const AssignmentUpload = ({ classSectionId,instituteId}: AssignmentUploadProps) 
             >
               {isSubmitting ? 'Submitting...' : 'Submit'}
             </button>
+            {/*
             <button
               type="button"
               onClick={scheduleUpload}
@@ -344,6 +345,7 @@ const AssignmentUpload = ({ classSectionId,instituteId}: AssignmentUploadProps) 
               </svg>
               <span>Schedule Upload</span>
             </button>
+            */}
           </div>
         </div>
       </form>

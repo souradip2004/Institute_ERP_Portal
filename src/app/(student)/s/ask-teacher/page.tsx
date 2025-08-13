@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { uploadImageToCloudinary } from "@/utils/uploadImageToCloudinary";
 import Loader from '@/components/ui/Loader';
-import { ArrowLeft, Plus, Image as ImageIcon, Paperclip, FileText, CheckCheck } from 'lucide-react';
+import { ArrowLeft, Plus, Image as ImageIcon, Paperclip, FileText, CheckCheck,Send } from 'lucide-react';
 
 
 // CORRECTED: Updated Notification interface to reflect the single string message field
@@ -589,10 +589,10 @@ export default function AskTeacherPage() {
 
               <button
                 type="submit"
-                className="bg-purple-600 text-white px-4 py-2 rounded-full hover:bg-purple-700 transition-colors disabled:bg-purple-300"
+                className="bg-purple-600 text-white px-1 py-1 rounded-full hover:bg-purple-700 transition-colors disabled:bg-purple-300"
                 disabled={!(messageContent.text || messageContent.image || messageContent.file) || uploading}
               >
-                Send
+                  <Send size={20} />
               </button>
 
               {showAttachments && (

@@ -463,7 +463,6 @@ export default function TeacherPage({ params }: { params: { id: string } }) {
                       <th className="p-2 border">Name</th>
                       <th className="p-2 border">Roll No</th>
                       <th className="p-2 border">Email</th>
-                      <th className="p-2 border">Status</th>
                       <th className="p-2 border">Marks Obtained</th>
                       <th className="p-2 border">Upload File</th>
                     </tr>
@@ -474,7 +473,7 @@ export default function TeacherPage({ params }: { params: { id: string } }) {
                         <td className="p-2 border">{student.name}</td>
                         <td className="p-2 border">{student.rollNo}</td>
                         <td className="p-2 border">{student.user.email}</td>
-                        <td className="p-2 border">{student.status}</td>
+                       
                         <td className="p-2 border">{student?.marks?student.marks:student.marks&&Number(student.marks)==0?0:"Not Checked"}</td>
                         <td className="p-2 border">
                           {/* Multiple file input */}
