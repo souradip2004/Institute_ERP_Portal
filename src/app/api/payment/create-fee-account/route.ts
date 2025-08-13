@@ -132,7 +132,6 @@ const staticUpiUri = createUpiUri(
 
 const myBucket = "classroomaiin";
 const staticFileName = `upi-static-qrcode-${Date.now()}.png`;
-
 const logoUrl = "https://classroomaiin.s3.eu-north-1.amazonaws.com/uploads/AI%20Classroom%20LOGO%20%281%29.png"; 
 console.log("Generating static QR code with logo for URI:", staticUpiUri);
 const upiurl= await generateAndUploadQRCodeWithLogo(staticUpiUri, logoUrl, myBucket, staticFileName);
