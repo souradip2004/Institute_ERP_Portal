@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Loader from '@/components/ui/Loader';
@@ -70,8 +70,18 @@ export default function AskTeacherPage() {
   const [groupedTeachers, setGroupedTeachers] = useState<GroupedTeachers>({});
   const [showDepartment, setShowDepartment] = useState<string | null>(null);
 
+  // Ref for the chat messages container to enable auto-scrolling
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesRef = useRef<Message[]>([]);
+
+  // Function to scroll to the bottom of the chat
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  // Combined fetchTeachers and fetchUserData logic
   useEffect(() => {
-    const fetchUserData = async () => {
+    const fetchUserDataAndTeachers = async () => {
       try {
         const user = localStorage.getItem("user");
         if (!user) {
@@ -79,221 +89,171 @@ export default function AskTeacherPage() {
           return;
         }
         const userData = JSON.parse(user);
+        setStudentId(userData.studentId);
         
-        // Fetch student details to get enrolled classes and teacher codes
-        const classdetails = await fetch(`/api/students/${userData.studentId}`, {
+        const classDetailsResponse = await fetch(`/api/students/${userData.studentId}`, {
           method: "GET",
           headers: {
             'Content-Type': 'application/json',
           }
         });
 
-        if (!classdetails.ok) {
+        if (!classDetailsResponse.ok) {
           setError("Failed to fetch student classes.");
           setLoading(false);
           return;
         }
-        const classes = await classdetails.json();
-        const classenrollments = classes?.classEnrollments;
+        const classes = await classDetailsResponse.json();
+        const classEnrollments = classes?.classEnrollments;
         const studentTeacherCodes: string[] = [];
 
-        // Fetch teacher codes for each enrolled class
-        for (const enrollment of classenrollments) {
-          const teacher = await fetch(`/api/class-sections/${enrollment.classSectionId}`, {
+        for (const enrollment of classEnrollments) {
+          const teacherResponse = await fetch(`/api/class-sections/${enrollment.classSectionId}`, {
               method: "GET",
               headers: {
                 'Content-Type': 'application/json',
               }
             }
           );
-          if (teacher.ok) {
-            const teachers = await teacher.json();
-            if (teachers?.teacher?.teacherCode) {
-              studentTeacherCodes.push(teachers.teacher.teacherCode);
+          if (teacherResponse.ok) {
+            const teachersData = await teacherResponse.json();
+            if (teachersData?.teacher?.teacherCode) {
+              studentTeacherCodes.push(teachersData.teacher.teacherCode);
             }
           }
         }
         setTeacherCode(studentTeacherCodes);
-        await fetchTeachers(studentTeacherCodes);
+        
+        const teachersResponse = await fetch('/api/teachers', {
+          credentials: 'include'
+        });
+        
+        if (!teachersResponse.ok) {
+          const errorData = await teachersResponse.json();
+          if (teachersResponse.status === 401) {
+            router.push('/login');
+            return;
+          }
+          throw new Error(errorData.error || 'Failed to fetch teachers');
+        }
+
+        const allTeachers: Teacher[] = await teachersResponse.json();
+
+        const filteredTeachers = allTeachers.filter(teacher => 
+          studentTeacherCodes.includes(teacher.teacherCode)
+        );
+
+        setTeachers(filteredTeachers);
+
+        const departmentsWithTeachers: GroupedTeachers = {};
+        filteredTeachers.forEach((teacher: Teacher) => {
+          const departmentName = teacher.department?.name || 'Unassigned';
+          if (!departmentsWithTeachers[departmentName]) {
+            departmentsWithTeachers[departmentName] = [];
+          }
+          departmentsWithTeachers[departmentName].push(teacher);
+        });
+        setGroupedTeachers(departmentsWithTeachers);
+
+        setLoading(false);
       } catch (error) {
-        console.error("Error fetching user data:", error);
-        setError("Failed to load user data. Please refresh the page.");
+        console.error("Error fetching user data or teachers:", error);
+        setError("Failed to load data. Please refresh the page.");
         setLoading(false);
       }
     };
 
-    fetchUserData();
-  }, []);
+    fetchUserDataAndTeachers();
+  }, [router]);
 
-  // Effect to fetch chat history when a teacher is selected
-  useEffect(() => {
-    if (!selectedTeacher) return;
-
-    const fetchMessages = async () => {
-      setLoadingMessages(true);
-
-      const studentId = JSON.parse(localStorage.getItem("user")!).studentId;
-      try {
-        const response = await fetch(`/api/notifications?teacherId=${selectedTeacher.id}&studentId=${studentId}`, {
-          method: 'GET',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include'
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to fetch chat history');
-        }
-
-        const notifications: Notification[] = await response.json();
-
-        const chatMessages = notifications.flatMap(notification => {
-          const studentMessage: Message = {
-            id: notification.id,
-            content: notification.message,
-            sender: 'student',
-            timestamp: new Date(notification.createdAt),
-            isRead: notification.isRead,
-          };
-
-          const conversation: Message[] = [studentMessage];
-
-          if (notification.replyText) {
-            const teacherMessage: Message = {
-              id: `${notification.id}-reply`,
-              content: notification.replyText,
-              sender: 'teacher',
-              timestamp: new Date(notification.readAt || notification.createdAt),
-            };
-            conversation.push(teacherMessage);
-          }
-          return conversation;
-        }).sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
-
-        setMessages(chatMessages);
-
-      } catch (err) {
-        console.error("Error fetching messages:", err);
-        setError("Failed to load chat history. Please try again.");
-      } finally {
-        setLoadingMessages(false);
-      }
-    };
-
-    fetchMessages();
-  }, [selectedTeacher]);
-    useEffect(() => {
-      let intervalId: NodeJS.Timeout;
-     
-
-    const fetchMessages = async () => {
-
-      const studentId = JSON.parse(localStorage.getItem("user")!).studentId;
-      try {
-        const response = await fetch(`/api/notifications?teacherId=${selectedTeacher.id}&studentId=${studentId}`, {
-          method: 'GET',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include'
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to fetch chat history');
-        }
-
-        const notifications: Notification[] = await response.json();
-
-        const chatMessages = notifications.flatMap(notification => {
-          const studentMessage: Message = {
-            id: notification.id,
-            content: notification.message,
-            sender: 'student',
-            timestamp: new Date(notification.createdAt),
-            isRead: notification.isRead,
-          };
-
-          const conversation: Message[] = [studentMessage];
-
-          if (notification.replyText) {
-            const teacherMessage: Message = {
-              id: `${notification.id}-reply`,
-              content: notification.replyText,
-              sender: 'teacher',
-              timestamp: new Date(notification.readAt || notification.createdAt),
-            };
-            conversation.push(teacherMessage);
-          }
-          return conversation;
-        }).sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
-
-        setMessages(chatMessages);
-
-      } catch (err) {
-        console.error("Error fetching messages:", err);
-        setError("Failed to load chat history. Please try again.");
-      } finally {
-        setLoadingMessages(false);
-      }
-    };
-
-      
-        // Set up the interval to refresh notifications every 10 seconds
-        intervalId = setInterval(() => {
-          if(selectedTeacher)
-              fetchMessages();
-        }, 10000); // 10 seconds
-      
-  
-      // Clean up the interval when the component unmounts or teacherId changes
-      return () => {
-        if (intervalId) {
-          clearInterval(intervalId);
-        }
-      };
-    }, []);
-
-  const fetchTeachers = async (studentTeacherCodes: string[]) => {
+  // Function to fetch chat history
+  const fetchMessages = async (teacherId: string, studentId: string, initialLoad = false) => {
     try {
-      setLoading(true);
-      const response = await fetch('/api/teachers', {
+      const response = await fetch(`/api/notifications?teacherId=${teacherId}&studentId=${studentId}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
         credentials: 'include'
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        if (response.status === 401) {
-          router.push('/login');
-          return;
-        }
-        throw new Error(errorData.error || 'Failed to fetch teachers');
+        throw new Error('Failed to fetch chat history');
       }
 
-      const allTeachers: Teacher[] = await response.json();
+      const notifications: Notification[] = await response.json();
 
-      // Filter teachers to only include those associated with the student's classes
-      const filteredTeachers = allTeachers.filter(teacher => 
-        studentTeacherCodes.includes(teacher.teacherCode)
-      );
+      const chatMessages = notifications.flatMap(notification => {
+        const studentMessage: Message = {
+          id: notification.id,
+          content: notification.message,
+          sender: 'student',
+          timestamp: new Date(notification.createdAt),
+          isRead: notification.isRead,
+        };
 
-      // Set the filtered teachers state
-      setTeachers(filteredTeachers);
+        const conversation: Message[] = [studentMessage];
 
-      // Group the filtered teachers by department name
-      const departmentsWithTeachers: GroupedTeachers = {};
-      filteredTeachers.forEach((teacher: Teacher) => {
-        const departmentName = teacher.department?.name || 'Unassigned';
-        if (!departmentsWithTeachers[departmentName]) {
-          departmentsWithTeachers[departmentName] = [];
+        if (notification.replyText) {
+          const teacherMessage: Message = {
+            id: `${notification.id}-reply`,
+            content: notification.replyText,
+            sender: 'teacher',
+            timestamp: new Date(notification.readAt || notification.createdAt),
+          };
+          conversation.push(teacherMessage);
         }
-        departmentsWithTeachers[departmentName].push(teacher);
-      });
-      setGroupedTeachers(departmentsWithTeachers);
+        return conversation;
+      }).sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
 
-      setLoading(false);
+      setMessages(prevMessages => {
+        // If it's the initial load, always scroll to the bottom.
+        if (initialLoad) {
+          setTimeout(scrollToBottom, 0);
+        }
+        // If not initial load, check for new teacher messages before scrolling.
+        else {
+          const oldMessagesCount = messagesRef.current.length;
+          const newMessagesCount = chatMessages.length;
+          
+          if (newMessagesCount > oldMessagesCount) {
+            const newestMessage = chatMessages[newMessagesCount - 1];
+            if (newestMessage.sender === 'teacher') {
+              setTimeout(scrollToBottom, 0);
+            }
+          }
+        }
+        // Update the ref to the new messages for the next comparison
+        messagesRef.current = chatMessages;
+        return chatMessages;
+      });
+
     } catch (err) {
-      console.error('Error fetching teachers:', err);
-      setError('Failed to load teachers. Please try again later.');
-      setLoading(false);
+      console.error("Error fetching messages:", err);
+      setError("Failed to load chat history. Please try again.");
+    } finally {
+      if(initialLoad) setLoadingMessages(false);
     }
   };
+
+  // Effect to fetch initial chat history and set up live updates
+  useEffect(() => {
+    let intervalId: NodeJS.Timeout;
+    if (selectedTeacher && studentId) {
+      setLoadingMessages(true);
+      messagesRef.current = []; // Reset messages ref on new teacher selection
+      fetchMessages(selectedTeacher.id, studentId, true);
+
+      intervalId = setInterval(() => {
+        fetchMessages(selectedTeacher.id, studentId);
+      }, 10000); // 10 seconds
+    }
+    
+    // Cleanup function to clear the interval
+    return () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+    };
+  }, [selectedTeacher, studentId]);
 
   const handleDepartmentClick = (departmentName: string) => {
     setShowDepartment(departmentName === showDepartment ? null : departmentName);
@@ -310,7 +270,7 @@ export default function AskTeacherPage() {
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!messageInput.trim() || !selectedTeacher) return;
+    if (!messageInput.trim() || !selectedTeacher || !studentId) return;
 
     const currentMessage = messageInput.trim();
     const tempId = Date.now().toString();
@@ -325,9 +285,10 @@ export default function AskTeacherPage() {
 
     setMessages(prev => [...prev, newMessage]);
     setMessageInput('');
+    // Manually scroll to bottom after sending a message to show the user's own message
+    scrollToBottom();
 
     try {
-      const studentId = JSON.parse(localStorage.getItem("user")!).studentId;
       const response = await fetch(`/api/notifications/send-message`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -344,8 +305,8 @@ export default function AskTeacherPage() {
         throw new Error(errorData.error || 'Failed to send message');
       }
 
-      await response.json();
-
+      // Refresh the chat after sending the message to get the correct message ID and read status
+      fetchMessages(selectedTeacher.id, studentId);
     } catch (error) {
       console.error('Error sending message:', error);
       setMessageInput(currentMessage);
@@ -373,6 +334,10 @@ export default function AskTeacherPage() {
     );
   }
 
+  // Determine if the teacher has read the last message
+  const lastMessage = messages[messages.length - 1];
+  const teacherHasReadLastMessage = lastMessage?.sender === 'student' && lastMessage.isRead;
+  
   if (selectedTeacher) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-100 p-4">
@@ -381,18 +346,20 @@ export default function AskTeacherPage() {
             <button onClick={handleBackClick} className="mr-4 p-2 hover:bg-purple-700 rounded-full">
               ←
             </button>
-            <div className="flex items-center">
+            <div className="flex items-center flex-grow">
               <div className="h-10 w-10 rounded-full bg-purple-300 flex items-center justify-center font-bold">
                 {selectedTeacher.user.name.charAt(0)}
               </div>
               <div className="ml-3">
                 <h3 className="font-semibold">{selectedTeacher.user.name}</h3>
-                <p className="text-sm text-purple-200">{selectedTeacher.department?.name}</p>
+                <p className="text-sm text-purple-200">
+                  {teacherHasReadLastMessage ? 'Last seen recently' : selectedTeacher.department?.name}
+                </p>
               </div>
             </div>
           </div>
 
-          <div className="flex-grow p-4 bg-gray-50 overflow-y-auto">
+          <div className="flex-grow p-4 bg-gray-50 overflow-y-auto" >
             {loadingMessages ? (
               <div className="flex justify-center items-center h-full">
                 <Loader size="medium" />
@@ -422,6 +389,7 @@ export default function AskTeacherPage() {
                     </div>
                   </div>
                 ))}
+                <div ref={messagesEndRef} />
               </div>
             )}
           </div>

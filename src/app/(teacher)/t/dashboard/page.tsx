@@ -88,6 +88,7 @@ const ChatBubble: React.FC<{
     </div>
   );
 };
+
 export default function TeacherDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -101,8 +102,10 @@ export default function TeacherDashboardPage() {
   const [teacherId, setTeacherId] = useState<string | null>(null);
   const [classSectionId, setClassSectionId] = useState<string | null>(null);
   const [primaryColor, setPrimaryColor] = useState<string>('#3B82F6');
+  const [replyTexts, setReplyTexts] = useState<{ [key: string]: string }>({});
 
   const chatRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
+  const prevNotificationsRef = useRef<GroupedNotification[]>([]);
 
   const hexToRgba = (hex: string, alpha: number = 1) => {
     const cleanHex = hex.replace('#', '');
@@ -111,22 +114,21 @@ export default function TeacherDashboardPage() {
     const b = parseInt(cleanHex.substr(4, 2), 16);
     return `rgba(${r}, ${g}, ${b}, ${alpha})`;
   };
+
   useEffect(() => {
     let intervalId: NodeJS.Timeout;
     if (teacherId) {
-      // Set up the interval to refresh notifications every 10 seconds
       intervalId = setInterval(() => {
         fetchNotifications();
-      }, 10000); // 10 seconds
+      }, 10000);
     }
-
-    // Clean up the interval when the component unmounts or teacherId changes
     return () => {
       if (intervalId) {
         clearInterval(intervalId);
       }
     };
   }, [teacherId]);
+
   useEffect(() => {
     const temp = localStorage.getItem('primaryColor');
     if (temp) {
@@ -167,7 +169,6 @@ export default function TeacherDashboardPage() {
         }
       }
     };
-
     getUserData();
   }, []);
 
@@ -176,6 +177,7 @@ export default function TeacherDashboardPage() {
       try {
         setLoading(true);
         if (!teacherId) {
+          setLoading(false);
           return;
         }
 
@@ -198,7 +200,6 @@ export default function TeacherDashboardPage() {
         setError("Failed to load dashboard data. Please try again later.");
       }
     };
-
     loadData();
   }, [teacherId]);
 
@@ -206,9 +207,21 @@ export default function TeacherDashboardPage() {
     expandedGroups.forEach(studentId => {
       const chatContainer = chatRefs.current[studentId];
       if (chatContainer) {
-        chatContainer.scrollTop = chatContainer.scrollHeight;
+        const prevGroup = prevNotificationsRef.current.find(g => g.studentId === studentId);
+        const currentGroup = groupedNotifications.find(g => g.studentId === studentId);
+
+        if (prevGroup && currentGroup && currentGroup.notifications.length > prevGroup.notifications.length) {
+          const newNotifications = currentGroup.notifications.slice(prevGroup.notifications.length);
+          const hasNewStudentMessage = newNotifications.some(n => !n.replyExists);
+
+          if (hasNewStudentMessage) {
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+          }
+        }
       }
     });
+
+    prevNotificationsRef.current = groupedNotifications;
   }, [groupedNotifications, expandedGroups]);
 
   const fetchNotifications = async () => {
@@ -252,35 +265,22 @@ export default function TeacherDashboardPage() {
   };
 
   const handleReplyChange = (notificationId: string, text: string) => {
-    setGroupedNotifications(prevState =>
-      prevState.map(group => ({
-        ...group,
-        notifications: group.notifications.map(notification =>
-          notification.id === notificationId
-            ? { ...notification, replyText: text }
-            : notification
-        )
-      }))
-    );
+    setReplyTexts(prev => ({
+      ...prev,
+      [notificationId]: text,
+    }));
   };
 
   const handleReplySubmit = async (notificationId: string) => {
-    let notificationToUpdate: Notification | undefined;
-    groupedNotifications.forEach(group => {
-      const found = group.notifications.find(n => n.id === notificationId);
-      if (found) {
-        notificationToUpdate = found;
-      }
-    });
-
-    if (notificationToUpdate?.replyText?.trim()) {
+    const replyText = replyTexts[notificationId]?.trim();
+    if (replyText) {
       try {
         const response = await axios.put(
           '/api/notifications/saveReply',
           {
             notificationId,
             teacherId,
-            replyText: notificationToUpdate.replyText
+            replyText: replyText,
           }
         );
 
@@ -300,6 +300,11 @@ export default function TeacherDashboardPage() {
             return acc;
           }, {});
           setGroupedNotifications(Object.values(grouped));
+          setReplyTexts(prev => {
+            const newReplyTexts = { ...prev };
+            delete newReplyTexts[notificationId];
+            return newReplyTexts;
+          });
         }
       } catch (err) {
         console.error("Failed to submit reply:", err);
@@ -621,7 +626,7 @@ export default function TeacherDashboardPage() {
                                 <input
                                   type="text"
                                   placeholder="Type your reply..."
-                                  value={notification.replyText || ''}
+                                  value={replyTexts[notification.id] || ''}
                                   onChange={(e) => handleReplyChange(notification.id, e.target.value)}
                                   className="flex-grow p-2 border border-gray-300 rounded-md shadow-sm sm:text-sm focus:outline-none focus:ring-2 focus:ring-offset-2"
                                   style={{
@@ -638,11 +643,11 @@ export default function TeacherDashboardPage() {
                                 />
                                 <button
                                   onClick={() => handleReplySubmit(notification.id)}
-                                  disabled={!notification.replyText?.trim()}
+                                  disabled={!replyTexts[notification.id]?.trim()}
                                   className="px-4 py-2 text-sm font-medium text-white rounded-lg hover:opacity-90 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all duration-200"
                                   style={{
-                                    backgroundColor: !notification.replyText?.trim() ? '#9CA3AF' : primaryColor,
-                                    boxShadow: !notification.replyText?.trim() ? 'none' : `0 2px 4px ${hexToRgba(primaryColor, 0.3)}`
+                                    backgroundColor: !replyTexts[notification.id]?.trim() ? '#9CA3AF' : primaryColor,
+                                    boxShadow: !replyTexts[notification.id]?.trim() ? 'none' : `0 2px 4px ${hexToRgba(primaryColor, 0.3)}`
                                   }}
                                 >
                                   Reply

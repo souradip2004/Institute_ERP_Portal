@@ -175,12 +175,9 @@ export default function ReportCard() {
         </p>
       </div>
 
-      <div className="text-right mt-8">
-        <Button onClick={() => handleDownloadPDF()} className="bg-gray-800 text-white">Download PDF</Button>
-      </div>
 
       <div className="text-xs text-center mt-6 text-gray-500">
-        Manager XYZ School | AI-Powered Performance Analysis
+        AI-Powered Performance Analysis
       </div>
     </div>
   );
