@@ -181,6 +181,74 @@ export default function AskTeacherPage() {
 
     fetchMessages();
   }, [selectedTeacher]);
+    useEffect(() => {
+      let intervalId: NodeJS.Timeout;
+     
+
+    const fetchMessages = async () => {
+
+      const studentId = JSON.parse(localStorage.getItem("user")!).studentId;
+      try {
+        const response = await fetch(`/api/notifications?teacherId=${selectedTeacher.id}&studentId=${studentId}`, {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include'
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch chat history');
+        }
+
+        const notifications: Notification[] = await response.json();
+
+        const chatMessages = notifications.flatMap(notification => {
+          const studentMessage: Message = {
+            id: notification.id,
+            content: notification.message,
+            sender: 'student',
+            timestamp: new Date(notification.createdAt),
+            isRead: notification.isRead,
+          };
+
+          const conversation: Message[] = [studentMessage];
+
+          if (notification.replyText) {
+            const teacherMessage: Message = {
+              id: `${notification.id}-reply`,
+              content: notification.replyText,
+              sender: 'teacher',
+              timestamp: new Date(notification.readAt || notification.createdAt),
+            };
+            conversation.push(teacherMessage);
+          }
+          return conversation;
+        }).sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+
+        setMessages(chatMessages);
+
+      } catch (err) {
+        console.error("Error fetching messages:", err);
+        setError("Failed to load chat history. Please try again.");
+      } finally {
+        setLoadingMessages(false);
+      }
+    };
+
+      
+        // Set up the interval to refresh notifications every 10 seconds
+        intervalId = setInterval(() => {
+          if(selectedTeacher)
+              fetchMessages();
+        }, 10000); // 10 seconds
+      
+  
+      // Clean up the interval when the component unmounts or teacherId changes
+      return () => {
+        if (intervalId) {
+          clearInterval(intervalId);
+        }
+      };
+    }, []);
 
   const fetchTeachers = async (studentTeacherCodes: string[]) => {
     try {

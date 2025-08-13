@@ -5,6 +5,7 @@ import { LogoutButton } from "@/components/auth/logout-button";
 import Loader from '@/components/ui/Loader';
 import axios from "axios";
 
+// Interface definitions remain the same
 interface Notification {
   id: string;
   title: string;
@@ -75,7 +76,6 @@ const ChatBubble: React.FC<{
       className={`relative py-2 px-4 shadow-sm text-sm max-w-[80%]`}
       style={bubbleStyles}
     >
-      {/* Apply text wrapping to the paragraph */}
       <p className="pr-12" style={{ overflowWrap: 'break-word', wordWrap: 'break-word' }}>
         {message}
       </p>
@@ -102,7 +102,6 @@ export default function TeacherDashboardPage() {
   const [classSectionId, setClassSectionId] = useState<string | null>(null);
   const [primaryColor, setPrimaryColor] = useState<string>('#3B82F6');
 
-  // Create a ref for each student's chat container
   const chatRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
 
   const hexToRgba = (hex: string, alpha: number = 1) => {
@@ -112,7 +111,22 @@ export default function TeacherDashboardPage() {
     const b = parseInt(cleanHex.substr(4, 2), 16);
     return `rgba(${r}, ${g}, ${b}, ${alpha})`;
   };
+  useEffect(() => {
+    let intervalId: NodeJS.Timeout;
+    if (teacherId) {
+      // Set up the interval to refresh notifications every 10 seconds
+      intervalId = setInterval(() => {
+        fetchNotifications();
+      }, 10000); // 10 seconds
+    }
 
+    // Clean up the interval when the component unmounts or teacherId changes
+    return () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+    };
+  }, [teacherId]);
   useEffect(() => {
     const temp = localStorage.getItem('primaryColor');
     if (temp) {
@@ -188,7 +202,6 @@ export default function TeacherDashboardPage() {
     loadData();
   }, [teacherId]);
 
-  // Auto-scroll effect
   useEffect(() => {
     expandedGroups.forEach(studentId => {
       const chatContainer = chatRefs.current[studentId];
@@ -603,11 +616,8 @@ export default function TeacherDashboardPage() {
                               />
                             </div>
                           ) : (
-                            //  group.notifications[0]?.id === notification.id && (
-
-
                             <div className="w-full flex justify-end mt-2">
-<div className="flex items-center space-x-2 w-full sm:max-w-[50%] lg:max-w-[80%]">
+                              <div className="flex items-center space-x-2 w-full sm:max-w-[50%] lg:max-w-[80%]">
                                 <input
                                   type="text"
                                   placeholder="Type your reply..."
@@ -639,7 +649,6 @@ export default function TeacherDashboardPage() {
                                 </button>
                               </div>
                             </div>
-                            //)
                           )}
                         </React.Fragment>
                       ))}
@@ -661,7 +670,8 @@ export default function TeacherDashboardPage() {
               View All Classes
             </Link>
           </div>
-          <div className="overflow-x-auto">
+          {/* Desktop Table View */}
+          <div className="overflow-x-auto hidden md:block">
             <table className="min-w-full">
               <thead>
                 <tr className="border-b" style={{ borderBottomColor: primaryColor }}>
@@ -701,6 +711,31 @@ export default function TeacherDashboardPage() {
               </tbody>
             </table>
           </div>
+          {/* Mobile Card View */}
+          <div className="md:hidden space-y-4">
+            {assignments.length > 0 ? (
+              assignments.map((assignment) => (
+                <div key={assignment.id} className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+                  <div className="flex justify-between items-center mb-2">
+                    <h4 className="font-bold text-lg" style={{ color: primaryColor }}>{assignment.title}</h4>
+                    <span className={`px-2 py-1 text-xs font-semibold rounded-full ${assignment.status === 'Completed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                      {assignment.status}
+                    </span>
+                  </div>
+                  <div className="text-gray-600 space-y-1 text-sm">
+                    <p><span className="font-medium">Class:</span> {assignment.class}</p>
+                    <p><span className="font-medium">Subject:</span> {assignment.subject}</p>
+                    <p><span className="font-medium">Due Date:</span> {assignment.dueDate}</p>
+                    <p><span className="font-medium">Submissions:</span> {assignment.submissions}</p>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <p className="py-6 text-center text-gray-500">
+                No assignments found
+              </p>
+            )}
+          </div>
         </div>
 
         {/* Upcoming Exams */}
@@ -715,7 +750,8 @@ export default function TeacherDashboardPage() {
               View All Exams
             </Link>
           </div>
-          <div className="overflow-x-auto">
+          {/* Desktop Table View */}
+          <div className="overflow-x-auto hidden md:block">
             <table className="min-w-full">
               <thead>
                 <tr className="border-b" style={{ borderBottomColor: primaryColor }}>
@@ -752,6 +788,30 @@ export default function TeacherDashboardPage() {
                 )}
               </tbody>
             </table>
+          </div>
+          {/* Mobile Card View */}
+          <div className="md:hidden space-y-4">
+            {exams.length > 0 ? (
+              exams.map((exam) => (
+                <div key={exam.id} className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+                  <div className="flex justify-between items-center mb-2">
+                    <h4 className="font-bold text-lg" style={{ color: primaryColor }}>{exam.title}</h4>
+                    <span className={`px-2 py-1 text-xs font-semibold rounded-full ${exam.status === 'Scheduled' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'}`}>
+                      {exam.status}
+                    </span>
+                  </div>
+                  <div className="text-gray-600 space-y-1 text-sm">
+                    <p><span className="font-medium">Class:</span> {exam.class}</p>
+                    <p><span className="font-medium">Subject:</span> {exam.subject}</p>
+                    <p><span className="font-medium">Date:</span> {exam.date}</p>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <p className="py-6 text-center text-gray-500">
+                No exams found
+              </p>
+            )}
           </div>
         </div>
       </div>
