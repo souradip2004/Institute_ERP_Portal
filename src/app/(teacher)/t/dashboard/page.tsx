@@ -4,6 +4,29 @@ import Link from "next/link";
 import { LogoutButton } from "@/components/auth/logout-button";
 import Loader from '@/components/ui/Loader';
 import axios from "axios";
+import { uploadImageToCloudinary } from "@/utils/uploadImageToCloudinary";
+import {
+  Bell,
+  CheckCheck,
+  Plus,
+  Image as ImageIcon,
+  Paperclip,
+  Reply,
+  ArrowRight,
+  ChevronDown,
+  ChevronUp,
+  Files,
+  Calendar,
+  BookOpen,
+  Send,
+} from 'lucide-react';
+
+// Interface for rich message content
+interface MessageContent {
+  text: string | null;
+  image: string | null;
+  file: { url: string; name: string } | null;
+}
 
 // Interface definitions remain the same
 interface Notification {
@@ -51,6 +74,7 @@ interface ClassAttendance {
   percentage: number;
 }
 
+// UPDATED: ChatBubble to handle rich message content and use Lucide icons
 const ChatBubble: React.FC<{
   message: string;
   timestamp: string;
@@ -59,26 +83,50 @@ const ChatBubble: React.FC<{
 }> = ({ message, timestamp, isSender, primaryColor }) => {
   const bubbleStyles = isSender
     ? {
-      backgroundColor: primaryColor,
-      color: 'white',
-      borderRadius: '1.25rem 1.25rem 0.25rem 1.25rem',
-      alignSelf: 'flex-end',
-    }
+        backgroundColor: primaryColor,
+        color: 'white',
+        borderRadius: '1.25rem 1.25rem 0.25rem 1.25rem',
+        alignSelf: 'flex-end',
+      }
     : {
-      backgroundColor: '#E5E7EB',
-      color: '#1F2937',
-      borderRadius: '1.25rem 1.25rem 1.25rem 0.25rem',
-      alignSelf: 'flex-start',
-    };
+        backgroundColor: '#E5E7EB',
+        color: '#1F2937',
+        borderRadius: '1.25rem 1.25rem 1.25rem 0.25rem',
+        alignSelf: 'flex-start',
+      };
+
+  let content: MessageContent = { text: message, image: null, file: null };
+  // Try to parse the message as JSON for rich content
+  if (message && message.startsWith('{')) {
+    try {
+      content = JSON.parse(message);
+    } catch (e) {
+      // If parsing fails, treat as plain text
+      content = { text: message, image: null, file: null };
+    }
+  }
 
   return (
     <div
       className={`relative py-2 px-4 shadow-sm text-sm max-w-[80%]`}
       style={bubbleStyles}
     >
-      <p className="pr-12" style={{ overflowWrap: 'break-word', wordWrap: 'break-word' }}>
-        {message}
-      </p>
+      {content.text && (
+        <p className="pr-12" style={{ overflowWrap: 'break-word', wordWrap: 'break-word' }}>
+          {content.text}
+        </p>
+      )}
+      {content.image && (
+        <img src={content.image} alt="Sent image" className="pr-12 mt-2 rounded-lg max-h-48 object-contain" />
+      )}
+      {content.file && (
+        <div className="pr-12 mt-2 flex items-center space-x-2">
+          <Files size={16} />
+          <a href={content.file.url} download={content.file.name} className={`underline text-sm ${isSender ? 'text-white' : 'text-gray-800'}`}>
+            {content.file.name}
+          </a>
+        </div>
+      )}
       <span
         className={`absolute bottom-1 text-xs ${isSender ? 'right-2 text-white/75' : 'right-2 text-gray-500'
           }`}
@@ -102,10 +150,19 @@ export default function TeacherDashboardPage() {
   const [teacherId, setTeacherId] = useState<string | null>(null);
   const [classSectionId, setClassSectionId] = useState<string | null>(null);
   const [primaryColor, setPrimaryColor] = useState<string>('#3B82F6');
-  const [replyTexts, setReplyTexts] = useState<{ [key: string]: string }>({});
+  
+  // State to handle rich replies for each notification
+  const [replyContents, setReplyContents] = useState<{ [key: string]: MessageContent }>({});
+  // State to toggle attachment options on mobile
+  const [showAttachments, setShowAttachments] = useState<{ [key: string]: boolean }>({});
+  // NEW: State to manage uploading status
+  const [uploading, setUploading] = useState<{ [key: string]: boolean }>({});
 
   const chatRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
   const prevNotificationsRef = useRef<GroupedNotification[]>([]);
+  
+  const imageInputRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
+  const fileInputRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
 
   const hexToRgba = (hex: string, alpha: number = 1) => {
     const cleanHex = hex.replace('#', '');
@@ -264,51 +321,109 @@ export default function TeacherDashboardPage() {
     }
   };
 
-  const handleReplyChange = (notificationId: string, text: string) => {
-    setReplyTexts(prev => ({
+  const handleReplyContentChange = (notificationId: string, field: keyof MessageContent, value: string | { url: string; name: string } | null) => {
+    setReplyContents(prev => ({
       ...prev,
-      [notificationId]: text,
+      [notificationId]: {
+        ...prev[notificationId],
+        [field]: value,
+      }
+    }));
+  };
+
+  const handleReplyFileChange = async(notificationId: string, event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setUploading(prev => ({ ...prev, [notificationId]: true }));
+      try {
+        const publicUrl=await uploadImageToCloudinary(file);
+        handleReplyContentChange(notificationId, 'file', { url: publicUrl, name: file.name });
+      } catch (error) {
+        console.error("File upload failed:", error);
+        alert("Failed to upload file. Please try again.");
+      } finally {
+        setUploading(prev => ({ ...prev, [notificationId]: false }));
+        event.target.value = '';
+        setShowAttachments(prev => ({ ...prev, [notificationId]: false }));
+      }
+    }
+  };
+
+  const handleReplyImageChange = async (notificationId: string, event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setUploading(prev => ({ ...prev, [notificationId]: true }));
+      try {
+        const publicUrl = await uploadImageToCloudinary(file);
+        handleReplyContentChange(notificationId, 'image', publicUrl);
+        event.target.value = '';
+        setShowAttachments(prev => ({ ...prev, [notificationId]: false }));
+      } catch (error) {
+        console.error("Image upload failed:", error);
+        alert("Failed to upload image. Please try again.");
+      } finally {
+        setUploading(prev => ({ ...prev, [notificationId]: false }));
+      }
+    }
+  };
+
+  const handleRemoveAttachment = (notificationId: string) => {
+    const newReplyContent = { text: replyContents[notificationId]?.text || '', image: null, file: null };
+    setReplyContents(prev => ({
+      ...prev,
+      [notificationId]: newReplyContent,
+    }));
+  };
+
+  const toggleAttachments = (notificationId: string) => {
+    setShowAttachments(prev => ({
+      ...prev,
+      [notificationId]: !prev[notificationId]
     }));
   };
 
   const handleReplySubmit = async (notificationId: string) => {
-    const replyText = replyTexts[notificationId]?.trim();
-    if (replyText) {
-      try {
-        const response = await axios.put(
-          '/api/notifications/saveReply',
-          {
-            notificationId,
-            teacherId,
-            replyText: replyText,
-          }
-        );
+    const currentReplyContent = replyContents[notificationId];
+    const hasContent = currentReplyContent?.text || currentReplyContent?.image || currentReplyContent?.file;
 
-        if (response.data && response.data.notifications) {
-          const updatedNotifications = response.data.notifications.map((n: Notification) => ({
-            ...n,
-            replyExists: !!n.replyText?.trim(),
-          }));
+    if (!hasContent) return;
 
-          const grouped = updatedNotifications.reduce((acc: { [key: string]: GroupedNotification }, notification: Notification) => {
-            const studentId = notification.studentId || "unknown";
-            const studentName = notification.title.split(":")[0]?.trim() || "Unknown Student";
-            if (!acc[studentId]) {
-              acc[studentId] = { studentId, studentName, notifications: [] };
-            }
-            acc[studentId].notifications.push(notification);
-            return acc;
-          }, {});
-          setGroupedNotifications(Object.values(grouped));
-          setReplyTexts(prev => {
-            const newReplyTexts = { ...prev };
-            delete newReplyTexts[notificationId];
-            return newReplyTexts;
-          });
+    try {
+      const stringifiedReply = JSON.stringify(currentReplyContent);
+
+      const response = await axios.put(
+        '/api/notifications/saveReply',
+        {
+          notificationId,
+          teacherId,
+          replyText: stringifiedReply,
         }
-      } catch (err) {
-        console.error("Failed to submit reply:", err);
+      );
+
+      if (response.data && response.data.notifications) {
+        const updatedNotifications = response.data.notifications.map((n: Notification) => ({
+          ...n,
+          replyExists: !!n.replyText?.trim(),
+        }));
+
+        const grouped = updatedNotifications.reduce((acc: { [key: string]: GroupedNotification }, notification: Notification) => {
+          const studentId = notification.studentId || "unknown";
+          const studentName = notification.title.split(":")[0]?.trim() || "Unknown Student";
+          if (!acc[studentId]) {
+            acc[studentId] = { studentId, studentName, notifications: [] };
+          }
+          acc[studentId].notifications.push(notification);
+          return acc;
+        }, {});
+        setGroupedNotifications(Object.values(grouped));
+        setReplyContents(prev => {
+          const newReplyContents = { ...prev };
+          delete newReplyContents[notificationId];
+          return newReplyContents;
+        });
       }
+    } catch (err) {
+      console.error("Failed to submit reply:", err);
     }
   };
 
@@ -553,6 +668,10 @@ export default function TeacherDashboardPage() {
     );
   }
 
+  const getReplyContentForNotification = (notificationId: string): MessageContent => {
+    return replyContents[notificationId] || { text: '', image: null, file: null };
+  };
+
   return (
     <div className="min-h-screen bg-gray-100 p-4">
       <div className="max-w-7xl mx-auto space-y-6">
@@ -565,17 +684,23 @@ export default function TeacherDashboardPage() {
 
         <div className="bg-white p-6 rounded-lg shadow-sm border-l-4" style={{ borderLeftColor: primaryColor }}>
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold" style={{ color: primaryColor }}>Notifications</h2>
+            <h2 className="text-xl font-semibold" style={{ color: primaryColor }}>
+              <div className="flex items-center space-x-2">
+                <Bell size={24} />
+                <span>Notifications</span>
+              </div>
+            </h2>
             {groupedNotifications.length > 0 && (
               <button
                 onClick={handleMarkAllAsRead}
-                className="px-4 py-2 text-sm font-medium text-white rounded-lg hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2"
+                className="px-4 py-2 text-sm font-medium text-white rounded-lg hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 flex items-center space-x-1"
                 style={{
                   backgroundColor: primaryColor,
                   '--tw-ring-color': primaryColor
                 } as React.CSSProperties}
               >
-                Mark all as Read
+                <CheckCheck size={16} />
+                <span>Mark all as Read</span>
               </button>
             )}
           </div>
@@ -595,7 +720,7 @@ export default function TeacherDashboardPage() {
                       </span>
                     </div>
                     <span>
-                      {expandedGroups.includes(group.studentId) ? '▲' : '▼'}
+                      {expandedGroups.includes(group.studentId) ? <ChevronUp size={24} /> : <ChevronDown size={24} />}
                     </span>
                   </button>
                   {expandedGroups.includes(group.studentId) && (
@@ -603,60 +728,147 @@ export default function TeacherDashboardPage() {
                       ref={(el) => (chatRefs.current[group.studentId] = el)}
                       className="p-4 space-y-4 flex flex-col items-start w-full max-h-96 overflow-y-auto"
                     >
-                      {group.notifications.slice().reverse().map((notification) => (
-                        <React.Fragment key={notification.id}>
-                          <ChatBubble
-                            message={notification.message}
-                            timestamp={getTimeAgo(notification.createdAt)}
-                            isSender={false}
-                            primaryColor={primaryColor}
-                          />
-                          {notification.replyExists ? (
-                            <div className="w-full flex justify-end">
-                              <ChatBubble
-                                message={notification.replyText || ''}
-                                timestamp={getTimeAgo(notification.createdAt)}
-                                isSender={true}
-                                primaryColor={primaryColor}
-                              />
-                            </div>
-                          ) : (
-                            <div className="w-full flex justify-end mt-2">
-                              <div className="flex items-center space-x-2 w-full sm:max-w-[50%] lg:max-w-[80%]">
-                                <input
-                                  type="text"
-                                  placeholder="Type your reply..."
-                                  value={replyTexts[notification.id] || ''}
-                                  onChange={(e) => handleReplyChange(notification.id, e.target.value)}
-                                  className="flex-grow p-2 border border-gray-300 rounded-md shadow-sm sm:text-sm focus:outline-none focus:ring-2 focus:ring-offset-2"
-                                  style={{
-                                    '--tw-ring-color': primaryColor
-                                  } as React.CSSProperties}
-                                  onFocus={(e) => {
-                                    e.target.style.borderColor = primaryColor;
-                                    e.target.style.boxShadow = `0 0 0 2px ${hexToRgba(primaryColor, 0.25)}`;
-                                  }}
-                                  onBlur={(e) => {
-                                    e.target.style.borderColor = '#D1D5DB';
-                                    e.target.style.boxShadow = 'none';
-                                  }}
+                      {group.notifications.slice().reverse().map((notification) => {
+                        const replyContent = getReplyContentForNotification(notification.id);
+                        return (
+                          <React.Fragment key={notification.id}>
+                            <ChatBubble
+                              message={notification.message}
+                              timestamp={getTimeAgo(notification.createdAt)}
+                              isSender={false}
+                              primaryColor={primaryColor}
+                            />
+                            {notification.replyExists ? (
+                              <div className="w-full flex justify-end">
+                                <ChatBubble
+                                  message={notification.replyText || ''}
+                                  timestamp={getTimeAgo(notification.createdAt)}
+                                  isSender={true}
+                                  primaryColor={primaryColor}
                                 />
-                                <button
-                                  onClick={() => handleReplySubmit(notification.id)}
-                                  disabled={!replyTexts[notification.id]?.trim()}
-                                  className="px-4 py-2 text-sm font-medium text-white rounded-lg hover:opacity-90 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all duration-200"
-                                  style={{
-                                    backgroundColor: !replyTexts[notification.id]?.trim() ? '#9CA3AF' : primaryColor,
-                                    boxShadow: !replyTexts[notification.id]?.trim() ? 'none' : `0 2px 4px ${hexToRgba(primaryColor, 0.3)}`
-                                  }}
-                                >
-                                  Reply
-                                </button>
                               </div>
-                            </div>
-                          )}
-                        </React.Fragment>
-                      ))}
+                            ) : (
+                              <div className="w-full flex justify-end mt-2">
+                                <div className="relative flex flex-col space-y-2 max-w-[95%] sm:max-w-[80%]">
+                                  {/* Preview of attachments */}
+                                  {(replyContent.image || replyContent.file) && (
+                                    <div className="flex items-center justify-between p-2 rounded-lg" style={{ backgroundColor: hexToRgba(primaryColor, 0.1) }}>
+                                      {uploading[notification.id] ? (
+                                        <div className="flex items-center space-x-2 text-sm text-gray-800">
+                                          <Loader size="small" />
+                                          <span>Uploading...</span>
+                                        </div>
+                                      ) : (
+                                        <>
+                                          {replyContent.image && (
+                                            <div className="flex items-center space-x-2">
+                                              <img src={replyContent.image} alt="preview" className="h-8 w-8 object-cover rounded" />
+                                              <span className="text-sm text-gray-800">Image attached</span>
+                                            </div>
+                                          )}
+                                          {replyContent.file && (
+                                            <div className="flex items-center space-x-2">
+                                              <Files size={20} />
+                                              <span className="text-sm text-gray-800">{replyContent.file.name}</span>
+                                            </div>
+                                          )}
+                                        </>
+                                      )}
+                                      <button onClick={() => handleRemoveAttachment(notification.id)} className="text-gray-500 hover:text-gray-800">
+                                        &times;
+                                      </button>
+                                    </div>
+                                  )}
+
+                                  <div className="flex items-center space-x-1 sm:space-x-2 w-full">
+                                    <input
+                                      type="text"
+                                      placeholder="Type your reply..."
+                                      value={replyContent.text || ''}
+                                      onChange={(e) => handleReplyContentChange(notification.id, 'text', e.target.value)}
+                                      className="flex-grow p-2 border border-gray-300 rounded-md shadow-sm text-sm focus:outline-none focus:ring-2 focus:ring-offset-2"
+                                      style={{
+                                        '--tw-ring-color': primaryColor
+                                      } as React.CSSProperties}
+                                    />
+                                    {/* Mobile plus button to toggle attachments */}
+                                    <button
+                                      type="button"
+                                      onClick={() => toggleAttachments(notification.id)}
+                                      className="p-1 sm:hidden text-gray-500 hover:text-purple-600 focus:outline-none focus:ring-2 focus:ring-offset-2 rounded-full"
+                                      style={{ '--tw-ring-color': primaryColor } as React.CSSProperties}
+                                    >
+                                      <Plus size={24} />
+                                    </button>
+
+                                    {/* Desktop attachment buttons */}
+                                    <input
+                                      type="file"
+                                      accept="image/*"
+                                      ref={el => imageInputRefs.current[notification.id] = el}
+                                      className="hidden"
+                                      onChange={(e) => handleReplyImageChange(notification.id, e)}
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={() => imageInputRefs.current[notification.id]?.click()}
+                                      className="hidden sm:block p-1 text-gray-500 hover:text-purple-600"
+                                    >
+                                      <ImageIcon size={24} />
+                                    </button>
+                                    <input
+                                      type="file"
+                                      accept="*/*"
+                                      ref={el => fileInputRefs.current[notification.id] = el}
+                                      className="hidden"
+                                      onChange={(e) => handleReplyFileChange(notification.id, e)}
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={() => fileInputRefs.current[notification.id]?.click()}
+                                      className="hidden sm:block p-1 text-gray-500 hover:text-purple-600"
+                                    >
+                                      <Paperclip size={24} />
+                                    </button>
+
+                                    <button
+                                      onClick={() => handleReplySubmit(notification.id)}
+                                      disabled={!(replyContent.text || replyContent.image || replyContent.file) || uploading[notification.id]}
+                                      className="px-2 py-2 text-sm font-medium text-white rounded-lg hover:opacity-90 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all duration-200"
+                                      style={{
+                                        backgroundColor: !(replyContent.text || replyContent.image || replyContent.file) ? '#9CA3AF' : primaryColor,
+                                        boxShadow: !(replyContent.text || replyContent.image || replyContent.file) ? 'none' : `0 2px 4px ${hexToRgba(primaryColor, 0.3)}`
+                                      }}
+                                    >
+                                      <Send size={16} />
+                                    </button>
+                                  </div>
+                                  {/* Mobile attachments popover */}
+                                  {showAttachments[notification.id] && (
+                                    <div className="absolute bottom-full right-0 mb-2 flex space-x-2 p-2 bg-white rounded-lg shadow-lg z-10 sm:hidden">
+                                      {/* Buttons for Image and File */}
+                                      <button
+                                        type="button"
+                                        onClick={() => imageInputRefs.current[notification.id]?.click()}
+                                        className="p-2 text-gray-500 hover:text-purple-600 rounded-full bg-gray-100"
+                                      >
+                                        <ImageIcon size={20} />
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => fileInputRefs.current[notification.id]?.click()}
+                                        className="p-2 text-gray-500 hover:text-purple-600 rounded-full bg-gray-100"
+                                      >
+                                        <Paperclip size={20} />
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                          </React.Fragment>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
@@ -670,9 +882,15 @@ export default function TeacherDashboardPage() {
         {/* Recent Assignments */}
         <div className="bg-white p-6 rounded-lg shadow-sm border-l-4" style={{ borderLeftColor: primaryColor }}>
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold" style={{ color: primaryColor }}>Recent Assignments</h2>
-            <Link href={"/t/classes/" as any} className="hover:opacity-80" style={{ color: primaryColor }}>
-              View All Classes
+            <h2 className="text-xl font-semibold" style={{ color: primaryColor }}>
+              <div className="flex items-center space-x-2">
+                <BookOpen size={24} />
+                <span>Recent Assignments</span>
+              </div>
+            </h2>
+            <Link href={"/t/classes/" as any} className="hover:opacity-80 flex items-center space-x-1" style={{ color: primaryColor }}>
+              <span>View All Classes</span>
+              <ArrowRight size={16} />
             </Link>
           </div>
           {/* Desktop Table View */}
@@ -746,13 +964,19 @@ export default function TeacherDashboardPage() {
         {/* Upcoming Exams */}
         <div className="bg-white p-6 rounded-lg shadow-sm border-l-4" style={{ borderLeftColor: primaryColor }}>
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold" style={{ color: primaryColor }}>Upcoming Exams</h2>
+            <h2 className="text-xl font-semibold" style={{ color: primaryColor }}>
+              <div className="flex items-center space-x-2">
+                <Calendar size={24} />
+                <span>Upcoming Exams</span>
+              </div>
+            </h2>
             <Link
               href={`/t/classes/${classId}/exams` as any}
-              className="hover:opacity-80"
+              className="hover:opacity-80 flex items-center space-x-1"
               style={{ color: primaryColor }}
             >
-              View All Exams
+              <span>View All Exams</span>
+              <ArrowRight size={16} />
             </Link>
           </div>
           {/* Desktop Table View */}
