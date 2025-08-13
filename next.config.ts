@@ -35,7 +35,7 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: "https",
-        hostname: "aiclassroomin.s3.eu-north-1.amazonaws.com",
+        hostname: "classroomaiin.s3.eu-north-1.amazonaws.com",
         pathname: "/**",
       }
     ],

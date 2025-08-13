@@ -36,8 +36,8 @@ export async function POST(request: Request) {
       );
     }
 AWS.config.update({
-  accessKeyId: "AKIAXFZ5FAAT747U6IN6",
-  secretAccessKey: "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",
+  accessKeyId: "AKIA3ISJV5CFV32HVXFR",
+  secretAccessKey: "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",
   region: "eu-north-1"
 });
 
@@ -130,10 +130,10 @@ const staticUpiUri = createUpiUri(
   null
 );
 
-const myBucket = "aiclassroomin";
+const myBucket = "classroomaiin";
 const staticFileName = `upi-static-qrcode-${Date.now()}.png`;
 
-const logoUrl = "https://aiclassroomin.s3.eu-north-1.amazonaws.com/uploads/AI%20Classroom%20LOGO%20%281%29.png"; 
+const logoUrl = "https://classroomaiin.s3.eu-north-1.amazonaws.com/uploads/AI%20Classroom%20LOGO%20%281%29.png"; 
 console.log("Generating static QR code with logo for URI:", staticUpiUri);
 const upiurl= await generateAndUploadQRCodeWithLogo(staticUpiUri, logoUrl, myBucket, staticFileName);
 const newFees = await prisma.fees.create({
@@ -214,8 +214,8 @@ export async function PATCH(request: Request) {
       );
     }
 AWS.config.update({
-  accessKeyId: "AKIAXFZ5FAAT747U6IN6",
-  secretAccessKey: "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",
+  accessKeyId: "AKIA3ISJV5CFV32HVXFR",
+  secretAccessKey: "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",
   region: "eu-north-1"
 });
 
@@ -308,10 +308,10 @@ const staticUpiUri = createUpiUri(
   null
 );
 
-const myBucket = "aiclassroomin";
+const myBucket = "classroomaiin";
 const staticFileName = `upi-static-qrcode-${Date.now()}.png`;
 
-const logoUrl = "https://aiclassroomin.s3.eu-north-1.amazonaws.com/uploads/AI%20Classroom%20LOGO%20%281%29.png"; 
+const logoUrl = "https://classroomaiin.s3.eu-north-1.amazonaws.com/uploads/AI%20Classroom%20LOGO%20%281%29.png"; 
 console.log("Generating static QR code with logo for URI:", staticUpiUri);
 const upiurl= await generateAndUploadQRCodeWithLogo(staticUpiUri, logoUrl, myBucket, staticFileName);
     const updatedFeesDetail = await prisma.fees.update({

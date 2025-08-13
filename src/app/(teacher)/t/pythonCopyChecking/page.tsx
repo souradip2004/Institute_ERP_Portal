@@ -127,7 +127,7 @@ export default function TeacherPage({ params }: { params: { id: string } }) {
             'Authorization': 'Bearer ALXP7mhHyKz1MQATKH7CIQXK9VQBpvoNNuxPvLONWyPCfgemj18cz2T74r4drBpvOkf-3orOQT_6r-63mHPZAA=='
           },
           body: JSON.stringify({
-            'file_url_list': ["https://aiclassroomin.s3.eu-north-1.amazonaws.com/" + pdfUrl]
+            'file_url_list': ["https://classroomaiin.s3.eu-north-1.amazonaws.com/" + pdfUrl]
           })
         })
         if (!getPythonResponse.ok) {

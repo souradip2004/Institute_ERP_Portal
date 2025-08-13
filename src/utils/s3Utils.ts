@@ -9,8 +9,8 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 const s3Client = new S3Client({
   region: "eu-north-1",
   credentials: {
-    accessKeyId: "AKIAXFZ5FAAT747U6IN6",
-    secretAccessKey:"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",
+    accessKeyId: "AKIA3ISJV5CFV32HVXFR",
+    secretAccessKey:"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",
   },
 });
 
@@ -22,7 +22,7 @@ export class S3Utils {
   ): Promise<string> {
     const key = `assignments/${Date.now()}_${fileName}`;
     const command = new PutObjectCommand({
-      Bucket: "aiclassroomin",
+      Bucket: "classroomaiin",
       Key: key,
       Body: file,
       ContentType: contentType,
@@ -38,7 +38,7 @@ console.log("region: ", process.env.AWS_REGION);
 
   static async getFileUrl(key: string): Promise<string> {
     const command = new GetObjectCommand({
-      Bucket: "aiclassroomin",
+      Bucket: "classroomaiin",
       Key: key,
     });
 
@@ -46,12 +46,12 @@ console.log("region: ", process.env.AWS_REGION);
   }
 
   static getPublicUrl(key: string): string {
-    return `https://aiclassroomin.s3.eu-north-1.amazonaws.com/${key}`;
+    return `https://classroomaiin.s3.eu-north-1.amazonaws.com/${key}`;
   }
 
   static async deleteFile(key: string): Promise<void> {
     const command = new DeleteObjectCommand({
-      Bucket: "aiclassroomin",
+      Bucket: "classroomaiin",
       Key: key,
     });
 
