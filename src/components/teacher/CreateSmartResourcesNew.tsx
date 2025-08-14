@@ -7,6 +7,7 @@ import { set } from 'date-fns';
 import type { ChangeEvent } from 'react';
 import { Loader, Book, UploadCloud, X as CloseIcon, FileText, MicOff, Eye } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
+import * as SpeechSDK from "microsoft-cognitiveservices-speech-sdk";
 
 // SVG Icons as functional components for cleanliness
 const SearchIcon = () => (
@@ -75,9 +76,9 @@ function CreateSmartResources() {
     // --- New State for PDF Preview ---
     const [previewPdfUrl, setPreviewPdfUrl] = useState<string | null>(null); // Stores the URL of the PDF to preview
 
-    // Moved to .env for better practice
-    const subscriptionKey = process.env.NEXT_PUBLIC_AZURE_SPEECH_KEY;
-    const serviceRegion = process.env.NEXT_PUBLIC_AZURE_SPEECH_REGION;
+    // Speech recognition configuration
+    const SPEECH_KEY = '6zQzqxHdwbLPgH305XlO9WwdUCwAi7vKCmO3Iey4ns86u0cKi6gQJQQJ99BFACYeBjFXJ3w3AAAYACOGNXmu';
+    const SPEECH_REGION = 'eastus';
 
     const blobpdf = async (pdfs: string) => {
         const proxyUrlBase = 'https://api.aiclassroom.in/proxy-pdf?url='; // Base URL for the proxy
@@ -108,6 +109,7 @@ function CreateSmartResources() {
         if (userId) loadNoOfResources();
 
         return () => {
+            // Cleanup speech recognition on unmount
             if (recognizerRef.current) {
                 recognizerRef.current.stopContinuousRecognitionAsync();
                 recognizerRef.current.close();
@@ -159,17 +161,40 @@ function CreateSmartResources() {
         return () => clearTimeout(debounceTimer);
     }, [topic, uploadedFile, recognizing, fetchPdfsForTopic]); // Add fetchPdfsForTopic to dependencies
 
-    const stopRecognition = () => {
+    const stopRecognition = useCallback(() => {
         if (recognizerRef.current) {
-            recognizerRef.current.stopContinuousRecognitionAsync(() => {
+            try {
+                recognizerRef.current.stopContinuousRecognitionAsync(
+                    () => {
+                        setRecognizing(false);
+                        if (recognizerRef.current) {
+                            recognizerRef.current.close();
+                            recognizerRef.current = null;
+                        }
+                    },
+                    (err) => {
+                        console.error("Error stopping recognition:", err);
+                        setRecognizing(false);
+                        if (recognizerRef.current) {
+                            recognizerRef.current.close();
+                            recognizerRef.current = null;
+                        }
+                    }
+                );
+            } catch (error) {
+                console.error("Error in stopRecognition:", error);
                 setRecognizing(false);
-                recognizerRef.current.close();
-                recognizerRef.current = null;
-            });
+                if (recognizerRef.current) {
+                    recognizerRef.current.close();
+                    recognizerRef.current = null;
+                }
+            }
+        } else {
+            setRecognizing(false);
         }
-    };
+    }, []);
 
-    const startRecognition = () => {
+    const startRecognition = useCallback(() => {
         if (recognizing) {
             stopRecognition();
             return;
@@ -179,31 +204,79 @@ function CreateSmartResources() {
             recognizerRef.current.close();
         }
 
-        if (!subscriptionKey || !serviceRegion) {
-            alert(translator("Speech recognition not configured. Please set Azure Speech Key and Region in .env.", "भाषण पहचान कॉन्फ़िगर नहीं है। कृपया .env में एज़्योर स्पीच कुंजी और क्षेत्र सेट करें।"));
+        if (!SPEECH_KEY || !SPEECH_REGION) {
+            alert('Speech recognition not configured. Please set Azure Speech Key and Region in .env.');
             return;
         }
 
-        // Note: This would require Microsoft Cognitive Services Speech SDK
-        // For now, we'll just simulate the functionality
-        setRecognizing(true);
-        setTranscript('');
-        setTopic(''); // Clear topic when starting recognition
-        setUploadedFile(null); // Clear uploaded file if starting voice recognition
-        setFileName('');
-        setPdfUrl(''); // Clear any selected PDF
-        setFetchedPdfs([]); // Clear fetched PDFs
-        setDisplayPdfCount(0);
-        setShowPdfOptions(false);
-        setPreviewPdfUrl(null); // Clear any open preview
+        try {
+            // Clear states when starting recognition
+            setRecognizing(true);
+            setTranscript('');
+            setTopic(''); // Clear topic when starting recognition
+            setUploadedFile(null); // Clear uploaded file if starting voice recognition
+            setFileName('');
+            setPdfUrl(''); // Clear any selected PDF
+            setFetchedPdfs([]); // Clear fetched PDFs
+            setDisplayPdfCount(0);
+            setShowPdfOptions(false);
+            setPreviewPdfUrl(null); // Clear any open preview
 
-        // Simulate recognition (replace with actual implementation)
-        setTimeout(() => {
+            // Initialize Azure Speech SDK
+            const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(SPEECH_KEY, SPEECH_REGION);
+            speechConfig.speechRecognitionLanguage = "en-IN";
+
+            const audioConfig = SpeechSDK.AudioConfig.fromDefaultMicrophoneInput();
+            const recognizer = new SpeechSDK.SpeechRecognizer(speechConfig, audioConfig);
+
+            recognizer.recognizing = (_, e) => {
+                setTranscript(e.result.text);
+            };
+
+            recognizer.recognized = (_, e) => {
+                if (e.result.reason === SpeechSDK.ResultReason.RecognizedSpeech) {
+                    const finalText = e.result.text.trim();
+                    if (finalText) {
+                        setTranscript(finalText);
+                        setTopic(finalText);
+                    }
+                }
+            };
+
+            recognizer.canceled = (_, e) => {
+                console.error("Recognition canceled:", e.errorDetails);
+                setRecognizing(false);
+                if (recognizerRef.current) {
+                    recognizerRef.current.close();
+                    recognizerRef.current = null;
+                }
+            };
+
+            recognizer.sessionStopped = () => {
+                setRecognizing(false);
+                if (recognizerRef.current) {
+                    recognizerRef.current.close();
+                    recognizerRef.current = null;
+                }
+            };
+
+            recognizer.startContinuousRecognitionAsync(
+                () => {
+                    console.log("Speech recognition started successfully");
+                },
+                (err) => {
+                    console.error("Failed to start speech recognition:", err);
+                    setRecognizing(false);
+                }
+            );
+
+            recognizerRef.current = recognizer;
+        } catch (error) {
+            console.error("Error initializing speech recognition:", error);
             setRecognizing(false);
-            setTranscript("Sample recognized text");
-            setTopic("Sample recognized text");
-        }, 3000);
-    };
+            alert(translator("Failed to initialize speech recognition. Please check your microphone permissions.", "भाषण पहचान प्रारंभ करने में विफल। कृपया अपनी माइक्रोफ़ोन अनुमतियाँ जाँचें।"));
+        }
+    }, [recognizing, stopRecognition, SPEECH_KEY, SPEECH_REGION]);
 
     const onDrop = useCallback(async (acceptedFiles: File[]) => {
         const file = acceptedFiles[0];
@@ -297,51 +370,6 @@ function CreateSmartResources() {
     };
 
     const handleUseSuggestedPdf = async (selectedPdfLink: string) => {
-        try {
-            const url = `${process.env.NEXT_PUBLIC_BACKEND_1_SERVER_URL}/coins/${userId}`;
-            const response = await axios.get(url);
-            console.log('response coin get---', response);
-            const freeCoins = response.data.data.freeCoins;
-            const premiumCoins = response.data.data.premiumCoins;
-            const planType = response.data.data.planType;
-            console.log('planType , freeCoins, premiumCoins ---', planType, freeCoins, premiumCoins);
-
-            if (planType === 'freemium') {
-                try {
-                    const response = await axios.patch(`${process.env.NEXT_PUBLIC_BACKEND_1_SERVER_URL}/coins/decrementFreeCoins`, {
-                        "userId": userId,
-                        "noOfCoins": 0.4
-                    });
-                } catch (error) {
-                    console.log('1');
-                    alert('Insufficient free coins. Please upgrade to premium or try again later.');
-                    return;
-                }
-            } else {
-                try {
-                    const response = await axios.patch(`${process.env.NEXT_PUBLIC_BACKEND_1_SERVER_URL}/coins/decrementFreeCoins`, {
-                        "userId": userId,
-                        "noOfCoins": 0.4
-                    });
-                } catch (error) {
-                    try {
-                        const response = await axios.patch(`${process.env.NEXT_PUBLIC_BACKEND_1_SERVER_URL}/coins/decrementPremiumCoins`, {
-                            "userId": userId,
-                            "noOfCoins": 0.4
-                        });
-                    } catch (error) {
-                        console.log('2');
-                        alert('Insufficient coins. Please upgrade to premium or try again later.');
-                        return;
-                    }
-                }
-            }
-        } catch (error) {
-            console.log('4');
-            alert('Error fetching user coins. Please try again later.');
-            console.log(error);
-        }
-
         setPdfUrl(selectedPdfLink); // Set the URL from the suggested PDF
         // Optionally, you might want to hide the suggestions after selection
         // setShowPdfOptions(false);
@@ -445,15 +473,15 @@ function CreateSmartResources() {
                                 <MicIcon recognizing={true} />
                             </div>
                             <p className="mt-4 text-xl font-semibold text-gray-800">
-                                {translator("Listening...", "सुन रहा हूँ")}
+                                {transcript ? translator("Recognized:", "पहचाना गया:") : translator("Listening...", "सुन रहा हूँ")}
                             </p>
-                            <input
-                                type="text"
-                                className="mt-4 w-full p-2 border border-gray-300 rounded-md text-center text-lg font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                value={transcript}
-                                readOnly
-                                placeholder={translator("Say something...", "कुछ बोलिए...")}
-                            />
+                            <div className="mt-4 w-full p-3 border border-gray-300 rounded-md text-center text-lg font-medium shadow-sm bg-gray-50 min-h-[50px] flex items-center justify-center">
+                                {transcript ? (
+                                    <span className="text-gray-800">{transcript}</span>
+                                ) : (
+                                    <span className="text-gray-500">{translator("Say something...", "कुछ बोलिए...")}</span>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </>
@@ -612,9 +640,9 @@ function CreateSmartResources() {
                                 <button
                                     type="button"
                                     aria-label={translator("Use microphone", "माइक्रोफ़ोन का उपयोग करें")}
-                                    className={`hover:text-purple-600 ${recognizing ? 'text-red-500' : ''}`}
+                                    className={`hover:text-purple-600 ${recognizing ? 'text-red-500 animate-pulse' : ''}`}
                                     onClick={startRecognition}
-                                    disabled={uploadedFile !== null || recognizing}
+                                    disabled={uploadedFile !== null}
                                 >
                                     <MicIcon recognizing={recognizing} />
                                 </button>
