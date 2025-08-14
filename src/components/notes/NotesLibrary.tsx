@@ -282,19 +282,8 @@ const NotesLibrary: React.FC<NotesLibraryProps> = ({
                                     <Search size={18} />
                                 </Button>
                             </form>
-                            <Select>
-                                <SelectTrigger className="w-full sm:w-[120px]">
-                                    <SelectValue placeholder="Sort By" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="newest">Newest</SelectItem>
-                                    <SelectItem value="oldest">Oldest</SelectItem>
-                                    <SelectItem value="a-z">A-Z</SelectItem>
-                                </SelectContent>
-                            </Select>
-                            <Button variant="ghost" size="icon" className="hover:bg-gray-100 w-full sm:w-auto">
-                                <SlidersHorizontal size={18} />
-                            </Button>
+                           
+                          
                         </div>
                     </div>
 
@@ -305,10 +294,7 @@ const NotesLibrary: React.FC<NotesLibraryProps> = ({
                                 <Book size={14} />
                                 Notes
                             </TabsTrigger>
-                            <TabsTrigger value="video" className="flex items-center gap-1">
-                                <Video size={14} />
-                                Videos
-                            </TabsTrigger>
+                           
                         </TabsList>
 
                         <TabsContent value="notes" className="mt-4">
