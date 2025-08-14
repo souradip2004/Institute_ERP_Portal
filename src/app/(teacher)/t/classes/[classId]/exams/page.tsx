@@ -1,6 +1,6 @@
 // pages/teacher/exams.tsx (frontend page)
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect,useCallback } from "react";
 import axios from "axios";
 import { v4 as uuidV4 } from "uuid";
 import { format } from "date-fns";
@@ -10,7 +10,26 @@ import { forceLogout as logoutAndRedirect } from "@/lib/logout-utils";
 import { FaCopy } from "react-icons/fa";
 import { useRouter } from "next/navigation";
 import { uploadImageToCloudinary } from "@/utils/uploadImageToCloudinary";
+function useDebounce(value, delay:number) {
+  // State to store debounced value
+  const [debouncedValue, setDebouncedValue] = useState(value);
 
+  useEffect(() => {
+    // Set a timeout to update the debounced value after the specified delay
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    // Return a cleanup function that will be called on every render
+    // or when the component unmounts. This clears the timeout to prevent it
+    // from firing if the value changes again within the delay period.
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]); // Only re-call the effect if value or delay changes
+
+  return debouncedValue;
+}
 // Updated Question Interface
 interface Question {
   question: string;
@@ -160,7 +179,15 @@ export default function ExamsPage() {
   const router = useRouter();
 
   const [activeTab, setActiveTab] = useState<'view' | 'create' | 'copy-check'>('view');
+const [topic, setTopic] = useState('');
+  // Use the custom hook here
+  const debouncedTopic = useDebounce(topic, 500); // 500ms debounce
+  const [fetchedPdfs, setFetchedPdfs] = useState([]);
+  const [loadingPdfs, setLoadingPdfs] = useState(false);
+  const [showPdfOptions, setShowPdfOptions] = useState(false);
+  const [selectedPdf, setSelectedPdf] = useState(null);
 
+  // --- PDF UPLOAD STATE (from your original code) ---
   // States for exam creation
   const [examTitle, setExamTitle] = useState("");
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -219,7 +246,50 @@ export default function ExamsPage() {
     }
 
   }, [startTime, endTime, examDate]);
+const fetchPdfsForTopic = useCallback(async () => {
+    // Only fetch if a topic is typed and no file is uploaded
+    if (debouncedTopic.trim().length > 0) {
+      setLoadingPdfs(true);
+      setFetchedPdfs([]);
+      setPdfUrl('');
+      setSelectedPdf(null);
+      setShowPdfOptions(true);
 
+      try {
+        const encodedTopic = encodeURIComponent(debouncedTopic + " question bank");
+        const response = await axios.get(`https://api.aiclassroom.in/api/v1/videoData/generateaPdfLink/${encodedTopic}`);
+        const pdfs = response.data?.pdfLinks || [];
+        setFetchedPdfs(pdfs);
+      } catch (err) {
+        console.error("Error fetching PDFs for topic:", err);
+        setFetchedPdfs([]);
+        setShowPdfOptions(false);
+      } finally {
+        setLoadingPdfs(false);
+      }
+    } else {
+      setFetchedPdfs([]);
+      setShowPdfOptions(false);
+      setSelectedPdf(null);
+    }
+  }, [debouncedTopic]);
+
+  // Debounced effect hook
+  useEffect(() => {
+    fetchPdfsForTopic();
+  }, [fetchPdfsForTopic]);
+
+  // Handle selecting a fetched PDF
+  const handleSelectFetchedPdf = async (pdfLink) => {
+    setSelectedPdf(pdfLink.link);
+    // You can also immediately process the selected PDF if needed
+    // await processPdfForPreview(pdfLink);
+    setPdfUrl(pdfLink.link);
+            setShowPdfOptions(false);
+
+      await processPdfForPreview(pdfLink.link); 
+
+  };
   useEffect(() => {
     if (localStorage.getItem("user")) {
       const getData = async () => {
@@ -1625,6 +1695,67 @@ const takeoutQuestions = (response: any): Question[] => {
 
                     {/* Column 1: Upload PDF */}
                     <div>
+      {/* Search Input for Topic */}
+      <div className="mb-4">
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Search PDF by Topic
+        </label>
+        <input
+          type="text"
+          value={topic}
+          onChange={(e) => {
+            setTopic(e.target.value);
+            setPdfUrl(''); // Clear uploaded PDF when a user starts typing a topic
+          }}
+          placeholder="e.g., Computer Science Fundamentals"
+          className="w-full px-4 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors bg-white"
+        />
+      </div>
+
+      {/* Conditional rendering for fetched PDFs */}
+      {showPdfOptions && (
+        <div className="my-4">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Select from Found PDFs
+          </label>
+          {loadingPdfs ? (
+            <div className="text-gray-500">Loading PDFs...</div>
+          ) : fetchedPdfs.length > 0 ? (
+            <div className="space-y-2">
+              {fetchedPdfs.map((pdfLink, index) => (
+                <div
+                  key={index}
+                  onClick={() => handleSelectFetchedPdf(pdfLink)}
+                  className={`cursor-pointer p-3 border rounded-md transition-colors ${
+                    selectedPdf === pdfLink
+                      ? 'border-purple-500 bg-purple-50'
+                      : 'border-gray-300 hover:bg-gray-100'
+                  }`}
+                >
+                   <p className="text-sm font-semibold text-gray-900 truncate">
+              {pdfLink.title}
+            </p>
+            {/* Display the Snippet/Description */}
+            <p className="mt-1 text-xs text-gray-500 line-clamp-2">
+              {pdfLink.snippet}
+            </p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-gray-500">No PDFs found for this topic.</div>
+          )}
+        </div>
+      )}
+
+      </div>
+                
+<div></div>
+                                        <div className="mx-4 text-center text-gray-500">OR</div>
+<div></div>
+      {/* Separator */}
+                    <div>
+
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Upload PDF
                       </label>
