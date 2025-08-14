@@ -499,7 +499,7 @@ function CreateSmartResources() {
                         <div className="w-full max-w-md mx-auto rounded-3xl shadow-3xl bg-white p-8 flex flex-col items-center relative animate-scale-in">
                             {/* Back button for the Welcome modal */}
                             <button
-                                onClick={() => router.push('/')}
+                                onClick={() => { setShowResources(false) }}
                                 className="absolute top-4 left-4 text-gray-600 hover:text-gray-900 transition-colors"
                                 aria-label={translator("Go back", "वापस जाएं")}
                             >
@@ -529,7 +529,7 @@ function CreateSmartResources() {
                                 {noOfResources > 0 && (
                                     <button
                                         className="flex flex-col items-center justify-center p-6 bg-gradient-to-br from-purple-500 to-indigo-600 text-white rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300 group"
-                                        onClick={() => { router.push("/smart-resources"); }}
+                                        onClick={() => { router.push("/t/smart-resources"); }}
                                     >
                                         <Book className="w-10 h-10 mb-3 text-purple-200 group-hover:text-white transition-colors" />
                                         <span className="text-xl font-semibold">

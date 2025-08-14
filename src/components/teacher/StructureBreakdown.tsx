@@ -425,10 +425,10 @@ const StructuredBreakdown: React.FC = () => {
         <div className="w-full flex flex-col gap-8">
           <div className="w-full flex flex-col md:flex-row justify-between items-start md:items-center gap-4 md:gap-0">
             <div className="flex flex-row items-center">
-              <button className="p-1 hover:bg-white/20 rounded-full block lg:hidden mr-2"
+              {/* <button className="p-1 hover:bg-white/20 rounded-full block lg:hidden mr-2"
                 onClick={() => router.push('/smart-resources')}>
                 <RiArrowGoBackFill className="text-[#6B6B6B] w-5 h-5 " />
-              </button>
+              </button> */}
               <h1
                 className="text-1xl lg:text-2xl font-bold">{translator("Detailed Structure Breakdown", "विस्तृत संरचना विघटन")}</h1>
             </div>
