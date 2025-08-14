@@ -830,6 +830,24 @@ export default function ExamsPage() {
       setLoading(false);
     }
   };
+const takeoutQuestions = (response: any): Question[] => {
+  const questions: Question[] = [];
+  if (response && response.questions && Array.isArray(response.questions)) {
+    response.questions.forEach((q: any) => {
+      if (q.title) {
+        const question: Question = {
+          question: q.title,
+          options: q.options,
+          answer: q.correct,
+          isSelected: false,
+          questionType: q.options.length > 0 ? 'MCQ' : 'LONG_ANSWER',
+        };
+        questions.push(question);
+      }
+    });
+  }
+  return questions;
+};
 
   const mapApiResponseToQuestions = (response: any): Question[] => {
     setError("");
@@ -925,7 +943,6 @@ export default function ExamsPage() {
         setError("Please select at least one question type for AI generated questions (MCQ/Long Question). You can select multiple pages for each question type.");
         return;
       }
-
       if (!examTitle.trim()) {
         setError("Please enter an exam title");
         return;
@@ -976,21 +993,22 @@ export default function ExamsPage() {
       }
 
       let allQuestions: Array<Question> = [];
+     
 
       // Generate MCQ questions if pages were selected for it
-      if (mcqPageImages.length > 0) {
-        const generateMcqQuestions = await axios.post(`https://question-generation-2-5c1d46f-v5.app.beam.cloud`, {
-          img_url_list: mcqPageImages,
-          no_of_questions: parseInt(numMCQQuestions) * 2,
-          uid: uuidV4(),
-          type_and_question_level: `${difficulty} Level MCQ questions`
-        }, {
-          headers: {
-            Authorization: `Bearer ALXP7mhHyKz1MQATKH7CIQXK9VQBpvoNNuxPvLONWyPCfgemj18cz2T74r4drBpvOkf-3orOQT_6r-63mHPZAA==`
-          }
-        });
-        allQuestions = [...allQuestions, ...mapApiResponseToQuestions(generateMcqQuestions.data)];
-      }
+      // if (mcqPageImages.length > 0) {
+      //   const generateMcqQuestions = await axios.post(`https://question-generation-2-5c1d46f-v5.app.beam.cloud`, {
+      //     img_url_list: mcqPageImages,
+      //     no_of_questions: parseInt(numMCQQuestions) * 2,
+      //     uid: uuidV4(),
+      //     type_and_question_level: `${difficulty} Level MCQ questions`
+      //   }, {
+      //     headers: {
+      //       Authorization: `Bearer ALXP7mhHyKz1MQATKH7CIQXK9VQBpvoNNuxPvLONWyPCfgemj18cz2T74r4drBpvOkf-3orOQT_6r-63mHPZAA==`
+      //     }
+      //   });
+      //   allQuestions = [...allQuestions, ...mapApiResponseToQuestions(generateMcqQuestions.data)];
+      // }
 
 
       //coin things
@@ -1022,24 +1040,39 @@ export default function ExamsPage() {
       } catch (err) {
         console.log(err);
       }
-
+ if( mcqPageImages.length >= 0 || longPageImages.length >= 0) {
+        const generateMixedQuestions = await axios.post(`https://py.aiclassroom.in/generate_questions_mixed`, {
+          image_urls: [...mcqPageImages, ...longPageImages],
+          total_mcq: parseInt(numMCQQuestions),
+          total_long: parseInt(numLongQuestions),
+          question_type_long: `${difficulty} Level long questions for General Test`,
+          question_type_mcq: `${difficulty} Level MCQ questions for General Test`
+        }, {
+        });
+        console.log("Mixed questions ", generateMixedQuestions.data);
+        allQuestions = [...allQuestions, ...takeoutQuestions(generateMixedQuestions.data)];
+      }else{
+        setError("Please select at least one page for question generation.");
+        setLoading(false);
+        return;
+      }
 
       // Generate Long Answer questions if pages were selected for it
-      if (longPageImages.length > 0) {
-        const generateLongQuestions = await axios.post(`https://question-generation-2-5c1d46f-v5.app.beam.cloud`, {
-          img_url_list: longPageImages,
-          no_of_questions: parseInt(numLongQuestions) * 2,
-          uid: uuidV4(),
-          type_and_question_level: `${difficulty} Level Long Answer questions`
-        }, {
-          headers: {
-            Authorization: `Bearer ALXP7mhHyKz1MQATKH7CIQXK9VQBpvoNNuxPvLONWyPCfgemj18cz2T74r4drBpvOkf-3orOQT_6r-63mHPZAA==`
-          },
-        });
+      // if (longPageImages.length > 0) {
+      //   const generateLongQuestions = await axios.post(`https://question-generation-2-5c1d46f-v5.app.beam.cloud`, {
+      //     img_url_list: longPageImages,
+      //     no_of_questions: parseInt(numLongQuestions) * 2,
+      //     uid: uuidV4(),
+      //     type_and_question_level: `${difficulty} Level Long Answer questions`
+      //   }, {
+      //     headers: {
+      //       Authorization: `Bearer ALXP7mhHyKz1MQATKH7CIQXK9VQBpvoNNuxPvLONWyPCfgemj18cz2T74r4drBpvOkf-3orOQT_6r-63mHPZAA==`
+      //     },
+      //   });
 
-        console.log("Long questions ", generateLongQuestions.data);
-        allQuestions = [...allQuestions, ...mapApiResponseToQuestions(generateLongQuestions.data)];
-      }
+      //   console.log("Long questions ", generateLongQuestions.data);
+      //   allQuestions = [...allQuestions, ...mapApiResponseToQuestions(generateLongQuestions.data)];
+      // }
 
       if (allQuestions.length === 0) {
         setError("No questions could be generated. This might be due to the content of the PDF or the page selections. Please review and try again.");
