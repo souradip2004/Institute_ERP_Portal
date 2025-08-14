@@ -514,8 +514,7 @@ export function SmartResources() {
   return (
     <div className="flex  bg-gray-50">
       <main className="flex-1 px-4 pb-4 pt-10 lg:pt-8 lg:px-8 ">
-        <button className='block absolute top-5 left-16 lg:hidden' onClick={() => window.location.href = '/'}>
-          <TbArrowBackUp className='w-10 h-10 text-gray-600'/></button>
+       
         <header className="flex flex-row justify-between items-start sm:items-center mb-6 sm:mb-8">
           <h2
             className="text-2xl sm:text-3xl font-bold text-gray-800 mb-4 sm:mb-0">{t('My Resources', 'मेरे संसाधन')}</h2>
