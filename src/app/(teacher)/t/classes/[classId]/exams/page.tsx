@@ -456,7 +456,15 @@ const fetchPdfsForTopic = useCallback(async () => {
     setSelectedPages(newSelectedPages);
   };
 
-
+const getISTTimeFromUTC = (utcTimeString: string | number | Date) => {
+  const options: Intl.DateTimeFormatOptions = {
+    hour: 'numeric',
+    minute: 'numeric',
+    hour12: true,
+    timeZone: 'Asia/Kolkata' // Explicitly set to Indian Standard Time
+  };
+  return new Date(utcTimeString).toLocaleTimeString('en-IN', options);
+};
   // Check if user is authenticated as a teacher
   const checkAuthStatus = async () => {
     try {
@@ -855,6 +863,8 @@ const fetchPdfsForTopic = useCallback(async () => {
 
       const startTimeISO = startDate.toISOString();
       const endTimeISO = endDate.toISOString();
+      console.log("Start Time ISO:", startTimeISO);
+      console.log("End Time ISO:", endTimeISO);
       const response = await axios.post(
         "/api/exam/create", // Ensure this path is correct based on your API route file
         {
@@ -1246,6 +1256,14 @@ const takeoutQuestions = (response: any): Question[] => {
       }
 
       setLoading(true);
+      const startDate = new Date(`${examDate}T${startTime}`);
+      const endDate = new Date(`${examDate}T${endTime}`);
+      if (endDate < startDate) {
+        endDate.setDate(endDate.getDate() + 1);
+      }
+
+      const startTimeISO = startDate.toISOString();
+      const endTimeISO = endDate.toISOString();
       const response = await axios.post("/api/exam/create", {
         userId: JSON.parse(localStorage.getItem('user')!),
         title: examTitle,
@@ -1257,8 +1275,8 @@ const takeoutQuestions = (response: any): Question[] => {
         examDate,
         difficultyLevel: difficulty,
         isAiGenerated: true,
-        startTime: `${examDate}T${startTime}`,
-        endTime: `${examDate}T${endTime}`,
+        startTime: startTimeISO,
+        endTime: endTimeISO,
       });
 
       if (response.data.success) {
@@ -2305,7 +2323,7 @@ const takeoutQuestions = (response: any): Question[] => {
                         <div className="flex items-center text-gray-600 mt-1">
                           <Clock className="h-4 w-4 mr-1 text-gray-500" />
                           <span>
-                            {format(new Date(exam.startTime), "p")} - {format(new Date(exam.endTime), "p")}
+                            {format(new Date(exam.startTime),"p")} - {format(new Date(exam.endTime), "p")}
                           </span>
                         </div>
                       </div>
