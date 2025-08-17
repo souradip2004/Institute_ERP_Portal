@@ -1,50 +1,82 @@
 "use client";
-import React, { useEffect, useState, useRef } from 'react';
-import Link from "next/link";
-import { LogoutButton } from "@/components/auth/logout-button";
-import Loader from '@/components/ui/Loader';
-import axios from "axios";
-import { uploadImageToCloudinary } from "@/utils/uploadImageToCloudinary";
-import {
-  Bell,
-  CheckCheck,
-  Plus,
-  Image as ImageIcon,
-  Paperclip,
-  Reply,
-  ArrowRight,
-  ChevronDown,
-  ChevronUp,
-  Files,
-  Calendar,
-  BookOpen,
-  Send,
-} from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation'; // Original import
+import { uploadImageToCloudinary } from "@/utils/uploadImageToCloudinary"; // Original import
+import Loader from '@/components/ui/Loader'; // Original import
+import axios from "axios"; // Original import
+import { ArrowLeft, Plus, Image as ImageIcon,X, Paperclip, FileText, CheckCheck,Send,Bell,ChevronDown,ChevronUp,BookOpen, Link, ArrowRight, Calendar } from 'lucide-react';
 
-// Interface for rich message content
-interface MessageContent {
-  text: string | null;
-  image: string | null;
-  file: { url: string; name: string } | null;
-}
 
-// Interface definitions remain the same
+// CORRECTED: Updated Notification interface to reflect the single string message field
 interface Notification {
   id: string;
   title: string;
-  message: string;
+  message: string; // The message now contains the stringified JSON
   notificationType: string;
   isRead: boolean;
-  replyText?: string;
+  readAt: string | null;
+  actionUrl: string;
+  channel: string;
+  templateId: string | null;
+  replyText: string | null;
+  broadcastMessage: boolean;
   createdAt: string;
-  replyExists: boolean;
-  studentId: string;
+  teacherId: string;
+  studentId: string | null;
+  teacher: {
+    id: string;
+    user: {
+      name: string;
+      email: string;
+    };
+  };
+}
+
+interface Teacher {
+  id: string;
+  userId: string;
+  user: {
+    id: string;
+    name: string;
+    email: string;
+  };
+  department?: {
+    name: string;
+  };
+  teacherCode: string;
+}
+
+// UPDATED: MessageContent to hold arrays for multiple images and files
+interface MessageContent {
+  text: string | null;
+  images: string[]; // Array of image URLs
+  files: { url: string; name: string }[]; // Array of file objects
+}
+
+// Updated Message interface to hold the parsed content object
+interface Message {
+  id: string;
+  content: MessageContent;
+  sender: 'student' | 'teacher';
+  timestamp: Date;
+  isRead?: boolean;
+}
+
+interface GroupedTeachers {
+  [departmentName: string]: Teacher[];
 }
 
 interface GroupedNotification {
   studentId: string;
   studentName: string;
-  notifications: Notification[];
+  notifications: (Notification & { replyExists: boolean })[];
+}
+
+interface ClassAttendance {
+  id: string;
+  name: string;
+  sectionName: string;
+  percentage: number;
 }
 
 interface Assignment {
@@ -63,77 +95,106 @@ interface Exam {
   class: string;
   subject: string;
   date: string;
-  mode: string;
   status: string;
 }
 
-interface ClassAttendance {
-  id: string;
-  name: string;
-  sectionName: string;
-  percentage: number;
-}
-
-// UPDATED: ChatBubble to handle rich message content and use Lucide icons
-const ChatBubble: React.FC<{
-  message: string;
-  timestamp: string;
-  isSender: boolean;
-  primaryColor: string;
-}> = ({ message, timestamp, isSender, primaryColor }) => {
-  const bubbleStyles = isSender
-    ? {
-        backgroundColor: primaryColor,
-        color: 'white',
-        borderRadius: '1.25rem 1.25rem 0.25rem 1.25rem',
-        alignSelf: 'flex-end',
-      }
-    : {
-        backgroundColor: '#E5E7EB',
-        color: '#1F2937',
-        borderRadius: '1.25rem 1.25rem 1.25rem 0.25rem',
-        alignSelf: 'flex-start',
-      };
-
-  let content: MessageContent = { text: message, image: null, file: null };
-  // Try to parse the message as JSON for rich content
-  if (message && message.startsWith('{')) {
-    try {
-      content = JSON.parse(message);
-    } catch (e) {
-      // If parsing fails, treat as plain text
-      content = { text: message, image: null, file: null };
-    }
-  }
+// Modal component for displaying the expanded image
+const ImageModal: React.FC<{ imageUrl: string | null; onClose: () => void }> = ({
+  imageUrl,
+  onClose,
+}) => {
+  if (!imageUrl) return null;
 
   return (
     <div
-      className={`relative py-2 px-4 shadow-sm text-sm max-w-[80%]`}
-      style={bubbleStyles}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75"
+      onClick={onClose} // Close when clicking outside the image
     >
-      {content.text && (
-        <p className="pr-12" style={{ overflowWrap: 'break-word', wordWrap: 'break-word' }}>
-          {content.text}
-        </p>
-      )}
-      {content.image && (
-        <img src={content.image} alt="Sent image" className="pr-12 mt-2 rounded-lg max-h-48 object-contain" />
-      )}
-      {content.file && (
-        <div className="pr-12 mt-2 flex items-center space-x-2">
-          <Files size={16} />
-          <a href={content.file.url} download={content.file.name} className={`underline text-sm ${isSender ? 'text-white' : 'text-gray-800'}`}>
-            {content.file.name}
-          </a>
-        </div>
-      )}
-      <span
-        className={`absolute bottom-1 text-xs ${isSender ? 'right-2 text-white/75' : 'right-2 text-gray-500'
-          }`}
-      >
-        {timestamp}
-      </span>
+      <div className="relative p-4 bg-white rounded-lg max-w-3xl max-h-[90vh] flex flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
+        {/* Close button */}
+        <button
+          className="absolute top-2 right-2 p-2 rounded-full bg-gray-800 text-white hover:bg-gray-700 transition-colors z-10"
+          onClick={onClose}
+          aria-label="Close image"
+        >
+          <X size={24} />
+        </button>
+        {/* Expanded image */}
+        <img
+          src={imageUrl}
+          alt="Expanded image"
+          className="max-w-full max-h-[calc(90vh-3rem)] rounded-lg object-contain"
+          style={{ cursor: 'zoom-out' }} // Indicate it can be closed by clicking
+        />
+      </div>
     </div>
+  );
+};
+
+const ChatBubble: React.FC<{
+  content: MessageContent;
+  timestamp: string;
+  isSender: boolean;
+  isRead?: boolean;
+  primaryColor: string;
+}> = ({ content, timestamp, isSender, isRead, primaryColor }) => {
+  const [expandedImage, setExpandedImage] = useState<string | null>(null);
+
+  const bubbleClasses = isSender
+    ? `bg-blue-400 text-black rounded-tl-[1.25rem] rounded-tr-[1.25rem] rounded-br-[0.25rem] rounded-bl-[1.25rem] self-end`
+    : `bg-gray-200 text-gray-900 rounded-tl-[1.25rem] rounded-tr-[1.25rem] rounded-br-[1.25rem] rounded-bl-[0.25rem] self-start`;
+
+  const handleImageClick = (imageUrl: string) => {
+    setExpandedImage(imageUrl);
+  };
+
+  const handleCloseImageModal = () => {
+    setExpandedImage(null);
+  };
+
+  return (
+    <>
+      <div className={`p-3 relative shadow-sm text-sm max-w-[80%] ${bubbleClasses}`}>
+        {content.text && (
+          // Increased padding-right to ensure space for timestamp
+          <p className="text-sm break-words pr-16">
+            {content.text}
+          </p>
+        )}
+        {/* Render multiple images */}
+        {content.images && content.images.map((imageSrc, index) => (
+          <img
+            key={index}
+            src={imageSrc}
+            alt={`Sent image ${index + 1}`}
+            // Increased padding-right for image to ensure space for timestamp
+            className="mt-2 rounded-lg max-h-48 object-contain cursor-pointer transition-transform duration-200 hover:scale-[1.02] pr-16"
+            onClick={() => handleImageClick(imageSrc)}
+          />
+        ))}
+        {/* Render multiple files */}
+        {content.files && content.files.map((file, index) => (
+          <div key={index} className="mt-2 flex items-center space-x-2 pr-16">
+            <FileText size={20} />
+            {/* CORRECTED: The original text color for the link inside a sent message was wrong. */}
+            <a href={file.url} download={file.name} className={`underline text-sm ${isSender ? 'text-gray-900' : 'text-gray-900'}`}>
+              {file.name}
+            </a>
+          </div>
+        ))}
+        <div className="absolute bottom-1 right-2 flex items-center gap-1">
+          <span className={`text-xs ${isSender ? 'text-gray-500' : 'text-gray-500'}`}>
+            {timestamp}
+          </span>
+          {isSender && isRead && (
+            <CheckCheck className="w-4 h-4 text-green-400" />
+          )}
+        </div>
+      </div>
+
+      {/* Image expansion modal */}
+      <ImageModal imageUrl={expandedImage} onClose={handleCloseImageModal} />
+    </>
   );
 };
 
@@ -151,12 +212,12 @@ export default function TeacherDashboardPage() {
   const [classSectionId, setClassSectionId] = useState<string | null>(null);
   const [primaryColor, setPrimaryColor] = useState<string>('#3B82F6');
   
-  // State to handle rich replies for each notification
+  // State to handle rich replies for each notification, now supports multiple attachments
   const [replyContents, setReplyContents] = useState<{ [key: string]: MessageContent }>({});
   // State to toggle attachment options on mobile
   const [showAttachments, setShowAttachments] = useState<{ [key: string]: boolean }>({});
-  // NEW: State to manage uploading status
-  const [uploading, setUploading] = useState<{ [key: string]: boolean }>({});
+  // NEW: State to manage uploading status, tracks count of uploads per notification
+  const [uploadingCount, setUploadingCount] = useState<{ [key: string]: number }>({});
 
   const chatRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
   const prevNotificationsRef = useRef<GroupedNotification[]>([]);
@@ -321,58 +382,118 @@ export default function TeacherDashboardPage() {
     }
   };
 
-  const handleReplyContentChange = (notificationId: string, field: keyof MessageContent, value: string | { url: string; name: string } | null) => {
+  // Initializer for replyContents for a new notification ID
+  const initializeReplyContent = (notificationId: string): MessageContent => {
+    if (!replyContents[notificationId]) {
+      setReplyContents(prev => ({
+        ...prev,
+        [notificationId]: { text: '', images: [], files: [] }
+      }));
+    }
+    return replyContents[notificationId] || { text: '', images: [], files: [] };
+  };
+
+  const handleReplyContentChange = (notificationId: string, field: keyof MessageContent, value: string | string[] | { url: string; name: string }[] | null) => {
     setReplyContents(prev => ({
       ...prev,
       [notificationId]: {
-        ...prev[notificationId],
+        ...initializeReplyContent(notificationId), // Ensure it's initialized
         [field]: value,
       }
     }));
   };
 
   const handleReplyFileChange = async(notificationId: string, event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      setUploading(prev => ({ ...prev, [notificationId]: true }));
-      try {
-        const publicUrl=await uploadImageToCloudinary(file);
-        handleReplyContentChange(notificationId, 'file', { url: publicUrl, name: file.name });
-      } catch (error) {
-        console.error("File upload failed:", error);
-        alert("Failed to upload file. Please try again.");
-      } finally {
-        setUploading(prev => ({ ...prev, [notificationId]: false }));
-        event.target.value = '';
-        setShowAttachments(prev => ({ ...prev, [notificationId]: false }));
-      }
+    const files = event.target.files;
+    if (files && files.length > 0) {
+      setUploadingCount(prev => ({ ...prev, [notificationId]: (prev[notificationId] || 0) + files.length }));
+      
+      const uploadPromises = Array.from(files).map(async (file) => {
+        try {
+          const publicUrl = await uploadImageToCloudinary(file);
+          return { url: publicUrl, name: file.name };
+        } catch (error) {
+          console.error("File upload failed:", error);
+          alert(`Failed to upload file ${file.name}. Please try again.`);
+          return null;
+        } finally {
+          setUploadingCount(prev => ({ ...prev, [notificationId]: (prev[notificationId] || 1) - 1 }));
+        }
+      });
+      
+      const uploadedFiles = (await Promise.all(uploadPromises)).filter(file => file !== null);
+      
+      setReplyContents(prev => {
+        const currentFiles = (prev[notificationId]?.files || []);
+        return {
+          ...prev,
+          [notificationId]: {
+            ...initializeReplyContent(notificationId),
+            files: [...currentFiles, ...uploadedFiles],
+          },
+        };
+      });
+
+      event.target.value = ''; // Clear input
+      setShowAttachments(prev => ({ ...prev, [notificationId]: false }));
     }
   };
 
   const handleReplyImageChange = async (notificationId: string, event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      setUploading(prev => ({ ...prev, [notificationId]: true }));
-      try {
-        const publicUrl = await uploadImageToCloudinary(file);
-        handleReplyContentChange(notificationId, 'image', publicUrl);
-        event.target.value = '';
-        setShowAttachments(prev => ({ ...prev, [notificationId]: false }));
-      } catch (error) {
-        console.error("Image upload failed:", error);
-        alert("Failed to upload image. Please try again.");
-      } finally {
-        setUploading(prev => ({ ...prev, [notificationId]: false }));
-      }
+    const files = event.target.files;
+    if (files && files.length > 0) {
+      setUploadingCount(prev => ({ ...prev, [notificationId]: (prev[notificationId] || 0) + files.length }));
+      
+      const uploadPromises = Array.from(files).map(async (file) => {
+        try {
+          const publicUrl = await uploadImageToCloudinary(file);
+          return publicUrl;
+        } catch (error) {
+          console.error("Image upload failed:", error);
+          alert(`Failed to upload image ${file.name}. Please try again.`);
+          return null;
+        } finally {
+          setUploadingCount(prev => ({ ...prev, [notificationId]: (prev[notificationId] || 1) - 1 }));
+        }
+      });
+
+      const uploadedImages = (await Promise.all(uploadPromises)).filter(img => img !== null);
+      
+      setReplyContents(prev => {
+        const currentImages = (prev[notificationId]?.images || []);
+        return {
+          ...prev,
+          [notificationId]: {
+            ...initializeReplyContent(notificationId),
+            images: [...currentImages, ...uploadedImages],
+          },
+        };
+      });
+
+      event.target.value = ''; // Clear input
+      setShowAttachments(prev => ({ ...prev, [notificationId]: false }));
     }
   };
 
-  const handleRemoveAttachment = (notificationId: string) => {
-    const newReplyContent = { text: replyContents[notificationId]?.text || '', image: null, file: null };
-    setReplyContents(prev => ({
-      ...prev,
-      [notificationId]: newReplyContent,
-    }));
+  const handleRemoveAttachment = (notificationId: string, type: 'image' | 'file', index: number) => {
+    setReplyContents(prev => {
+      const currentContent = initializeReplyContent(notificationId);
+      if (type === 'image') {
+        const newImages = [...currentContent.images];
+        newImages.splice(index, 1);
+        return {
+          ...prev,
+          [notificationId]: { ...currentContent, images: newImages },
+        };
+      } else { // type === 'file'
+        const newFiles = [...currentContent.files];
+        newFiles.splice(index, 1);
+        return {
+          ...prev,
+          [notificationId]: { ...currentContent, files: newFiles },
+        };
+      }
+    });
   };
 
   const toggleAttachments = (notificationId: string) => {
@@ -383,10 +504,10 @@ export default function TeacherDashboardPage() {
   };
 
   const handleReplySubmit = async (notificationId: string) => {
-    const currentReplyContent = replyContents[notificationId];
-    const hasContent = currentReplyContent?.text || currentReplyContent?.image || currentReplyContent?.file;
+    const currentReplyContent = getReplyContentForNotification(notificationId);
+    const hasContent = currentReplyContent?.text?.trim() || currentReplyContent?.images.length > 0 || currentReplyContent?.files.length > 0;
 
-    if (!hasContent) return;
+    if (!hasContent || (uploadingCount[notificationId] || 0) > 0) return; // Prevent sending while uploading
 
     try {
       const stringifiedReply = JSON.stringify(currentReplyContent);
@@ -418,7 +539,7 @@ export default function TeacherDashboardPage() {
         setGroupedNotifications(Object.values(grouped));
         setReplyContents(prev => {
           const newReplyContents = { ...prev };
-          delete newReplyContents[notificationId];
+          delete newReplyContents[notificationId]; // Clear content after sending
           return newReplyContents;
         });
       }
@@ -559,6 +680,7 @@ export default function TeacherDashboardPage() {
       }
 
       if (classes.length === 0) {
+        // Fallback for demo/initial setup if no classes from API
         classes = [
           { id: "class1", name: "Mathematics", section: "Section A" },
           { id: "class2", name: "Physics", section: "Section B" },
@@ -596,6 +718,7 @@ export default function TeacherDashboardPage() {
       let validAttendance = attendanceResults.filter(item => item !== null) as ClassAttendance[];
 
       if (validAttendance.length === 0) {
+        // Fallback for demo/initial setup if no valid attendance data
         validAttendance = [
           { id: "class1", name: "Mathematics", sectionName: "Section A", percentage: 95 },
           { id: "class2", name: "Physics", sectionName: "Section B", percentage: 88 },
@@ -669,7 +792,13 @@ export default function TeacherDashboardPage() {
   }
 
   const getReplyContentForNotification = (notificationId: string): MessageContent => {
-    return replyContents[notificationId] || { text: '', image: null, file: null };
+    // Ensure default structure for images and files if not present
+    const content = replyContents[notificationId] || { text: '', images: [], files: [] };
+    return {
+      text: content.text,
+      images: Array.isArray(content.images) ? content.images : [],
+      files: Array.isArray(content.files) ? content.files : [],
+    };
   };
 
   return (
@@ -729,20 +858,50 @@ export default function TeacherDashboardPage() {
                       className="p-4 space-y-4 flex flex-col items-start w-full max-h-96 overflow-y-auto"
                     >
                       {group.notifications.slice().reverse().map((notification) => {
+                        let studentMessageContent: MessageContent = { text: notification.message, images: [], files: [] };
+                        if (notification.message && notification.message.startsWith('{')) {
+                          try {
+                            const parsed = JSON.parse(notification.message);
+                            studentMessageContent = {
+                              text: parsed.text || null,
+                              images: Array.isArray(parsed.images) ? parsed.images : (parsed.image ? [parsed.image] : []),
+                              files: Array.isArray(parsed.files) ? parsed.files : (parsed.file ? [parsed.file] : []),
+                            };
+                          } catch (e) {
+                            studentMessageContent = { text: notification.message, images: [], files: [] };
+                          }
+                        }
+
                         const replyContent = getReplyContentForNotification(notification.id);
+                        let teacherReplyParsedContent: MessageContent | null = null;
+                        if (notification.replyText && notification.replyText.startsWith('{')) {
+                          try {
+                            const parsedReply = JSON.parse(notification.replyText);
+                            teacherReplyParsedContent = {
+                              text: parsedReply.text || null,
+                              images: Array.isArray(parsedReply.images) ? parsedReply.images : (parsedReply.image ? [parsedReply.image] : []),
+                              files: Array.isArray(parsedReply.files) ? parsedReply.files : (parsedReply.file ? [parsedReply.file] : []),
+                            };
+                          } catch (e) {
+                            teacherReplyParsedContent = { text: notification.replyText, images: [], files: [] };
+                          }
+                        } else if (notification.replyText) {
+                           teacherReplyParsedContent = { text: notification.replyText, images: [], files: [] };
+                        }
+                        
                         return (
                           <React.Fragment key={notification.id}>
                             <ChatBubble
-                              message={notification.message}
+                              content={studentMessageContent}
                               timestamp={getTimeAgo(notification.createdAt)}
                               isSender={false}
                               primaryColor={primaryColor}
                             />
-                            {notification.replyExists ? (
+                            {notification.replyExists && teacherReplyParsedContent ? (
                               <div className="w-full flex justify-end">
                                 <ChatBubble
-                                  message={notification.replyText || ''}
-                                  timestamp={getTimeAgo(notification.createdAt)}
+                                  content={teacherReplyParsedContent}
+                                  timestamp={getTimeAgo(notification.readAt || notification.createdAt)}
                                   isSender={true}
                                   primaryColor={primaryColor}
                                 />
@@ -750,33 +909,51 @@ export default function TeacherDashboardPage() {
                             ) : (
                               <div className="w-full flex justify-end mt-2">
                                 <div className="relative flex flex-col space-y-2 max-w-[95%] sm:max-w-[80%]">
-                                  {/* Preview of attachments */}
-                                  {(replyContent.image || replyContent.file) && (
-                                    <div className="flex items-center justify-between p-2 rounded-lg" style={{ backgroundColor: hexToRgba(primaryColor, 0.1) }}>
-                                      {uploading[notification.id] ? (
-                                        <div className="flex items-center space-x-2 text-sm text-gray-800">
-                                          <Loader size="small" />
-                                          <span>Uploading...</span>
+                                  {/* Preview of multiple attached images */}
+                                  {replyContent.images.length > 0 && (
+                                    <div className="mb-2 p-2 bg-gray-100 rounded-lg grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                      {replyContent.images.map((imgSrc, idx) => (
+                                        <div key={`reply-img-preview-${notification.id}-${idx}`} className="relative h-20 w-20 overflow-hidden rounded">
+                                          <img src={imgSrc} alt={`preview ${idx}`} className="h-full w-full object-cover" />
+                                          <button
+                                            onClick={() => handleRemoveAttachment(notification.id, 'image', idx)}
+                                            className="absolute top-0 right-0 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center"
+                                            disabled={(uploadingCount[notification.id] || 0) > 0}
+                                          >
+                                            <X size={12} />
+                                          </button>
                                         </div>
-                                      ) : (
-                                        <>
-                                          {replyContent.image && (
-                                            <div className="flex items-center space-x-2">
-                                              <img src={replyContent.image} alt="preview" className="h-8 w-8 object-cover rounded" />
-                                              <span className="text-sm text-gray-800">Image attached</span>
-                                            </div>
-                                          )}
-                                          {replyContent.file && (
-                                            <div className="flex items-center space-x-2">
-                                              <Files size={20} />
-                                              <span className="text-sm text-gray-800">{replyContent.file.name}</span>
-                                            </div>
-                                          )}
-                                        </>
-                                      )}
-                                      <button onClick={() => handleRemoveAttachment(notification.id)} className="text-gray-500 hover:text-gray-800">
-                                        &times;
-                                      </button>
+                                      ))}
+                                    </div>
+                                  )}
+                                  
+                                  {/* Preview of multiple attached files */}
+                                  {replyContent.files.length > 0 && (
+                                    <div className="mb-2 p-2 bg-gray-100 rounded-lg space-y-1">
+                                      {replyContent.files.map((file, idx) => (
+                                        <div key={`reply-file-preview-${notification.id}-${idx}`} className="flex items-center justify-between text-sm text-gray-600">
+                                          <div className="flex items-center space-x-2">
+                                            <FileText size={16} />
+                                            <a href={file.url} download={file.name} className="underline text-purple-600">
+                                              {file.name}
+                                            </a>
+                                          </div>
+                                          <button
+                                            onClick={() => handleRemoveAttachment(notification.id, 'file', idx)}
+                                            className="text-gray-500 hover:text-gray-800"
+                                            disabled={(uploadingCount[notification.id] || 0) > 0}
+                                          >
+                                            <X size={16} />
+                                          </button>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+
+                                  {(uploadingCount[notification.id] || 0) > 0 && (
+                                    <div className="mb-2 p-2 bg-gray-100 rounded-lg flex items-center space-x-2 text-sm text-gray-600">
+                                      <Loader size="small" />
+                                      <span>Uploading {(uploadingCount[notification.id] || 0)} file(s)...</span>
                                     </div>
                                   )}
 
@@ -790,6 +967,7 @@ export default function TeacherDashboardPage() {
                                       style={{
                                         '--tw-ring-color': primaryColor
                                       } as React.CSSProperties}
+                                      disabled={(uploadingCount[notification.id] || 0) > 0}
                                     />
                                     {/* Mobile plus button to toggle attachments */}
                                     <button
@@ -797,6 +975,7 @@ export default function TeacherDashboardPage() {
                                       onClick={() => toggleAttachments(notification.id)}
                                       className="p-1 sm:hidden text-gray-500 hover:text-purple-600 focus:outline-none focus:ring-2 focus:ring-offset-2 rounded-full"
                                       style={{ '--tw-ring-color': primaryColor } as React.CSSProperties}
+                                      disabled={(uploadingCount[notification.id] || 0) > 0}
                                     >
                                       <Plus size={24} />
                                     </button>
@@ -808,11 +987,13 @@ export default function TeacherDashboardPage() {
                                       ref={el => imageInputRefs.current[notification.id] = el}
                                       className="hidden"
                                       onChange={(e) => handleReplyImageChange(notification.id, e)}
+                                      multiple // Allow multiple image selection
                                     />
                                     <button
                                       type="button"
                                       onClick={() => imageInputRefs.current[notification.id]?.click()}
                                       className="hidden sm:block p-1 text-gray-500 hover:text-purple-600"
+                                      disabled={(uploadingCount[notification.id] || 0) > 0}
                                     >
                                       <ImageIcon size={24} />
                                     </button>
@@ -822,22 +1003,24 @@ export default function TeacherDashboardPage() {
                                       ref={el => fileInputRefs.current[notification.id] = el}
                                       className="hidden"
                                       onChange={(e) => handleReplyFileChange(notification.id, e)}
+                                      multiple // Allow multiple file selection
                                     />
                                     <button
                                       type="button"
                                       onClick={() => fileInputRefs.current[notification.id]?.click()}
                                       className="hidden sm:block p-1 text-gray-500 hover:text-purple-600"
+                                      disabled={(uploadingCount[notification.id] || 0) > 0}
                                     >
                                       <Paperclip size={24} />
                                     </button>
 
                                     <button
                                       onClick={() => handleReplySubmit(notification.id)}
-                                      disabled={!(replyContent.text || replyContent.image || replyContent.file) || uploading[notification.id]}
+                                      disabled={!(replyContent.text?.trim() || replyContent.images.length > 0 || replyContent.files.length > 0) || (uploadingCount[notification.id] || 0) > 0}
                                       className="px-2 py-2 text-sm font-medium text-white rounded-lg hover:opacity-90 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all duration-200"
                                       style={{
-                                        backgroundColor: !(replyContent.text || replyContent.image || replyContent.file) ? '#9CA3AF' : primaryColor,
-                                        boxShadow: !(replyContent.text || replyContent.image || replyContent.file) ? 'none' : `0 2px 4px ${hexToRgba(primaryColor, 0.3)}`
+                                        backgroundColor: !(replyContent.text?.trim() || replyContent.images.length > 0 || replyContent.files.length > 0) || (uploadingCount[notification.id] || 0) > 0 ? '#9CA3AF' : primaryColor,
+                                        boxShadow: !(replyContent.text?.trim() || replyContent.images.length > 0 || replyContent.files.length > 0) || (uploadingCount[notification.id] || 0) > 0 ? 'none' : `0 2px 4px ${hexToRgba(primaryColor, 0.3)}`
                                       }}
                                     >
                                       <Send size={16} />
@@ -849,15 +1032,17 @@ export default function TeacherDashboardPage() {
                                       {/* Buttons for Image and File */}
                                       <button
                                         type="button"
-                                        onClick={() => imageInputRefs.current[notification.id]?.click()}
+                                        onClick={() => { imageInputRefs.current[notification.id]?.click(); setShowAttachments(prev => ({ ...prev, [notification.id]: false })); }}
                                         className="p-2 text-gray-500 hover:text-purple-600 rounded-full bg-gray-100"
+                                        disabled={(uploadingCount[notification.id] || 0) > 0}
                                       >
                                         <ImageIcon size={20} />
                                       </button>
                                       <button
                                         type="button"
-                                        onClick={() => fileInputRefs.current[notification.id]?.click()}
+                                        onClick={() => { fileInputRefs.current[notification.id]?.click(); setShowAttachments(prev => ({ ...prev, [notification.id]: false })); }}
                                         className="p-2 text-gray-500 hover:text-purple-600 rounded-full bg-gray-100"
+                                        disabled={(uploadingCount[notification.id] || 0) > 0}
                                       >
                                         <Paperclip size={20} />
                                       </button>

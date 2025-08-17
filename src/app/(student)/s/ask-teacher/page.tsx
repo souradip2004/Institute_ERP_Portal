@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { uploadImageToCloudinary } from "@/utils/uploadImageToCloudinary";
 import Loader from '@/components/ui/Loader';
-import { ArrowLeft, Plus, Image as ImageIcon, Paperclip, FileText, CheckCheck,Send } from 'lucide-react';
+import { ArrowLeft, Plus, Image as ImageIcon,X, Paperclip, FileText, CheckCheck,Send } from 'lucide-react';
 
 
 // CORRECTED: Updated Notification interface to reflect the single string message field
@@ -45,11 +45,11 @@ interface Teacher {
   teacherCode: string;
 }
 
-// UPDATED: MessageContent now has 'file' instead of 'voiceNote'
+// UPDATED: MessageContent to hold arrays for multiple images and files
 interface MessageContent {
   text: string | null;
-  image: string | null;
-  file: { url: string; name: string } | null;
+  images: string[]; // Array of image URLs
+  files: { url: string; name: string }[]; // Array of file objects
 }
 
 // Updated Message interface to hold the parsed content object
@@ -65,40 +65,102 @@ interface GroupedTeachers {
   [departmentName: string]: Teacher[];
 }
 
-// UPDATED: ChatBubble component to render file attachments and use Lucide icons
+// Modal component for displaying the expanded image
+const ImageModal: React.FC<{ imageUrl: string | null; onClose: () => void }> = ({
+  imageUrl,
+  onClose,
+}) => {
+  if (!imageUrl) return null;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75"
+      onClick={onClose} // Close when clicking outside the image
+    >
+      <div className="relative p-4 bg-white rounded-lg max-w-3xl max-h-[90vh] flex flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
+        {/* Close button */}
+        <button
+          className="absolute top-2 right-2 p-2 rounded-full bg-gray-800 text-white hover:bg-gray-700 transition-colors z-10"
+          onClick={onClose}
+          aria-label="Close image"
+        >
+          <X size={24} />
+        </button>
+        {/* Expanded image */}
+        <img
+          src={imageUrl}
+          alt="Expanded image"
+          className="max-w-full max-h-[calc(90vh-3rem)] rounded-lg object-contain"
+          style={{ cursor: 'zoom-out' }} // Indicate it can be closed by clicking
+        />
+      </div>
+    </div>
+  );
+};
+
 const ChatBubble: React.FC<{
   content: MessageContent;
   timestamp: string;
   isSender: boolean;
   isRead?: boolean;
-}> = ({ content, timestamp, isSender, isRead }) => {
-  const bubbleStyles = isSender
-    ? 'bg-purple-600 text-white rounded-lg max-w-md self-end'
-    : 'bg-gray-200 text-gray-800 rounded-lg max-w-md self-start';
+  primaryColor: string;
+}> = ({ content, timestamp, isSender, isRead, primaryColor }) => {
+  const [expandedImage, setExpandedImage] = useState<string | null>(null);
+
+  const bubbleClasses = isSender
+    ? `bg-blue-400 text-white rounded-tl-[1.25rem] rounded-tr-[1.25rem] rounded-br-[0.25rem] rounded-bl-[1.25rem] self-end`
+    : `bg-gray-200 text-gray-900 rounded-tl-[1.25rem] rounded-tr-[1.25rem] rounded-br-[1.25rem] rounded-bl-[0.25rem] self-start`;
+
+  const handleImageClick = (imageUrl: string) => {
+    setExpandedImage(imageUrl);
+  };
+
+  const handleCloseImageModal = () => {
+    setExpandedImage(null);
+  };
 
   return (
-    <div className={`p-3 ${bubbleStyles}`}>
-      {content.text && <p className="text-sm">{content.text}</p>}
-      {content.image && (
-        <img src={content.image} alt="Sent image" className="mt-2 rounded-lg max-h-48 object-contain" />
-      )}
-      {content.file && (
-        <div className="mt-2 flex items-center space-x-2">
-          <FileText size={20} />
-          <a href={content.file.url} download={content.file.name} className={`underline text-sm ${isSender ? 'text-white' : 'text-gray-800'}`}>
-            {content.file.name}
-          </a>
-        </div>
-      )}
-      <div className="flex items-center justify-end gap-2 mt-1">
-        <span className={`text-xs ${isSender ? 'text-purple-200' : 'text-gray-500'}`}>
-          {timestamp}
-        </span>
-        {isSender && isRead && (
-          <CheckCheck className="w-4 h-4 text-green-400" />
+    <>
+      <div className={`p-3 relative shadow-sm text-sm max-w-[80%] ${bubbleClasses}`}>
+        {content.text && (
+          // Increased padding-right to ensure space for timestamp
+          <p className="text-sm break-words pr-16">
+            {content.text}
+          </p>
         )}
+        {/* Render multiple images */}
+        {content.images && content.images.map((imageSrc, index) => (
+          <img
+            key={index}
+            src={imageSrc}
+            alt={`Sent image ${index + 1}`}
+            // Increased padding-right for image to ensure space for timestamp
+            className="mt-2 rounded-lg max-h-48 object-contain cursor-pointer transition-transform duration-200 hover:scale-[1.02] pr-16"
+            onClick={() => handleImageClick(imageSrc)}
+          />
+        ))}
+        {/* Render multiple files */}
+        {content.files && content.files.map((file, index) => (
+          <div key={index} className="mt-2 flex items-center space-x-2 pr-16">
+            <FileText size={20} />
+            <a href={file.url} download={file.name} className={`underline text-sm ${isSender ? 'text-white' : 'text-gray-900'}`}> {/* Changed to text-gray-900 */}
+              {file.name}
+            </a>
+          </div>
+        ))}
+        <div className="absolute bottom-1 right-2 flex items-center gap-1">
+          <span className={`text-xs ${isSender ? 'text-white/75' : 'text-gray-500'}`}>
+            {timestamp}
+          </span>
+          {isSender && isRead && (
+            <CheckCheck className="w-4 h-4 text-green-400" />
+          )}
+        </div>
       </div>
-    </div>
+
+      {/* Image expansion modal */}
+      <ImageModal imageUrl={expandedImage} onClose={handleCloseImageModal} />
+    </>
   );
 };
 
@@ -109,21 +171,21 @@ export default function AskTeacherPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedTeacher, setSelectedTeacher] = useState<Teacher | null>(null);
-  const [messageInput, setMessageInput] = useState('');
+  const [messageInput, setMessageInput] = useState(''); // This state is no longer used for input
   const [messages, setMessages] = useState<Message[]>([]);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [studentId, setStudentId] = useState<string>();
   const [groupedTeachers, setGroupedTeachers] = useState<GroupedTeachers>({});
   const [showDepartment, setShowDepartment] = useState<string | null>(null);
   
-  // UPDATED: messageContent now has 'file' instead of 'voiceNote'
+  // UPDATED: messageContent now has 'images' and 'files' arrays
   const [messageContent, setMessageContent] = useState<MessageContent>({
     text: '',
-    image: null,
-    file: null,
+    images: [],
+    files: [],
   });
-  // NEW: State for upload loading status
-  const [uploading, setUploading] = useState(false);
+  // NEW: State for upload loading status, now tracks count for multiple uploads
+  const [uploadingCount, setUploadingCount] = useState(0);
   // NEW: State to toggle mobile attachment options
   const [showAttachments, setShowAttachments] = useState(false);
 
@@ -239,18 +301,19 @@ export default function AskTeacherPage() {
       const notifications: Notification[] = await response.json();
 
       const chatMessages = notifications.flatMap(notification => {
-        let parsedStudentContent: MessageContent = { text: notification.message, image: null, file: null };
+        let parsedStudentContent: MessageContent = { text: notification.message, images: [], files: [] };
         
         if (notification.message && notification.message.startsWith('{')) {
           try {
             const temp = JSON.parse(notification.message);
+            // Ensure images and files are arrays, fallback to empty array if not present or null
             parsedStudentContent = {
               text: temp.text || null,
-              image: temp.image || null,
-              file: temp.file || null,
+              images: Array.isArray(temp.images) ? temp.images : (temp.image ? [temp.image] : []), // Handle single image for backward compatibility
+              files: Array.isArray(temp.files) ? temp.files : (temp.file ? [temp.file] : []), // Handle single file for backward compatibility
             };
           } catch (e) {
-            parsedStudentContent = { text: notification.message, image: null, file: null };
+            parsedStudentContent = { text: notification.message, images: [], files: [] };
           }
         }
         
@@ -265,17 +328,18 @@ export default function AskTeacherPage() {
         const conversation: Message[] = [studentMessage];
 
         if (notification.replyText) {
-          let parsedReplyContent: MessageContent = { text: notification.replyText, image: null, file: null };
+          let parsedReplyContent: MessageContent = { text: notification.replyText, images: [], files: [] };
           if (notification.replyText.startsWith('{')) {
             try {
               const temp = JSON.parse(notification.replyText);
+              // Ensure images and files are arrays, fallback to empty array if not present or null
               parsedReplyContent = {
                 text: temp.text || null,
-                image: temp.image || null,
-                file: temp.file || null,
+                images: Array.isArray(temp.images) ? temp.images : (temp.image ? [temp.image] : []), // Handle single image for backward compatibility
+                files: Array.isArray(temp.files) ? temp.files : (temp.file ? [temp.file] : []), // Handle single file for backward compatibility
               };
             } catch (e) {
-              parsedReplyContent = { text: notification.replyText, image: null, file: null };
+              parsedReplyContent = { text: notification.replyText, images: [], files: [] };
             }
           }
 
@@ -349,51 +413,72 @@ export default function AskTeacherPage() {
   };
 
   const handleImageChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      setUploading(true);
-      try {
-        const publicUrl = await uploadImageToCloudinary(file);
-        setMessageContent({ ...messageContent, image: publicUrl });
-      } catch (error) {
-        console.error("Image upload failed:", error);
-        alert("Failed to upload image. Please try again.");
-        setMessageContent({ ...messageContent, image: null });
-      } finally {
-        setUploading(false);
-        event.target.value = '';
-        setShowAttachments(false);
-      }
+    const files = event.target.files;
+    if (files && files.length > 0) {
+      setUploadingCount(prev => prev + files.length); // Increment upload counter
+      const uploadPromises = Array.from(files).map(async (file) => {
+        try {
+          const publicUrl = await uploadImageToCloudinary(file);
+          setMessageContent(prev => ({
+            ...prev,
+            images: [...prev.images, publicUrl], // Add to images array
+          }));
+        } catch (error) {
+          console.error("Image upload failed:", error);
+          alert(`Failed to upload image ${file.name}. Please try again.`);
+        } finally {
+          setUploadingCount(prev => prev - 1); // Decrement upload counter
+        }
+      });
+      await Promise.all(uploadPromises); // Wait for all uploads to complete
+      event.target.value = ''; // Clear input
+      setShowAttachments(false);
     }
   };
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-     const file = event.target.files?.[0];
-  if (file) {
-    setUploading(true);
-    try {
-      const publicUrl = await uploadImageToCloudinary(file);
-      setMessageContent({ ...messageContent, file: { url: publicUrl, name: file.name } });
-    } catch (error) {
-      console.error("File upload failed:", error);
-      alert("Failed to upload file. Please try again.");
-      setMessageContent({ ...messageContent, file: null });
-    } finally {
-      setUploading(false);
-      event.target.value = '';
+    const files = event.target.files;
+    if (files && files.length > 0) {
+      setUploadingCount(prev => prev + files.length); // Increment upload counter
+      const uploadPromises = Array.from(files).map(async (file) => {
+        try {
+          // Assuming uploadImageToCloudinary can handle general files too, or you have a separate file upload utility
+          const publicUrl = await uploadImageToCloudinary(file);
+          setMessageContent(prev => ({
+            ...prev,
+            files: [...prev.files, { url: publicUrl, name: file.name }], // Add to files array
+          }));
+        } catch (error) {
+          console.error("File upload failed:", error);
+          alert(`Failed to upload file ${file.name}. Please try again.`);
+        } finally {
+          setUploadingCount(prev => prev - 1); // Decrement upload counter
+        }
+      });
+      await Promise.all(uploadPromises); // Wait for all uploads to complete
+      event.target.value = ''; // Clear input
       setShowAttachments(false);
     }
-  }
   };
   
-  const handleRemoveAttachment = () => {
-    setMessageContent(prev => ({ ...prev, image: null, file: null }));
+  const handleRemoveAttachment = (type: 'image' | 'file', index: number) => {
+    setMessageContent(prev => {
+      if (type === 'image') {
+        const newImages = [...prev.images];
+        newImages.splice(index, 1);
+        return { ...prev, images: newImages };
+      } else {
+        const newFiles = [...prev.files];
+        newFiles.splice(index, 1);
+        return { ...prev, files: newFiles };
+      }
+    });
   };
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    const hasContent = messageContent.text || messageContent.image || messageContent.file;
-    if (!hasContent || !selectedTeacher || !studentId) return;
+    const hasContent = messageContent.text?.trim() || messageContent.images.length > 0 || messageContent.files.length > 0;
+    if (!hasContent || !selectedTeacher || !studentId || uploadingCount > 0) return; // Prevent sending while uploading
 
     const tempId = Date.now().toString();
 
@@ -408,7 +493,7 @@ export default function AskTeacherPage() {
     };
 
     setMessages(prev => [...prev, newMessage]);
-    setMessageContent({ text: '', image: null, file: null });
+    setMessageContent({ text: '', images: [], files: [] }); // Reset message content
     scrollToBottom();
 
     try {
@@ -493,6 +578,7 @@ export default function AskTeacherPage() {
                     timestamp={new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     isSender={msg.sender === 'student'}
                     isRead={msg.isRead}
+                    primaryColor="#4F46E5" // Pass primary color here
                   />
                 ))}
                 <div ref={messagesEndRef} />
@@ -501,38 +587,51 @@ export default function AskTeacherPage() {
           </div>
 
           <div className="p-4 border-t bg-white flex-shrink-0">
-            {(messageContent.image || messageContent.file || uploading) && (
-              <div className="mb-2 p-2 bg-gray-100 rounded-lg flex items-center justify-between">
-                {uploading ? (
-                  <div className="flex items-center space-x-2 text-sm text-gray-600">
-                    <Loader size="small" />
-                    <span>Uploading...</span>
+            {/* Display multiple attached images */}
+            {messageContent.images.length > 0 && (
+              <div className="mb-2 p-2 bg-gray-100 rounded-lg grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {messageContent.images.map((imgSrc, index) => (
+                  <div key={`img-preview-${index}`} className="relative h-20 w-20 overflow-hidden rounded">
+                    <img src={imgSrc} alt={`preview ${index}`} className="h-full w-full object-cover" />
+                    <button
+                      onClick={() => handleRemoveAttachment('image', index)}
+                      className="absolute top-0 right-0 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center"
+                      disabled={uploadingCount > 0}
+                    >
+                      <X size={12} />
+                    </button>
                   </div>
-                ) : (
-                  <>
-                    {messageContent.image && (
-                      <div className="flex items-center">
-                        <span className="mr-2 text-sm text-gray-600">Image attached</span>
-                        <img src={messageContent.image} alt="preview" className="h-10 w-10 object-cover rounded" />
-                      </div>
-                    )}
-                    {messageContent.file && (
-                      <div className="flex items-center">
-                        <span className="mr-2 text-sm text-gray-600">File attached:</span>
-                        <a href={messageContent.file.url} download={messageContent.file.name} className="text-sm text-purple-600 underline">
-                          {messageContent.file.name}
-                        </a>
-                      </div>
-                    )}
-                  </>
-                )}
-                <button 
-                  onClick={handleRemoveAttachment}
-                  className="text-gray-500 hover:text-gray-800"
-                  disabled={uploading}
-                >
-                  &times;
-                </button>
+                ))}
+              </div>
+            )}
+            
+            {/* Display multiple attached files */}
+            {messageContent.files.length > 0 && (
+              <div className="mb-2 p-2 bg-gray-100 rounded-lg space-y-1">
+                {messageContent.files.map((file, index) => (
+                  <div key={`file-preview-${index}`} className="flex items-center justify-between text-sm text-gray-600">
+                    <div className="flex items-center space-x-2">
+                      <FileText size={16} />
+                      <a href={file.url} download={file.name} className="underline text-purple-600">
+                        {file.name}
+                      </a>
+                    </div>
+                    <button
+                      onClick={() => handleRemoveAttachment('file', index)}
+                      className="text-gray-500 hover:text-gray-800"
+                      disabled={uploadingCount > 0}
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {uploadingCount > 0 && (
+              <div className="mb-2 p-2 bg-gray-100 rounded-lg flex items-center space-x-2 text-sm text-gray-600">
+                <Loader size="small" />
+                <span>Uploading {uploadingCount} file(s)...</span>
               </div>
             )}
             
@@ -543,7 +642,7 @@ export default function AskTeacherPage() {
                 className="flex-1 p-2 border rounded-full focus:outline-none focus:ring-1 focus:ring-purple-500"
                 value={messageContent.text || ''}
                 onChange={(e) => setMessageContent({ ...messageContent, text: e.target.value })}
-                disabled={uploading}
+                disabled={uploadingCount > 0}
               />
 
               <input
@@ -552,6 +651,7 @@ export default function AskTeacherPage() {
                 ref={imageInputRef}
                 className="hidden"
                 onChange={handleImageChange}
+                multiple // Allow multiple image selection
               />
               <input
                 type="file"
@@ -559,13 +659,14 @@ export default function AskTeacherPage() {
                 ref={fileInputRef}
                 className="hidden"
                 onChange={handleFileChange}
+                multiple // Allow multiple file selection
               />
               
               <button
                 type="button"
                 onClick={() => setShowAttachments(prev => !prev)}
                 className="p-2 sm:hidden text-gray-500 hover:text-purple-600"
-                disabled={uploading}
+                disabled={uploadingCount > 0}
               >
                 <Plus size={24} />
               </button>
@@ -574,7 +675,7 @@ export default function AskTeacherPage() {
                 type="button"
                 onClick={() => imageInputRef.current?.click()}
                 className="hidden sm:block p-2 text-gray-500 hover:text-purple-600"
-                disabled={uploading}
+                disabled={uploadingCount > 0}
               >
                 <ImageIcon size={24} />
               </button>
@@ -582,7 +683,7 @@ export default function AskTeacherPage() {
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
                 className="hidden sm:block p-2 text-gray-500 hover:text-purple-600"
-                disabled={uploading}
+                disabled={uploadingCount > 0}
               >
                 <Paperclip size={24} />
               </button>
@@ -590,7 +691,7 @@ export default function AskTeacherPage() {
               <button
                 type="submit"
                 className="bg-purple-600 text-white px-1 py-1 rounded-full hover:bg-purple-700 transition-colors disabled:bg-purple-300"
-                disabled={!(messageContent.text || messageContent.image || messageContent.file) || uploading}
+                disabled={!(messageContent.text?.trim() || messageContent.images.length > 0 || messageContent.files.length > 0) || uploadingCount > 0}
               >
                   <Send size={20} />
               </button>
@@ -601,7 +702,7 @@ export default function AskTeacherPage() {
                     type="button"
                     onClick={() => { imageInputRef.current?.click(); setShowAttachments(false); }}
                     className="p-2 text-gray-500 hover:text-purple-600 rounded-full bg-gray-100"
-                    disabled={uploading}
+                    disabled={uploadingCount > 0}
                   >
                     <ImageIcon size={20} />
                   </button>
@@ -609,7 +710,7 @@ export default function AskTeacherPage() {
                     type="button"
                     onClick={() => { fileInputRef.current?.click(); setShowAttachments(false); }}
                     className="p-2 text-gray-500 hover:text-purple-600 rounded-full bg-gray-100"
-                    disabled={uploading}
+                    disabled={uploadingCount > 0}
                   >
                     <Paperclip size={20} />
                   </button>
