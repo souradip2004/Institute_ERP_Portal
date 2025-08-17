@@ -48,10 +48,10 @@ export function QuestionConfigForm({ parsedData, onSubmit }: QuestionConfigFormP
         const initialConfigs: Record<string, QuestionConfig> = {};
         Object.keys(parsedQuestions).forEach(qNum => {
           initialConfigs[qNum] = {
-            marks: 1,
-            difficulty: 'medium',
-            biasedMarks: 1,
-            thresholdMarks: 0.5,
+            marks: 10,
+            difficulty: 'hard',
+            biasedMarks: 0,
+            thresholdMarks: 0,
             isFigureBased: false,
             figureUrls: []
           };

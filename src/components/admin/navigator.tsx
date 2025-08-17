@@ -126,7 +126,7 @@ const Navigator = ({ id, userId, logo, name, primaryColor, verified, coins }: Na
       case "Dashboard":
         return (
           <div className="space-y-6">
-            <AddTeacher id={id} />
+            <AddTeacher id={id}  />
             <ViewTeachers id={id} />
           </div>
         );
@@ -236,17 +236,9 @@ const Navigator = ({ id, userId, logo, name, primaryColor, verified, coins }: Na
         </button>
       )}
 
-      {/* Mobile Overlay (backdrop) */}
-      {isMobileView && isSidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[50]"
-          onClick={() => setIsSidebarOpen(false)}
-        />
-      )}
-
       {/* Sidebar */}
       <aside
-        className={`fixed top-0 left-0 h-screen bg-white shadow-xl border-r border-gray-200 z-[55] transition-transform duration-300 ease-in-out flex flex-col justify-between 
+        className={`fixed top-0 left-0 h-full bg-white shadow-xl border-r border-gray-200 z-[55] transition-transform duration-300 ease-in-out flex flex-col justify-between 
           ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}
           w-64`}
       >
@@ -281,51 +273,68 @@ const Navigator = ({ id, userId, logo, name, primaryColor, verified, coins }: Na
                 ? pathname === item.href
                 : activeComponent === item.component;
 
-              const commonClasses =
-                "flex items-center px-4 py-2 rounded-lg transition-all duration-300 text-sm font-medium group"; // Added group for hover effects
-              const activeClasses =
-                `bg-blue-600 text-white shadow-md`; // Darker gradient, shadow
-              const inactiveClasses =
-                "text-gray-700 hover:bg-gray-100 hover:text-blue-600"; // Lighter hover
+             const isLightColor = (hex: string) => {
+  // A simple way to check for lightness is to convert to RGB and get the luminance.
+  // This is a basic approach. For more robust checks, you could use a library.
+  const r = parseInt(hex.substring(1, 3), 16);
+  const g = parseInt(hex.substring(3, 5), 16);
+  const b = parseInt(hex.substring(5, 7), 16);
+  // Using the WCAG formula for relative luminance
+  const luminance = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+  return luminance > 0.6; // Adjust this threshold as needed
+};
 
-              return item.href ? (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  onClick={handleNavLinkClick}
-                  className={`${commonClasses} ${isActive ? `bg-[${color}] text-white shadow-md` : inactiveClasses
-                    }`}
-                  style={isActive ? { backgroundColor: color } : undefined}
-                >
-                  <span
-                    className={`mr-3 ${isActive
-                      ? "text-white"
-                      : "text-gray-500 group-hover:text-blue-600"
-                      }`}
-                  >
-                    {item.icon}
-                  </span>
-                  {item.name}
-                </Link>
-              ) : (
-                <button
-                  key={item.name}
-                  onClick={() => handleNavLinkClick(item.component)}
-                  className={`${commonClasses} ${isActive ? `bg-[${color}] text-white shadow-md` : inactiveClasses
-                    } w-full text-left`}
-                  style={isActive ? { backgroundColor: color } : undefined}
-                >
-                  <span
-                    className={`mr-3 ${isActive
-                      ? "text-white"
-                      : "text-gray-500 group-hover:text-blue-600"
-                      }`}
-                  >
-                    {item.icon}
-                  </span>
-                  {item.name}
-                </button>
-              );
+// ... inside your component
+
+const commonClasses =
+  "flex items-center px-4 py-2 rounded-lg transition-all duration-300 text-sm font-medium group";
+const inactiveClasses =
+  "text-gray-700 hover:bg-gray-100 hover:text-blue-600";
+
+const activeTextClass = isLightColor(color) ? 'text-black' : 'text-white';
+const activeBgStyle = { backgroundColor: color };
+const activeIconClass = isLightColor(color) ? 'text-black' : 'text-white';
+
+return item.href ? (
+  <Link
+    key={item.name}
+    href={item.href}
+    onClick={handleNavLinkClick}
+    className={`${commonClasses} ${isActive ? 'shadow-md' : inactiveClasses}`} // shadow-md is separate
+    style={isActive ? activeBgStyle : undefined}
+  >
+    <span
+      className={`mr-3 ${isActive
+          ? activeIconClass
+          : "text-gray-500 group-hover:text-blue-600"
+        }`}
+    >
+      {item.icon}
+    </span>
+    <span className={isActive ? activeTextClass : ''}>
+      {item.name}
+    </span>
+  </Link>
+) : (
+  <button
+    key={item.name}
+    onClick={() => handleNavLinkClick(item.component)}
+    className={`${commonClasses} ${isActive ? 'shadow-md' : inactiveClasses} w-full text-left`}
+    style={isActive ? activeBgStyle : undefined}
+  >
+    <span
+      className={`mr-3 ${isActive
+          ? activeIconClass
+          : "text-gray-500 group-hover:text-blue-600"
+        }`}
+    >
+      {item.icon}
+    </span>
+    <span className={isActive ? activeTextClass : ''}>
+      {item.name}
+    </span>
+  </button>
+);
             })}
           </nav>
         </div>

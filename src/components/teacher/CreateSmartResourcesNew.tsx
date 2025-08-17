@@ -582,13 +582,7 @@ function CreateSmartResources() {
             <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden z-40">
                 <div className="bg-gradient-to-r from-purple-600 to-indigo-700 p-6 flex justify-between items-start text-white relative">
                     {/* Back button for the main form */}
-                    <button
-                        onClick={handleBack}
-                        className="absolute top-6 left-6 text-purple-200 hover:text-white transition-colors"
-                        aria-label={translator("Go back", "वापस जाएं")}
-                    >
-                        <BackIcon />
-                    </button>
+                   
                     <div className="ml-10"> {/* Added margin to prevent overlap with back button */}
                         <h1 className="text-2xl font-bold">
                             {translator("AI Resource Finder", "AI रिसोर्स फाइंडर")}

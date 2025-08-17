@@ -14,6 +14,7 @@ export async function GET(
 const response=await prisma.assignment.findMany({
       where: { classSectionId: classId },
       include: {
+        attachments: true,
         classSection: {
           include: {
             batch: true,

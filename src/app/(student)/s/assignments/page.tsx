@@ -461,7 +461,8 @@ export default function AssignmentsPage() {
                         </div>
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
-                        {downloadedAssignments.has(assignment.id) ? (
+                      {assignment.attachments ? (
+                        downloadedAssignments.has(assignment.id) ? (
                           <span className="text-green-600 font-medium flex items-center">
                             <Download className="h-4 w-4 mr-1 sm:mr-2" /> Downloaded
                           </span>
@@ -476,7 +477,10 @@ export default function AssignmentsPage() {
                             <Download className="h-4 w-4 mr-1 sm:mr-2" />
                             <span className="hidden sm:inline">Download</span>
                           </Link>
-                        )}
+                        )
+                      ) : (
+                        <span className="text-gray-500">No attachments</span>
+                      )}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
                         <span className="px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800">

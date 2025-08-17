@@ -242,22 +242,38 @@ export default function TeacherSidebar({ onSidebarToggle }: TeacherSidebarProps)
                 isActive = !!pathname?.startsWith(item.href);
               }
 
-              const commonClasses = "flex items-center px-4 py-3 text-base rounded-md transition-colors group";
-              const activeClasses = `bg-[${color}] text-white font-medium`;
-              const inactiveClasses = "text-gray-700 hover:bg-gray-100";
+              const isLightColor = (hex: string) => {
+  // A simple way to check for lightness is to convert to RGB and get the luminance.
+  // This is a basic approach. For more robust checks, you could use a library.
+  const r = parseInt(hex.substring(1, 3), 16);
+  const g = parseInt(hex.substring(3, 5), 16);
+  const b = parseInt(hex.substring(5, 7), 16);
+  // Using the WCAG formula for relative luminance
+  const luminance = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+  return luminance > 0.6; // Adjust this threshold as needed
+};
 
-              return (
-                <Link
-                  key={item.name}
-                  href={item.href as any}
-                  onClick={item.onClick}
-                  className={`${commonClasses} ${isActive ? activeClasses : inactiveClasses}`}
-                  style={isActive ? { backgroundColor: color } : undefined}
-                >
-                  <span className={`mr-3 ${isActive ? 'text-blue-700' : 'text-gray-500 group-hover:text-blue-700'}`}>{item.icon}</span>
-                  <span>{item.name}</span>
-                </Link>
-              );
+// ... inside your component
+const commonClasses = "flex items-center px-4 py-3 text-base rounded-md transition-colors group";
+const activeClasses = `font-medium`; // Text color will be set dynamically
+const inactiveClasses = "text-gray-700 hover:bg-gray-100";
+
+return (
+  <Link
+    key={item.name}
+    href={item.href as any}
+    onClick={item.onClick}
+    className={`${commonClasses} ${isActive ? activeClasses : inactiveClasses}`}
+    style={isActive ? { backgroundColor: color, color: isLightColor(color) ? 'black' : 'white' } : undefined}
+  >
+    <span className={`mr-3 ${isActive ? (isLightColor(color) ? 'text-black' : 'text-white') : 'text-gray-500 group-hover:text-blue-700'}`}>
+      {item.icon}
+    </span>
+    <span style={isActive ? { color: isLightColor(color) ? 'black' : 'white' } : undefined}>
+      {item.name}
+    </span>
+  </Link>
+);
             })}
           </nav>
 

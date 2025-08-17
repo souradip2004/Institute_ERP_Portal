@@ -115,13 +115,19 @@ export default function ClassSectionsList({
   }, [classSections]); // Re-run when classSections prop changes
 
 
-  const formatDate = (dateString: string) => {
-    try {
-      return new Date(dateString).toLocaleDateString();
-    } catch (error) {
-      return 'Invalid Date';
+const formatDate = (dateString: string) => {
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) {
+      throw new Error('Invalid Date');
     }
-  };
+    // The 'en-GB' (British English) locale formats dates as dd/mm/yyyy
+    return date.toLocaleDateString('en-GB'); 
+  } catch (error) {
+    console.error("Error formatting date:", error);
+    return 'Invalid Date';
+  }
+};
 
   // --- MODAL HANDLERS ---
   const openDeleteModal = (motherClassId: string) => {

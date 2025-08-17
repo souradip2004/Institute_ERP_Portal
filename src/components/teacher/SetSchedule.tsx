@@ -344,7 +344,10 @@ const SetSchedule = () => {
         localStorage.removeItem('videoSectionChatMessages');
 
         const Airfdata = JSON.parse(localStorage.getItem("airf") || '{}');
-
+if(!selectedClassIds || selectedClassIds.length === 0) {
+        alert("Please select at least one class section.");
+        return;
+      }
         const dataToSend = {
           "userId": userId,
           "section":selectedClassIds,
@@ -765,11 +768,6 @@ const SetSchedule = () => {
                 {translator("Proceed With Study Plan", "अध्ययन योजना के साथ जारी रखें")}
               </button>
 
-              <button
-                onClick={handleSkip}
-                className="py-3 px-4 sm:px-6 bg-white border border-gray-300 rounded-lg text-sm sm:text-base font-medium transition-all duration-300 hover:bg-gray-50 hover:shadow-md hover:scale-[1.02] active:scale-[0.98] order-2 sm:order-3">
-                {translator("Skip", "छोड़ें")}
-              </button>
             </div>
           </div>
         </div>

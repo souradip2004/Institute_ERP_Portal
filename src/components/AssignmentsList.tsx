@@ -35,6 +35,8 @@ interface Assignment {
     studentEnrollments: { studentId: string }[];
     teacherId: string;
   };
+    attachments: { id: string; fileUrl: string; fileName: string; fileType: string }[];
+
 }
 
 interface AssignmentsListProps {
@@ -196,9 +198,18 @@ const AssignmentsList = ({ assignments, classSectionId }: AssignmentsListProps) 
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
                     <button
                       className="text-purple-600 hover:text-purple-900"
+                      onClick={() => window.location.href = assignment.attachments[0]?.fileUrl || '#'}
+                    >
+                      {JSON.stringify(assignment.attachments[0]?.fileUrl)? 'View' : ''}
+                    </button>
+                    {assignment.attachments.length > 0 && (
+                                          <span className="text-gray-300">|</span>
+                    ) }
+                    <button
+                      className="text-purple-600 hover:text-purple-900"
                       onClick={() => viewSubmissionDetails(assignment)}
                     >
-                      View
+                      Submissions
                     </button>
                     <span className="text-gray-300">|</span>
                     <Link href={`/t/classes/${classSectionId}/assignments/${assignment.id}/delete`} className="text-red-600 hover:text-red-900">

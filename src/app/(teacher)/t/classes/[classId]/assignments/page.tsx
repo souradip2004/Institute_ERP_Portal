@@ -29,6 +29,7 @@ interface Assignment {
   status: string;
   maxPoints: number;
   submissions: AssignmentSubmission[];
+  attachments: { id: string; fileUrl: string; fileName: string; fileType: string }[];
 }
 
 interface ApiAssignment extends Omit<Assignment, 'submissions'> {

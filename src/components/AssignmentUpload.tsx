@@ -92,7 +92,7 @@ const AssignmentUpload = ({ classSectionId,instituteId}: AssignmentUploadProps) 
     try {
       setUploadProgress(0);
       const formData = new FormData();
-      formData.append('pdf', file);
+      formData.append('file', file); // Changed 'pdf' to 'file' for a more general approach
 
       // Create a custom XMLHttpRequest to track upload progress
       return new Promise<{
@@ -132,7 +132,18 @@ const AssignmentUpload = ({ classSectionId,instituteId}: AssignmentUploadProps) 
           }
         };
 
-        xhr.open('POST', '/api/upload/pdf', true);
+        // Determine the correct API endpoint based on file type
+        let apiEndpoint = '';
+        if (file.type === 'application/pdf') {
+            apiEndpoint = '/api/upload/pdf';
+        } else if (file.type === 'image/jpeg') {
+            apiEndpoint = '/api/upload/file';
+        } else {
+            reject(new Error('Unsupported file type'));
+            return;
+        }
+
+        xhr.open('POST', apiEndpoint, true);
         xhr.send(formData);
       });
     } catch (error) {
@@ -140,7 +151,6 @@ const AssignmentUpload = ({ classSectionId,instituteId}: AssignmentUploadProps) 
       throw error;
     }
   };
-
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!title || !totalMarks || !dueDate) {
