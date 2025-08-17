@@ -88,7 +88,7 @@ export async function checkAnswerWithModelKey(
     console.log(JSON.parse(configJson1string))
     console.log('......................................................\n\n\n\n\n\n');
     const response = await fetch(
-       'https://answer-checking-4-89f26c7-v7.app.beam.cloud',
+       'https://answer-checking-4-89f26c7-v8.app.beam.cloud',
       {
         method: 'POST',
         body: JSON.stringify({
