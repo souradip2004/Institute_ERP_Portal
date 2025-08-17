@@ -165,7 +165,7 @@ export async function checkAnswerWithDiagramSupport(
     
 
     const response = await fetch(
-      'https://answer-and-diagram-checking-5-d324ec2-v6.app.beam.cloud' ,
+      'https://answer-and-diagram-checking-5-d324ec2-v7.app.beam.cloud' ,
     
       {
         method: 'POST',
