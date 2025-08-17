@@ -76,16 +76,16 @@ console.log(obtainedPoints,feedback,teacherId)
     });
 
     // Optionally: Create a notification for the student about the graded assignment
-    await prisma.notification.create({
-      data: {
-        userId: updatedSubmission.student.user.id,
-        title: "Assignment Graded",
-        message: `Your submission for "${updatedSubmission.assignment.title}" has been graded.`,
-        notificationType: "ASSIGNMENT_GRADED",
-        actionUrl: `/s/assignments/view/${updatedSubmission.assignmentId}`,
-      },
-    });
-
+    // await prisma.notification.create({
+    //   data: {
+    //     userId: updatedSubmission.student.user.id,
+    //     title: "Assignment Graded",
+    //     message: `Your submission for "${updatedSubmission.assignment.title}" has been graded.`,
+    //     notificationType: "ASSIGNMENT_GRADED",
+    //     actionUrl: `/s/assignments/view/${updatedSubmission.assignmentId}`,
+    //   },
+    // });
+    
     return NextResponse.json(updatedSubmission, { status: 200 });
   } catch (error) {
     console.error("Error grading submission:", error);

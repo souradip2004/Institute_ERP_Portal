@@ -493,65 +493,8 @@ function CreateSmartResources() {
                 </div>
             )}
 
-            {showResources && (
-                <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-2xl flex items-center justify-center px-4 py-6 animate-fade-in">
-                    {resourceFetchDone && (
-                        <div className="w-full max-w-md mx-auto rounded-3xl shadow-3xl bg-white p-8 flex flex-col items-center relative animate-scale-in">
-                            {/* Back button for the Welcome modal */}
-                            <button
-                                onClick={() => { setShowResources(false) }}
-                                className="absolute top-4 left-4 text-gray-600 hover:text-gray-900 transition-colors"
-                                aria-label={translator("Go back", "वापस जाएं")}
-                            >
-                                <BackIcon />
-                            </button>
-                            <div className="text-center mb-6">
-                                <h2 className="text-3xl font-extrabold text-gray-800 mb-2">
-                                    {translator("Welcome!", "स्वागत है!")}
-                                </h2>
-                                <p className="text-lg text-gray-600">
-                                    {translator("What would you like to do today?", "आज आप क्या करना चाहेंगे?")}
-                                </p>
-                            </div>
-                            <div className="flex flex-col gap-5 w-full">
-                                <button
-                                    className="flex flex-col items-center justify-center p-6 bg-gradient-to-br from-green-500 to-teal-600 text-white rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300 group"
-                                    onClick={() => { setShowResources(false) }}
-                                >
-                                    <UploadCloud className="w-10 h-10 mb-3 text-green-200 group-hover:text-white transition-colors" />
-                                    <span className="text-xl font-semibold">
-                                        {translator("Create New Schedule", "नया शेड्यूल बनाएं")}
-                                    </span>
-                                    <span className="text-sm text-green-100 mt-1">
-                                        {translator("Start fresh with AI", "AI के साथ नई शुरुआत करें")}
-                                    </span>
-                                </button>
-                                {noOfResources > 0 && (
-                                    <button
-                                        className="flex flex-col items-center justify-center p-6 bg-gradient-to-br from-purple-500 to-indigo-600 text-white rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300 group"
-                                        onClick={() => { router.push("/t/smart-resources"); }}
-                                    >
-                                        <Book className="w-10 h-10 mb-3 text-purple-200 group-hover:text-white transition-colors" />
-                                        <span className="text-xl font-semibold">
-                                            {translator("View My Schedules", "मेरे शेड्यूल देखें")}
-                                        </span>
-                                        <span className="text-sm text-purple-100 mt-1">
-                                            {noOfResources} {translator("schedules available!", "शेड्यूल उपलब्ध हैं!")}
-                                        </span>
-                                    </button>
-                                )}
-                            </div>
-                        </div>
-                    )}
-                </div>
-            )}
-
-            {!resourceFetchDone && (
-                <div className='fixed inset-0 z-50 bg-white flex items-center justify-center px-4 py-6 animate-fade-in'>
-                    Loading...
-                </div>
-            )}
-
+          
+        
             {/* --- PDF Preview Modal --- */}
             {previewPdfUrl && (
                 <div className="fixed inset-0 z-[60] bg-black bg-opacity-75 flex items-center justify-center p-4 animate-fade-in">

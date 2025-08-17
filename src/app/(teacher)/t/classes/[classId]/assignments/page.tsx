@@ -165,7 +165,7 @@ export default function TeacherAssignmentsPage({params}: TeacherAssignmentsPageP
         <div className="grid grid-cols-1 gap-6">
           {/* Assignment Upload Section */}
           <AssignmentUpload classSectionId={classId}
-                            instituteId={JSON.parse(localStorage.getItem("user")).institutionId}/>
+                            instituteId={institutionId}/>
 
           {/* Assignments List Section */}
           {loading ? (

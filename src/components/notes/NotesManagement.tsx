@@ -65,7 +65,6 @@ type Note = {
     createdAt: string;
     updatedAt: string;
     classSectionId: string;
-    gender?: string;
     attachments: {
         id: string;
         fileUrl: string;
@@ -81,7 +80,6 @@ const noteFormSchema = z.object({
     content: z.string().optional(),
     subjectName: z.string().min(1, 'Subject name is required'),
     isPublished: z.boolean().default(false),
-    gender: z.enum(['Male', 'Female']).default('Male'),
 });
 
 // Use the schema to infer the form values type
@@ -970,7 +968,7 @@ const NotesManagement: React.FC<NotesManagementProps> = ({
                                 )}
                             />
 
-                            <FormField
+                            {/* <FormField
                                 control={form.control}
                                 name="gender"
                                 render={({ field }: { field: any }) => (
@@ -988,7 +986,7 @@ const NotesManagement: React.FC<NotesManagementProps> = ({
                                         <FormMessage />
                                     </FormItem>
                                 )}
-                            />
+                            /> */}
 
                             <DialogFooter>
                                 <Button

@@ -1,12 +1,33 @@
 'use client';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { PDFUploadComponent } from '@/components/pythonCopyChecking/PDFUploadComponent.tsx';
 import { QuestionConfigForm } from '@/components/pythonCopyChecking/QuestionConfigForm';
-import hardcodedResponse from '@/lib/pythonCopyCheckingResponseHardCoded.json';
-import { METHODS } from 'node:http';
-import { set } from 'date-fns';
 import jsPDF from 'jspdf';
 import axios from 'axios';
+import * as XLSX from "xlsx";
+import { FaUpload, FaFilePdf, FaTimes, FaDownload, FaCogs, FaCheckCircle, FaSpinner } from 'react-icons/fa';
+import { TbManualGearbox } from "react-icons/tb";
+
+// A reusable card component for better structure
+const Card = ({ title, children, className = '' }) => (
+  <div className={`bg-white shadow-lg rounded-xl p-6 ${className}`}>
+    <h2 className="text-2xl font-bold text-gray-800 mb-4">{title}</h2>
+    {children}
+  </div>
+);
+
+// Component for a clean file list item
+const FileListItem = ({ file, onRemove }) => (
+  <div className="flex items-center justify-between p-2 bg-gray-100 rounded-lg text-sm text-gray-700">
+    <span className="flex items-center truncate">
+      <FaFilePdf className="text-red-500 mr-2" />
+      <span className="truncate">{file.name}</span>
+    </span>
+    <button onClick={onRemove} className="text-red-500 hover:text-red-700 transition-colors">
+      <FaTimes />
+    </button>
+  </div>
+);
 
 export default function TeacherPage({ params }: { params: { id: string } }) {
   const [uploadedFileUrl, setUploadedFileUrl] = useState<string | null>(null);
@@ -18,39 +39,33 @@ export default function TeacherPage({ params }: { params: { id: string } }) {
   const [classId, setClassId] = useState<string | null>(null);
   const [isConfigSaved, setIsConfigSaved] = useState(false);
   const [studentIds, setStudentIds] = useState<any[] | null>([]);
-  const [submittedFileUrl, setSubmittedFileUrl] = useState<string | null>(null);
   const [saveConfiguration, setSaveConfiguration] = useState(false);
   const [configData, setConfigData] = useState({
     config1: {},
     config2: {},
     config3: {}
   });
-  // Add state to track selected files for each student
   const [studentFiles, setStudentFiles] = useState<{ [studentId: string]: File[] }>({});
+  const [isUploadingStudentFiles, setIsUploadingStudentFiles] = useState<{ [studentId: string]: boolean }>({});
 
   useEffect(() => {
-    // Get teacher ID and classId from localStorage if available
     if (typeof window !== 'undefined') {
       const userData = localStorage.getItem('user');
       if (userData) {
         try {
           const parsedUserData = JSON.parse(userData);
           setTeacherId(parsedUserData.teacherId || null);
-          const fetchedClassId = async () => {
+          const fetchClassIds = async () => {
             const response = await fetch(`/api/teachers/${parsedUserData.teacherId}/section`, {
               method: 'GET',
-              headers: {
-                'Content-Type': 'application/json',
-              }
+              headers: { 'Content-Type': 'application/json' }
             });
             const data = await response.json();
             if (data && data.length > 0) {
               setClassIds(data);
-              console.log('Class IDs:', data);
             }
-
-          }
-          fetchedClassId();
+          };
+          fetchClassIds();
         } catch (error) {
           console.error('Error parsing user data from localStorage:', error);
         }
@@ -59,66 +74,52 @@ export default function TeacherPage({ params }: { params: { id: string } }) {
   }, []);
 
   useEffect(() => {
-
-    console.log('File uploaded successfully:', uploadedFileUrl);
-    const handlestudentfetch = async () => {
-      const response = await fetch(`/api/classes/${classId}/students`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-      const data = await response.json();
-      if (data && data.length > 0) {
-        console.log('Student IDs:', data);
-        setStudentIds(data);
-      }
+    if (classId) {
+      const fetchStudentData = async () => {
+        try {
+          const response = await fetch(`/api/classes/${classId}/students`, {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' },
+          });
+          const data = await response.json();
+          if (data && data.length > 0) {
+            setStudentIds(data);
+          }
+        } catch (error) {
+          console.error("Error fetching student data:", error);
+        }
+      };
+      fetchStudentData();
     }
-    handlestudentfetch();
-  }
-    , [classId]);
+  }, [classId]);
 
-
-  console.log('uploadedURL: ', uploadedFileUrl);
-  console.log('configData: ', configData);
   const handleFileUpload = async (file: File) => {
     try {
       setIsUploading(true);
       const formData = new FormData();
       formData.append('file', file);
-
       const response = await fetch(`/api/teachers/${teacherId}/answerSheet/uploadAnswerSheet`, {
         method: 'POST',
         body: formData,
       });
-
       const data = await response.json();
       if (data.success) {
         setUploadedFileUrl(data.ansSheetS3URL);
-        console.log("file details")
-        console.log(data)
-        // Now call the Python server to parse the PDF
         await parsePDFWithPython(data.ansSheetS3URL);
+      } else {
+        alert('File upload failed.');
       }
     } catch (error) {
       console.error('Error uploading file:', error);
+      alert('An error occurred during file upload.');
     } finally {
       setIsUploading(false);
     }
   };
 
-  // todo remove this fn and btn
-  const handleOnClick = async () => {
-    console.log('btn click');
-    await parsePDFWithPython("https://example.com/path/to/your/pdf.pdf");
-  }
-
   const parsePDFWithPython = async (pdfUrl: string) => {
     try {
       setIsParsing(true);
-
-      // This would be your actual Python server endpoint
-      // For now, we'll simulate with a timeout and hardcoded data
       setTimeout(async () => {
         const getPythonResponse = await fetch('https://anskey-segregate-from-pdfs-33f7051-v4.app.beam.cloud', {
           method: 'POST',
@@ -127,31 +128,21 @@ export default function TeacherPage({ params }: { params: { id: string } }) {
             'Authorization': 'Bearer ALXP7mhHyKz1MQATKH7CIQXK9VQBpvoNNuxPvLONWyPCfgemj18cz2T74r4drBpvOkf-3orOQT_6r-63mHPZAA=='
           },
           body: JSON.stringify({
-            'file_url_list': ["https://classroomaiin.s3.eu-north-1.amazonaws.com/" + pdfUrl]
+            'file_url_list': [`https://classroomaiin.s3.eu-north-1.amazonaws.com/${pdfUrl}`]
           })
-        })
+        });
+
         if (!getPythonResponse.ok) {
-          alert("An unwanted error occured please try again")
+          throw new Error("An unwanted error occurred, please try again.");
         }
         const result = await getPythonResponse.json();
-        console.log(result)
         setPythonResponse(result);
         setIsParsing(false);
-        setSaveConfiguration(true)
+        setSaveConfiguration(true);
       }, 2000);
-
-      // Actual implementation would be something like:
-      // const parseResponse = await fetch('your-python-server-url', {
-      //   method: 'POST',
-      //   headers: {
-      //     'Content-Type': 'application/json',
-      //   },
-      //   body: JSON.stringify({ pdfUrl }),
-      // });
-      // const parseData = await parseResponse.json();
-      // setPythonResponse(parseData);
     } catch (error) {
       console.error('Error parsing PDF with Python:', error);
+      alert(error.message);
       setIsParsing(false);
     }
   };
@@ -165,60 +156,51 @@ export default function TeacherPage({ params }: { params: { id: string } }) {
         },
         body: JSON.stringify({
           pythonParsedResponse: pythonResponse,
-          examId: 'exam-123', // Hardcoded for now
-          config1: configData.config1,
-          config2: configData.config2,
-          config3: configData.config3
+          examId: 'exam-123', // Hardcoded
+          ...configData
         }),
       });
-
       const data = await saveResponse.json();
       if (data.success) {
         alert('Answer key and configuration saved successfully!');
+      } else {
+        alert('Failed to save configuration.');
       }
     } catch (error) {
       console.error('Error saving configuration:', error);
+      alert('An error occurred while saving the configuration.');
     }
   };
+
   const handleStudentFileUpload = async (file: File, studentId: string) => {
-    try {
-      let fileToUpload = file;
-      // If the file is an image, convert to PDF
-      if (file.type.startsWith('image/')) {
-        fileToUpload = await imagesToPdf([file]);
-      }
-      const formData = new FormData();
-      formData.append('file', fileToUpload);
-      formData.append('examId', 'exam-123'); // Hardcoded for now
+    let fileToUpload = file;
+    if (file.type.startsWith('image/')) {
+      fileToUpload = await imagesToPdf([file]);
+    }
+    const formData = new FormData();
+    formData.append('file', fileToUpload);
+    formData.append('examId', 'exam-123'); // Hardcoded
 
-      const response = await fetch(`/api/students/4343/answerSheet/uploadAnswerSheet`, {
-        method: 'POST',
-        body: formData,
-      });
-
-      const data = await response.json();
-      if (data.success) {
-        console.log('data: ', data);
-        setUploadedFileUrl(data?.studentAnswerSheetURL);
-        setStudentIds((prevStudentIds) => {
-          if (!prevStudentIds) return prevStudentIds;
-          return prevStudentIds.map((student) => {
-            if (student.id === studentId) {
-              return { ...student, marks: data?.totalMarks };
-            }
-            return student;
-          });
+    const response = await fetch(`/api/students/${studentId}/answerSheet/uploadAnswerSheet`, {
+      method: 'POST',
+      body: formData,
+    });
+    const data = await response.json();
+    if (data.success) {
+      setStudentIds((prevStudentIds) => {
+        if (!prevStudentIds) return prevStudentIds;
+        return prevStudentIds.map((student) => {
+          if (student.id === studentId) {
+            return { ...student, marks: data?.totalMarks };
+          }
+          return student;
         });
-      }
+      });
+    } else {
+      throw new Error("File upload failed for student.");
     }
-    catch (error) {
-      console.error('Error uploading file:', error);
-    } finally {
-      setIsUploading(false);
-    }
-  }
+  };
 
-  // New: handle file selection for each student (multiple files)
   const handleStudentFileSelect = (files: FileList | null, studentId: string) => {
     if (!files) return;
     setStudentFiles((prev) => ({
@@ -227,7 +209,6 @@ export default function TeacherPage({ params }: { params: { id: string } }) {
     }));
   };
 
-  // New: remove a file from a student's file list
   const handleRemoveStudentFile = (studentId: string, fileIdx: number) => {
     setStudentFiles((prev) => {
       const updated = [...(prev[studentId] || [])];
@@ -236,51 +217,32 @@ export default function TeacherPage({ params }: { params: { id: string } }) {
     });
   };
 
-  // New: upload all files for a student
   const handleUploadStudentFiles = async (studentId: string) => {
-
-    //coin logic
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      const userData = JSON.parse(storedUser);
-      const instituteId = userData?.institutionId;
-
-      console.log('instituteid --- ', instituteId);
-      try {
-        const instResponse = await axios.get(`/api/institutions/${instituteId}/getadmin`);
-        console.log('instResponse ---', instResponse);
-        console.log('instResponse id ---', instResponse?.data?.id);
-
-        const coinRes = await axios.get(`/api/coins/${instResponse?.data?.id}`);
-        console.log('coinRes ---', coinRes);
-
-        let coinsToDeduct = 4;
-
-        if (coinRes.data.coins < coinsToDeduct) {
-          alert('Institute dosenot have enough Coins! Please Contact Institute Admin.');
-          return;
-        }
-
-        const resul1 = await axios.post(`/api/coins/${instResponse?.data?.id}?coins=${coinsToDeduct}`, null, {
-          headers: {
-            "Content-Type": "application/json"
-          }
-        });
-
-        const coinRes2 = await axios.get(`/api/coins/${instResponse?.data?.id}`);
-        console.log('coinRes ---', coinRes2);
-
-      } catch (err) {
-        console.log(err);
-      }
-    }
-
-
     const files = studentFiles[studentId];
     if (!files || files.length === 0) return;
-    setIsUploading(true);
+    
+    setIsUploadingStudentFiles(prev => ({ ...prev, [studentId]: true }));
+
     try {
-      // If all files are images, convert all to a single PDF
+      const storedUser = localStorage.getItem('user');
+      if (storedUser) {
+        const userData = JSON.parse(storedUser);
+        const instituteId = userData?.institutionId;
+        const instResponse = await axios.get(`/api/institutions/${instituteId}/getadmin`);
+        const adminId = instResponse?.data?.id;
+        if (adminId) {
+          const coinRes = await axios.get(`/api/coins/${adminId}`);
+          let coinsToDeduct = 4;
+          if (coinRes.data.coins < coinsToDeduct) {
+            alert('Institute does not have enough Coins! Please Contact Institute Admin.');
+            return;
+          }
+          await axios.post(`/api/coins/${adminId}?coins=${coinsToDeduct}`, null, {
+            headers: { "Content-Type": "application/json" }
+          });
+        }
+      }
+
       if (isAllImages(files)) {
         const pdfFile = await imagesToPdf(files);
         await handleStudentFileUpload(pdfFile, studentId);
@@ -289,51 +251,77 @@ export default function TeacherPage({ params }: { params: { id: string } }) {
           await handleStudentFileUpload(file, studentId);
         }
       }
-      // Clear files after upload
       setStudentFiles((prev) => ({ ...prev, [studentId]: [] }));
-      alert('Files uploaded successfully!');
+      alert(`Files for student ${studentId} uploaded successfully!`);
     } catch (error) {
-      alert('Error uploading files.');
+      alert(`Error uploading files for student ${studentId}. `);
+      console.error(error);
     } finally {
-      setIsUploading(false);
+      setIsUploadingStudentFiles(prev => ({ ...prev, [studentId]: false }));
     }
   };
 
-  // New function to handle uploading all student files
   const handleUploadAllStudentFiles = async () => {
-    setIsUploading(true);
+    const allStudentIdsWithFiles = Object.keys(studentFiles).filter(key => studentFiles[key].length > 0);
+    
+    if (allStudentIdsWithFiles.length === 0) {
+      alert('No files selected for any student to upload.');
+      return;
+    }
+
+    // Set all students with files to a loading state
+    const initialLoadingState = allStudentIdsWithFiles.reduce((acc, studentId) => {
+      acc[studentId] = true;
+      return acc;
+    }, {});
+    setIsUploadingStudentFiles(initialLoadingState);
+
     try {
-      // Iterate over each student in studentFiles state
-      for (const studentId in studentFiles) {
-        if (studentFiles.hasOwnProperty(studentId)) {
-          const files = studentFiles[studentId];
-          if (files && files.length > 0) {
-            console.log(`Uploading files for student ${studentId}...`);
-            // Call the existing upload logic for each student
-            // This reuses the logic from handleUploadStudentFiles
-            await handleUploadStudentFiles(studentId);
-          }
-        }
+      for (const studentId of allStudentIdsWithFiles) {
+        await handleUploadStudentFiles(studentId);
       }
-      alert('All student files uploaded successfully!');
+      alert('All selected student files uploaded successfully!');
     } catch (error) {
-      alert('Error uploading one or more student files.');
-    } finally {
-      setIsUploading(false);
+      alert('An error occurred during the batch upload. Please check the individual student statuses.');
     }
   };
 
   const handleConfigSubmit = (configData: any) => {
-    console.log('Configuration submitted:', configData);
     setConfigData(configData);
     saveConfigurationAndAnswerKey(configData);
     setSaveConfiguration(false);
+    setIsConfigSaved(true);
   };
 
-  // Helper to check if all files are images
+  const handleDownloadExcel = async () => {
+    if (studentIds && studentIds.length > 0) {
+      const worksheet = XLSX.utils.json_to_sheet(
+        studentIds.map((student) => ({
+          Name: student.name,
+          "Roll No": student.rollNo,
+          Email: student.user.email,
+          Status: student.status,
+          "Marks Obtained": student?.marks ?? "Not Checked",
+        }))
+      );
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Students");
+      const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
+      const blob = new Blob([excelBuffer], { type: "application/octet-stream" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", "student_data.xlsx");
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } else {
+      alert("No student data available to download.");
+    }
+  };
+
   const isAllImages = (files: File[]) => files.length > 0 && files.every((file) => file.type.startsWith('image/'));
 
-  // Helper to convert images to PDF using jsPDF
   const imagesToPdf = async (imageFiles: File[]): Promise<File> => {
     const pdf = new jsPDF();
     for (let i = 0; i < imageFiles.length; i++) {
@@ -348,7 +336,6 @@ export default function TeacherPage({ params }: { params: { id: string } }) {
       const width = pdf.internal.pageSize.getWidth();
       const height = (img.height * width) / img.width;
       if (i > 0) pdf.addPage();
-      // Detect image type from file
       const fileType = imageFiles[i].type;
       let format = 'JPEG';
       if (fileType === 'image/png') format = 'PNG';
@@ -360,166 +347,183 @@ export default function TeacherPage({ params }: { params: { id: string } }) {
   };
 
   return (
-    <div className="container mx-auto p-4">
-      <div className='flex flex-row justify-between'>
-        <h1 className="text-2xl font-bold mt-4 sm:mt-0 mb-6">Teacher Answer Sheet Upload</h1>
-        <button onClick={() => { window.location.href = '/t/manualMarksEntry' }} className='bg-gradient-to-r from-[#9A94FF] to-[#AA00FF] text-white font-semibold px-4 py-2 rounded-md'>Manual Marks Entry</button>
-      </div>
-
-
-      {/* <button onClick={handleOnClick} className='border-blue-200 m-5 p-5 border text-5xl bg-amber-500'>parsedData</button> */}
-
-      <div className="mb-8">
-
-        <h2 className="text-xl font-semibold mb-4">Upload Answer Sheet PDF</h2>
-
-        <PDFUploadComponent
-          onFileUpload={handleFileUpload}
-          isUploading={isUploading}
-        />
-        {pythonResponse && saveConfiguration && (
-          <div>
-            <h2 className="text-xl font-semibold mb-4">Configure Questions</h2>
-            <QuestionConfigForm
-              parsedData={pythonResponse}
-              onSubmit={handleConfigSubmit}
-            />
+    <div className="bg-gray-50 min-h-screen p-4 sm:p-8 font-sans">
+      <div className="container mx-auto">
+        <header className="flex flex-col sm:flex-row justify-between items-center mb-8">
+          <h1 className="text-3xl font-extrabold text-gray-900 mb-4 sm:mb-0">AI Copy Checking</h1>
+          {/*}
+          <div className="flex space-x-2">
+            <button
+              onClick={() => { window.location.href = '/t/manualMarksEntry' }}
+              className='bg-gradient-to-r from-purple-500 to-indigo-600 text-white font-semibold px-6 py-2 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 flex items-center'
+            >
+              <TbManualGearbox className="mr-2" /> Manual Marks Entry
+            </button>
           </div>
-        )}
-        {uploadedFileUrl && (
-          <div className="mt-4 p-3 bg-green-100 text-green-700 rounded">
-            Answer sheet uploaded successfully! {isParsing && 'Parsing PDF...'}
-          </div>
+          */}
+        </header>
 
-        )}
-        { }
-        <div className="flex flex-row w-auto items-center mt-8">
-          <h2 className="text-xl font-semibold mb-4">Select Class</h2>
-          <select
-            className="border-1 border-gray-400 rounded-md p-1 ml-2 mb-4"
-            onChange={(e) => { setClassId(e.target.value); setIsConfigSaved(!isConfigSaved); }}
-          >
-            <option value="" disabled selected>Select a class</option>
-            {classIds && classIds.map((classId: any) => (
-              <option key={classId.section.id} value={classId.section.id}>
-                {classId.section.name}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
-      {isConfigSaved && (
-        <div className="mt-4 p-4 bg-green-100 text-green-700 rounded">
-
-          {studentIds && studentIds.length > 0 ? (
-            <div>
-              <div className='flex justify-between items-center mb-4'>
-                <h3 className="font-bold text-lg">Student Details</h3>
-                <button
-                  onClick={handleUploadAllStudentFiles}
-                  className="bg-blue-500 text-white font-semibold px-4 py-2 rounded-md hover:bg-blue-600 disabled:opacity-50"
-                  disabled={isUploading || Object.keys(studentFiles).length === 0}
-                >
-                  Upload All Copies
-                </button>
+        <div className="grid gap-8 grid-cols-1 lg:grid-cols-2">
+          {/* Section 1: Upload Answer Key */}
+          <Card title="Upload Solution Key" className="h-fit">
+            <PDFUploadComponent onFileUpload={handleFileUpload} isUploading={isUploading} />
+            {uploadedFileUrl && !isParsing && (
+              <div className="mt-4 flex items-center text-green-700 bg-green-100 p-3 rounded-md animate-fadeIn">
+                <FaCheckCircle className="mr-2" />
+                Answer key uploaded successfully!
               </div>
+            )}
+            {isParsing && (
+              <div className="mt-4 flex items-center text-blue-700 bg-blue-100 p-3 rounded-md animate-pulse">
+                <FaSpinner className="animate-spin mr-2" />
+                Parsing PDF...
+              </div>
+            )}
+          </Card>
 
-              <button
-                onClick={async () => {
-                  if (studentIds && studentIds.length > 0) {
-                    const XLSX = await import("xlsx");
-                    const worksheet = XLSX.utils.json_to_sheet(
-                      studentIds.map((student) => ({
-                        Name: student.name,
-                        "Roll No": student.rollNo,
-                        Email: student.user.email,
-                        Status: student.status,
-                        "Marks Obtained": student?.marks || "Null",
-                      }))
-                    );
-                    const workbook = XLSX.utils.book_new();
-                    XLSX.utils.book_append_sheet(workbook, worksheet, "Students");
-                    const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
-                    const blob = new Blob([excelBuffer], { type: "application/octet-stream" });
-                    const url = URL.createObjectURL(blob);
-                    const link = document.createElement("a");
-                    link.href = url;
-                    link.setAttribute("download", "student_data.xlsx");
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                  } else {
-                    alert("No student data available to download.");
-                  }
-                }}
-                className="border-2 border-blue-500 text-blue-800 font-semibold px-2 py-1 rounded-md mb-4 hover:bg-blue-100 transition-colors"
-              >
-                Download Excel Sheet
-              </button>
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[600px] table-auto bg-white shadow-md rounded">
-                  <thead className="bg-green-200">
-                    <tr>
-                      <th className="p-2 border">Name</th>
-                      <th className="p-2 border">Roll No</th>
-                      <th className="p-2 border">Email</th>
-                      <th className="p-2 border">Marks Obtained</th>
-                      <th className="p-2 border">Upload File</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {studentIds.map((student: any) => (
-                      <tr key={student.id} className="text-center">
-                        <td className="p-2 border">{student.name}</td>
-                        <td className="p-2 border">{student.rollNo}</td>
-                        <td className="p-2 border">{student.user.email}</td>
-                       
-                        <td className="p-2 border">{student?.marks?student.marks:student.marks&&Number(student.marks)==0?0:"Not Checked"}</td>
-                        <td className="p-2 border">
-                          {/* Multiple file input */}
-                          <input
-                            type="file"
-                            className="border p-1 mb-2"
-                            multiple
-                            onChange={(e) => handleStudentFileSelect(e.target.files, student.id)}
-                          />
-                          {/* Scrollable grid of selected files */}
-                          {studentFiles[student.id] && studentFiles[student.id].length > 0 && (
-                            <div className="max-h-24 overflow-y-auto grid grid-cols-1 gap-1 mb-2 border rounded p-1 bg-gray-50">
-                              {studentFiles[student.id].map((file, idx) => (
-                                <div key={idx} className="flex items-center justify-between text-xs bg-white px-2 py-1 rounded shadow">
-                                  <span className="truncate max-w-[120px]">{file.name}</span>
-                                  <button
-                                    className="ml-2 text-red-500 hover:text-red-700 font-bold"
-                                    onClick={() => handleRemoveStudentFile(student.id, idx)}
-                                    title="Remove file"
-                                  >
-                                    ✖
-                                  </button>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                          {/* Upload button */}
-                          <button
-                            className="mt-1 px-2 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"
-                            disabled={isUploading || !(studentFiles[student.id] && studentFiles[student.id].length > 0)}
-                            onClick={() => handleUploadStudentFiles(student.id)}
-                          >
-                            Upload
-                          </button>
-                        </td>
-                      </tr>
+          {/* Section 2: Configure Questions */}
+          {pythonResponse && saveConfiguration && (
+            <Card title="Configure Questions" className="h-fit">
+              <QuestionConfigForm parsedData={pythonResponse} onSubmit={handleConfigSubmit} />
+            </Card>
+          )}
+
+          {/* Section 3: Student Submission Management */}
+          {isConfigSaved && (
+            <Card title="Student Submissions" className="lg:col-span-2">
+              <div className="flex flex-col sm:flex-row justify-between items-center mb-6 space-y-4 sm:space-y-0">
+                <div className="flex items-center space-x-4">
+                  <label htmlFor="class-select" className="text-lg font-medium text-gray-700">Select Class:</label>
+                  <select
+                    id="class-select"
+                    className="border border-gray-300 rounded-md p-2 bg-white text-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-shadow"
+                    onChange={(e) => setClassId(e.target.value)}
+                    value={classId || ''}
+                  >
+                    <option value="" disabled>Choose a class</option>
+                    {classIds && classIds.map((cls: any) => (
+                      <option key={cls.section.id} value={cls.section.id}>
+                        {cls.section.name}
+                      </option>
                     ))}
-                  </tbody>
-                </table>
+                  </select>
+                </div>
+                {studentIds?.length > 0 && (
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={handleUploadAllStudentFiles}
+                      className="bg-purple-600 text-white font-semibold px-6 py-2 rounded-full shadow-md hover:bg-purple-700 transition-colors disabled:opacity-50 flex items-center"
+                      disabled={Object.values(isUploadingStudentFiles).some(Boolean) || Object.keys(studentFiles).every(key => studentFiles[key].length === 0)}
+                    >
+                      <FaUpload className="mr-2" /> Upload All
+                    </button>
+                    <button
+                      onClick={handleDownloadExcel}
+                      className="bg-green-600 text-white font-semibold px-6 py-2 rounded-full shadow-md hover:bg-green-700 transition-colors flex items-center"
+                    >
+                      <FaDownload className="mr-2" /> Download Excel
+                    </button>
+                  </div>
+                )}
               </div>
-            </div>
-          ) : (
-            <p>Fetching Student data, Please wait</p>
+
+              {studentIds?.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse table-auto">
+                    <thead>
+                      <tr className="bg-gray-100 text-gray-600 uppercase text-sm leading-normal">
+                        <th className="py-3 px-6 text-left">Name</th>
+                        <th className="py-3 px-6 text-left">Roll No</th>
+                        <th className="py-3 px-6 text-left hidden sm:table-cell">Email</th>
+                        <th className="py-3 px-6 text-left">Marks</th>
+                        <th className="py-3 px-6 text-center">Upload Answer Sheet</th>
+                      </tr>
+                    </thead>
+                    <tbody className="text-gray-600 text-sm font-light">
+                      {studentIds.map((student: any) => (
+                        <tr key={student.id} className="border-b border-gray-200 hover:bg-gray-50 transition-colors">
+                          <td className="py-3 px-6">{student.name}</td>
+                          <td className="py-3 px-6">{student.rollNo}</td>
+                          <td className="py-3 px-6 hidden sm:table-cell">{student.user.email}</td>
+                          <td className="py-3 px-6 font-semibold">
+                            {student?.marks !== undefined && student.marks !== null ? (
+                              <span>{student.marks}</span>
+                            ) : (
+                              <span className="text-red-500">Not Checked</span>
+                            )}
+                          </td>
+                          <td className="py-3 px-6 text-center">
+                            <div className="flex flex-col items-center space-y-2">
+                              <label className="cursor-pointer bg-blue-500 text-white rounded-md px-4 py-2 text-sm font-medium hover:bg-blue-600 transition-colors">
+                                <span className="flex items-center">
+                                  <FaFilePdf className="mr-2" /> Choose Files
+                                </span>
+                                <input
+                                  type="file"
+                                  className="hidden"
+                                  multiple
+                                  onChange={(e) => handleStudentFileSelect(e.target.files, student.id)}
+                                  disabled={isUploadingStudentFiles[student.id]}
+                                />
+                              </label>
+                              {studentFiles[student.id] && studentFiles[student.id].length > 0 && (
+                                <div className="w-full max-h-32 overflow-y-auto space-y-1 p-2 border border-dashed border-gray-300 rounded-md">
+                                  {studentFiles[student.id].map((file, idx) => (
+                                    <FileListItem key={idx} file={file} onRemove={() => handleRemoveStudentFile(student.id, idx)} />
+                                  ))}
+                                </div>
+                              )}
+                              <button
+                                className="w-full mt-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-md px-4 py-2 text-sm font-semibold hover:from-blue-600 hover:to-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                disabled={isUploadingStudentFiles[student.id] || !(studentFiles[student.id] && studentFiles[student.id].length > 0)}
+                                onClick={() => handleUploadStudentFiles(student.id)}
+                              >
+                                {isUploadingStudentFiles[student.id] ? (
+                                  <FaSpinner className="animate-spin mx-auto" />
+                                ) : (
+                                  'Upload'
+                                )}
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <p className="text-center text-gray-500 py-6">Please select a class to view student data.</p>
+              )}
+            </Card>
           )}
         </div>
-      )}
+      </div>
     </div>
   );
 }
+
+const isAllImages = (files: File[]) => files.length > 0 && files.every((file) => file.type.startsWith('image/'));
+
+const imagesToPdf = async (imageFiles: File[]): Promise<File> => {
+  const pdf = new jsPDF();
+  for (let i = 0; i < imageFiles.length; i++) {
+    const imgData = await new Promise<string>((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => resolve(e.target?.result as string);
+      reader.readAsDataURL(imageFiles[i]);
+    });
+    const img = new window.Image();
+    img.src = imgData;
+    await new Promise((res) => { img.onload = res; });
+    const width = pdf.internal.pageSize.getWidth();
+    const height = (img.height * width) / img.width;
+    if (i > 0) pdf.addPage();
+    const fileType = imageFiles[i].type;
+    let format = 'JPEG';
+    if (fileType === 'image/png') format = 'PNG';
+    else if (fileType === 'image/webp') format = 'WEBP';
+    pdf.addImage(imgData, format, 0, 0, width, height);
+  }
+  const pdfBlob = pdf.output('blob');
+  return new File([pdfBlob], 'images.pdf', { type: 'application/pdf' });
+};

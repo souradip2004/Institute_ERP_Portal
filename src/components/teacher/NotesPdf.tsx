@@ -231,17 +231,7 @@ const NotesPdf = () => {
                 </div>
 
                 {/* AI Smart Notes Button */}
-                <div className="p-6">
-                    <button
-                        onClick={loading ? undefined : handleAiSmartNotes}
-                        className="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg py-3 px-4 flex items-center justify-center gap-3 hover:from-blue-600 hover:to-purple-700 transition-all duration-200"
-                    >
-                        <div className="w-6 h-6 bg-white rounded-full flex items-center justify-center">
-                            <Sparkles className="w-4 h-4 text-blue-500" />
-                        </div>
-                        <span className="font-medium text-lg">{loading ? translator("Loading...", "लोड हो रहा है...") : translator("AI Smart Notes", "AI स्मार्ट नोट्स")}</span>
-                    </button>
-                </div>
+              
             </div>
 
             {/* Main Content Area - Hidden on Mobile */}

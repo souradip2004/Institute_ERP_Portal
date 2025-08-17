@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import axios from 'axios';
+import Loader from '@/components/ui/Loader';
 
 interface AssignmentSubmission {
   id: string;
