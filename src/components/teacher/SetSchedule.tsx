@@ -344,10 +344,7 @@ const SetSchedule = () => {
         localStorage.removeItem('videoSectionChatMessages');
 
         const Airfdata = JSON.parse(localStorage.getItem("airf") || '{}');
-if(!selectedClassIds || selectedClassIds.length === 0) {
-        alert("Please select at least one class section.");
-        return;
-      }
+
         const dataToSend = {
           "userId": userId,
           "section":selectedClassIds,
