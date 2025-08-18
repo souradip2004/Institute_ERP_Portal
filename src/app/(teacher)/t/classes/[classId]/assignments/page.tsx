@@ -48,6 +48,7 @@ export default function TeacherAssignmentsPage({params}: TeacherAssignmentsPageP
 
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [institutionType, setInstitutionType] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [className, setClassName] = useState<string>('');
   const [section, setSection] = useState<string>('');
@@ -55,6 +56,7 @@ export default function TeacherAssignmentsPage({params}: TeacherAssignmentsPageP
   useEffect(() => {
     if (localStorage.getItem("user")) {
       setInstitutionId(JSON.parse(localStorage.getItem("user")).institutionId)
+      setInstitutionType(JSON.parse(localStorage.getItem("user")).institutionType || null);
     }
   }, [])
   useEffect(() => {
@@ -155,9 +157,9 @@ export default function TeacherAssignmentsPage({params}: TeacherAssignmentsPageP
           <div className="flex justify-between items-center">
             <div>
               {/* <h1 className="text-2xl font-bold text-gray-900">{className} {section} - Assignments</h1> */}
-              <h1 className="text-2xl font-bold text-gray-900">Assignments</h1>
+              <h1 className="text-2xl font-bold text-gray-900">{institutionType?.includes("College")?"Assignments":"Homeworks"}</h1>
 
-              <p className="text-gray-600 mt-1">Manage assignments for this class</p>
+              <p className="text-gray-600 mt-1">Manage {institutionType?.includes("College")?"Assignments":"Homeworks"} for this class</p>
             </div>
           </div>
         </div>
@@ -165,7 +167,9 @@ export default function TeacherAssignmentsPage({params}: TeacherAssignmentsPageP
         <div className="grid grid-cols-1 gap-6">
           {/* Assignment Upload Section */}
           <AssignmentUpload classSectionId={classId}
-                            instituteId={institutionId}/>
+                            instituteId={institutionId}
+                            institutionType={institutionType}
+                            />
 
           {/* Assignments List Section */}
           {loading ? (

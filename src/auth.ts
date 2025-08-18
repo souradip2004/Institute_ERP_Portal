@@ -70,7 +70,8 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
           emailVerified: user.emailVerified || new Date(), // Allow login even if not verified
           studentId: user.student?.id || null,
           teacherId: user.teacher?.id || null,
-          institutionId:user.institution?.id || null
+          institutionId:user.institution?.id || null,
+          institutionType: user.institution?.type || null,
         };
       },
     }),
@@ -128,7 +129,8 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
           emailVerified: user.emailVerified || new Date(), // Allow login even if not verified
           studentId: user.student?.id || null,
           teacherId: user.teacher?.id || null,
-          institutionId: user.institution?.id || null
+          institutionId: user.institution?.id || null,
+          instituionType: user.institution?.type || null,
         };
       },
     }),
@@ -204,6 +206,7 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
         token.studentId = user.studentId;
         token.teacherId = user.teacherId;
         token.institutionId=user.institutionId;
+        token.institutionType = user.institutionType;
       }
 
       return token;
@@ -218,7 +221,7 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
         session.user.studentId = token.studentId as string | null;
         session.user.teacherId = token.teacherId as string | null;
         session.user.institutionId=token.institutionId as string | null;
-        
+        session.user.institutionType = token.institutionType as string | null;
       }
 
       return session;

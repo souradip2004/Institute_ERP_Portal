@@ -11,6 +11,7 @@ import { usePathname } from "next/navigation";
 import Image from "next/image";
 import CostManagementPage from "./CostManagement";
 import CreateAttendance from "./CreateAttendance";
+import NoticeManagement from "./AminNotice";
 import FeesManagement from "./AddFees"
 import axios from "axios";
 import FeesPage from "./FeesPage";
@@ -19,6 +20,7 @@ import {
   BookOpenCheck,
   Users2,
   GraduationCap,
+  Mail,
   CalendarCheck2,
   Bell,
   Menu, // Added for mobile toggle
@@ -163,6 +165,12 @@ const Navigator = ({ id, userId, logo, name, primaryColor, verified, coins }: Na
             {/* <FeesManagement id={id} /> */}
           </div>
         );
+      case "Notice Management":
+        return(
+          <div className="space-y-6">
+            <NoticeManagement />
+          </div>
+        )
       default:
         return <div>Select an option from the sidebar</div>;
     }
@@ -210,7 +218,12 @@ const Navigator = ({ id, userId, logo, name, primaryColor, verified, coins }: Na
       name: "Cost Management",
       component: "CostManagement",
       icon: <Bell size={18} />,
-    }
+    },
+    {
+      name: "Notice Management",
+      component: "Notice Management",
+      icon: <Mail size={18} />,
+    },
   ];
 
   return (

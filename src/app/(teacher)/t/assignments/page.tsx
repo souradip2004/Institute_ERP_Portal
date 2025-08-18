@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { useRouter } from 'next/navigation';
+import { set } from 'mongoose';
 
 interface ClassData {
   id: string;
@@ -47,6 +48,7 @@ export default function TeacherAssignmentsPage() {
   const [error, setError] = useState<string | null>(null);
   const [teacherId, setTeacherId] = useState<string | null>(null);
   const router = useRouter();
+  const [institutionType, setInstitutionType] = useState<string | null>("");
 
   useEffect(() => {
     const getUserData = () => {
@@ -54,6 +56,7 @@ export default function TeacherAssignmentsPage() {
         const userData = localStorage.getItem('user');
         if (userData) {
           try {
+            setInstitutionType(JSON.parse(userData).institutionType || null);
             const parsedUserData = JSON.parse(userData);
             if (parsedUserData.teacherId || parsedUserData.id) {
               console.log('Parsed User Data:', parsedUserData);
@@ -269,7 +272,7 @@ export default function TeacherAssignmentsPage() {
 
               <div className="mb-4">
                 <div className="flex justify-between items-center mb-2">
-                  <span className="text-gray-500">Total Assignments</span>
+                  <span className="text-gray-500">Total {institutionType?.includes("College")?"Assignments":"Homeworks"}</span>
                   <span className="text-xl font-bold">{classItem.assignmentCount}</span>
                 </div>
 
@@ -278,7 +281,7 @@ export default function TeacherAssignmentsPage() {
                   className="text-blue-600 hover:text-blue-800 text-sm flex items-center"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  View all assignments
+                  View all  {institutionType?.includes("College")?"assignments":"homeworks"}
                   <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                   </svg>
@@ -286,7 +289,7 @@ export default function TeacherAssignmentsPage() {
               </div>
 
               <div className="border-t pt-4">
-                <h3 className="font-medium mb-2">Latest Assignment</h3>
+                <h3 className="font-medium mb-2">Latest  {institutionType?.includes("College")?"Assignment":"Homework"}</h3>
                 {classItem.latestAssignment ? (
                   <div className="bg-gray-50 p-3 rounded-md">
                     <div className="flex justify-between items-start mb-2">
@@ -298,7 +301,7 @@ export default function TeacherAssignmentsPage() {
                     </p>
                   </div>
                 ) : (
-                  <p className="text-gray-500 italic">No assignments yet</p>
+                  <p className="text-gray-500 italic">No  {institutionType?.includes("College")?"Assignments":"Homeworks"} yet</p>
                 )}
               </div>
             </div>
@@ -310,7 +313,7 @@ export default function TeacherAssignmentsPage() {
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold mb-6">Classes & Assignments</h1>
+      <h1 className="text-2xl font-bold mb-6">Classes &  {institutionType?.includes("College")?"Assignments":"Homeworks"}</h1>
       {renderContent()}
     </div>
   );

@@ -82,7 +82,8 @@ export async function POST(request: NextRequest) {
       studentId: user.student?.id || null,
       teacherId: user.teacher?.id || null,
       classSectionId,
-      institutionId:user.institution?.id||null
+      institutionId:user.institution?.id||null,
+      institutionType: user.institution?.type || null
     };
 
     console.log("userData: ", userData);

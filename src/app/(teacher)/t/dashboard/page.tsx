@@ -211,6 +211,7 @@ export default function TeacherDashboardPage() {
   const [teacherId, setTeacherId] = useState<string | null>(null);
   const [classSectionId, setClassSectionId] = useState<string | null>(null);
   const [primaryColor, setPrimaryColor] = useState<string>('#3B82F6');
+  const [institutionType, setInstitutionType] = useState<string | null>("");
   
   // State to handle rich replies for each notification, now supports multiple attachments
   const [replyContents, setReplyContents] = useState<{ [key: string]: MessageContent }>({});
@@ -232,7 +233,12 @@ export default function TeacherDashboardPage() {
     const b = parseInt(cleanHex.substr(4, 2), 16);
     return `rgba(${r}, ${g}, ${b}, ${alpha})`;
   };
-
+useEffect(() => {
+  const user=JSON.parse(localStorage.getItem('user') || '{}');
+  if (user) {
+    setInstitutionType(user.institutionType);
+  }
+},[])
   useEffect(() => {
     let intervalId: NodeJS.Timeout;
     if (teacherId) {
@@ -1070,7 +1076,7 @@ export default function TeacherDashboardPage() {
             <h2 className="text-xl font-semibold" style={{ color: primaryColor }}>
               <div className="flex items-center space-x-2">
                 <BookOpen size={24} />
-                <span>Recent Assignments</span>
+                <span>Recent {institutionType?.includes("College")?"Assignments":"HomeWorks"}</span>
               </div>
             </h2>
             <Link href={"/t/classes/" as any} className="hover:opacity-80 flex items-center space-x-1" style={{ color: primaryColor }}>
@@ -1112,7 +1118,7 @@ export default function TeacherDashboardPage() {
                 ) : (
                   <tr>
                     <td colSpan={7} className="py-6 text-center text-gray-500">
-                      No assignments found
+                      No {institutionType?.includes("College")?"Assignments":"HomeWorks"} found
                     </td>
                   </tr>
                 )}
@@ -1140,7 +1146,7 @@ export default function TeacherDashboardPage() {
               ))
             ) : (
               <p className="py-6 text-center text-gray-500">
-                No assignments found
+                No {institutionType?.includes("College")?"Assignments":"HomeWorks"} found
               </p>
             )}
           </div>

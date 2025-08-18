@@ -97,7 +97,6 @@ model Authenticator {
   @@id([userId, credentialID])
   @@map("authenticators")
 }
-
 model Institution {
   id                  String               @id @default(cuid())
   name                String
@@ -136,7 +135,7 @@ model Institution {
   checkSessions       checkSession[]
   fees                Fees?
   globalFees          GlobalFees[]
-
+  emailForms          EmailForm[]       
   @@map("institutions")
 }
 
@@ -311,7 +310,6 @@ model MotherClass {
   classSections ClassSection[]
   classfee      ClassFee[]
 }
-
 model ClassSection {
   id                            String                         @id @default(cuid())
   sectionName                   String                         @map("section_name")
@@ -338,9 +336,10 @@ model ClassSection {
   studentMetrics                StudentPerformanceMetric[]
   teacherCourseSectionRelations TeacherCourseSectionRelation[]
   isOptional                    Boolean?                       @default(false)
-  motherClassId                 String?                        @map("mother_class_id") // Foreign key to MotherClass
+  motherClassId                 String?                        @map("mother_class_id")
   motherClass                   MotherClass?                   @relation(fields: [motherClassId], references: [id], onDelete: Cascade)
   copyChecks                    copyCheck[]
+  emailForms                    EmailForm[]                    @relation("EmailFormClassSections")
 
   @@map("class_sections")
 }
@@ -378,7 +377,21 @@ model StudentSubmissionRecord {
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
 }
+model EmailForm {
+  id                String         @id @default(cuid())
+  subject           String
+  body              String         @db.Text
+  sender            String
+  attachments       String[]       @map("attachments")
+  createdAt         DateTime       @default(now()) @map("created_at")
+  updatedAt         DateTime       @updatedAt @map("updated_at")
+  classSections     ClassSection[] @relation("EmailFormClassSections")
+  institutionId     String         @map("institution_id")
+  institution       Institution    @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  sentAt            DateTime?      @map("sent_at")
 
+  @@map("email_forms")
+}
 model AttendanceSession {
   id                String       @id @default(cuid())
   classSectionId    String       @map("class_section_id")

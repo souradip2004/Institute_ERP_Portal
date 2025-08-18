@@ -7,9 +7,10 @@ import notify from '@/utils/toast';
 interface AssignmentUploadProps {
   classSectionId: string;
   instituteId:string;
+  institutionType: string | null;
 }
 
-const AssignmentUpload = ({ classSectionId,instituteId}: AssignmentUploadProps) => {
+const AssignmentUpload = ({ classSectionId,instituteId,institutionType}: AssignmentUploadProps) => {
   const router = useRouter();
   const [title, setTitle] = useState('');
   const [totalMarks, setTotalMarks] = useState('');
@@ -248,7 +249,7 @@ const AssignmentUpload = ({ classSectionId,instituteId}: AssignmentUploadProps) 
 
   return (
     <div className="bg-white p-6 rounded-md shadow-sm">
-      <h2 className="text-xl font-semibold mb-6">Upload New Assignment</h2>
+      <h2 className="text-xl font-semibold mb-6">Upload New {institutionType?.includes("College")?"Assignment":"Homework"}</h2>
       <form onSubmit={handleSubmit}>
         <div className="grid grid-cols-1 gap-6">
           <div>
@@ -275,7 +276,7 @@ const AssignmentUpload = ({ classSectionId,instituteId}: AssignmentUploadProps) 
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
-              placeholder="Enter the title for assignment"
+              placeholder={`Enter the title for ${institutionType?.includes("College")?"assignment":"homework"}`}
             />
           </div>
 

@@ -9,6 +9,7 @@ declare module "next-auth" {
     studentId?: string | null;
     teacherId?: string | null;
     institutionId?:string | null;
+    institutionType?: string | null; // Added institutionType
   }
 
   interface Session {
@@ -20,6 +21,7 @@ declare module "next-auth" {
       studentId?: string | null;
       teacherId?: string | null;
       institutionId?: string | null;
+      institutionType?: string | null; // Added institutionType
 
     } & DefaultSession["user"];
   }

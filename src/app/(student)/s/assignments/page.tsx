@@ -64,7 +64,7 @@ export default function AssignmentsPage() {
   const [rawAssignmentData, setRawAssignmentData] = useState<RawAssignment[]>([]);
   const [debugMode, setDebugMode] = useState(false);
   const [classSections, setClassSections] = useState<any[]>([]);
-  
+  const [institutionType, setInstitutionType] = useState<string | null>(null);
   // New state to track downloaded assignments
   const [downloadedAssignments, setDownloadedAssignments] = useState<Set<string>>(new Set());
 
@@ -75,6 +75,7 @@ export default function AssignmentsPage() {
     const fetchUserData = async () => {
       try {
         const userDataStr = localStorage.getItem('user');
+        setInstitutionType(JSON.parse(userDataStr || '{}').institutionType || null);
         if (!userDataStr) {
           setError("User data not found. Please log in again.");
           setLoading(false);
@@ -394,19 +395,19 @@ export default function AssignmentsPage() {
     <div className="p-4 sm:p-8 overflow-x-auto">
       <div className="mb-6 sm:mb-8 max-w-screen-xl mx-auto">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-          <h2 className="relative left-14 sm:left-0 text-2xl font-semibold text-gray-800">Assignments</h2>
-          <button
+          <h2 className="relative left-14 sm:left-0 text-2xl font-semibold text-gray-800">{institutionType?.includes("College")?"Assignment":"Homework"}</h2>
+          {/* <button
             onClick={toggleDebugMode}
             className="text-sm text-gray-500 hover:text-gray-700 mt-2 sm:mt-0"
           >
             {debugMode ? 'Hide Debug Info' : 'Show Debug Info'}
-          </button>
+          </button> */}
         </div>
       </div>
 
       {debugMode && (
         <div className="bg-white p-4 rounded-lg shadow-sm mb-4 overflow-auto max-h-60 max-w-screen-xl mx-auto">
-          <h3 className="font-semibold mb-2">Raw Assignment Data:</h3>
+          <h3 className="font-semibold mb-2">Raw {institutionType?.includes("College")?"Assignment":"Homework"} Data:</h3>
           <pre className="text-xs break-words whitespace-pre-wrap">
             {JSON.stringify(rawAssignmentData, null, 2)}
           </pre>
@@ -417,7 +418,7 @@ export default function AssignmentsPage() {
       <div className="mb-8 max-w-screen-xl mx-auto">
         <div className="flex items-center mb-4">
           <FileCheck className="h-5 w-5 text-purple-600 mr-2" />
-          <h3 className="text-xl font-semibold text-gray-800">Ongoing Assignments</h3>
+          <h3 className="text-xl font-semibold text-gray-800">Ongoing {institutionType?.includes("College")?"Assignments":"Homeworks"}</h3>
         </div>
 
         <div className="bg-white shadow-sm rounded-lg overflow-x-auto">
@@ -493,7 +494,7 @@ export default function AssignmentsPage() {
               ) : (
                 <tr>
                   <td colSpan={5} className="px-4 py-4 text-center text-sm text-gray-500">
-                    No ongoing assignments found
+                    No ongoing {institutionType?.includes("College")?"Assignments":"Homeworks"} found
                   </td>
                 </tr>
               )}
@@ -506,7 +507,7 @@ export default function AssignmentsPage() {
       <div className="mb-8 max-w-screen-xl mx-auto">
         <div className="flex items-center mb-4">
           <ClipboardCheck className="h-5 w-5 text-blue-600 mr-2" />
-          <h3 className="text-xl font-semibold text-gray-800">Submitted Assignments</h3>
+          <h3 className="text-xl font-semibold text-gray-800">Submitted {institutionType?.includes("College")?"Assignments":"Homeworks"} </h3>
         </div>
 
         <div className="bg-white overflow-hidden shadow-sm rounded-lg overflow-x-auto">
@@ -520,7 +521,7 @@ export default function AssignmentsPage() {
                   Due Date
                 </th>
                 <th className="px-4 py-3 text-left text-xs sm:text-sm font-semibold text-gray-600 bg-gray-50 min-w-[100px]">
-                  Assignment File
+                  {institutionType?.includes("College")?"Assignment":"Homework"}  File
                 </th>
                 <th className="px-4 py-3 text-left text-xs sm:text-sm font-semibold text-gray-600 bg-gray-50 min-w-[100px]">
                   Submitted File
@@ -596,7 +597,7 @@ export default function AssignmentsPage() {
               ) : (
                 <tr>
                   <td colSpan={6} className="px-4 py-4 text-center text-sm text-gray-500">
-                    No submitted assignments found
+                    No submitted {institutionType?.includes("College")?"Assignments":"Homeworks"}  found
                   </td>
                 </tr>
               )}
@@ -609,7 +610,7 @@ export default function AssignmentsPage() {
       <div className="max-w-screen-xl mx-auto">
         <div className="flex items-center mb-4">
           <ClipboardCheck className="h-5 w-5 text-green-600 mr-2" />
-          <h3 className="text-xl font-semibold text-gray-800">Graded Assignments</h3>
+          <h3 className="text-xl font-semibold text-gray-800">Graded {institutionType?.includes("College")?"Assignments":"Homeworks"} </h3>
         </div>
 
         <div className="bg-white overflow-hidden shadow-sm rounded-lg overflow-x-auto">
@@ -623,7 +624,7 @@ export default function AssignmentsPage() {
                   Due Date
                 </th>
                 <th className="px-4 py-3 text-left text-xs sm:text-sm font-semibold text-gray-600 bg-gray-50 min-w-[100px]">
-                  Assignment File
+                  {institutionType?.includes("College")?"Assignment":"Homework"}  File
                 </th>
                 <th className="px-4 py-3 text-left text-xs sm:text-sm font-semibold text-gray-600 bg-gray-50 min-w-[100px]">
                   Submitted File
@@ -668,7 +669,7 @@ export default function AssignmentsPage() {
                             onClick={() => handleDownloadClick(`assignment-${assignment.id}`)}
                           >
                             <Download className="h-4 w-4 mr-1 sm:mr-2" />
-                            <span className="hidden sm:inline">Assignment</span>
+                            <span className="hidden sm:inline">{institutionType?.includes("College")?"Assignment":"Homework"} </span>
                           </Link>
                         )}
                       </td>
@@ -698,7 +699,7 @@ export default function AssignmentsPage() {
               ) : (
                 <tr>
                   <td colSpan={5} className="px-4 py-4 text-center text-sm text-gray-500">
-                    No graded assignments found
+                    No graded {institutionType?.includes("College")?"Assignments":"Homeworks"}  found
                   </td>
                 </tr>
               )}

@@ -32,12 +32,13 @@ export default function TeacherSidebar({ onSidebarToggle }: TeacherSidebarProps)
   const [isMobile, setIsMobile] = useState(false); // State to track mobile view
   const [institution, setImstitution] = useState(null);
   const [color, setColor] = useState<string>("");
-
+const [institutionType, setInstitutionType] = useState<string | null>("");
 
 
   useEffect(() => {
     if (localStorage.getItem("user")) {
       const data = JSON.parse(localStorage.getItem("user"))?.institutionId;
+      setInstitutionType(JSON.parse(localStorage.getItem("user"))?.institutionType || null);
       const fetchInstitute = async () => {
         try {
           const institutionRes = await fetch(`/api/institutions/${data}`, {
@@ -145,12 +146,13 @@ export default function TeacherSidebar({ onSidebarToggle }: TeacherSidebarProps)
   const navItems = [
     { name: 'Dashboard', href: '/t/dashboard', icon: <LayoutDashboard size={18} />, onClick: handleNavLinkClick },
     { name: 'Exams', href: `/t/classes/${classId}/exams`, icon: <PenLine size={18} />, onClick: handleNavLinkClick },
-    { name: 'Assignments', href: '#', icon: <BookOpenCheck size={18} />, onClick: handleAssignmentsClick },
+    { name: institutionType?.includes("College")?'Assignments':"Homeworks", href: '#', icon: <BookOpenCheck size={18} />, onClick: handleAssignmentsClick },
     { name: 'Notes', href: '#', icon: <NotebookText size={18} />, onClick: handleNotesClick },
     { name: 'Attendance', href: '/t/attendance', icon: <CalendarCheck2 size={18} />, onClick: handleNavLinkClick },
     { name: 'Classes', href: '/t/classes', icon: <Users2 size={18} />, onClick: handleNavLinkClick },
     { name: 'Copy checking', href: '/t/pythonCopyChecking', icon: <FileText size={18} />, onClick: handleNavLinkClick },
     { name: 'Smart Resources', href: '/t/smart-resources', icon: <FaRegLightbulb size={18} />, onClick: handleNavLinkClick },
+    {name: 'Notice', href: '/t/notice', icon: <FileText size={18} />, onClick: handleNavLinkClick }, // Added Notice link
   ];
 
   return (

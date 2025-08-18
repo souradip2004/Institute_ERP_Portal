@@ -29,9 +29,11 @@ export default function Sidebar({ onSidebarToggle }: SidebarProps) {
   const [isMobile, setIsMobile] = useState(false); // State to track mobile view
   const [institution, setImstitution] = useState(null);
   const [color, setColor] = useState<string>("");
+  const [institutionType, setInstitutionType] = useState<string | null>(null);
   useEffect(() => {
     if (localStorage.getItem("user")) {
       const data = JSON.parse(localStorage.getItem("user"))?.institutionId;
+      setInstitutionType(JSON.parse(localStorage.getItem("user")).institutionType || null);
       const fetchInstitute = async () => {
         const institutionRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/institutions/${data}`, {
           cache: "no-store",
@@ -101,13 +103,14 @@ export default function Sidebar({ onSidebarToggle }: SidebarProps) {
   const menuItems = [
     { title: 'My Classes', href: '/s/dashboard', icon: <LayoutDashboard size={18} /> },
     { title: 'Notes Library', href: '/s/notes', icon: <NotebookText size={18} /> },
-    { title: 'Assignments', href: '/s/assignments', icon: <BookOpenCheck size={18} /> },
+    { title: institutionType?.includes("College")?'Assignments':"Homeworks", href: '/s/assignments', icon: <BookOpenCheck size={18} /> },
     { title: 'Exams and Reports', href: '/s/exams', icon: <FileText size={18} /> },
     { title: 'Mentorship', href: '/s/mentorship', icon: <Sparkles size={18} /> },
     { title: 'Report Card', href: '/s/report', icon: <BarChart3 size={18} /> },
     { title: 'Ask Teacher', href: '/s/ask-teacher', icon: <MessageSquareQuoteIcon size={18} /> },
     { title: 'Smart Resources', href: '/s/smart-resources', icon: <FaRegLightbulb size={18} /> },
     { title: 'Fees', href: '/s/fees', icon: <IndianRupeeIcon size={18} /> },
+    {title:"Notices", href:'/s/notice', icon:<FileText size={18} />},
   ];
 
   return (
