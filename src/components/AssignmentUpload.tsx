@@ -8,9 +8,10 @@ interface AssignmentUploadProps {
   classSectionId: string;
   instituteId:string;
   institutionType: string | null;
+  onAssignmentCreated: () => void;
 }
 
-const AssignmentUpload = ({ classSectionId,instituteId,institutionType}: AssignmentUploadProps) => {
+const AssignmentUpload = ({ classSectionId,instituteId,institutionType,onAssignmentCreated}: AssignmentUploadProps) => {
   const router = useRouter();
   const [title, setTitle] = useState('');
   const [totalMarks, setTotalMarks] = useState('');
@@ -224,9 +225,11 @@ const AssignmentUpload = ({ classSectionId,instituteId,institutionType}: Assignm
       setUploadProgress(0);
 
       notify.success('Assignment created successfully!');
-
       // Refresh data
-      router.refresh();
+      
+            onAssignmentCreated();
+
+
     } catch (error) {
       console.error('Error creating assignment:', error);
       notify.dismiss(loadingId);

@@ -28,7 +28,7 @@ export async function POST(request: Request) {
         console.log(`[Backend Proxy] fileUrls:`, fileUrls);
 
         // Make the actual fetch request to the Beam Cloud endpoint
-        const beamResponse = await fetch('https://anskey-segregate-from-pdfs-33f7051-v4.app.beam.cloud', {
+        const beamResponse = await fetch('https://anskey-segregate-from-pdfs-33f7051-v11.app.beam.cloud', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

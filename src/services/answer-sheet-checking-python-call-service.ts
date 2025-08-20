@@ -12,7 +12,7 @@ export async function segregateFromPdf(fileUrls: string[]) {
       console.log(typeof fileUrls);
       console.log(fileUrls);
       
-      const response = await fetch('https://anskey-segregate-from-pdfs-33f7051-v4.app.beam.cloud', {
+      const response = await fetch('https://anskey-segregate-from-pdfs-33f7051-v11.app.beam.cloud', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

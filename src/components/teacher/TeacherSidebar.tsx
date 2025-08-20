@@ -161,10 +161,10 @@ const [institutionType, setInstitutionType] = useState<string | null>("");
       {isMobile && !isOpen && (
         <button
           onClick={() => setIsOpen(true)} // Open sidebar
-          className="fixed top-4 left-4 z-50 p-2 bg-blue-600 text-white rounded-md md:hidden"
+          className="fixed top-2 left-4 z-50 p-2 bg-blue-600 text-white rounded-md md:hidden"
           aria-label="Open sidebar"
         >
-          <Menu size={24} />
+          <Menu size={12}  />
         </button>
       )}
 

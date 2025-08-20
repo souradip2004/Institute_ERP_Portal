@@ -318,14 +318,14 @@ const SetSchedule = () => {
       // No need to set startDate state again here, it's already updated for the current render.
       // setStartDate(combinedDateTime);
       const formattedStartDate = combinedDateTime.toISOString();
-
+      const sections=[localStorage.getItem("classId")];
       if (localStorage.getItem("premiumTopicId") !== null) {
         const topicId = localStorage.getItem("premiumTopicId");
         const dataToSend = {
           "topicId": topicId,
           "userId": userId,
           "receiveReminder": whatsappNotify,
-          "section": selectedSectionIds,
+          "section": sections,
           "planner": {
             "startDate": formattedStartDate,
             "noOfDays": daysCount,
@@ -347,9 +347,8 @@ const SetSchedule = () => {
 
         const dataToSend = {
           "userId": userId,
-          "section":selectedClassIds,
           "receiveReminder": whatsappNotify,
-          "section": selectedSectionIds,
+          "section": sections,
           "planner": {
             "promptTopic": Airfdata.searchPrompt ? Airfdata.searchPrompt : Airfdata.specifications,
             "startDate": formattedStartDate,
@@ -536,11 +535,11 @@ const SetSchedule = () => {
             <div className="flex flex-col lg:flex-row gap-6 mt-2">
               <div className="w-full lg:w-1/2">
 
-                <h3
+                {/* <h3
                   className="text-base sm:text-lg font-medium text-[#1E1E2F] mb-3">{translator("Select Class Section", "आप किस समय पर शुरू करना चाहते हैं?")}</h3>
                 {classes.map((c: any) => {
                   return (
-                    <div key={c.id}> {/* Use c.id as key for uniqueness */}
+                    <div key={c.id}> 
                       <input
                         type="checkbox"
                         id={`section-${c.id}`}
@@ -558,6 +557,7 @@ const SetSchedule = () => {
                     </div>
                   );
                 })}
+                 */}
                 <h3
                   className="text-base sm:text-lg font-medium text-[#1E1E2F] mb-3">{translator("At What Time You Prefer to Start ?", "आप किस समय पर शुरू करना चाहते हैं?")}</h3>
 

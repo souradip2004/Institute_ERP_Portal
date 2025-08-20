@@ -212,7 +212,16 @@ export default function TeacherDashboardPage() {
   const [classSectionId, setClassSectionId] = useState<string | null>(null);
   const [primaryColor, setPrimaryColor] = useState<string>('#3B82F6');
   const [institutionType, setInstitutionType] = useState<string | null>("");
-  
+  const isLightColor = (hex: string) => {
+  // A simple way to check for lightness is to convert to RGB and get the luminance.
+  // This is a basic approach. For more robust checks, you could use a library.
+  const r = parseInt(hex.substring(1, 3), 16);
+  const g = parseInt(hex.substring(3, 5), 16);
+  const b = parseInt(hex.substring(5, 7), 16);
+  // Using the WCAG formula for relative luminance
+  const luminance = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+  return luminance > 0.6; // Adjust this threshold as needed
+};
   // State to handle rich replies for each notification, now supports multiple attachments
   const [replyContents, setReplyContents] = useState<{ [key: string]: MessageContent }>({});
   // State to toggle attachment options on mobile
@@ -812,14 +821,14 @@ useEffect(() => {
       <div className="max-w-7xl mx-auto space-y-6">
         <div className="bg-white p-6 rounded-lg shadow-sm flex justify-between items-center border-t-4" style={{ borderTopColor: primaryColor }}>
           <div>
-            <h1 className="text-2xl font-bold" style={{ color: primaryColor }}>Teacher Dashboard</h1>
+            <h1 className="text-2xl font-bold" style={{ color: isLightColor(primaryColor)?"black":primaryColor }}>Teacher Dashboard</h1>
             <p className="text-gray-500">{teacherName}</p>
           </div>
         </div>
 
         <div className="bg-white p-6 rounded-lg shadow-sm border-l-4" style={{ borderLeftColor: primaryColor }}>
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold" style={{ color: primaryColor }}>
+            <h2 className="text-xl font-semibold" style={{ color: isLightColor(primaryColor)?"black":primaryColor }}>
               <div className="flex items-center space-x-2">
                 <Bell size={24} />
                 <span>Notifications</span>
@@ -830,8 +839,8 @@ useEffect(() => {
                 onClick={handleMarkAllAsRead}
                 className="px-4 py-2 text-sm font-medium text-white rounded-lg hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 flex items-center space-x-1"
                 style={{
-                  backgroundColor: primaryColor,
-                  '--tw-ring-color': primaryColor
+                  backgroundColor: isLightColor(primaryColor)?"black":primaryColor,
+                  '--tw-ring-color': isLightColor(primaryColor)?"black":primaryColor
                 } as React.CSSProperties}
               >
                 <CheckCheck size={16} />
@@ -1073,13 +1082,13 @@ useEffect(() => {
         {/* Recent Assignments */}
         <div className="bg-white p-6 rounded-lg shadow-sm border-l-4" style={{ borderLeftColor: primaryColor }}>
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold" style={{ color: primaryColor }}>
+            <h2 className="text-xl font-semibold" style={{ color: isLightColor(primaryColor)?"black":primaryColor }}>
               <div className="flex items-center space-x-2">
                 <BookOpen size={24} />
                 <span>Recent {institutionType?.includes("College")?"Assignments":"HomeWorks"}</span>
               </div>
             </h2>
-            <Link href={"/t/classes/" as any} className="hover:opacity-80 flex items-center space-x-1" style={{ color: primaryColor }}>
+            <Link href={"/t/classes/" as any} className="hover:opacity-80 flex items-center space-x-1" style={{ color: isLightColor(primaryColor)?"black":primaryColor }}>
               <span>View All Classes</span>
               <ArrowRight size={16} />
             </Link>
@@ -1089,12 +1098,12 @@ useEffect(() => {
             <table className="min-w-full">
               <thead>
                 <tr className="border-b" style={{ borderBottomColor: primaryColor }}>
-                  <th className="text-left py-3 font-semibold" style={{ color: primaryColor }}>Title</th>
-                  <th className="text-left py-3 font-semibold" style={{ color: primaryColor }}>Class</th>
-                  <th className="text-left py-3 font-semibold" style={{ color: primaryColor }}>Subject</th>
-                  <th className="text-left py-3 font-semibold" style={{ color: primaryColor }}>Due Date</th>
-                  <th className="text-left py-3 font-semibold" style={{ color: primaryColor }}>Submissions</th>
-                  <th className="text-left py-3 font-semibold" style={{ color: primaryColor }}>Status</th>
+                  <th className="text-left py-3 font-semibold" style={{ color: isLightColor(primaryColor)?"black":primaryColor }}>Title</th>
+                  <th className="text-left py-3 font-semibold" style={{ color: isLightColor(primaryColor)?"black":primaryColor }}>Class</th>
+                  <th className="text-left py-3 font-semibold" style={{ color: isLightColor(primaryColor)?"black":primaryColor }}>Subject</th>
+                  <th className="text-left py-3 font-semibold" style={{ color: isLightColor(primaryColor)?"black":primaryColor }}>Due Date</th>
+                  <th className="text-left py-3 font-semibold" style={{ color: isLightColor(primaryColor)?"black":primaryColor }}>Submissions</th>
+                  <th className="text-left py-3 font-semibold" style={{ color: isLightColor(primaryColor)?"black":primaryColor }}>Status</th>
                 </tr>
               </thead>
               <tbody>
@@ -1131,7 +1140,7 @@ useEffect(() => {
               assignments.map((assignment) => (
                 <div key={assignment.id} className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
                   <div className="flex justify-between items-center mb-2">
-                    <h4 className="font-bold text-lg" style={{ color: primaryColor }}>{assignment.title}</h4>
+                    <h4 className="font-bold text-lg" style={{ color: isLightColor(primaryColor)?"black":primaryColor }}>{assignment.title}</h4>
                     <span className={`px-2 py-1 text-xs font-semibold rounded-full ${assignment.status === 'Completed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
                       {assignment.status}
                     </span>
@@ -1155,7 +1164,7 @@ useEffect(() => {
         {/* Upcoming Exams */}
         <div className="bg-white p-6 rounded-lg shadow-sm border-l-4" style={{ borderLeftColor: primaryColor }}>
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold" style={{ color: primaryColor }}>
+            <h2 className="text-xl font-semibold" style={{ color: isLightColor(primaryColor)?"black":primaryColor }}>
               <div className="flex items-center space-x-2">
                 <Calendar size={24} />
                 <span>Upcoming Exams</span>
@@ -1164,7 +1173,7 @@ useEffect(() => {
             <Link
               href={`/t/classes/${classId}/exams` as any}
               className="hover:opacity-80 flex items-center space-x-1"
-              style={{ color: primaryColor }}
+              style={{ color: isLightColor(primaryColor)?"black":primaryColor }}
             >
               <span>View All Exams</span>
               <ArrowRight size={16} />
@@ -1175,11 +1184,11 @@ useEffect(() => {
             <table className="min-w-full">
               <thead>
                 <tr className="border-b" style={{ borderBottomColor: primaryColor }}>
-                  <th className="text-left py-3 font-semibold" style={{ color: primaryColor }}>Title</th>
-                  <th className="text-left py-3 font-semibold" style={{ color: primaryColor }}>Class</th>
-                  <th className="text-left py-3 font-semibold" style={{ color: primaryColor }}>Subject</th>
-                  <th className="text-left py-3 font-semibold" style={{ color: primaryColor }}>Date</th>
-                  <th className="text-left py-3 font-semibold" style={{ color: primaryColor }}>Status</th>
+                  <th className="text-left py-3 font-semibold" style={{ color: isLightColor(primaryColor)?"black":primaryColor }}>Title</th>
+                  <th className="text-left py-3 font-semibold" style={{ color: isLightColor(primaryColor)?"black":primaryColor }}>Class</th>
+                  <th className="text-left py-3 font-semibold" style={{ color: isLightColor(primaryColor)?"black":primaryColor }}>Subject</th>
+                  <th className="text-left py-3 font-semibold" style={{ color: isLightColor(primaryColor)?"black":primaryColor }}>Date</th>
+                  <th className="text-left py-3 font-semibold" style={{ color: isLightColor(primaryColor)?"black":primaryColor }}>Status</th>
                 </tr>
               </thead>
               <tbody>
@@ -1215,7 +1224,7 @@ useEffect(() => {
               exams.map((exam) => (
                 <div key={exam.id} className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
                   <div className="flex justify-between items-center mb-2">
-                    <h4 className="font-bold text-lg" style={{ color: primaryColor }}>{exam.title}</h4>
+                    <h4 className="font-bold text-lg" style={{ color: isLightColor(primaryColor)?"black":primaryColor }}>{exam.title}</h4>
                     <span className={`px-2 py-1 text-xs font-semibold rounded-full ${exam.status === 'Scheduled' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'}`}>
                       {exam.status}
                     </span>

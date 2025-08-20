@@ -32,15 +32,19 @@ const BackIcon = () => (
 
 const translator = (word1: string, word2: string) => word1;
 
-export default function withSearchParams() {
+type WithSearchParamsProps = {
+    classId: string;
+};
+
+export default function withSearchParams({classId}: WithSearchParamsProps) {
     return (
         <Suspense>
-            <CreateSmartResources />
+            <CreateSmartResources classId={classId} />
         </Suspense>
     )
 }
 
-function CreateSmartResources() {
+function CreateSmartResources({classId}: {classId: string}) {
     const router = useRouter();
     const searchParams = useSearchParams();
 
@@ -414,7 +418,7 @@ function CreateSmartResources() {
             "shouldDoPostReq": true,
         };
         localStorage.setItem("dataForBreakdown", JSON.stringify(dataForBreakdown));
-
+        localStorage.setItem("classId", classId);
         const dataToSend = {
             "userId": userId,
             "planner": {

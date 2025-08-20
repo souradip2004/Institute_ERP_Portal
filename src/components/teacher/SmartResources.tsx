@@ -252,7 +252,11 @@ const ConfirmEditModal = ({isOpen, onClose, onConfirm, t}) => {
 };
 
 
-export function SmartResources() {
+interface SmartResourcesProps {
+  classId: string;
+}
+
+export function SmartResources({ classId }: SmartResourcesProps) {
   const [resources, setResources] = useState([]);
   const [premiumCourses, setPremiumCourses] = useState([]);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -306,13 +310,13 @@ export function SmartResources() {
       if (!userId) {
         throw new Error("User not found. Please log in again.");
       }
-      const response = await axios.get(`${process.env.NEXT_PUBLIC_BACKEND_1_SERVER_URL}/planner/getAllSchedulesFromUser/${userId}`);
+      const response = await axios.get(`${process.env.NEXT_PUBLIC_BACKEND_1_SERVER_URL}/planner/getAllScedulesForTeacherwithSection/${userId}/${classId}`);
       if (response.data && response.data.success && Array.isArray(response.data.data)) {
         const transformedResources = response.data.data.map((item, index) => {
           let status = 'Unscheduled';
           if (item.completedAll) status = 'Completed';
           else if (item.scheduled) status = 'Scheduled';
-
+console.log(item)
           return {
             id: item._id || index.toString(),
             title: item.scheduleTitle || t('Untitled Resource', 'अनाम संसाधन'),
@@ -520,7 +524,7 @@ export function SmartResources() {
             className="text-2xl sm:text-3xl font-bold text-gray-800 mb-4 sm:mb-0">{t('My Resources', 'मेरे संसाधन')}</h2>
           <div className={"flex items-center space-x-1"}>
             <Link
-              href={"/t/smart-resources/create-resources"}
+              href={`/t/smart-resources/create-resources/${classId}`}
               className="bg-[#2563EB] hover:bg-blue-700 text-white font-semibold py-2 px-4 sm:py-2.5 sm:px-5 rounded-lg flex items-center space-x-2 transition-colors self-start sm:self-auto h-full"
               // onClick={() => navigate('/ai-resource-finder')}
             >
