@@ -365,7 +365,7 @@ export default function TeacherPage({ params }: { params: { id: string } }) {
     try {
       setIsParsing(true);
       setTimeout(async () => {
-        const getPythonResponse = await fetch('https://anskey-segregate-from-pdfs-33f7051-v12.app.beam.cloud', {
+        const getPythonResponse = await fetch('https://anskey-segregate-from-pdfs-33f7051-v13.app.beam.cloud', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
