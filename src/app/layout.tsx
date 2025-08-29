@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
+/*export const metadata: Metadata = {
   title: "AI Classroom",
   description: "AI Classroom",
   icons: {
@@ -55,7 +55,7 @@ export const metadata: Metadata = {
       },
     ],
   },
-};
+};*/
 
 export default function RootLayout({
   children,
@@ -64,8 +64,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-       <head>
-      </head>
+
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >

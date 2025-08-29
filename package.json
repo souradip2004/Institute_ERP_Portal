@@ -10,9 +10,6 @@
     "lint": "next lint",
     "worker": "npx tsx src/bullmq/workers/workers.ts"
   },
-  "prisma": {
-    "seed": "node prisma/seed.js"
-  },
   "dependencies": {
     "@apollo/client": "^3.13.5",
     "@apollo/server": "^4.11.3",

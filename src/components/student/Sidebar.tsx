@@ -156,7 +156,7 @@ export default function Sidebar({ onSidebarToggle }: SidebarProps) {
           {/* Logo Section */}
           <div className="mb-8 flex items-center justify-between"> {/* Added justify-between */}
             <Image
-              src={institution?.logoUrl ? institution.logoUrl : "/logo.png"}
+              src={institution?.logoUrl && institution.logoUrl }
               alt="Logo"
               width={(institution && institution.logoUrl) ? 40 : 160}
               height={40}

@@ -198,7 +198,7 @@ const [institutionType, setInstitutionType] = useState<string | null>("");
           {/* Logo and Close Button (always visible when sidebar is open) */}
           <div className="mb-8 flex items-center justify-between">
             <Image
-              src={(institution && institution.logoUrl) ? institution.logoUrl : "/logo.png"}
+              src={(institution && institution.logoUrl) && institution.logoUrl }
               alt="Logo"
               width={institution ? 40 : 160}
               height={40}

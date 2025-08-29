@@ -124,7 +124,6 @@ const FeatureCard = ({ icon: Icon, title }: FeatureCardProps) => {
 
 export default function LandingPage() {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-    const [activeIndex, setActiveIndex] = useState(0);
 
     const router = useRouter();
 
@@ -157,23 +156,23 @@ export default function LandingPage() {
             {/* Header */}
             <header className="bg-white shadow">
                 <div className="max-w-screen mx-auto px-6 py-4 flex justify-between items-center">
-                    <Image
+                    {/*<Image
                         src="/logo.png"
                         alt="Logo"
                         width={160}
                         height={40}
                         className="object-contain"
-                    />
+                    />*/}
                     {/* Desktop Nav */}
                     <nav className="hidden md:flex items-center gap-6"> {/* Increased gap for better spacing */}
                         {/* Individual Button with Enhanced Tooltip */}
                         <div className="relative group inline-block">
-                            <button
+                           {/* <button
                                 onClick={() => window.location.href = "https://aiclassroom.in/"}
                                 className="glow-button px-6 py-2 rounded-lg text-base font-semibold cursor-pointer relative overflow-hidden transition-all duration-300 ease-in-out hover:scale-105"
                             >
                                 Individual
-                            </button>
+                            </button>*/}
                             <div
                                 className="absolute top-[calc(100%+8px)] left-1/2 transform -translate-x-1/2 mt-2 px-3 py-1.5 bg-gray-800 text-white text-xs rounded-md shadow-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-all duration-300 ease-in-out pointer-events-none group-hover:scale-100 scale-95 origin-top"
                             >

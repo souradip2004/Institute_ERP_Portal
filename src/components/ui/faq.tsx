@@ -157,9 +157,9 @@ export default function FAQ() {
             </CustomAccordionItem>
           </CustomAccordion>
 
-          <div className="mt-8 p-8 border rounded-lg bg-gray-50 hover:bg-purple-50 transition-colors duration-200"> {/* Increased p from 6 to 8 */}
-            <p className="text-lg font-semibold text-gray-700 mb-3">Still have questions?</p> {/* Increased text size, mb */}
-            <div className="text-base text-gray-500 mb-5 leading-relaxed"> {/* Increased text-sm to text-base, mb */}
+          {/*<div className="mt-8 p-8 border rounded-lg bg-gray-50 hover:bg-purple-50 transition-colors duration-200">  Increased p from 6 to 8
+            <p className="text-lg font-semibold text-gray-700 mb-3">Still have questions?</p>  Increased text size, mb
+            <div className="text-base text-gray-500 mb-5 leading-relaxed">  Increased text-sm to text-base, mb
               Can't find the answer you're looking for? Please chat with our friendly team.
             </div>
             <button
@@ -168,7 +168,7 @@ export default function FAQ() {
             >
               Help desk
             </button>
-          </div>
+          </div>*/}
         </div>
       </div>
     </>
