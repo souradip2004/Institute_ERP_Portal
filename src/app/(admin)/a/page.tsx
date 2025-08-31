@@ -1,14 +1,9 @@
 // app/admin/page.tsx
 import { auth } from "@/auth";
 import Link from "next/link";
-import { fetchTeachers, fetchStudents, fetchClasses } from "@/lib/fetchAdminData";
-import AddClassComponent from "@/components/admin/AddClass";
-import ViewTeachers from "@/components/admin/ViewTeachersComponent";
-import ViewClassSectionsPage from "@/components/admin/ViewClassSectionPage";
-import ViewStudentPage from "@/components/admin/ViewStudentPage";
 import Sider from "@/components/admin/navigator";
 import { redirect } from "next/navigation";
-import Head from "next/head";
+
 
 export default async function AdminPage() {
   const session = await auth();

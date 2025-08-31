@@ -1,5 +1,5 @@
 import prisma from "@/lib/prisma";
-import { InstitutionQueue } from "@/bullmq/queues/institutionqueue";
+
 import fs from "fs";
 export class InstitutionService {
   async getAllInstitutions() {
@@ -42,9 +42,6 @@ async getAdminByInstitutionId(id: string) {
 
   async deleteInstitution(id: string) {
     return prisma.institution.delete({ where: { id } });
-    return InstitutionQueue.add("delete-institution", {
-      identity: id,
-    });
   }
 
   async getAllDepartmentsByInstitute(institutionId: string) {

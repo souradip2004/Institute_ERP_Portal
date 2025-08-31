@@ -1,5 +1,4 @@
 import prisma from "@/lib/prisma";
-import { userQueue } from "@/bullmq/queues/userqueue";
 import bcrypt from "bcryptjs";
 import nodemailer from "nodemailer";
 
@@ -96,15 +95,6 @@ if (user.email) {
         ...data,
       },
     });
-    return userQueue.add("update-user", {
-      data,
-      identity: id,
-    });
   }
 
-  async delete(id: string) {
-    return userQueue.add("delete-user", {
-      identity: id,
-    });
-  }
 }

@@ -1,5 +1,5 @@
 import prisma from "@/lib/prisma";
-import { examQueue } from "@/bullmq/queues/exam";
+
 
 export class ExamService {
   // Re-define the method as a non-async function first to check if it's a declaration issue
@@ -278,10 +278,7 @@ export class ExamService {
   }
 
   async updateExam(id: string, data: any) {
-    return await examQueue.add("update-exam", {
-      identity: id,
-      data,
-    });
+
   }
 
   async deleteExam(id: string) {

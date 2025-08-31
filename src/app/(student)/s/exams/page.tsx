@@ -4,7 +4,7 @@ import Link from 'next/link';
 import Loader from '@/components/ui/Loader';
 import {useRouter} from 'next/navigation';
 import {S3Utils} from "@/utils/s3Utils";
-import {uploadImageToCloudinary} from "@/utils/uploadImageToCloudinary"; // Import the router
+import {uploadImageToS3} from "@/utils/uploadImageToS3"; // Import the router
 
 // --- INTERFACES (Added passingMarks) ---
 interface Question {
@@ -309,7 +309,7 @@ export default function ExamsPage() {
 
     setIsUploadingImg(true);
     try {
-      const publicUrl = await uploadImageToCloudinary(file);
+      const publicUrl = await uploadImageToS3(file);
 
       // When an image is added, clear the text answer and add the image
       setCurrentAnswer(''); // <-- CLEAR TEXT
@@ -392,7 +392,7 @@ export default function ExamsPage() {
 
     setIsUploadingDiagram(true);
     try {
-      const publicUrl = await uploadImageToCloudinary(file);
+      const publicUrl = await uploadImageToS3(file);
       // Update the new diagram state
       setCurrentDiagramUploads(prev => [...prev, {url: publicUrl, fileName: file.name}]);
     } catch (error) {

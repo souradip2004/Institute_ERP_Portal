@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { uploadImageToCloudinary } from "@/utils/uploadImageToCloudinary";
+import { uploadImageToS3 } from "@/utils/uploadImageToS3";
 import Loader from '@/components/ui/Loader';
 import { ArrowLeft, Plus, Image as ImageIcon,X, Paperclip, FileText, CheckCheck,Send } from 'lucide-react';
 
@@ -418,7 +418,7 @@ export default function AskTeacherPage() {
       setUploadingCount(prev => prev + files.length); // Increment upload counter
       const uploadPromises = Array.from(files).map(async (file) => {
         try {
-          const publicUrl = await uploadImageToCloudinary(file);
+          const publicUrl = await uploadImageToS3(file);
           setMessageContent(prev => ({
             ...prev,
             images: [...prev.images, publicUrl], // Add to images array
@@ -443,7 +443,7 @@ export default function AskTeacherPage() {
       const uploadPromises = Array.from(files).map(async (file) => {
         try {
           // Assuming uploadImageToCloudinary can handle general files too, or you have a separate file upload utility
-          const publicUrl = await uploadImageToCloudinary(file);
+          const publicUrl = await uploadImageToS3(file);
           setMessageContent(prev => ({
             ...prev,
             files: [...prev.files, { url: publicUrl, name: file.name }], // Add to files array

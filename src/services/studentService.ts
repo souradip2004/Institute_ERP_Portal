@@ -1,6 +1,4 @@
 import prisma from "@/lib/prisma";
-import {studentQueue} from "@/bullmq/queues/student";
-import {NextResponse} from "next/server";
 
 interface IStudentUpdateData {
   dateOfBirth?: string;
@@ -216,9 +214,7 @@ export class StudentService {
   }
 
   async deleteStudent(id: string) {
-    return studentQueue.add("delete-student", {
-      identity: id,
-    });
+
   }
 
   async getStudentsByBatchId(batchId: string) {

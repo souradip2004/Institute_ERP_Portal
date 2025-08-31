@@ -1,5 +1,5 @@
 import prisma from "@/lib/prisma";
-import { DheadQueue } from "@/bullmq/queues/departmentHead";
+
 export class DepartmentHeadService {
   async getAll() {
     return prisma.departmentHead.findMany();

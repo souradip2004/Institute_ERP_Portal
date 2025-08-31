@@ -1,7 +1,4 @@
 import prisma from '@/lib/prisma';
-import {teacherQueue} from '@/bullmq/queues/Teacher';
-
-// import { json } from 'stream/consumers';
 
 export class TeacherService {
 
@@ -37,16 +34,11 @@ export class TeacherService {
   }
 
   async updateTeacher(id: string, data: any) {
-    return teacherQueue.add('update-teacher', {
-      data,
-      identity: id
-    });
+
   }
 
   async deleteTeacher(id: string) {
-    return teacherQueue.add('delete-teacher', {
-      identity: id
-    });
+
   }
 
 

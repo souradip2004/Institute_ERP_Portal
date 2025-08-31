@@ -1,6 +1,6 @@
 import {S3Utils} from "@/utils/s3Utils";
 
-export const uploadImageToCloudinary = (async (file: File): Promise<string> => {
+export const uploadImageToS3 = (async (file: File): Promise<string> => {
   try {
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);

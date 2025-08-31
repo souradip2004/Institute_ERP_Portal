@@ -15,6 +15,7 @@ const s3Client = new S3Client({
 });
 
 export class S3Utils {
+
   static async uploadFile(
     file: Buffer,
     fileName: string,

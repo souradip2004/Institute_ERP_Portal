@@ -1,5 +1,4 @@
 import prisma from '@/lib/prisma';
-import {semesterQueue} from '@/bullmq/queues/Semester';
 export class SemesterService {
   async getAllSemesters() {
     return await prisma.semester.findMany();
@@ -22,10 +21,7 @@ export class SemesterService {
   }
 
   async updateSemester(id: string, data: any) {
-   return await semesterQueue.add('update-semester',{
-    data,
-    identity:id
-   })
+
   }
 
 
@@ -36,8 +32,5 @@ export class SemesterService {
 
  
   async deleteSemester(id: string) {
-    return await semesterQueue.add('delete-semester',{
-      identity:id
-     })
   }
 }

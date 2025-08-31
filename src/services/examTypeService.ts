@@ -1,6 +1,5 @@
 // services/examService.ts
 import prisma from "@/lib/prisma";
-import { examtypeQueue } from "@/bullmq/queues/examType";
 export class ExamTypeService {
   async getAllExamTypes() {
     return await prisma.examType.findMany({ include: { institution: true } });
@@ -25,15 +24,10 @@ export class ExamTypeService {
   }
 
   async updateExamType(id: string, data: any) {
-    return await examtypeQueue.add("update-examtype", {
-      identity: id,
-      data,
-    });
+
   }
 
   async deleteExamType(id: string) {
-    return await examtypeQueue.add("update-examtype", {
-      identity: id,
-    });
+
   }
 }

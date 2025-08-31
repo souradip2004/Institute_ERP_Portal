@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation'; // Original import
-import { uploadImageToCloudinary } from "@/utils/uploadImageToCloudinary"; // Original import
+import { uploadImageToS3 } from "@/utils/uploadImageToS3"; // Original import
 import Loader from '@/components/ui/Loader'; // Original import
 import axios from "axios"; // Original import
 import { ArrowLeft, Plus, Image as ImageIcon,X, Paperclip, FileText, CheckCheck,Send,Bell,ChevronDown,ChevronUp,BookOpen, Link, ArrowRight, Calendar } from 'lucide-react';
@@ -425,7 +425,7 @@ useEffect(() => {
       
       const uploadPromises = Array.from(files).map(async (file) => {
         try {
-          const publicUrl = await uploadImageToCloudinary(file);
+          const publicUrl = await uploadImageToS3(file);
           return { url: publicUrl, name: file.name };
         } catch (error) {
           console.error("File upload failed:", error);
@@ -461,7 +461,7 @@ useEffect(() => {
       
       const uploadPromises = Array.from(files).map(async (file) => {
         try {
-          const publicUrl = await uploadImageToCloudinary(file);
+          const publicUrl = await uploadImageToS3(file);
           return publicUrl;
         } catch (error) {
           console.error("Image upload failed:", error);

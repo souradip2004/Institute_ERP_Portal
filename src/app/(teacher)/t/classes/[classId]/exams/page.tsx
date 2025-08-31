@@ -9,7 +9,7 @@ import { Calendar, Clock, CheckCheck, X, FileText, BookOpen, GraduationCap, XCir
 import { forceLogout as logoutAndRedirect } from "@/lib/logout-utils";
 import { FaCopy } from "react-icons/fa";
 import { useRouter } from "next/navigation";
-import { uploadImageToCloudinary } from "@/utils/uploadImageToCloudinary";
+import { uploadImageToS3 } from "@/utils/uploadImageToS3";
 function useDebounce(value, delay:number) {
   // State to store debounced value
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -1351,7 +1351,7 @@ const takeoutQuestions = (response: any): Question[] => {
     setSelectedQuestionForDiagram(questionIndex);
 
     try {
-      const imageUrl = await uploadImageToCloudinary(file);
+      const imageUrl = await uploadImageToS3(file);
       setQuestions(prevQuestions => prevQuestions.map((q, idx) => {
         if (idx === questionIndex) {
           const diagramImgURL = [...(q.diagramImgURL || []), imageUrl];

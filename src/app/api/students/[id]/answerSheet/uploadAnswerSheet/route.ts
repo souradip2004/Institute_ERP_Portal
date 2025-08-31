@@ -4,8 +4,6 @@ import { PrismaClient } from '@prisma/client';
 import { segregateFromPdf, checkAnswerWithModelKey, checkAnswerWithDiagramSupport } from '@/services/answer-sheet-checking-python-call-service';
 const prisma = new PrismaClient();
 import python_response_after_first_copy_check from '@/lib/python-response-after-first-copy-check.json'
-import python_last_result_response from '@/lib/python-last-result-response.json';
-
 
 
 export async function POST(

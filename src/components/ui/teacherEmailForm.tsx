@@ -1,6 +1,6 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
-import { uploadImageToCloudinary } from "@/utils/uploadImageToCloudinary"; // Import the upload utility
+import { uploadImageToS3 } from "@/utils/uploadImageToS3"; // Import the upload utility
 
 const EmailForm = () => {
   const [selectedClass, setSelectedClass] = useState(""); 
@@ -148,7 +148,7 @@ const EmailForm = () => {
     const uploadedFilesInfo = await Promise.all(
       attachedFiles.map(async (file) => {
         try {
-          const publicUrl = await uploadImageToCloudinary(file);
+          const publicUrl = await uploadImageToS3(file);
           return { name: file.name, type: file.type, size: file.size, publicUrl };
         } catch (error) {
           console.error(`Error uploading file ${file.name}:`, error);

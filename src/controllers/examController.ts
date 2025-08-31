@@ -109,7 +109,7 @@ export class ExamController {
   async updateExam(id: string, req: NextRequest) {
     try {
       const data = await req.json();
-      const exam = await examService.updateExam(id, data);
+
       return NextResponse.json(exam);
     } catch (error: any) {
       return NextResponse.json({error: error.message}, {status: 500});

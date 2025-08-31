@@ -37,8 +37,8 @@ const [institutionType, setInstitutionType] = useState<string | null>("");
 
   useEffect(() => {
     if (localStorage.getItem("user")) {
-      const data = JSON.parse(localStorage.getItem("user"))?.institutionId;
-      setInstitutionType(JSON.parse(localStorage.getItem("user"))?.institutionType || null);
+      const data = JSON.parse(localStorage.getItem("user")!)?.institutionId;
+      setInstitutionType(JSON.parse(localStorage.getItem("user")!)?.institutionType || null);
       const fetchInstitute = async () => {
         try {
           const institutionRes = await fetch(`/api/institutions/${data}`, {
@@ -151,7 +151,6 @@ const [institutionType, setInstitutionType] = useState<string | null>("");
     { name: 'Attendance', href: '/t/attendance', icon: <CalendarCheck2 size={18} />, onClick: handleNavLinkClick },
     { name: 'Classes', href: '/t/classes', icon: <Users2 size={18} />, onClick: handleNavLinkClick },
     { name: 'Copy checking', href: '/t/pythonCopyChecking', icon: <FileText size={18} />, onClick: handleNavLinkClick },
-    { name: 'Smart Resources', href: '/t/smart-resources', icon: <FaRegLightbulb size={18} />, onClick: handleNavLinkClick },
     {name: 'Notice', href: '/t/notice', icon: <FileText size={18} />, onClick: handleNavLinkClick }, // Added Notice link
   ];
 

@@ -224,24 +224,6 @@ export async function saveVideoData(
   }
 }
 
-// Check if video data exists
-export async function checkVideoDataExists(noteId: string): Promise<boolean> {
-  try {
-    const response = await fetch(`/api/notes/${noteId}/video-data`, {
-      method: "HEAD",
-    });
-
-    if (!response.ok) {
-      return false;
-    }
-
-    // Check for the custom header instead of trying to parse JSON from a HEAD request
-    return response.headers.get('x-has-video-data') === 'true';
-  } catch (error) {
-    console.error("Error checking video data:", error);
-    return false;
-  }
-}
 
 // Get video data from server
 export async function getVideoData(noteId: string): Promise<unknown[] | null> {

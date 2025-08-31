@@ -1,8 +1,5 @@
 'use client';
-
 import React, { useEffect, useState } from 'react';
-
-
 
 type CostDetail = {
     id: string;
@@ -20,7 +17,7 @@ type CostDetail = {
 };
 
 const fetchCostDetails = async (): Promise<CostDetail> => {
-    
+
     const res = await fetch('/api/credits/cmagytyq900014hxmxgbe3max?month=12&year=2025');
     if (!res.ok) throw new Error('Failed to fetch cost details');
     return res.json();
@@ -177,7 +174,6 @@ const CostManagementPage: React.FC = () => {
     );
 };
 
-// EditableLimitCard component for editing limits
 type EditableLimitCardProps = {
     label: string;
     value: number;

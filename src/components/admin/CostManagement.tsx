@@ -20,13 +20,6 @@ type CostDetail = {
   sectionCreditsBalance: number;
 };
 
-
-const fetchCostDetails = async (id: string, month: number, year: number): Promise<CostDetail> => {
-  const res = await fetch(`/api/credits/${id}?month=${month}&year=${year}`);
-  if (!res.ok) throw new Error('Failed to fetch cost details');
-  return res.json();
-};
-
 const CreditCard: React.FC<{ title: string; balance: number; color: string }> = ({
   title,
   balance,
