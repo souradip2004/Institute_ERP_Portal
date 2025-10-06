@@ -1,6 +1,6 @@
 import prisma from "@/lib/prisma";
-import { Assignment, AssignmentSubmission, Role } from "@prisma/client";
-import { S3Utils } from "@/utils/s3Utils";
+import {Assignment, AssignmentSubmission} from "@prisma/client";
+import {S3Utils} from "@/utils/s3Utils";
 
 export class AssignmentService {
   static async createAssignment(data: {
@@ -13,7 +13,7 @@ export class AssignmentService {
     submissionType: "INDIVIDUAL" | "GROUP";
     groupId?: string;
     file?: { buffer: Buffer; originalName: string; mimetype: string };
-    attachments?: {
+    attachments?: { // Made attachments optional for clarity
       create: Array<{
         fileUrl: string;
         fileName: string;
@@ -23,52 +23,16 @@ export class AssignmentService {
       }>;
     };
   }): Promise<Assignment> {
-    let fileUrl: string | undefined;
-    let fileName: string | undefined;
-    let fileType: string | undefined;
-    let fileSize: number | undefined;
+    const {file, attachments, ...assignmentData} = data;
 
-    if (data.file && !data.attachments) {
-      if (!data.file.originalName || !data.file.mimetype || !data.file.buffer) {
-        throw new Error("Invalid file data: missing required file properties");
-      }
-
-      const s3Key = await S3Utils.uploadFile(
-        data.file.buffer,
-        data.file.originalName,
-        data.file.mimetype
-      );
-      fileUrl = await S3Utils.getFileUrl(s3Key);
-      fileName = data.file.originalName;
-      fileType = data.file.mimetype;
-      fileSize = data.file.buffer.length;
-    }
-console.log("fileUrl", data.classSectionId);
+    console.log("Final data to be used for assignment creation:", data);
+    // 4. Build and execute the final Prisma query
     return prisma.assignment.create({
       data: {
-        title: data.title,
-        description: data.description,
-        classSectionId: data.classSectionId,
-        createdById: data.createdById,
-        dueDate: data.dueDate,
-        maxPoints: data.maxPoints,
-        submissionType: data.submissionType,
-        groupId: data.groupId,
+        ...assignmentData, // Use the destructured assignment data
         isPublished: false,
         status: "SCHEDULED",
-        attachments: data.attachments
-          ? data.attachments
-          : fileUrl && fileName && fileType && fileSize
-          ? {
-              create: {
-                fileUrl,
-                fileName,
-                fileType,
-                fileSize,
-                uploadedById: data.createdById,
-              },
-            }
-          : undefined,
+        attachments
       },
       include: {
         attachments: true,
@@ -82,32 +46,29 @@ console.log("fileUrl", data.classSectionId);
     assignmentId: string;
     studentId: string;
     userId: string;
-    file?: { buffer: Buffer; originalName: string; mimetype: string };
+    file: File;
   }): Promise<AssignmentSubmission> {
-    let fileUrl: string | undefined;
-    let fileName: string | undefined;
-    let fileType: string | undefined;
-    let fileSize: number | undefined;
 
-    if (data.file) {
-      if (!data.file.originalName || !data.file.mimetype || !data.file.buffer) {
+
+      if(!data.file || !data.file.name || !data.file.type || !data.file.size){
         throw new Error("Invalid file data: missing required file properties");
       }
 
       const s3Key = await S3Utils.uploadFile(
-        data.file.buffer,
-        data.file.originalName,
-        data.file.mimetype
+        data.file,
+        data.file.name,
+        data.file.type
       );
-      fileUrl = await S3Utils.getFileUrl(s3Key);
-      fileName = data.file.originalName;
-      fileType = data.file.mimetype;
-      fileSize = data.file.buffer.length;
-    }
+
+      const fileUrl = await S3Utils.getFileUrl(s3Key);
+      const fileName = data.file.name;
+      const fileType = data.file.type;
+      const fileSize = data.file.size;
+
 
     const assignment = await prisma.assignment.findUnique({
-      where: { id: data.assignmentId },
-      select: { dueDate: true },
+      where: {id: data.assignmentId},
+      select: {dueDate: true},
     });
 
     if (!assignment) {
@@ -116,7 +77,7 @@ console.log("fileUrl", data.classSectionId);
 
     const isLate =
       (assignment.dueDate && new Date() > assignment.dueDate) || undefined;
- console.log("studentId", data.studentId);  
+    console.log("studentId", data.studentId);
     return prisma.assignmentSubmission.create({
       data: {
         assignmentId: data.assignmentId,
@@ -124,18 +85,15 @@ console.log("fileUrl", data.classSectionId);
         submissionTime: new Date(),
         status: "PENDING",
         isLate,
-        attachments:
-          fileUrl && fileName && fileType && fileSize
-            ? {
-                create: {
-                  fileUrl,
-                  fileName,
-                  fileType,
-                  fileSize,
-                  uploadedById: data.userId,
-                },
-              }
-            : undefined,
+        attachments: {
+          create: {
+            fileUrl,
+            fileName,
+            fileType,
+            fileSize,
+            uploadedById: data.userId,
+          },
+        }
       },
       include: {
         attachments: true,
@@ -147,7 +105,7 @@ console.log("fileUrl", data.classSectionId);
 
   static async getAssignments(classSectionId?: string): Promise<Assignment[]> {
     return prisma.assignment.findMany({
-      where: classSectionId ? { classSectionId } : undefined,
+      where: classSectionId ? {classSectionId} : undefined,
       include: {
         attachments: true,
         classSection: true,
@@ -159,13 +117,13 @@ console.log("fileUrl", data.classSectionId);
           },
         },
       },
-      orderBy: { createdAt: "desc" },
+      orderBy: {createdAt: "desc"},
     });
   }
 
   static async getAssignmentById(id: string): Promise<Assignment | null> {
     return prisma.assignment.findUnique({
-      where: { id },
+      where: {id},
       include: {
         attachments: true,
         classSection: true,
@@ -182,8 +140,8 @@ console.log("fileUrl", data.classSectionId);
 
   static async deleteAssignment(id: string): Promise<void> {
     const assignment = await prisma.assignment.findUnique({
-      where: { id },
-      include: { attachments: true },
+      where: {id},
+      include: {attachments: true},
     });
 
     if (!assignment) {
@@ -195,7 +153,7 @@ console.log("fileUrl", data.classSectionId);
     }
 
     await prisma.assignment.delete({
-      where: { id },
+      where: {id},
     });
   }
 
@@ -227,7 +185,7 @@ console.log("fileUrl", data.classSectionId);
           },
         },
       },
-      orderBy: { createdAt: "desc" },
+      orderBy: {createdAt: "desc"},
     });
   }
 }

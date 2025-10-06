@@ -122,34 +122,11 @@ export default function Dashboard() {
     }
   };
 
-  const fetchAnnouncements = async (institutionId?: string, departmentId?: string) => {
-    try {
-      // Only add parameters that are defined
-      const params = new URLSearchParams();
-      if (institutionId) params.append('institutionId', institutionId);
-      if (departmentId) params.append('departmentId', departmentId);
-
-      // Construct URL with params
-      const url = `/api/announcements?${params.toString()}`;
-      console.log('Fetching announcements from:', url);
-
-      const response = await authenticatedFetch(url);
-      if (!response.ok) {
-        throw new Error('Failed to fetch announcements');
-      }
-      const data = await response.json();
-      console.log('Received announcements:', data);
-      return data;
-    } catch (error) {
-      console.error('Error fetching announcements:', error);
-      return [];
-    }
-  };
 
   const fetchTodayClasses = async (studentId: string): Promise<ClassSession[]> => {
     try {
       const today = new Date().toISOString().split('T')[0];
-      const response = await authenticatedFetch(`/api/attendance-sessions/today?studentId=${studentId}&date=${today}`);
+      const response = await authenticatedFetch(`/api/attendance/today?studentId=${studentId}&date=${today}`);
 
       if (!response.ok) throw new Error('Failed to fetch today\'s classes');
 
@@ -230,13 +207,6 @@ export default function Dashboard() {
             setStudentDetails(details);
           }
         }
-
-        // Fetch announcements - institutionId may be missing in the localStorage data
-        const announcementsData = await fetchAnnouncements(
-          user.institutionId,
-          user.student?.departmentId || studentDetails?.department?.id
-        );
-        setAnnouncements(announcementsData);
 
         // Fetch today's classes
         if (user.studentId) {
@@ -346,7 +316,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="mb-8">
+     {/* <div className="mb-8">
         <h3 className="text-xl font-semibold mb-4">Announcements</h3>
         <div className="bg-white p-6 rounded-lg shadow">
           {announcements.length > 0 ? (
@@ -372,7 +342,7 @@ export default function Dashboard() {
             <div className="text-gray-500">No announcements to display.</div>
           )}
         </div>
-      </div>
+      </div>*/}
 
       <div>
         <h3 className="text-xl font-semibold mb-4">Today&apos;s Classes</h3>

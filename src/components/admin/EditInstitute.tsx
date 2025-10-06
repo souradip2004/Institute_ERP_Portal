@@ -1,296 +1,300 @@
 'use client'
 
-import { useState } from "react";
-import Loader from "@/components/ui/Loader"; // Kept for the 'submitting' state
-import { Suspense } from "react";
+import {useState} from "react";
+import Loader from "@/components/ui/Loader";
+
+import {uploadImageToS3} from "@/utils/uploadImageToS3";
 
 interface EditInstituteProps {
-    instituteID: string;
-    name?: string;
-    email?: string;
-    phone?: string;
-    website?: string;
-    address?: string;
-    city?: string;
-    state?: string;
-    country?: string;
-    type?: string;
-    logoUrl?: string;
-    primaryColor?: string;
+  instituteID: string;
+  name?: string;
+  email?: string;
+  phone?: string;
+  website?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  type?: string;
+  logoUrl?: string;
+  primaryColor?: string;
 }
 
 // The props are now the source of truth for the initial form data.
 export default function EditDashboardPage({
-    instituteID,
-    name,
-    email,
-    phone,
-    website,
-    address,
-    city,
-    state,
-    country,
-    type,
-    logoUrl,
-    primaryColor
+  instituteID,
+  name,
+  email,
+  phone,
+  website,
+  address,
+  city,
+  state,
+  country,
+  type,
+  logoUrl,
+  primaryColor
 }: EditInstituteProps) {
 
-    // 1. Initialize the form state directly from the props.
-    // The `|| ''` ensures that if a prop is null or undefined, it defaults to an empty string.
-    const [form, setForm] = useState({
-        name: name || "",
-        type: type || "",
-        address: address || "",
-        city: city || "",
-        state: state || "",
-        country: country || "",
-        postalCode: "",
-        phone: phone || "",
-        email: email || "",
-        website: website || "",
-        logoUrl: logoUrl || "",
-        primaryColor: primaryColor || "",
-    });
+  // 1. Initialize the form state directly from the props.
+  // The `|| ''` ensures that if a prop is null or undefined, it defaults to an empty string.
+  const [form, setForm] = useState({
+    name: name || "",
+    type: type || "",
+    address: address || "",
+    city: city || "",
+    state: state || "",
+    country: country || "",
+    postalCode: "",
+    phone: phone || "",
+    email: email || "",
+    website: website || "",
+    logoUrl: logoUrl || "",
+    primaryColor: primaryColor || "",
+  });
 
-    // 2. The `loading` state and `useEffect` hook for fetching are no longer needed.
-    const [submitting, setSubmitting] = useState(false);
-    const [uploading, setUploading] = useState(false);
-    const [error, setError] = useState("");
-    const [success, setSuccess] = useState("");
+  // 2. The `loading` state and `useEffect` hook for fetching are no longer needed.
+  const [submitting, setSubmitting] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-        setForm({ ...form, [e.target.name]: e.target.value });
-    };
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    setForm({...form, [e.target.name]: e.target.value});
+  };
 
-    const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-        // Validate file type
-        if (!file.type.startsWith('image/')) {
-            setError('Please select a valid image file');
-            return;
-        }
-
-        // Validate file size (max 5MB)
-        if (file.size > 5 * 1024 * 1024) {
-            setError('File size must be less than 5MB');
-            return;
-        }
-
-        setUploading(true);
-        setError("");
-
-        try {
-            const formData = new FormData();
-            formData.append('pdf', file); // API expects 'pdf' key even for images
-
-            const response = await fetch('https://api.aiclassroom.in/pdfUpload/upload', {
-                method: 'POST',
-                body: formData,
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed to upload image');
-            }
-
-            const data = await response.json();
-
-            // Update the form with the new logo URL
-            setForm({ ...form, logoUrl: data.url || data.fileUrl || data.link });
-            setSuccess('Logo uploaded successfully!');
-        } catch (err: any) {
-            setError(err.message || 'Failed to upload logo');
-        } finally {
-            setUploading(false);
-        }
-    };
-
-    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault();
-        setSubmitting(true);
-        setError("");
-        setSuccess("");
-        try {
-            // Only send fields that are part of the schema
-            const payload = {
-                name: form.name,
-                type: form.type,
-                address: form.address,
-                city: form.city,
-                state: form.state,
-                country: form.country,
-                postalCode: form.postalCode,
-                phone: form.phone,
-                email: form.email,
-                website: form.website,
-                logoUrl: form.logoUrl,
-                primaryColor: form.primaryColor,
-            };
-            // Remove empty optional fields
-            Object.keys(payload).forEach(key => {
-                if ((payload as any)[key] === "") delete (payload as any)[key];
-            });
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/institutions/${instituteID}`, {
-                method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload),
-            });
-            if (!res.ok) {
-                const errorData = await res.json();
-                throw new Error(errorData.message || "Failed to update institute");
-            }
-            setSuccess("Institute updated successfully!");
-            setTimeout(() => {
-                window.location.href = `/a/dashboard`;
-            }, 1000);
-        } catch (e: any) {
-            setError(e.message);
-        } finally {
-            setSubmitting(false);
-        }
-    };
-
-    // A simple guard clause in case the component is rendered without necessary props.
-    if (!instituteID) {
-        return (
-            <div className="flex items-center justify-center h-screen">
-                <p className="text-gray-500">No institute selected to edit.</p>
-            </div>
-        )
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      setError('Please select a valid image file');
+      return;
     }
 
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setError('File size must be less than 5MB');
+      return;
+    }
+
+    setUploading(true);
+    setError("");
+
+    try {
+      const logoUrl = await uploadImageToS3(file);
+      console.log('Uploaded logo URL:', logoUrl);
+
+      // Update the form with the new logo URL
+      setForm({...form, logoUrl});
+      setSuccess('Logo uploaded successfully!');
+    } catch (err: any) {
+      setError(err.message || 'Failed to upload logo');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setSubmitting(true);
+    setError("");
+    setSuccess("");
+    try {
+      // Only send fields that are part of the schema
+      const payload = {
+        name: form.name,
+        type: form.type,
+        address: form.address,
+        city: form.city,
+        state: form.state,
+        country: form.country,
+        postalCode: form.postalCode,
+        phone: form.phone,
+        email: form.email,
+        website: form.website,
+        logoUrl: form.logoUrl,
+        primaryColor: form.primaryColor,
+      };
+      // Remove empty optional fields
+      Object.keys(payload).forEach(key => {
+        if ((payload as any)[key] === "") delete (payload as any)[key];
+      });
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/institutions/${instituteID}`, {
+        method: "PATCH",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || "Failed to update institute");
+      }
+      setSuccess("Institute updated successfully!");
+      setTimeout(() => {
+        window.location.href = `/a/dashboard`;
+      }, 1000);
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // A simple guard clause in case the component is rendered without necessary props.
+  if (!instituteID) {
     return (
-        <div className="min-h-screen bg-gradient-to-b from-slate-50 to-gray-100 dark:from-gray-900 dark:to-slate-950">
-            <Suspense fallback={<Loader size="large" fullScreen message="Loading dashboard..." />}>
-                <main className="container mx-auto px-4 py-8 max-w-2xl">
-                    <h2 className="text-2xl font-bold mb-6">Edit Institute: {name}</h2>
-                    {/* 3. Removed the conditional rendering for `loading` and fetch `error`. */}
-                    <form onSubmit={handleSubmit} className="space-y-4 bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-100 dark:border-gray-700 shadow">
-                        <div>
-                            <label htmlFor="name" className="block font-medium mb-1">Name</label>
-                            <input id="name" name="name" value={form.name} onChange={handleChange} className="w-full p-2 border rounded" required />
-                        </div>
-                        <div>
-                            <label htmlFor="email" className="block font-medium mb-1">Email</label>
-                            <input id="email" name="email" value={form.email} onChange={handleChange} className="w-full p-2 border rounded" type="email" required />
-                        </div>
-                        <div>
-                            <label htmlFor="phone" className="block font-medium mb-1">Phone</label>
-                            <input id="phone" name="phone" value={form.phone} onChange={handleChange} className="w-full p-2 border rounded" />
-                        </div>
-                        <div>
-                            <label htmlFor="website" className="block font-medium mb-1">Website</label>
-                            <input id="website" name="website" value={form.website} onChange={handleChange} className="w-full p-2 border rounded" />
-                        </div>
-                        <div>
-                            <label htmlFor="address" className="block font-medium mb-1">Address</label>
-                            <input id="address" name="address" value={form.address} onChange={handleChange} className="w-full p-2 border rounded" />
-                        </div>
-                        <div>
-                            <label htmlFor="postalCode" className="block font-medium mb-1">Postal Code</label>
-                            <input id="postalCode" name="postalCode" value={form.postalCode} onChange={handleChange} className="w-full p-2 border rounded" />
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div>
-                                <label htmlFor="city" className="block font-medium mb-1">City</label>
-                                <input id="city" name="city" value={form.city} onChange={handleChange} className="w-full p-2 border rounded" />
-                            </div>
-                            <div>
-                                <label htmlFor="state" className="block font-medium mb-1">State</label>
-                                <input id="state" name="state" value={form.state} onChange={handleChange} className="w-full p-2 border rounded" />
-                            </div>
-                            <div>
-                                <label htmlFor="country" className="block font-medium mb-1">Country</label>
-                                <input id="country" name="country" value={form.country} onChange={handleChange} className="w-full p-2 border rounded" />
-                            </div>
-                        </div>
-                        <div>
-                            <label htmlFor="type" className="block font-medium mb-1">Type</label>
-                            <select
-                                id="type"
-                                name="type"
-                                value={form.type}
-                                onChange={handleChange}
-                                className="w-full p-2 border rounded"
-                                required
-                            >
-                                <option value="">Select type</option>
-                                <option value="School">School</option>
-                                <option value="College">College</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label className="block font-medium mb-1">Institute Logo</label>
-                            <div className="space-y-4">
-                                {/* Logo Preview */}
-                                {form.logoUrl && (
-                                    <div className="flex items-center space-x-4">
-                                        <div className="w-20 h-20 border-2 border-gray-200 rounded-lg overflow-hidden bg-gray-50">
-                                            <img
-                                                src={form.logoUrl}
-                                                alt="Institute Logo"
-                                                className="w-full h-full object-cover"
-                                                onError={(e) => {
-                                                    const target = e.target as HTMLImageElement;
-                                                    target.src = '/placeholder.png';
-                                                }}
-                                            />
-                                        </div>
-                                        <div className="flex-1">
-                                            <p className="text-sm text-gray-600 dark:text-gray-400">Current logo</p>
-                                            <button
-                                                type="button"
-                                                onClick={() => setForm({ ...form, logoUrl: "" })}
-                                                className="text-red-500 hover:text-red-700 text-sm mt-1"
-                                            >
-                                                Remove logo
-                                            </button>
-                                        </div>
-                                    </div>
-                                )}
+      <div className="flex items-center justify-center h-screen">
+        <p className="text-gray-500">No institute selected to edit.</p>
+      </div>
+    )
+  }
 
-                                {/* Upload Section */}
-                                <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center">
-                                    <input
-                                        type="file"
-                                        id="logoUpload"
-                                        accept="image/*"
-                                        onChange={handleLogoUpload}
-                                        className="hidden"
-                                        disabled={uploading}
-                                    />
-                                    <label
-                                        htmlFor="logoUpload"
-                                        className={`cursor-pointer inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white ${uploading
-                                            ? 'bg-gray-400 cursor-not-allowed'
-                                            : 'bg-indigo-600 hover:bg-indigo-700'
-                                            }`}
-                                    >
-                                        {uploading ? (
-                                            <>
-                                                <svg className="animate-spin -ml-1 mr-3 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                                </svg>
-                                                Uploading...
-                                            </>
-                                        ) : (
-                                            <>
-                                                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                                                </svg>
-                                                {form.logoUrl ? 'Change Logo' : 'Upload Logo'}
-                                            </>
-                                        )}
-                                    </label>
-                                    <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                                        PNG, JPG, GIF up to 5MB
-                                    </p>
-                                </div>
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-gray-100 dark:from-gray-900 dark:to-slate-950">
 
-                                {/* Manual URL Input (Optional) */}
-                                {/* <div className="pt-4 border-t border-gray-200 dark:border-gray-600">
+        <main className="container mx-auto px-4 py-8 max-w-2xl">
+          <h2 className="text-2xl font-bold mb-6">Edit Institute: {name}</h2>
+          {/* 3. Removed the conditional rendering for `loading` and fetch `error`. */}
+          <form onSubmit={handleSubmit}
+                className="space-y-4 bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-100 dark:border-gray-700 shadow">
+            <div>
+              <label htmlFor="name" className="block font-medium mb-1">Name</label>
+              <input id="name" name="name" value={form.name} onChange={handleChange}
+                     className="w-full p-2 border rounded" required/>
+            </div>
+            <div>
+              <label htmlFor="email" className="block font-medium mb-1">Email</label>
+              <input id="email" name="email" value={form.email} onChange={handleChange}
+                     className="w-full p-2 border rounded" type="email" required/>
+            </div>
+            <div>
+              <label htmlFor="phone" className="block font-medium mb-1">Phone</label>
+              <input id="phone" name="phone" value={form.phone} onChange={handleChange}
+                     className="w-full p-2 border rounded"/>
+            </div>
+            <div>
+              <label htmlFor="website" className="block font-medium mb-1">Website</label>
+              <input id="website" name="website" value={form.website} onChange={handleChange}
+                     className="w-full p-2 border rounded"/>
+            </div>
+            <div>
+              <label htmlFor="address" className="block font-medium mb-1">Address</label>
+              <input id="address" name="address" value={form.address} onChange={handleChange}
+                     className="w-full p-2 border rounded"/>
+            </div>
+            <div>
+              <label htmlFor="postalCode" className="block font-medium mb-1">Postal Code</label>
+              <input id="postalCode" name="postalCode" value={form.postalCode} onChange={handleChange}
+                     className="w-full p-2 border rounded"/>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label htmlFor="city" className="block font-medium mb-1">City</label>
+                <input id="city" name="city" value={form.city} onChange={handleChange}
+                       className="w-full p-2 border rounded"/>
+              </div>
+              <div>
+                <label htmlFor="state" className="block font-medium mb-1">State</label>
+                <input id="state" name="state" value={form.state} onChange={handleChange}
+                       className="w-full p-2 border rounded"/>
+              </div>
+              <div>
+                <label htmlFor="country" className="block font-medium mb-1">Country</label>
+                <input id="country" name="country" value={form.country} onChange={handleChange}
+                       className="w-full p-2 border rounded"/>
+              </div>
+            </div>
+            <div>
+              <label htmlFor="type" className="block font-medium mb-1">Type</label>
+              <select
+                id="type"
+                name="type"
+                value={form.type}
+                onChange={handleChange}
+                className="w-full p-2 border rounded"
+                required
+              >
+                <option value="">Select type</option>
+                <option value="School">School</option>
+                <option value="College">College</option>
+              </select>
+            </div>
+            <div>
+              <label className="block font-medium mb-1">Institute Logo</label>
+              <div className="space-y-4">
+                {/* Logo Preview */}
+                {form.logoUrl && (
+                  <div className="flex items-center space-x-4">
+                    <div className="w-20 h-20 border-2 border-gray-200 rounded-lg overflow-hidden bg-gray-50">
+                      <img
+                        src={form.logoUrl}
+                        alt="Institute Logo"
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.src = '/placeholder.png';
+                        }}
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Current logo</p>
+                      <button
+                        type="button"
+                        onClick={() => setForm({...form, logoUrl: ""})}
+                        className="text-red-500 hover:text-red-700 text-sm mt-1"
+                      >
+                        Remove logo
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Upload Section */}
+                <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center">
+                  <input
+                    type="file"
+                    id="logoUpload"
+                    accept="image/*"
+                    onChange={handleLogoUpload}
+                    className="hidden"
+                    disabled={uploading}
+                  />
+                  <label
+                    htmlFor="logoUpload"
+                    className={`cursor-pointer inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white ${uploading
+                      ? 'bg-gray-400 cursor-not-allowed'
+                      : 'bg-indigo-600 hover:bg-indigo-700'
+                    }`}
+                  >
+                    {uploading ? (
+                      <>
+                        <svg className="animate-spin -ml-1 mr-3 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg"
+                             fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
+                                  strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor"
+                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Uploading...
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                                d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                        </svg>
+                        {form.logoUrl ? 'Change Logo' : 'Upload Logo'}
+                      </>
+                    )}
+                  </label>
+                  <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                    PNG, JPG, GIF up to 5MB
+                  </p>
+                </div>
+
+                {/* Manual URL Input (Optional) */}
+                {/* <div className="pt-4 border-t border-gray-200 dark:border-gray-600">
                                     <label htmlFor="logoUrl" className="block text-sm font-medium mb-2">Or enter logo URL manually:</label>
                                     <input
                                         id="logoUrl"
@@ -301,31 +305,35 @@ export default function EditDashboardPage({
                                         placeholder="https://example.com/logo.png"
                                     />
                                 </div> */}
-                            </div>
-                        </div>
-                        <div>
-                            <label htmlFor="primaryColor" className="block font-medium mb-1">Primary Color</label>
-                            <input
-                                id="primaryColor"
-                                name="primaryColor"
-                                type="color"
-                                value={form.primaryColor}
-                                onChange={handleChange}
-                                className="w-16 h-10 p-1 border rounded cursor-pointer"
-                                style={{ background: form.primaryColor }}
-                            />
-                        </div>
+              </div>
+            </div>
+            <div>
+              <label htmlFor="primaryColor" className="block font-medium mb-1">Primary Color</label>
+              <input
+                id="primaryColor"
+                name="primaryColor"
+                type="color"
+                value={form.primaryColor}
+                onChange={handleChange}
+                className="w-16 h-10 p-1 border rounded cursor-pointer"
+                style={{background: form.primaryColor}}
+              />
+            </div>
 
-                        {/* Error and Success messages for the submission */}
-                        {success && <div className="text-green-600 p-3 bg-green-50 dark:bg-green-900/50 rounded-md border border-green-200 dark:border-green-800">{success}</div>}
-                        {error && <div className="text-red-500 p-3 bg-red-50 dark:bg-red-900/50 rounded-md border border-red-200 dark:border-red-800">{error}</div>}
+            {/* Error and Success messages for the submission */}
+            {success && <div
+							className="text-green-600 p-3 bg-green-50 dark:bg-green-900/50 rounded-md border border-green-200 dark:border-green-800">{success}</div>}
+            {error && <div
+							className="text-red-500 p-3 bg-red-50 dark:bg-red-900/50 rounded-md border border-red-200 dark:border-red-800">{error}</div>}
 
-                        <button type="submit" className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 disabled:bg-indigo-400" disabled={submitting}>
-                            {submitting ? "Saving..." : "Save Changes"}
-                        </button>
-                    </form>
-                </main>
-            </Suspense>
-        </div>
-    );
+            <button type="submit"
+                    className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 disabled:bg-indigo-400"
+                    disabled={submitting}>
+              {submitting ? "Saving..." : "Save Changes"}
+            </button>
+          </form>
+        </main>
+
+    </div>
+  );
 }

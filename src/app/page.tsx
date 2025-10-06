@@ -4,10 +4,9 @@ import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Menu, X } from 'lucide-react';
-import { Swiper, SwiperSlide } from "swiper/react";
-import { Sparkles, MessageSquare, BarChart2, Zap, TrendingUp, ShieldCheck, LifeBuoy } from 'lucide-react';
+import {  TrendingUp, ShieldCheck, LifeBuoy } from 'lucide-react';
 import { Building, Briefcase, Users, UserCheck, CalendarCheck } from 'lucide-react';
-import HeroA from '@/components/HeroA';
+
 import React from 'react';
 import { useRouter } from 'next/navigation';
 
@@ -29,12 +28,7 @@ import {
 } from "lucide-react";
 import FAQ from '@/components/ui/faq';
 import Popup from '@/components/ui/popup';
-import {
-    Navigation,
-    Pagination,
-    Autoplay,
-    EffectCoverflow,
-} from "swiper/modules";
+
 import "swiper/css";
 import "swiper/css/navigation";
 import "swiper/css/pagination";

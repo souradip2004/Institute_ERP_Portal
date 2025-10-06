@@ -60,11 +60,6 @@ export default function StudentNotesPage() {
         const fetchedStudentData = await response.json();
         setStudentData(fetchedStudentData);
 
-        // Optional: If you want to auto-select the first active class
-        // if (fetchedStudentData.classEnrollments && fetchedStudentData.classEnrollments.length > 0) {
-        //   setSelectedClass(fetchedStudentData.classEnrollments[0].classSection);
-        // }
-
       } catch (err: any) {
         setError(err.message || 'Failed to load student data');
       } finally {
@@ -90,14 +85,14 @@ export default function StudentNotesPage() {
       </Suspense>
     );
     setIsModalOpen(true);
-  }, []); // useCallback for memoization
+  }, []);
 
   const closeModal = useCallback(() => {
     setIsModalOpen(false);
     setModal(null);
-  }, []); // useCallback for memoization
+  }, []);
 
-  // --- Loading, Error, and Empty State Handling ---
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-50 p-4">

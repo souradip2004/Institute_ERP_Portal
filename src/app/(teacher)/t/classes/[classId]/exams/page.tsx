@@ -83,64 +83,6 @@ interface TeacherClassSection {
   } | null;
 }
 
-/*interface Exam {
-  id: string;
-  title: string;
-  status: string;
-  durationMinutes: number;
-  totalMarks: number;
-  passingMarks: number;
-  examDate: string;
-  startTime: string;
-  endTime: string;
-  questions: Array<{
-    id: string;
-    examId: string;
-    questionText: string;
-    questionType?: string; // This will now correctly reflect 'MCQ' or 'LONG_ANSWER'
-    marks: number;
-    options?: string[];
-    correctAnswer?: string[];
-    difficultyLevel?: string;
-  }>;
-  examSubmissions: Array<{
-    id: string;
-    examId: string;
-    studentId: string;
-    submissionTime: Date | string;
-    obtainedMarks: number;
-    status: string;
-    feedback?: string | null;
-    gradedById?: string | null;
-    gradedAt?: Date | string | null;
-    student: {
-      id: string;
-      user: {
-        name: string;
-        email: string;
-      }
-      currentSemester: string;
-      currentYear: string;
-      studentRoll: string;
-      department: {
-        id: string;
-        name: string;
-      }
-    }
-  }>
-  classSection: {
-    batch: {
-      name: string;
-    };
-    semester: {
-      name: string;
-    };
-  };
-  examType?: {
-    name: string;
-  };
-}*/
-
 interface Exam {
   id: string;
   title: string;
@@ -196,7 +138,7 @@ const [topic, setTopic] = useState('');
   const [loading, setLoading] = useState(false);
   const [numLongQuestions, setNumLongQuestions] = useState<string>("0");
   const [numMCQQuestions, setNumMCQQuestions] = useState<string>("0");
-  const [questionMode, setQuestionMode] = useState(false) // false for AI, true for Manual
+  const [questionMode, setQuestionMode] = useState(true) // false for AI, true for Manual
 
   // New states for additional exam fields
   const [classSections, setClassSections] = useState<TeacherClassSection[]>([]);
@@ -287,7 +229,7 @@ const fetchPdfsForTopic = useCallback(async () => {
     setPdfUrl(pdfLink.link);
             setShowPdfOptions(false);
 
-      await processPdfForPreview(pdfLink.link); 
+      await processPdfForPreview(pdfLink.link);
 
   };
   useEffect(() => {
@@ -456,16 +398,6 @@ const fetchPdfsForTopic = useCallback(async () => {
     setSelectedPages(newSelectedPages);
   };
 
-const getISTTimeFromUTC = (utcTimeString: string | number | Date) => {
-  const options: Intl.DateTimeFormatOptions = {
-    hour: 'numeric',
-    minute: 'numeric',
-    hour12: true,
-    timeZone: 'Asia/Kolkata' // Explicitly set to Indian Standard Time
-  };
-  return new Date(utcTimeString).toLocaleTimeString('en-IN', options);
-};
-  // Check if user is authenticated as a teacher
   const checkAuthStatus = async () => {
     try {
       console.log("Checking authentication status...");
@@ -625,41 +557,6 @@ const getISTTimeFromUTC = (utcTimeString: string | number | Date) => {
       setLoadingExams(false);
     }
   };
-
-  /*  const extractQuestions = async () => {
-      if (!pdfUrl) {
-        setError("Please enter a PDF URL");
-        return;
-      }
-
-      try {
-        setLoading(true);
-        const response = await axios.post("/api/extract-questions", {
-          pdfUrl,
-          numQuestions: parseInt(numLongQuestions) || 2
-        }, {
-          withCredentials: true
-        });
-
-        if (response.data.questions) {
-          const extractedQuestions = response.data.questions.map((q: any) => ({
-            ...q,
-            options: [],
-            isSelected: false,
-            questionType: 'LONG_ANSWER', // AI generated questions are now explicitly LONG_ANSWER
-          }));
-          setQuestions(extractedQuestions);
-          setTotalMarks(extractedQuestions.length.toString());
-          setPassingMarks(Math.ceil(extractedQuestions.length * 0.4).toString());
-          setError("");
-        }
-      } catch (err: any) {
-        console.error("Error extracting questions:", err);
-        setError(err.response?.data?.error || "Failed to extract questions");
-      } finally {
-        setLoading(false);
-      }
-    };*/
 
   const today = new Date().toISOString().split('T')[0];
 
@@ -1073,7 +970,7 @@ const takeoutQuestions = (response: any): Question[] => {
       }
 
       let allQuestions: Array<Question> = [];
-     
+
 
       // Generate MCQ questions if pages were selected for it
       // if (mcqPageImages.length > 0) {
@@ -1352,6 +1249,7 @@ const takeoutQuestions = (response: any): Question[] => {
 
     try {
       const imageUrl = await uploadImageToS3(file);
+
       setQuestions(prevQuestions => prevQuestions.map((q, idx) => {
         if (idx === questionIndex) {
           const diagramImgURL = [...(q.diagramImgURL || []), imageUrl];
@@ -1521,7 +1419,7 @@ const takeoutQuestions = (response: any): Question[] => {
         <div className="bg-white shadow-md rounded-lg overflow-visible">
 
           <div className="p-6 border-b border-gray-200">
-            <div className="flex justify-end mb-4">
+         {/*   <div className="flex justify-end mb-4">
               <button
                 type="button"
                 onClick={() => {
@@ -1537,7 +1435,7 @@ const takeoutQuestions = (response: any): Question[] => {
               >
                 {!questionMode ? "Switch to Manual Entry" : "Switch to AI Generator"}
               </button>
-            </div>
+            </div>*/}
             <h2 className="text-xl font-semibold text-gray-800">Create New Exam</h2>
             <p className="text-gray-500 text-sm mt-1">Fill the form below to create a new exam</p>
           </div>
@@ -1767,7 +1665,7 @@ const takeoutQuestions = (response: any): Question[] => {
       )}
 
       </div>
-                
+
 <div></div>
                                         <div className="mx-4 text-center text-gray-500">OR</div>
 <div></div>

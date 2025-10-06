@@ -1,12 +1,12 @@
 "use client";
-import { useEffect, useState } from "react";
+import {useEffect, useState} from "react";
 import EmailForm from "@/components/ui/teacherEmailForm";
 import {
   MdOutlineEmail,
   MdSend,
   MdAddCircleOutline,
 } from "react-icons/md";
-import { format } from "date-fns";
+import {format} from "date-fns";
 
 const EmailClient = () => {
   const [currentView, setCurrentView] = useState("sent");
@@ -16,7 +16,7 @@ const EmailClient = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [expandedNoticeId, setExpandedNoticeId] = useState(null); // New state for expanding/collapsing
 
- useEffect(() => {
+  useEffect(() => {
     const userString = localStorage.getItem("user");
     let user = null;
     if (userString) {
@@ -28,67 +28,64 @@ const EmailClient = () => {
     }
 
     const fetchData = async () => {
-        if (user && user.institutionId && user.teacherId) {
-            setInstitutionId(user.institutionId);
-            setIsLoading(true);
+      if (user && user.institutionId && user.teacherId) {
+        setInstitutionId(user.institutionId);
+        setIsLoading(true);
 
-            try {
-                // 1. Fetch the teacher's classes to get a list of section IDs
-                const teacherClassesUrl = `/api/teachers/${user.teacherId}/classes`;
-                const teacherClassesResponse = await fetch(teacherClassesUrl);
-                if (!teacherClassesResponse.ok) {
-                    throw new Error(`Teacher classes fetch failed: ${teacherClassesResponse.statusText}`);
-                }
-                const teacherClasses = await teacherClassesResponse.json();
-                console.log("Teacher Classes fetched:", teacherClasses);
+        try {
+          // 1. Fetch the teacher's classes to get a list of section IDs
+          const teacherClassesUrl = `/api/teachers/${user.teacherId}/classes`;
+          const teacherClassesResponse = await fetch(teacherClassesUrl);
+          if (!teacherClassesResponse.ok) {
+            throw new Error(`Teacher classes fetch failed: ${teacherClassesResponse.statusText}`);
+          }
+          const teacherClasses = await teacherClassesResponse.json();
+          console.log("Teacher Classes fetched:", teacherClasses);
 
-                // 2. Fetch all notices for the institution
-                const noticesUrl = `/api/institutions/${user.institutionId}/notice`;
-                const noticesResponse = await fetch(noticesUrl);
-                if (!noticesResponse.ok) {
-                    throw new Error(`Notices fetch failed: ${noticesResponse.statusText}`);
-                }
-                const allNotices = await noticesResponse.json();
-                console.log("Notices fetched:", allNotices);
+          // 2. Fetch all notices for the institution
+          const noticesUrl = `/api/institutions/${user.institutionId}/notice`;
+          const noticesResponse = await fetch(noticesUrl);
+          if (!noticesResponse.ok) {
+            throw new Error(`Notices fetch failed: ${noticesResponse.statusText}`);
+          }
+          const allNotices = await noticesResponse.json();
+          console.log("Notices fetched:", allNotices);
 
-                // 3. Filter the notices based on the teacher's class sections
-                const teacherSectionIds = new Set(teacherClasses.map(teacherClass => teacherClass.sectionId));
-                console.log("Teacher Section IDs:", teacherSectionIds);
-                const filteredNotices = allNotices.filter(notice => {
-                    // Check if the notice has a classSections array and it's not empty
-                    if (!notice.classSections || notice.classSections.length === 0) {
-                        return false;
-                    }
-                    
-                    // Check if any of the notice's classSection IDs match
-                    // any of the teacher's class section IDs
-                    return notice.classSections.some(noticeSectionId => teacherSectionIds.has(noticeSectionId.id));
-                });
-                const uniqueNoticeIds = new Set();
-                const uniqueFilteredNotices = filteredNotices.filter(notice => {
-                    const isDuplicate = uniqueNoticeIds.has(notice.id); // Assuming '_id' is the unique identifier
-                    uniqueNoticeIds.add(notice.id);
-                    return !isDuplicate;
-                });
-                setSentNotices(uniqueFilteredNotices.filter(notice=>notice.sender.includes("tic7640")));
-          setNotices(uniqueFilteredNotices.filter(notice=>notice.sender.includes("aic7640")));
-                console.log("Notices filtered by teacher's sections:", uniqueFilteredNotices);
-                
-                setIsLoading(false);
+          const teacherSectionIds = new Set(teacherClasses.map(teacherClass => teacherClass.sectionId));
+          console.log("Teacher Section IDs:", teacherSectionIds);
+          const filteredNotices = allNotices.filter(notice => {
 
-            } catch (error) {
-                console.error("Error fetching or filtering data:", error);
-                setIsLoading(false);
+            if (!notice.classSections || notice.classSections.length === 0) {
+              return false;
             }
-        } else {
-            console.warn("User or institutionId not found in localStorage.");
-            setIsLoading(false);
+
+            return notice.classSections.some(noticeSectionId => teacherSectionIds.has(noticeSectionId.id));
+          });
+          const uniqueNoticeIds = new Set();
+          const uniqueFilteredNotices = filteredNotices.filter(notice => {
+            const isDuplicate = uniqueNoticeIds.has(notice.id); // Assuming '_id' is the unique identifier
+            uniqueNoticeIds.add(notice.id);
+            return !isDuplicate;
+          });
+          setSentNotices(uniqueFilteredNotices.filter(notice => notice.sender === 'TEACHER'));
+          setNotices(uniqueFilteredNotices.filter(notice => notice.sender === 'ADMIN'));
+          console.log("Notices filtered by teacher's sections:", uniqueFilteredNotices);
+
+          setIsLoading(false);
+
+        } catch (error) {
+          console.error("Error fetching or filtering data:", error);
+          setIsLoading(false);
         }
+      } else {
+        console.warn("User or institutionId not found in localStorage.");
+        setIsLoading(false);
+      }
     };
 
     fetchData();
 
-}, []); // Empty dependency array to run only once on mount
+  }, []); // Empty dependency array to run only once on mount
 
   const toggleNotice = (id) => {
     setExpandedNoticeId(expandedNoticeId === id ? null : id);
@@ -101,8 +98,8 @@ const EmailClient = () => {
           <p className="text-gray-500">Loading notices...</p>
         </div>
       );
-      }
-      
+    }
+
     switch (currentView) {
       case "inbox":
         return (
@@ -117,12 +114,12 @@ const EmailClient = () => {
                     onClick={() => toggleNotice(notice.id)} // Add onClick handler
                   >
                     <p className="font-semibold text-gray-700">
-                      From: {notice?.sender?.replace(" aic7640", "")}
+                      From: {notice?.sender} - {notice.name}
                     </p>
                     <p className="text-lg font-medium text-gray-900">
                       {notice.subject}
                     </p>
-                    
+
                     {/* Conditional rendering for the body */}
                     {expandedNoticeId === notice.id && (
                       <div className="mt-2 text-gray-800">
@@ -139,12 +136,12 @@ const EmailClient = () => {
                                 </li>
                               ))}
                             </ul>
-                            </div>
+                          </div>
                         )}
-                        
+
                       </div>
                     )}
-                    
+
                     <p className="text-sm text-gray-500 mt-1 text-right">
                       {notice.sentAt ? format(new Date(notice.sentAt), "MMM d, yyyy, h:mm a") : "N/A"}
                     </p>
@@ -167,33 +164,34 @@ const EmailClient = () => {
                   className="bg-gray-100 p-4 mb-3 rounded-lg cursor-pointer hover:bg-gray-200 transition-colors"
                   onClick={() => toggleNotice(notice.id)} // Add onClick handler
                 >
-                 
+
                   <p className="font-semibold text-gray-700">
                     To: {notice.classSections.map(cs => cs.sectionName).join(', ')}
                   </p>
-                  <p className="font-semibold text-gray-700">From: {notice.sender?.replace(" tic7640","")}</p>
+                  <p className="font-semibold text-gray-700">From: {notice.sender} - {notice.name}</p>
                   <p className="text-lg font-medium text-gray-900">{notice.subject}</p>
-                  
+
                   {/* Conditional rendering for the body */}
                   {expandedNoticeId === notice.id && (
                     <div className="mt-2 text-gray-800">
-                      <div dangerouslySetInnerHTML={{ __html: notice.body }} />
+                      <div dangerouslySetInnerHTML={{__html: notice.body}}/>
                       {notice.attachments && notice.attachments.length > 0 && (
                         <div className="mt-2">
                           <h3 className="font-semibold text-gray-700">Attachments:</h3>
                           <ul className="list-disc list-inside">
                             {notice.attachments.map((attachment, index) => (
-                             
+
                               <li key={index} className="text-blue-600 hover:underline">
-                                 {attachment.includes(".jpg") || attachment.includes(".png") ? (
-                                <li key={index} className="text-blue-600 hover:underline">
-                                  <img src={attachment} alt={`Attachment ${index + 1}`} className="max-w-full h-auto" />
-                                </li>
-                              ) : <a href={attachment} target="_blank" rel="noopener noreferrer">
+                                {attachment.includes(".jpg") || attachment.includes(".png") ? (
+                                  <li key={index} className="text-blue-600 hover:underline">
+                                    <img src={attachment} alt={`Attachment ${index + 1}`}
+                                         className="max-w-full h-auto"/>
+                                  </li>
+                                ) : <a href={attachment} target="_blank" rel="noopener noreferrer">
                                   {attachment}
                                 </a>
-                              }
-                                
+                                }
+
                               </li>
                             ))}
                           </ul>
@@ -201,7 +199,7 @@ const EmailClient = () => {
                       )}
                     </div>
                   )}
-                  
+
                   <p className="text-sm text-gray-500 mt-1 text-right">
                     {notice.sentAt ? format(new Date(notice.sentAt), "MMM d, yyyy, h:mm a") : "N/A"}
                   </p>
@@ -213,7 +211,7 @@ const EmailClient = () => {
           </div>
         );
       case "compose":
-        return <EmailForm institutionId={institutionId} />;
+        return <EmailForm institutionId={institutionId}/>;
       default:
         return null;
     }
@@ -228,8 +226,8 @@ const EmailClient = () => {
             onClick={() => setCurrentView("compose")}
             className="w-full py-3 px-6 mb-6 text-white font-semibold rounded-full bg-blue-600 hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
           >
-            <MdAddCircleOutline className="text-xl" />
-            New Email
+            <MdAddCircleOutline className="text-xl"/>
+            Compose
           </button>
           <ul className="w-full space-y-2">
             <li>
@@ -241,7 +239,7 @@ const EmailClient = () => {
                     : "text-gray-600 hover:bg-gray-100"
                 }`}
               >
-                <MdOutlineEmail className="text-xl" />
+                <MdOutlineEmail className="text-xl"/>
                 Principal Notice
               </button>
             </li>
@@ -254,11 +252,11 @@ const EmailClient = () => {
                     : "text-gray-600 hover:bg-gray-100"
                 }`}
               >
-                <MdSend className="text-xl" />
+                <MdSend className="text-xl"/>
                 Sent
               </button>
             </li>
-            
+
           </ul>
         </div>
         {/* Main Content Area */}

@@ -5,24 +5,24 @@ import nodemailer from "nodemailer";
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST,
   port: Number(process.env.SMTP_PORT),
-  secure: process.env.SMTP_SECURE === "true",
+  secure: true,
   auth: {
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,
   },
 });
 
-export async function sendVerificationEmail(to: string, token: string) {
-  const verificationUrl = `${process.env.NEXTAUTH_URL}/api/auth/verify-email?token=${token}`;
+export async function sendVerificationEmail(to: string, url: string) {
+  // const verificationUrl = `${process.env.NEXTAUTH_URL}/api/auth/verify-email?token=${token}`;
   const subject = "Verify Your Email Address";
   const htmlContent = `
     <h1>Verify Your Email Address</h1>
     <p>Thank you , for choosing us.</p>
     <p>Please click the link below to verify your email. This link will expire in 1 hour.</p>
-    <a href="${verificationUrl}" style="display: inline-block; padding: 10px 20px; background-color: #4F46E5; color: white; text-decoration: none; border-radius: 5px;">Verify Email</a>
+    <a href="${url}" style="display: inline-block; padding: 10px 20px; background-color: #4F46E5; color: white; text-decoration: none; border-radius: 5px;">Verify Email</a>
     <p>If you didn't request this, you can safely ignore this email.</p>
     <p>If the button doesn't work, copy and paste this URL into your browser:</p>
-    <p>${verificationUrl}</p>
+    <p>${url}</p>
   `;
   const mailOptions = {
     from: process.env.SMTP_FROM_EMAIL,
@@ -33,6 +33,7 @@ export async function sendVerificationEmail(to: string, token: string) {
 
   await transporter.sendMail(mailOptions);
 }
+
 export async function verifyMail(email: string, userId: string, institutionid: string, institutionName: string, document: string, studentcounts: Number, teachercount: Number) {
   console.log("Sending verification email to:", email);
   console.log("User ID:", userId);
@@ -81,7 +82,7 @@ export async function verifyMail(email: string, userId: string, institutionid: s
         </button>
         <p style="margin-top: 30px;">Please review the request and take appropriate action.</p>
         <p style="margin-top: 40px; font-size: 14px; color: #6b7280;">
-          If you have any questions, feel free to <a href="mailto:support@aiclassroom.im" style="color: #4f46e5;">contact our support team</a>.
+          If you have any questions, feel free to <a href="mailto:22052939@kiit.ac.in" style="color: #4f46e5;">contact our support team</a>.
         </p>
         <hr style="margin-top: 40px; border: none; border-top: 1px solid #e5e7eb;" />
         <p style="font-size: 12px; color: #9ca3af; text-align: center;">&copy; ${new Date().getFullYear()} Ai Classroom. All rights reserved.</p>
@@ -90,7 +91,7 @@ export async function verifyMail(email: string, userId: string, institutionid: s
   `;
   const mailOptions = {
     from: process.env.SMTP_FROM_EMAIL,
-    to: "rnpsoftprivatelimited@gmail.com", // Replace with the email where you want to receive verification requests
+    to: "22052939@kiit.ac.in", // Replace with the email where you want to receive verification requests
     subject,
     html: htmlContent,
   };
@@ -114,7 +115,7 @@ export async function sendFeatures(to: string) {
           <li>AI-powered assignment grading</li>
         </ul>
         <a href="https://commercial.aiclassroom.in/features" style="display: inline-block; margin-top: 20px; background-color: #4f46e5; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none;">Learn More</a>
-        <p style="margin-top: 30px;">If you have any questions, feel free to <a href="mailto:support@aiclassroom.in" style="color: #4f46e5;">contact our support team</a>.</p>
+        <p style="margin-top: 30px;">If you have any questions, feel free to <a href="mailto:22052939@kiit.ac.in" style="color: #4f46e5;">contact our support team</a>.</p>
         <hr style="margin-top: 40px; border: none; border-top: 1px solid #e5e7eb;" />
         <p style="font-size: 12px; color: #9ca3af; text-align: center;">&copy; ${new Date().getFullYear()} Ai Classroom. All rights reserved.</p>
       </div>
@@ -148,7 +149,7 @@ export async function sendWelcomeEmail(to: string) {
 
         <p style="font-size:15px; line-height:1.5; margin:32px 0 0;">
           Have questions? Just hit reply or email us at 
-          <a href="mailto:support@aiclassroom.in" style="color:#4f46e5; text-decoration:none;">support@aiclassroom.in</a>.
+          <a href="mailto:22052939@kiit.ac.in" style="color:#4f46e5; text-decoration:none;">support@aiclassroom.in</a>.
         </p>
 
         <hr style="border:none; border-top:1px solid #e5e7eb; margin:40px 0 24px;" />
@@ -193,7 +194,7 @@ export async function sendUserDetails(to: string, password: string) {
         <a href="https://commercial.aiclassroom.in/login" style="display: inline-block; margin-top: 20px; background-color: #4f46e5; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none;">Login Now</a>
 
         <p style="margin-top: 40px; font-size: 14px; color: #6b7280;">
-          If you have any questions, feel free to <a href="mailto:support@aiclassroom.in" style="color: #4f46e5;">contact our support team</a>.
+          If you have any questions, feel free to <a href="mailto:22052939@kiit.ac.in" style="color: #4f46e5;">contact our support team</a>.
         </p>
 
         <hr style="margin-top: 40px; border: none; border-top: 1px solid #e5e7eb;" />

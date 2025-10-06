@@ -1,6 +1,6 @@
 // Server component
 import { Suspense } from 'react';
-import TeacherNotesClient from './TeacherNotesClient';
+import TeacherNotesClient from '../../../../../../components/teacher/TeacherNotesClient';
 
 export default async function TeacherNotesPage({ params }: { params: { classId: string } }) {
     const { classId } = await params;

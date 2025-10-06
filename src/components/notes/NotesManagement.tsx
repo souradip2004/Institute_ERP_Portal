@@ -36,13 +36,7 @@ import Link from 'next/link';
 import NotesViewer from './NotesViewer/index';
 import {getLocalVideoData, storeVideoDataLocally} from './NotesViewer/utils';
 import {toast} from 'react-hot-toast';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+
 import VideoPlayerModal from './NotesViewer/modal';
 import {redirect} from 'next/navigation';
 
@@ -195,7 +189,6 @@ const NotesManagement: React.FC<NotesManagementProps> = ({
     e.preventDefault();
     fetchNotes();
   };
-
   // Function to open edit dialog
   const handleEditNote = (note: Note) => {
     setCurrentNote(note);
@@ -212,10 +205,11 @@ const NotesManagement: React.FC<NotesManagementProps> = ({
   // Function to upload files to S3
   const uploadFileToS3 = async (file: File) => {
     try {
+      console.log("File to upload:", file);
       setUploadProgress(0);
       setUploadingFile(true);
       const formData = new FormData();
-      formData.append('pdf', file);
+      formData.append('file', file);
 
       // Create a custom XMLHttpRequest to track upload progress
       return new Promise<{
@@ -264,111 +258,6 @@ const NotesManagement: React.FC<NotesManagementProps> = ({
     }
   };
 
-  // Function to process video data for a note
-  const processVideoData = async (noteId: string, pdfUrl: string, gender: string = 'Male') => {
-    try {
-      setProcessingVideoData(true);
-
-      // Call the API to start processing the PDF in the background
-      const response = await fetch(`/api/notes/${noteId}/process-video-data`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({pdfUrl, gender}),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to start video data processing');
-      }
-
-      // Show toast that processing has started
-      toast.success('PDF processing started in the background. This may take a few minutes.');
-
-      // Poll for video data every 10 seconds
-      let attempts = 0;
-      const maxAttempts = 30; // Try for up to 5 minutes
-
-      const checkForVideoData = async () => {
-        if (attempts >= maxAttempts) {
-          toast.error('Video data processing is taking longer than expected. Please check back later.');
-          setProcessingVideoData(false);
-          return;
-        }
-
-        try {
-          // Check if video data exists
-          const checkResponse = await fetch(`/api/notes/${noteId}/video-data`, {
-            method: 'HEAD',
-          });
-
-          // Check response headers for video data existence
-          const hasVideoData = checkResponse.headers.get('x-has-video-data') === 'true';
-
-          if (checkResponse.ok && hasVideoData) {
-            // Video data exists, fetch it
-            const dataResponse = await fetch(`/api/notes/${noteId}/video-data`);
-            if (dataResponse.ok) {
-              const videoData = await dataResponse.json();
-
-              // Validate video data before storing
-              if (!videoData || (Array.isArray(videoData) && videoData.length === 0)) {
-                console.error(`Received empty video data for note ${noteId}`);
-                attempts++;
-                setTimeout(checkForVideoData, 10000);
-                return;
-              }
-
-              console.log(`Received video data for note ${noteId}:`,
-                JSON.stringify(videoData).substring(0, 200) + '...');
-
-              // Store in localStorage
-              storeVideoDataLocally(noteId, videoData);
-
-              toast.success('Video data processing completed successfully!');
-              setProcessingVideoData(false);
-
-              // Refresh notes to update UI
-              fetchNotes();
-              return;
-            }
-          } else if (checkResponse.status === 404) {
-            // Data is still being processed, this is expected
-            console.log(`Video data not yet available for note ${noteId}, attempt ${attempts + 1}/${maxAttempts}`);
-            attempts++;
-            setTimeout(checkForVideoData, 10000); // Check again in 10 seconds
-            return;
-          } else {
-            // Unexpected status code
-            console.error(`Unexpected status code ${checkResponse.status} checking for video data`);
-            attempts++;
-            setTimeout(checkForVideoData, 10000);
-            return;
-          }
-        } catch (error) {
-          console.error('Error checking for video data:', error);
-          attempts++;
-
-          // Don't continue retrying on network errors if server is unreachable
-          if (attempts >= 3 && error instanceof TypeError && error.message.includes('Failed to fetch')) {
-            toast.error('Unable to connect to server. Please check your connection and try again later.');
-            setProcessingVideoData(false);
-            return;
-          }
-
-          setTimeout(checkForVideoData, 10000); // Try again despite error
-        }
-      };
-
-      // Start polling
-      setTimeout(checkForVideoData, 10000);
-
-    } catch (error) {
-      console.error('Error processing video data:', error);
-      toast.error('Failed to process video data');
-      setProcessingVideoData(false);
-    }
-  };
 
   // Function to handle form submission
   const onSubmit = async (values: NoteFormValues) => {
@@ -564,9 +453,9 @@ const NotesManagement: React.FC<NotesManagementProps> = ({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-8">
           <div
-            className="bg-gradient-to-br from-indigo-500 to-purple-600 p-6 rounded-xl text-white shadow-md hover:shadow-lg transition-shadow cursor-pointer flex flex-col items-center justify-center h-48"
+            className="bg-gradient-to-br w-1/2 from-indigo-500 to-purple-600 p-6 rounded-xl text-white shadow-md hover:shadow-lg transition-shadow cursor-pointer flex flex-col items-center justify-center h-48"
             onClick={() => setUploadDialogOpen(true)}
           >
             <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center mb-4">
@@ -577,26 +466,7 @@ const NotesManagement: React.FC<NotesManagementProps> = ({
           </div>
 
           <div
-            className="bg-gradient-to-br from-emerald-500 to-teal-600 p-6 rounded-xl text-white shadow-md hover:shadow-lg transition-shadow cursor-pointer flex flex-col items-center justify-center h-48"
-            onClick={() => redirect(`/t/smart-resources`)}
-          >
-            <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center mb-4">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                   stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M7 12h14"></path>
-                <path d="M7 5h14"></path>
-                <path d="M7 19h14"></path>
-                <path d="M3 5a1 1 0 1 0 0 1 1 1 0 0 0 0-1"></path>
-                <path d="M3 19a1 1 0 1 0 0 1 1 1 0 0 0 0-1"></path>
-                <rect x="1" y="10" width="4" height="4" rx="1"></rect>
-              </svg>
-            </div>
-            <h3 className="text-xl font-semibold mb-1">Smart Resource</h3>
-            <p className="text-white/80 text-sm text-center">Find Guided Youtube Videos from the Web</p>
-          </div>
-
-          <div
-            className="bg-gradient-to-br from-amber-500 to-orange-600 p-6 rounded-xl text-white shadow-md hover:shadow-lg transition-shadow cursor-pointer flex flex-col items-center justify-center h-48"
+            className="bg-gradient-to-br w-1/2 from-amber-500 to-orange-600 p-6 rounded-xl text-white shadow-md hover:shadow-lg transition-shadow cursor-pointer flex flex-col items-center justify-center h-48"
             onClick={() => redirect(`/t/classes/${classId}/assignments`)}>
             <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center mb-4">
               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
@@ -744,33 +614,6 @@ const NotesManagement: React.FC<NotesManagementProps> = ({
                                 title="Download"
                               >
                                 <Download size={16}/>
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={async () => {
-                                  const randomCode = Math.floor(100000 + Math.random() * 900000);
-                                  console.log("Random 6 digit code:", randomCode);
-                                  const response = await fetch("/api/connector", {
-                                    method: "POST",
-                                    headers: {
-                                      "Content-Type": "application/json"
-                                    },
-                                    body: JSON.stringify({
-                                      id: randomCode,
-                                      link: note.attachments[0].fileUrl
-                                    })
-                                  });
-                                  if (response.ok) {
-                                    setTimeout(() => {
-                                      window.open(`https://aiclassroom.in/share?id=${randomCode}`, '_blank');
-                                    }, 2000)
-                                  }
-                                }}
-                                className="h-8 w-8 rounded-full hover:bg-yellow-50 hover:text-yellow-700"
-                                title="Share video link"
-                              >
-                                <Film size={16}/>
                               </Button>
                             </>
                           )}

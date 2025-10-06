@@ -32,7 +32,6 @@ interface ApiErrorResponse {
   sessionStartDate?: string;
 }
 
-// --- HELPER FUNCTIONS ---
 
 const formatDateForApi = (date: Date): string => {
   const year = date.getFullYear();

@@ -1,16 +1,15 @@
 "use client";
-import { useState, useRef, useEffect } from "react";
-import { uploadImageToS3 } from "@/utils/uploadImageToS3"; // Import the upload utility
+import {useState, useRef, useEffect} from "react";
+import {uploadImageToS3} from "@/utils/uploadImageToS3"; // Import the upload utility
 
 const EmailForm = () => {
-  const [selectedClass, setSelectedClass] = useState(""); 
+  const [selectedClass, setSelectedClass] = useState("");
   const [subject, setSubject] = useState("");
   const [institutionId, setInstitutionId] = useState("");
   const [attachedFiles, setAttachedFiles] = useState([]);
   const editorRef = useRef(null);
   const [htmlBody, setHtmlBody] = useState("");
-  const [motherClasses, setMotherClasses] = useState([]); 
-  const [fromEmail, setFromEmail] = useState("");
+  const [motherClasses, setMotherClasses] = useState([]);
 
   useEffect(() => {
     const userString = localStorage.getItem("user");
@@ -95,76 +94,82 @@ const EmailForm = () => {
     }
   };
 
-  const handleSubmit = async (e) => { 
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
-    let classSectionIds = [];
-    if (selectedClass) {
-      try {
-        const selectedMotherClass = JSON.parse(selectedClass);
-        if (selectedMotherClass.id === "all-classes") {
-          motherClasses.forEach(motherClass => {
-            if (motherClass.classSections) {
-              classSectionIds = classSectionIds.concat(
-                motherClass.classSections.map(cs => cs.id)
-              );
-            }
-          });
-        } else if (selectedMotherClass.classSections) {
-          classSectionIds = selectedMotherClass.classSections.map((cs) => cs.id);
-        }
-      } catch (error) {
-        console.error("Error parsing selected class:", error);
-      }
-    }
+    if (window !== undefined) {
+      const user = JSON.parse(localStorage.getItem("user")!);
 
-    const uploadedFilesInfo = await Promise.all(
-      attachedFiles.map(async (file) => {
+      let classSectionIds = [];
+      if (selectedClass) {
+
         try {
-          const publicUrl = await uploadImageToS3(file);
-          return { name: file.name, type: file.type, size: file.size, publicUrl };
+          const selectedMotherClass = JSON.parse(selectedClass);
+          if (selectedMotherClass.id === "all-classes") {
+            motherClasses.forEach(motherClass => {
+              if (motherClass.classSections) {
+                classSectionIds = classSectionIds.concat(
+                  motherClass.classSections.map(cs => cs.id)
+                );
+              }
+            });
+          } else if (selectedMotherClass.classSections) {
+            classSectionIds = selectedMotherClass.classSections.map((cs) => cs.id);
+          }
         } catch (error) {
-          console.error(`Error uploading file ${file.name}:`, error);
-          return { name: file.name, type: file.type, size: file.size, publicUrl: null, error: error.message };
+          console.error("Error parsing selected class:", error);
         }
-      })
-    );
+      }
 
-    const payload = {
-      classSectionIds,
-      sender: fromEmail + " aic7640", 
-      subject,
-      body: htmlBody,
-      attachments: uploadedFilesInfo.map(file => file.publicUrl).filter(url => url !== null),
-      sentAt: new Date().toISOString(),
-    };
+      const uploadedFilesInfo = await Promise.all(
+        attachedFiles.map(async (file) => {
+          try {
+            const publicUrl = await uploadImageToS3(file);
+            return {name: file.name, type: file.type, size: file.size, publicUrl};
+          } catch (error) {
+            console.error(`Error uploading file ${file.name}:`, error);
+            return {name: file.name, type: file.type, size: file.size, publicUrl: null, error: error.message};
+          }
+        })
+      );
 
-    console.log("Email Payload:", payload);
-    fetch(`/api/institutions/${institutionId}/notice`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(payload),
-    })
-      .then((response) => {
-        if (!response.ok) throw new Error(`Network response was not ok: ${response.statusText}`);
-        return response.json();
+      const payload = {
+        classSectionIds,
+        sender: 'ADMIN',
+        name: user.name,
+        subject,
+        body: htmlBody,
+        attachments: uploadedFilesInfo.map(file => file.publicUrl).filter(url => url !== null),
+        sentAt: new Date().toISOString(),
+      };
+
+      console.log("Email Payload:", payload);
+      fetch(`/api/institutions/${institutionId}/notice`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
       })
-      .then((data) => {
-        console.log("Email sent successfully:", data);
-        alert("Email sent successfully!");
-        setSelectedClass("");
-        setSubject("");
-        setHtmlBody("");
-        setAttachedFiles([]);
-        if (editorRef.current) {
-          editorRef.current.innerHTML = "";
-        }
-      })
-      .catch((error) => {
-        console.error("Error sending email:", error);
-      });
+        .then((response) => {
+          if (!response.ok) throw new Error(`Network response was not ok: ${response.statusText}`);
+          return response.json();
+        })
+        .then((data) => {
+          console.log("Email sent successfully:", data);
+          alert("Email sent successfully!");
+          setSelectedClass("");
+          setSubject("");
+          setHtmlBody("");
+          setAttachedFiles([]);
+          if (editorRef.current) {
+            editorRef.current.innerHTML = "";
+          }
+        })
+        .catch((error) => {
+          console.error("Error sending email:", error);
+        });
+    }
   };
 
   return (
@@ -173,22 +178,6 @@ const EmailForm = () => {
         onSubmit={handleSubmit}
         className="bg-white p-8 rounded-xl shadow-lg w-full max-w-3xl"
       >
-        {/* From */}
-        <div className="mb-6">
-          <label htmlFor="from" className="block font-semibold mb-2 text-gray-700">
-            From:
-          </label>
-          <input
-            type="email"
-            id="from"
-            value={fromEmail}
-            onChange={(e) => setFromEmail(e.target.value)}
-            required
-            placeholder="Sender's email"
-            className="w-full p-3 border border-gray-300 rounded-md text-gray-500 bg-gray-100"
-          />
-        </div>
-
         {/* To */}
         <div className="mb-6">
           <label htmlFor="to" className="block font-semibold mb-2 text-gray-700">
@@ -202,7 +191,7 @@ const EmailForm = () => {
             required
           >
             <option value="" disabled>Select a class</option>
-            <option value={JSON.stringify({ id: "all-classes", sectionName: "All Classes" })}>
+            <option value={JSON.stringify({id: "all-classes", sectionName: "All Classes"})}>
               All Classes
             </option>
             {motherClasses.map((motherClass) => (
@@ -234,12 +223,23 @@ const EmailForm = () => {
 
           {/* Formatting buttons */}
           <div className="flex gap-2 mb-2 p-2 bg-gray-100 rounded-md flex-wrap">
-            <button type="button" onClick={() => handleFormat("bold")} className="p-2 rounded-md bg-gray-200 hover:bg-gray-300 font-bold">B</button>
-            <button type="button" onClick={() => handleFormat("italic")} className="p-2 rounded-md bg-gray-200 hover:bg-gray-300 italic">I</button>
-            <button type="button" onClick={() => handleFormat("underline")} className="p-2 rounded-md bg-gray-200 hover:bg-gray-300 underline">U</button>
-            <button type="button" onClick={handleBullet} className="p-2 rounded-md bg-gray-200 hover:bg-gray-300">• Bullet</button>
-            <button type="button" onClick={handleNumbered} className="p-2 rounded-md bg-gray-200 hover:bg-gray-300">1. Numbered</button>
-            <button type="button" onClick={handleLink} className="p-2 rounded-md bg-gray-200 hover:bg-gray-300">🔗 Link</button>
+            <button type="button" onClick={() => handleFormat("bold")}
+                    className="p-2 rounded-md bg-gray-200 hover:bg-gray-300 font-bold">B
+            </button>
+            <button type="button" onClick={() => handleFormat("italic")}
+                    className="p-2 rounded-md bg-gray-200 hover:bg-gray-300 italic">I
+            </button>
+            <button type="button" onClick={() => handleFormat("underline")}
+                    className="p-2 rounded-md bg-gray-200 hover:bg-gray-300 underline">U
+            </button>
+            <button type="button" onClick={handleBullet} className="p-2 rounded-md bg-gray-200 hover:bg-gray-300">•
+              Bullet
+            </button>
+            <button type="button" onClick={handleNumbered} className="p-2 rounded-md bg-gray-200 hover:bg-gray-300">1.
+              Numbered
+            </button>
+            <button type="button" onClick={handleLink} className="p-2 rounded-md bg-gray-200 hover:bg-gray-300">🔗 Link
+            </button>
           </div>
 
           {/* Editable body */}
@@ -279,7 +279,7 @@ const EmailForm = () => {
           type="submit"
           className="w-full py-4 bg-green-600 text-white font-semibold rounded-md hover:bg-green-700 transition-colors duration-300"
         >
-          Send Email
+          Send Notice
         </button>
       </form>
     </div>

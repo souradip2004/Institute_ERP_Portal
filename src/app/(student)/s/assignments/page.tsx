@@ -1,9 +1,9 @@
 "use client";
-import React, { useState, useEffect, useRef } from 'react';
+import React, {useState, useEffect, useRef} from 'react';
 import Link from 'next/link';
 import Loader from '@/components/ui/Loader';
-import { ArrowLeft, Download, Calendar, FileCheck, ClipboardCheck, Upload } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import {ArrowLeft, Download, Calendar, FileCheck, ClipboardCheck, Upload} from 'lucide-react';
+import {Button} from '@/components/ui/button';
 
 interface Assignment {
   id: string;
@@ -32,6 +32,7 @@ interface StudentData {
   studentId?: string;
   role: string;
   name?: string;
+
   [key: string]: unknown;
 }
 
@@ -50,7 +51,9 @@ interface RawAssignment {
   }[];
   attachments: any[];
   maxPoints?: number;
+
   [key: string]: unknown;
+
   classSection: any;
 }
 
@@ -217,7 +220,6 @@ export default function AssignmentsPage() {
     console.log('Submitted assignments:', submitted);
     console.log('Graded assignments:', graded);
 
-
     setOngoingAssignments(ongoing);
     setSubmittedAssignments(submitted);
     setGradedAssignments(graded);
@@ -293,7 +295,8 @@ export default function AssignmentsPage() {
 
     if (isSubmitted) {
       return (
-        <Link href={`/s/assignments/edit/${assignment.id}`} className="text-purple-800 font-medium hover:text-purple-900 block text-center md:inline-block">
+        <Link href={`/s/assignments/edit/${assignment.id}`}
+              className="text-purple-800 font-medium hover:text-purple-900 block text-center md:inline-block">
           Edit Submission
         </Link>
       );
@@ -306,7 +309,7 @@ export default function AssignmentsPage() {
           type="file"
           accept="application/pdf"
           ref={el => fileInputRefs.current[assignment.id] = el}
-          style={{ display: 'none' }}
+          style={{display: 'none'}}
           onChange={(event) => {
             const file = event.target.files?.[0];
             if (file) {
@@ -334,7 +337,7 @@ export default function AssignmentsPage() {
             onClick={() => handleFileUploadClick(assignment.id)}
             className="text-blue-600 border border-blue-600 bg-white hover:bg-blue-50 text-sm font-medium px-3 py-1.5 rounded-lg transition-colors duration-200 w-full md:w-auto flex items-center justify-center"
           >
-            <Upload className="h-4 w-4 mr-1" /> Upload File
+            <Upload className="h-4 w-4 mr-1"/> Upload File
           </Button>
           <Button
             id={`submit-btn-${assignment.id}`}
@@ -366,7 +369,7 @@ export default function AssignmentsPage() {
   const toggleDebugMode = () => {
     setDebugMode(!debugMode);
   };
-  
+
   // New handler for download click
   const handleDownloadClick = (assignmentId: string) => {
     setDownloadedAssignments(prev => new Set(prev.add(assignmentId)));
@@ -375,7 +378,7 @@ export default function AssignmentsPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[calc(100vh-64px)]">
-        <Loader size="large" />
+        <Loader size="large"/>
       </div>
     );
   }
@@ -395,7 +398,8 @@ export default function AssignmentsPage() {
     <div className="p-4 sm:p-8 overflow-x-auto">
       <div className="mb-6 sm:mb-8 max-w-screen-xl mx-auto">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-          <h2 className="relative left-14 sm:left-0 text-2xl font-semibold text-gray-800">{institutionType?.includes("College")?"Assignment":"Homework"}</h2>
+          <h2
+            className="relative left-14 sm:left-0 text-2xl font-semibold text-gray-800">{institutionType?.includes("College") ? "Assignment" : "Homework"}</h2>
           {/* <button
             onClick={toggleDebugMode}
             className="text-sm text-gray-500 hover:text-gray-700 mt-2 sm:mt-0"
@@ -407,7 +411,8 @@ export default function AssignmentsPage() {
 
       {debugMode && (
         <div className="bg-white p-4 rounded-lg shadow-sm mb-4 overflow-auto max-h-60 max-w-screen-xl mx-auto">
-          <h3 className="font-semibold mb-2">Raw {institutionType?.includes("College")?"Assignment":"Homework"} Data:</h3>
+          <h3
+            className="font-semibold mb-2">Raw {institutionType?.includes("College") ? "Assignment" : "Homework"} Data:</h3>
           <pre className="text-xs break-words whitespace-pre-wrap">
             {JSON.stringify(rawAssignmentData, null, 2)}
           </pre>
@@ -417,55 +422,61 @@ export default function AssignmentsPage() {
       {/* Ongoing Assignments */}
       <div className="mb-8 max-w-screen-xl mx-auto">
         <div className="flex items-center mb-4">
-          <FileCheck className="h-5 w-5 text-purple-600 mr-2" />
-          <h3 className="text-xl font-semibold text-gray-800">Ongoing {institutionType?.includes("College")?"Assignments":"Homeworks"}</h3>
+          <FileCheck className="h-5 w-5 text-purple-600 mr-2"/>
+          <h3
+            className="text-xl font-semibold text-gray-800">Ongoing {institutionType?.includes("College") ? "Assignments" : "Homeworks"}</h3>
         </div>
 
         <div className="bg-white shadow-sm rounded-lg overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200 text-sm">
             <thead>
-              <tr>
-                <th className="px-4 py-3 text-left text-xs sm:text-sm font-semibold text-gray-600 bg-gray-50 min-w-[120px]">
-                  Topic
-                </th>
-                <th className="px-4 py-3 text-left text-xs sm:text-sm font-semibold text-gray-600 bg-gray-50 min-w-[140px]">
-                  Due Date
-                </th>
-                <th className="px-4 py-3 text-left text-xs sm:text-sm font-semibold text-gray-600 bg-gray-50 min-w-[100px]">
-                  View
-                </th>
-                <th className="px-4 py-3 text-left text-xs sm:text-sm font-semibold text-gray-600 bg-gray-50 min-w-[100px]">
-                  Status
-                </th>
-                <th className="px-4 py-3 text-left text-xs sm:text-sm font-semibold text-gray-600 bg-gray-50 min-w-[120px]">
-                  Actions
-                </th>
-              </tr>
+            <tr>
+              <th
+                className="px-4 py-3 text-left text-xs sm:text-sm font-semibold text-gray-600 bg-gray-50 min-w-[120px]">
+                Topic
+              </th>
+              <th
+                className="px-4 py-3 text-left text-xs sm:text-sm font-semibold text-gray-600 bg-gray-50 min-w-[140px]">
+                Due Date
+              </th>
+              <th
+                className="px-4 py-3 text-left text-xs sm:text-sm font-semibold text-gray-600 bg-gray-50 min-w-[100px]">
+                View
+              </th>
+              <th
+                className="px-4 py-3 text-left text-xs sm:text-sm font-semibold text-gray-600 bg-gray-50 min-w-[100px]">
+                Status
+              </th>
+              <th
+                className="px-4 py-3 text-left text-xs sm:text-sm font-semibold text-gray-600 bg-gray-50 min-w-[120px]">
+                Actions
+              </th>
+            </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {ongoingAssignments.length > 0 ? (
-                ongoingAssignments
-                  .filter(a => classSections.includes(a.classSection?.id))
-                  .map((assignment) => (
-                    <tr key={assignment.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 text-gray-700 break-words whitespace-normal">
-                        {assignment.title}
-                      </td>
-                      <td className="px-4 py-3 text-gray-700 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <Calendar className="h-4 w-4 text-gray-400 mr-1 sm:mr-2" />
-                          {typeof assignment.dueDate === 'string'
-                            ? assignment.dueDate
-                            : assignment.dueDate instanceof Date
-                              ? assignment.dueDate.toLocaleDateString()
-                              : 'N/A'}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap">
+            {ongoingAssignments.length > 0 ? (
+              ongoingAssignments
+                .filter(a => classSections.includes(a.classSection?.id))
+                .map((assignment) => (
+                  <tr key={assignment.id} className="hover:bg-gray-50">
+                    <td className="px-4 py-3 text-gray-700 break-words whitespace-normal">
+                      {assignment.title}
+                    </td>
+                    <td className="px-4 py-3 text-gray-700 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <Calendar className="h-4 w-4 text-gray-400 mr-1 sm:mr-2"/>
+                        {typeof assignment.dueDate === 'string'
+                          ? assignment.dueDate
+                          : assignment.dueDate instanceof Date
+                            ? assignment.dueDate.toLocaleDateString()
+                            : 'N/A'}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap">
                       {assignment.attachments ? (
                         downloadedAssignments.has(assignment.id) ? (
                           <span className="text-green-600 font-medium flex items-center">
-                            <Download className="h-4 w-4 mr-1 sm:mr-2" /> Downloaded
+                            <Download className="h-4 w-4 mr-1 sm:mr-2"/> Downloaded
                           </span>
                         ) : (
                           <Link
@@ -475,29 +486,29 @@ export default function AssignmentsPage() {
                             className="flex items-center text-blue-600 hover:text-blue-800"
                             onClick={() => handleDownloadClick(assignment.id)}
                           >
-                            <Download className="h-4 w-4 mr-1 sm:mr-2" />
+                            <Download className="h-4 w-4 mr-1 sm:mr-2"/>
                             <span className="hidden sm:inline">Download</span>
                           </Link>
                         )
                       ) : (
                         <span className="text-gray-500">No attachments</span>
                       )}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap">
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap">
                         <span className="px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800">
                           {getStatusDisplay(assignment)}
                         </span>
-                      </td>
-                      <td className="px-4 py-3">{getActionButton(assignment)}</td>
-                    </tr>
-                  ))
-              ) : (
-                <tr>
-                  <td colSpan={5} className="px-4 py-4 text-center text-sm text-gray-500">
-                    No ongoing {institutionType?.includes("College")?"Assignments":"Homeworks"} found
-                  </td>
-                </tr>
-              )}
+                    </td>
+                    <td className="px-4 py-3">{getActionButton(assignment)}</td>
+                  </tr>
+                ))
+            ) : (
+              <tr>
+                <td colSpan={5} className="px-4 py-4 text-center text-sm text-gray-500">
+                  No ongoing {institutionType?.includes("College") ? "Assignments" : "Homeworks"} found
+                </td>
+              </tr>
+            )}
             </tbody>
           </table>
         </div>
@@ -506,101 +517,107 @@ export default function AssignmentsPage() {
       {/* Submitted Assignments */}
       <div className="mb-8 max-w-screen-xl mx-auto">
         <div className="flex items-center mb-4">
-          <ClipboardCheck className="h-5 w-5 text-blue-600 mr-2" />
-          <h3 className="text-xl font-semibold text-gray-800">Submitted {institutionType?.includes("College")?"Assignments":"Homeworks"} </h3>
+          <ClipboardCheck className="h-5 w-5 text-blue-600 mr-2"/>
+          <h3
+            className="text-xl font-semibold text-gray-800">Submitted {institutionType?.includes("College") ? "Assignments" : "Homeworks"} </h3>
         </div>
 
         <div className="bg-white overflow-hidden shadow-sm rounded-lg overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200 text-sm">
             <thead>
-              <tr>
-                <th className="px-4 py-3 text-left text-xs sm:text-sm font-semibold text-gray-600 bg-gray-50 min-w-[100px]">
-                  Topic
-                </th>
-                <th className="px-4 py-3 text-left text-xs sm:text-sm font-semibold text-gray-600 bg-gray-50 min-w-[120px]">
-                  Due Date
-                </th>
-                <th className="px-4 py-3 text-left text-xs sm:text-sm font-semibold text-gray-600 bg-gray-50 min-w-[100px]">
-                  {institutionType?.includes("College")?"Assignment":"Homework"}  File
-                </th>
-                <th className="px-4 py-3 text-left text-xs sm:text-sm font-semibold text-gray-600 bg-gray-50 min-w-[100px]">
-                  Submitted File
-                </th>
-                <th className="px-4 py-3 text-left text-xs sm:text-sm font-semibold text-gray-600 bg-gray-50 min-w-[100px]">
-                  Status
-                </th>
-              </tr>
+            <tr>
+              <th
+                className="px-4 py-3 text-left text-xs sm:text-sm font-semibold text-gray-600 bg-gray-50 min-w-[100px]">
+                Topic
+              </th>
+              <th
+                className="px-4 py-3 text-left text-xs sm:text-sm font-semibold text-gray-600 bg-gray-50 min-w-[120px]">
+                Due Date
+              </th>
+              <th
+                className="px-4 py-3 text-left text-xs sm:text-sm font-semibold text-gray-600 bg-gray-50 min-w-[100px]">
+                {institutionType?.includes("College") ? "Assignment" : "Homework"} File
+              </th>
+              <th
+                className="px-4 py-3 text-left text-xs sm:text-sm font-semibold text-gray-600 bg-gray-50 min-w-[100px]">
+                Submitted File
+              </th>
+              <th
+                className="px-4 py-3 text-left text-xs sm:text-sm font-semibold text-gray-600 bg-gray-50 min-w-[100px]">
+                Status
+              </th>
+            </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {submittedAssignments.length > 0 ? (
-                submittedAssignments.map((assignment) => {
-                  const studentSubmission = assignment.submissions?.find(sub =>
-                    sub.studentId === (studentData?.studentId || studentData?.id)
-                  );
-                  return (
-                    <tr key={assignment.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 text-gray-700 break-words whitespace-normal">
-                        {assignment.title}
-                      </td>
-                      <td className="px-4 py-3 text-gray-700 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <Calendar className="h-4 w-4 text-gray-400 mr-1 sm:mr-2" />
-                          {typeof assignment.dueDate === 'string'
-                            ? assignment.dueDate
-                            : assignment.dueDate instanceof Date
-                              ? assignment.dueDate.toLocaleDateString()
-                              : 'N/A'}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        {downloadedAssignments.has(`assignment-${assignment.id}`) ? (
-                          <span className="text-green-600 font-medium flex items-center">
-                            <Download className="h-4 w-4 mr-1 sm:mr-2" /> Downloaded
+            {submittedAssignments.length > 0 ? (
+              submittedAssignments.map((assignment) => {
+                const studentSubmission = assignment.submissions?.find(sub =>
+                  sub.studentId === (studentData?.studentId || studentData?.id)
+                );
+                return (
+                  <tr key={assignment.id} className="hover:bg-gray-50">
+                    <td className="px-4 py-3 text-gray-700 break-words whitespace-normal">
+                      {assignment.title}
+                    </td>
+                    <td className="px-4 py-3 text-gray-700 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <Calendar className="h-4 w-4 text-gray-400 mr-1 sm:mr-2"/>
+                        {typeof assignment.dueDate === 'string'
+                          ? assignment.dueDate
+                          : assignment.dueDate instanceof Date
+                            ? assignment.dueDate.toLocaleDateString()
+                            : 'N/A'}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      {downloadedAssignments.has(`assignment-${assignment.id}`) ? (
+                        <span className="text-green-600 font-medium flex items-center">
+                            <Download className="h-4 w-4 mr-1 sm:mr-2"/> Downloaded
                           </span>
-                        ) : (
-                          <Link
-                            href={assignment?.attachments || ''}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center text-blue-600 hover:text-blue-800"
-                            onClick={() => handleDownloadClick(`assignment-${assignment.id}`)}
-                          >
-                            <Download className="h-4 w-4 mr-1 sm:mr-2" />
-                            <span className="hidden sm:inline">Assignment</span>
-                          </Link>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-purple-600">
-                        {studentSubmission?.attachments ? (
-                          <Link
-                            href={studentSubmission.attachments[0].fileUrl?.split("?")[0]}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center hover:text-purple-800"
-                          >
-                            <Download className="h-4 w-4 mr-1 sm:mr-2" />
-                            <span className="hidden sm:inline">Submission</span>
-                          </Link>
-                        ) : (
-                          <span className="text-gray-500">N/A</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap">
+                      ) : (
+                        <Link
+                          href={assignment?.attachments || ''}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center text-blue-600 hover:text-blue-800"
+                          onClick={() => handleDownloadClick(`assignment-${assignment.id}`)}
+                        >
+                          <Download className="h-4 w-4 mr-1 sm:mr-2"/>
+                          <span className="hidden sm:inline">Assignment</span>
+                        </Link>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-purple-600">
+                      {studentSubmission?.attachments ? (
+                        <Link
+                          href={studentSubmission.attachments[0].fileUrl?.split("?")[0]}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center hover:text-purple-800"
+                        >
+                          <Download className="h-4 w-4 mr-1 sm:mr-2"/>
+                          <span className="hidden sm:inline">Submission</span>
+                        </Link>
+                      ) : (
+                        <span className="text-gray-500">N/A</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap">
                         <span className="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800">
                           {/*getStatusDisplay(assignment)*/}
                           submitted
                         </span>
-                      </td>
-                    </tr>
-                  );
-                })
-              ) : (
-                <tr>
-                  <td colSpan={6} className="px-4 py-4 text-center text-sm text-gray-500">
-                    No submitted {institutionType?.includes("College")?"Assignments":"Homeworks"}  found
-                  </td>
-                </tr>
-              )}
+                    </td>
+                  </tr>
+                );
+              })
+            ) : (
+              <tr>
+                <td colSpan={6} className="px-4 py-4 text-center text-sm text-gray-500">
+                  No submitted {institutionType?.includes("College") ? "Assignments" : "Homeworks"} found
+                </td>
+              </tr>
+            )}
             </tbody>
           </table>
         </div>
@@ -609,100 +626,107 @@ export default function AssignmentsPage() {
       {/* Graded Assignments */}
       <div className="max-w-screen-xl mx-auto">
         <div className="flex items-center mb-4">
-          <ClipboardCheck className="h-5 w-5 text-green-600 mr-2" />
-          <h3 className="text-xl font-semibold text-gray-800">Graded {institutionType?.includes("College")?"Assignments":"Homeworks"} </h3>
+          <ClipboardCheck className="h-5 w-5 text-green-600 mr-2"/>
+          <h3
+            className="text-xl font-semibold text-gray-800">Graded {institutionType?.includes("College") ? "Assignments" : "Homeworks"} </h3>
         </div>
 
         <div className="bg-white overflow-hidden shadow-sm rounded-lg overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200 text-sm">
             <thead>
-              <tr>
-                <th className="px-4 py-3 text-left text-xs sm:text-sm font-semibold text-gray-600 bg-gray-50 min-w-[100px]">
-                  Topic
-                </th>
-                <th className="px-4 py-3 text-left text-xs sm:text-sm font-semibold text-gray-600 bg-gray-50 min-w-[120px]">
-                  Due Date
-                </th>
-                <th className="px-4 py-3 text-left text-xs sm:text-sm font-semibold text-gray-600 bg-gray-50 min-w-[100px]">
-                  {institutionType?.includes("College")?"Assignment":"Homework"}  File
-                </th>
-                <th className="px-4 py-3 text-left text-xs sm:text-sm font-semibold text-gray-600 bg-gray-50 min-w-[100px]">
-                  Submitted File
-                </th>
-                <th className="px-4 py-3 text-left text-xs sm:text-sm font-semibold text-gray-600 bg-gray-50 min-w-[100px]">
-                  Grade
-                </th>
-              </tr>
+            <tr>
+              <th
+                className="px-4 py-3 text-left text-xs sm:text-sm font-semibold text-gray-600 bg-gray-50 min-w-[100px]">
+                Topic
+              </th>
+              <th
+                className="px-4 py-3 text-left text-xs sm:text-sm font-semibold text-gray-600 bg-gray-50 min-w-[120px]">
+                Due Date
+              </th>
+              <th
+                className="px-4 py-3 text-left text-xs sm:text-sm font-semibold text-gray-600 bg-gray-50 min-w-[100px]">
+                {institutionType?.includes("College") ? "Assignment" : "Homework"} File
+              </th>
+              <th
+                className="px-4 py-3 text-left text-xs sm:text-sm font-semibold text-gray-600 bg-gray-50 min-w-[100px]">
+                Submitted File
+              </th>
+              <th
+                className="px-4 py-3 text-left text-xs sm:text-sm font-semibold text-gray-600 bg-gray-50 min-w-[100px]">
+                Grade
+              </th>
+            </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {gradedAssignments.length > 0 ? (
-                gradedAssignments.map((assignment) => {
-                  const studentSubmission = assignment.submissions?.find(sub =>
-                    sub.studentId === (studentData?.studentId || studentData?.id)
-                  );
-                  return (
-                    <tr key={assignment.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 text-gray-700 break-words whitespace-normal">
-                        {assignment.title}
-                      </td>
-                      <td className="px-4 py-3 text-gray-700 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <Calendar className="h-4 w-4 text-gray-400 mr-1 sm:mr-2" />
-                          {typeof assignment.dueDate === 'string'
-                            ? assignment.dueDate
-                            : assignment.dueDate instanceof Date
-                              ? assignment.dueDate.toLocaleDateString()
-                              : 'N/A'}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        {downloadedAssignments.has(`assignment-${assignment.id}`) ? (
-                          <span className="text-green-600 font-medium flex items-center">
-                            <Download className="h-4 w-4 mr-1 sm:mr-2" /> Downloaded
+            {gradedAssignments.length > 0 ? (
+              gradedAssignments.map((assignment) => {
+                const studentSubmission = assignment.submissions?.find(sub =>
+                  sub.studentId === (studentData?.studentId || studentData?.id)
+                );
+                return (
+                  <tr key={assignment.id} className="hover:bg-gray-50">
+                    <td className="px-4 py-3 text-gray-700 break-words whitespace-normal">
+                      {assignment.title}
+                    </td>
+                    <td className="px-4 py-3 text-gray-700 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <Calendar className="h-4 w-4 text-gray-400 mr-1 sm:mr-2"/>
+                        {typeof assignment.dueDate === 'string'
+                          ? assignment.dueDate
+                          : assignment.dueDate instanceof Date
+                            ? assignment.dueDate.toLocaleDateString()
+                            : 'N/A'}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      {downloadedAssignments.has(`assignment-${assignment.id}`) ? (
+                        <span className="text-green-600 font-medium flex items-center">
+                            <Download className="h-4 w-4 mr-1 sm:mr-2"/> Downloaded
                           </span>
-                        ) : (
-                          <Link
-                            href={assignment?.attachments || ''}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center text-blue-600 hover:text-blue-800"
-                            onClick={() => handleDownloadClick(`assignment-${assignment.id}`)}
-                          >
-                            <Download className="h-4 w-4 mr-1 sm:mr-2" />
-                            <span className="hidden sm:inline">{institutionType?.includes("College")?"Assignment":"Homework"} </span>
-                          </Link>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-purple-600">
-                        {studentSubmission?.submissionUrl ? (
-                          <Link
-                            href={studentSubmission.submissionUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center hover:text-purple-800"
-                          >
-                            <Download className="h-4 w-4 mr-1 sm:mr-2" />
-                            <span className="hidden sm:inline">Submission</span>
-                          </Link>
-                        ) : (
-                          <span className="text-gray-500">N/A</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap">
+                      ) : (
+                        <Link
+                          href={assignment?.attachments || ''}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center text-blue-600 hover:text-blue-800"
+                          onClick={() => handleDownloadClick(`assignment-${assignment.id}`)}
+                        >
+                          <Download className="h-4 w-4 mr-1 sm:mr-2"/>
+                          <span
+                            className="hidden sm:inline">{institutionType?.includes("College") ? "Assignment" : "Homework"} </span>
+                        </Link>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-purple-600">
+                      {studentSubmission?.submissionUrl ? (
+                        <Link
+                          href={studentSubmission.submissionUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center hover:text-purple-800"
+                        >
+                          <Download className="h-4 w-4 mr-1 sm:mr-2"/>
+                          <span className="hidden sm:inline">Submission</span>
+                        </Link>
+                      ) : (
+                        <span className="text-gray-500">N/A</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap">
                         <span className="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">
                           {getGrade(assignment)}
                         </span>
-                      </td>
-                    </tr>
-                  );
-                })
-              ) : (
-                <tr>
-                  <td colSpan={5} className="px-4 py-4 text-center text-sm text-gray-500">
-                    No graded {institutionType?.includes("College")?"Assignments":"Homeworks"}  found
-                  </td>
-                </tr>
-              )}
+                    </td>
+                  </tr>
+                );
+              })
+            ) : (
+              <tr>
+                <td colSpan={5} className="px-4 py-4 text-center text-sm text-gray-500">
+                  No graded {institutionType?.includes("College") ? "Assignments" : "Homeworks"} found
+                </td>
+              </tr>
+            )}
             </tbody>
           </table>
         </div>

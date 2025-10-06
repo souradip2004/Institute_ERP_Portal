@@ -4,13 +4,13 @@ import Github from "next-auth/providers/github";
 import Google from "next-auth/providers/google";
 import Credentials from "next-auth/providers/credentials";
 import EmailProvider from "next-auth/providers/nodemailer";
-import { PrismaAdapter } from "@auth/prisma-adapter";
+import {PrismaAdapter} from "@auth/prisma-adapter";
 import prisma from "@/lib/prisma";
 import bcrypt from "bcryptjs";
-import { sendVerificationEmail } from "@/services/emailService";
+import {sendVerificationEmail} from "@/services/emailService";
 import crypto from "crypto";
 
-export const { auth, handlers, signIn, signOut } = NextAuth({
+export const {auth, handlers, signIn, signOut} = NextAuth({
   adapter: PrismaAdapter(prisma),
   trustHost: true,
   providers: [
@@ -21,11 +21,11 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
       id: "credentials-email",
       name: "Email",
       credentials: {
-        email: { label: "Email", type: "email" },
-        password: { label: "Password", type: "password" },
+        email: {label: "Email", type: "email"},
+        password: {label: "Password", type: "password"},
       },
       async authorize(credentials) {
-        console.log("Email authorize called", { credentials });
+        console.log("Email authorize called", {credentials});
 
         if (!credentials?.email || !credentials?.password) {
           console.log("Missing email or password");
@@ -34,11 +34,11 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
 
         // Find user by email
         const user = await prisma.user.findUnique({
-          where: { email: credentials.email as string },
+          where: {email: credentials.email as string},
           include: {
             student: true,
             teacher: true,
-            institution:true,
+            institution: true,
           },
         });
 
@@ -58,7 +58,7 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
           throw new Error("Invalid credentials");
         }
 
-        console.log("Email login successful", { userId: user.id });
+        console.log("Email login successful", {userId: user.id});
 
         // Return user object with all needed data
         return {
@@ -70,7 +70,7 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
           emailVerified: user.emailVerified || new Date(), // Allow login even if not verified
           studentId: user.student?.id || null,
           teacherId: user.teacher?.id || null,
-          institutionId:user.institution?.id || null,
+          institutionId: user.institution?.id || null,
           institutionType: user.institution?.type || null,
         };
       },
@@ -80,11 +80,11 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
       id: "credentials-username",
       name: "Username",
       credentials: {
-        username: { label: "Username", type: "text" },
-        password: { label: "Password", type: "password" },
+        username: {label: "Username", type: "text"},
+        password: {label: "Password", type: "password"},
       },
       async authorize(credentials) {
-        console.log("Username authorize called", { credentials });
+        console.log("Username authorize called", {credentials});
 
         if (!credentials?.username || !credentials?.password) {
           console.log("Missing username or password");
@@ -93,11 +93,11 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
 
         // Find user by username
         const user = await prisma.user.findFirst({
-          where: { username: credentials.username },
+          where: {username: credentials.username},
           include: {
             student: true,
             teacher: true,
-            institution:true,
+            institution: true,
           },
         });
 
@@ -117,7 +117,7 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
           throw new Error("Invalid credentials");
         }
 
-        console.log("Username login successful", { userId: user.id });
+        console.log("Username login successful", {userId: user.id});
 
         // Return user object with all needed data
         return {
@@ -144,9 +144,9 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
         },
       },
       from: process.env.SMTP_FROM_EMAIL,
-      async sendVerificationRequest({ identifier: email, url, token }) {
-        await sendVerificationEmail(email, token);
-      },
+      async sendVerificationRequest({identifier: email, url, token}) {
+        await sendVerificationEmail(email, url);
+      }
     }),
   ],
   session: {
@@ -159,7 +159,7 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
     verifyRequest: "/verify-request",
   },
   callbacks: {
-    async signIn({ user, account }) {
+    async signIn({user, account}) {
       console.log("signIn callback", {
         providerType: account?.provider,
         userId: user?.id,
@@ -173,46 +173,38 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
         return true;
       }
 
+      if (account?.provider === "google" || account?.provider === "github") {
+        return true;
+      }
+      console.log("Provider ", account?.provider)
+
       // For email verification provider, still use verification flow
       if (account?.provider === "email" && !user.emailVerified) {
-        // Generate verification token only if emailVerified is null
-        if (user.emailVerified === null) {
-          const token = await prisma.verificationToken.create({
-            data: {
-              identifier: user.email!,
-              token: crypto.randomUUID(),
-              expires: new Date(Date.now() + 60 * 60 * 1000), // 1 hour
-            },
-          });
-
-          await sendVerificationEmail(user.email!, token.token);
-        }
-
         return "/verify-request"; // Redirect to verification request page
       }
 
       // For OAuth providers, allow without email verification
-      return true;
+      return false;
     },
 
-    async jwt({ token, user }) {
+    async jwt({token, user}) {
       // Include additional user information in the token when signing in
       if (user) {
-        console.log("JWT callback with user", { userId: user.id });
+        console.log("JWT callback with user", {userId: user.id});
         token.id = user.id;
         token.role = user.role;
         token.emailVerified = user.emailVerified;
         token.username = user.username;
         token.studentId = user.studentId;
         token.teacherId = user.teacherId;
-        token.institutionId=user.institutionId;
+        token.institutionId = user.institutionId;
         token.institutionType = user.institutionType;
       }
 
       return token;
     },
 
-    async session({ session, token }) {
+    async session({session, token}) {
       if (token) {
         session.user.id = token.id as string;
         session.user.role = token.role as string;
@@ -220,7 +212,7 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
         session.user.username = token.username as string | null;
         session.user.studentId = token.studentId as string | null;
         session.user.teacherId = token.teacherId as string | null;
-        session.user.institutionId=token.institutionId as string | null;
+        session.user.institutionId = token.institutionId as string | null;
         session.user.institutionType = token.institutionType as string | null;
       }
 
@@ -233,7 +225,7 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
       if (typeof window !== "undefined") {
         // Dynamically import the clearAuthData function since this file runs on both server and client
         try {
-          const { clearAuthData } = await import("@/lib/logout-utils");
+          const {clearAuthData} = await import("@/lib/logout-utils");
           clearAuthData();
         } catch (error) {
           // Fallback if import fails
@@ -245,13 +237,12 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
           localStorage.removeItem("teacherId");
           localStorage.removeItem("auth_error");
 
-          // Clear note related data
           const noteKeys = Object.keys(localStorage).filter((key) =>
             key.startsWith("noteVideoData_")
           );
           noteKeys.forEach((key) => localStorage.removeItem(key));
         }
       }
-    },
-  },
+    }
+  }
 });

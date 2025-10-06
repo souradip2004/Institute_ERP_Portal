@@ -136,7 +136,7 @@ const AssignmentUpload = ({ classSectionId,instituteId,institutionType,onAssignm
 
         // Determine the correct API endpoint based on file type
         let apiEndpoint = '';
-        if (file.type === 'application/pdf') {
+        if (file.type === 'application/pdf' || file.type === '/api/upload/file') {
             apiEndpoint = '/api/upload/pdf';
         } else if (file.type === 'image/jpeg') {
             apiEndpoint = '/api/upload/file';
@@ -172,6 +172,7 @@ const AssignmentUpload = ({ classSectionId,instituteId,institutionType,onAssignm
       if (file) {
         try {
           fileUploadResult = await uploadFileToS3(file);
+          console.log('File uploaded successfully:', fileUploadResult);
           fileUrl = fileUploadResult.url;
         } catch (error) {
           console.error('Error uploading file:', error);
@@ -187,8 +188,8 @@ const AssignmentUpload = ({ classSectionId,instituteId,institutionType,onAssignm
         title,
         maxPoints: totalMarks,
         dueDate,
-        userId:JSON.parse(localStorage.getItem('user')).id,
-        teacherId: JSON.parse(localStorage.getItem('user')).teacherId,
+        userId:JSON.parse(localStorage.getItem('user')!).id,
+        teacherId: JSON.parse(localStorage.getItem('user')!).teacherId,
         classSectionId,
         submissionType: 'INDIVIDUAL',
         attachments: fileUrl ? [{
@@ -226,7 +227,7 @@ const AssignmentUpload = ({ classSectionId,instituteId,institutionType,onAssignm
 
       notify.success('Assignment created successfully!');
       // Refresh data
-      
+
             onAssignmentCreated();
 
 
@@ -330,8 +331,8 @@ const AssignmentUpload = ({ classSectionId,instituteId,institutionType,onAssignm
             {uploadProgress > 0 && uploadProgress < 100 && (
               <div className="mt-4">
                 <div className="w-full bg-gray-200 rounded-full h-2.5">
-                  <div 
-                    className="bg-purple-600 h-2.5 rounded-full" 
+                  <div
+                    className="bg-purple-600 h-2.5 rounded-full"
                     style={{ width: `${uploadProgress}%` }}
                   ></div>
                 </div>
@@ -348,18 +349,6 @@ const AssignmentUpload = ({ classSectionId,instituteId,institutionType,onAssignm
             >
               {isSubmitting ? 'Submitting...' : 'Submit'}
             </button>
-            {/*
-            <button
-              type="button"
-              onClick={scheduleUpload}
-              className="border border-purple-600 text-purple-600 px-6 py-2 rounded-md hover:bg-purple-50 focus:outline-none focus:ring-2 focus:ring-purple-500 flex-grow-0 flex items-center justify-center"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-              <span>Schedule Upload</span>
-            </button>
-            */}
           </div>
         </div>
       </form>

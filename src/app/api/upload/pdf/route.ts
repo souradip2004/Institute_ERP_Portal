@@ -18,8 +18,10 @@ export async function POST(req: NextRequest) {
 
     // Parse the form data
     const formData = await req.formData();
-    const file = formData.get("pdf") as File;
-
+    // console.log("Form Data ",formData)
+    // console.log(formData.get("pdf") )
+    const file = formData.get("file") as File;
+    console.log("File dscsdcdfvf ",file)
     if (!file) {
       return NextResponse.json(
         { success: false, message: "No file found in request" },
@@ -35,13 +37,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Convert file to buffer
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-
-    // Upload to S3
-    const fileName = `note_${Date.now()}_${file.name}`;
-    const key = await S3Utils.uploadFile(buffer, fileName, file.type);
+    const key = await S3Utils.uploadFile(file, file.name, file.type);
 
     // Get both URLs
     const signedUrl = await S3Utils.getFileUrl(key);

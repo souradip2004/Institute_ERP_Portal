@@ -1,9 +1,10 @@
 import prisma from "@/lib/prisma";
+
 export class NoticeService {
   async getNoticeById(id: string) {
     console.log(id);
     const notice = await prisma.emailForm.findUnique({
-      where: { id },
+      where: {id},
       include: {
         classSections: true,
         institution: true,
@@ -12,6 +13,7 @@ export class NoticeService {
     console.log(notice);
     return notice;
   }
+
   async getNotices() {
     const notices = await prisma.emailForm.findMany({
       include: {
@@ -21,37 +23,41 @@ export class NoticeService {
     });
     return notices;
   }
-  async createNotice(data: any, institutionId: string) {
-  const notice = await prisma.emailForm.create({
-    data: {
-      subject: data.subject,
-      body: data.body,
-      sender: data.sender,
-      attachments: data.attachments ?? [],
-      sentAt: data.sentAt ? new Date(data.sentAt) : null,
-      institutionId,
-      classSections: data.classSectionIds && data.classSectionIds.length > 0
-        ? {
-            connect: data.classSectionIds.map((sectionId: string) => ({ id: sectionId })),
-          }
-        : undefined,
-    },
-    include: {
-      classSections: true,
-      institution: true,
-    },
-  });
 
-  return notice;
-}
+  async createNotice(data: any, institutionId: string) {
+
+
+    const notice = await prisma.emailForm.create({
+      data: {
+        subject: data.subject,
+        body: data.body,
+        name: data.name,
+        sender: data.sender,
+        attachments: data.attachments ?? [],
+        sentAt: data.sentAt ? new Date(data.sentAt) : null,
+        institutionId,
+        classSections: data.classSectionIds && data.classSectionIds.length > 0
+          ? {
+            connect: data.classSectionIds.map((sectionId: string) => ({id: sectionId})),
+          }
+          : undefined,
+      },
+      include: {
+        classSections: true,
+        institution: true,
+      },
+    });
+
+    return notice;
+  }
 
   async updateNotice(id: string, data: any) {
     const notice = await prisma.emailForm.update({
-      where: { id },
+      where: {id},
       data: {
         ...data,
         classSections: {
-          set: data.classSections.map((id: string) => ({ id })),
+          set: data.classSections.map((id: string) => ({id})),
         },
       },
       include: {
@@ -61,9 +67,10 @@ export class NoticeService {
     });
     return notice;
   }
+
   async deleteNotice(id: string) {
     const notice = await prisma.emailForm.delete({
-      where: { id },
+      where: {id},
       include: {
         classSections: true,
         institution: true,
@@ -71,6 +78,7 @@ export class NoticeService {
     });
     return notice;
   }
+
   async getNoticesByClassSectionId(classSectionId: string) {
     const notices = await prisma.emailForm.findMany({
       where: {
@@ -87,6 +95,7 @@ export class NoticeService {
     });
     return notices;
   }
+
   async getNoticesByInstitutionId(institutionId: string) {
     const notices = await prisma.emailForm.findMany({
       where: {
@@ -98,29 +107,5 @@ export class NoticeService {
       },
     });
     return notices;
-  }
-  async createNoticeWithMotherClass(data: any) {
-    const classSections= await prisma.motherClass.findMany({
-      where: {
-        id: { in: data.classSections,
-      },
-      },
-      select: {
-        id: true,
-      },
-    });
-    const notice = await prisma.emailForm.create({
-      data: {
-        ...data,
-        classSections: {
-          connect: classSections.map((section: { id: string }) => ({ id: section.id })),
-        },
-      },
-      include: {
-        classSections: true,
-        institution: true,
-      },
-    });
-    return notice;
   }
 }

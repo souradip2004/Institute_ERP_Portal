@@ -1,4 +1,4 @@
-import type { NextConfig } from "next";
+import type {NextConfig} from "next";
 
 const nextConfig: NextConfig = {
   reactStrictMode: false,
@@ -12,9 +12,11 @@ const nextConfig: NextConfig = {
   /* config options here */
   experimental: {
     nodeMiddleware: true,
-
-    // allowedDevOrigins: ["http://192.168.29.8:3000"], // Replace with your local IP
+    serverActions: {
+      bodySizeLimit: "5mb"
+    }
   },
+
   images: {
     // domains: [avatars.githubusercontent.com, lh3.googleusercontent.com],
     remotePatterns: [
@@ -28,27 +30,15 @@ const nextConfig: NextConfig = {
         hostname: "avatars.githubusercontent.com",
         pathname: "/**",
       },
+
       {
         protocol: "https",
-        hostname: "media-hosting.imagekit.io", // <-- Add this
-        pathname: "/**",
-      },
-      {
-        protocol: "https",
-        hostname: "classroomaiin.s3.eu-north-1.amazonaws.com",
+        hostname: "smartcampuserp.s3.ap-south-1.amazonaws.com",
         pathname: "/**",
       }
     ],
   },
   output: "standalone",
-  /* webpack: (config) => {
-     config.module.rules.push({
-       test: /\.(png|jpe?g|gif|svg)$/i,
-       type: "asset/resource",
-     });
- 
-     return config;
-   },*/
   turbopack: {
     resolveExtensions: ['.mdx', '.tsx', '.ts', '.jsx', '.js', '.mjs', '.json'],
   },

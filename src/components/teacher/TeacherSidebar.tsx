@@ -150,7 +150,6 @@ const [institutionType, setInstitutionType] = useState<string | null>("");
     { name: 'Notes', href: '#', icon: <NotebookText size={18} />, onClick: handleNotesClick },
     { name: 'Attendance', href: '/t/attendance', icon: <CalendarCheck2 size={18} />, onClick: handleNavLinkClick },
     { name: 'Classes', href: '/t/classes', icon: <Users2 size={18} />, onClick: handleNavLinkClick },
-    { name: 'Copy checking', href: '/t/pythonCopyChecking', icon: <FileText size={18} />, onClick: handleNavLinkClick },
     {name: 'Notice', href: '/t/notice', icon: <FileText size={18} />, onClick: handleNavLinkClick }, // Added Notice link
   ];
 

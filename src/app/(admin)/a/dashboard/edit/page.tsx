@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from "react";
 import EditDashboardPage from "@/components/admin/EditInstitute"
 import axios from "axios";
+import {Loader2} from "lucide-react";
 
 function Page() {
 
@@ -14,7 +15,7 @@ function Page() {
 
         const fetchInstituteData = async () => {
             try {
-                const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/institutions/${data.institutionId}`);
+                const response = await axios.get(`/api/institutions/${data.institutionId}`);
                 console.log("Fetched institute data:", response.data);
                 SetInstituteData(response.data);
             } catch (err) {
@@ -29,7 +30,10 @@ function Page() {
 
 
     if (!instituteData) {
-        return <div>Loading...</div>;
+        return   <div className="flex flex-col items-center justify-center min-h-screen p-8 text-gray-500">
+          <Loader2 className="h-12 w-12 animate-spin mb-4 text-indigo-600"/>
+          <p className="text-lg font-medium">Loading Institute details...</p>
+        </div>;
     }
 
     return (

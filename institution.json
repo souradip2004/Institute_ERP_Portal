@@ -1,14 +1,14 @@
 {
-  "name": "GT Academy",
+  "name": "AWS Academy",
   "type": "college",
-  "address": "RC-81, Street-29,Bengal Ambuja",
-  "city": "Durgapur",
-  "state": "West Bengal",
+  "address": "Patia , KIIT Road",
+  "city": "Bhubaneswar",
+  "state": "Odisha",
   "country": "India",
-  "phone": "08372001815",
-  "email": "souradipsaha2004@gmail.com",
+  "phone": "8372001815",
+  "email": "22052939@kiit.ac.in",
   "website": "",
-  "userId": "cmew06ldl00001pevmbfprkw3",
-  "logoUrl": "",
-  "primaryColor": "#6b91e0"
+  "userId": "cmfxy29l200001pd9385wkpx0",
+  "logoUrl": "https://smartcampuserp.s3.ap-south-1.amazonaws.com/1758716019377_Tux.svg.png",
+  "primaryColor": "#db7070"
 }

@@ -374,30 +374,6 @@ const NotesLibrary: React.FC<NotesLibraryProps> = ({
                                   >
                                     <Download size={18}/>
                                   </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={async () => {
-                                      const randomCode = Math.floor(100000 + Math.random() * 900000);
-                                      const response = await fetch("/api/connector", {
-                                        method: "POST",
-                                        headers: {"Content-Type": "application/json"},
-                                        body: JSON.stringify({
-                                          id: randomCode,
-                                          link: note.attachments[0].fileUrl
-                                        })
-                                      });
-                                      if (response.ok) {
-                                        setTimeout(() => {
-                                          window.open(`https://aiclassroom.in/share?id=${randomCode}`, '_blank');
-                                        }, 2000)
-                                      }
-                                    }}
-                                    className="h-8 w-8 rounded-full hover:bg-yellow-50 hover:text-yellow-700 flex-shrink-0"
-                                    title="Share video link"
-                                  >
-                                    <Film size={16}/>
-                                  </Button>
                                 </>
                               )}
                               {note.attachments.length > 0 &&

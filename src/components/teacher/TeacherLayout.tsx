@@ -107,7 +107,7 @@ export default function TeacherLayout({ children }) {
         </div>
       )}
 
-      {/* Add this style block for the popup animation */}
+{/*       Add this style block for the popup animation
       <style jsx>{`
         @keyframes fade-in-up {
           from {
@@ -122,7 +122,7 @@ export default function TeacherLayout({ children }) {
         .animate-fade-in-up {
           animation: fade-in-up 0.3s ease-out forwards;
         }
-      `}</style>
+      `}</style>*/}
     </div>
   );
 }

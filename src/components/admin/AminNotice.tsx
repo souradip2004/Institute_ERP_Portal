@@ -1,12 +1,12 @@
 "use client";
-import { useEffect, useState } from "react";
+import {useEffect, useState} from "react";
 import EmailForm from "@/components/ui/emailForm";
 import {
   MdOutlineEmail,
   MdSend,
   MdAddCircleOutline,
 } from "react-icons/md";
-import { format } from "date-fns";
+import {format} from "date-fns";
 
 const EmailClient = () => {
   const [currentView, setCurrentView] = useState("sent");
@@ -14,16 +14,16 @@ const EmailClient = () => {
   const [notices, setNotices] = useState([]);
   const [sentNotices, setSentNotices] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [expandedNoticeId, setExpandedNoticeId] = useState(null); // New state for expanding/collapsing
+  const [expandedNoticeId, setExpandedNoticeId] = useState(null);
 
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem("user"));
+    const user = JSON.parse(localStorage.getItem("user")!);
     if (user && user.institutionId) {
       const id = user.institutionId;
       setInstitutionId(id);
       setIsLoading(true);
       const url = `/api/institutions/${id}/notice`;
-      
+
       fetch(url)
         .then((response) => {
           if (!response.ok) {
@@ -33,9 +33,9 @@ const EmailClient = () => {
         })
         .then((data) => {
           console.log("Notices fetched:", data);
-          
-          setSentNotices(data.filter(notice=>notice.sender.includes("aic7640")));
-          setNotices(data.filter(notice=>!notice.sender.includes("aic7640")));
+
+          setSentNotices(data.filter(notice => notice.sender === 'ADMIN'));
+          setNotices(data.filter(notice => notice.sender === 'TEACHER'));
           console.log("Sent Notices:", sentNotices);
           console.log("Notices:", notices);
           setIsLoading(false);
@@ -60,8 +60,8 @@ const EmailClient = () => {
           <p className="text-gray-500">Loading notices...</p>
         </div>
       );
-      }
-      
+    }
+
     switch (currentView) {
       case "inbox":
         return (
@@ -76,40 +76,41 @@ const EmailClient = () => {
                     onClick={() => toggleNotice(notice.id)} // Add onClick handler
                   >
                     <p className="font-semibold text-gray-700">
-                      From: {notice?.sender?.replace(" aic7640", "")}
+                      From: {notice.sender} - {notice.name}
                     </p>
                     <p className="text-lg font-medium text-gray-900">
                       {notice.subject}
                     </p>
-                    
+
                     {/* Conditional rendering for the body */}
                     {expandedNoticeId === notice.id && (
                       <div className="mt-2 text-gray-800">
-  <div dangerouslySetInnerHTML={{ __html: notice.body }} />   
-  {notice.attachments && notice.attachments.length > 0 && (
-                        <div className="mt-2">
-                          <h3 className="font-semibold text-gray-700">Attachments:</h3>
-                          <ul className="list-disc list-inside">
-                            {notice.attachments.map((attachment, index) => (
-                             
-                              <li key={index} className="text-blue-600 hover:underline">
-                                 {attachment.includes(".jpg") || attachment.includes(".png") ? (
+                        <div dangerouslySetInnerHTML={{__html: notice.body}}/>
+                        {notice.attachments && notice.attachments.length > 0 && (
+                          <div className="mt-2">
+                            <h3 className="font-semibold text-gray-700">Attachments:</h3>
+                            <ul className="list-disc list-inside">
+                              {notice.attachments.map((attachment, index) => (
+
                                 <li key={index} className="text-blue-600 hover:underline">
-                                  <img src={attachment} alt={`Attachment ${index + 1}`} className="max-w-full h-auto" />
+                                  {attachment.includes(".jpg") || attachment.includes(".png") ? (
+                                    <li key={index} className="text-blue-600 hover:underline">
+                                      <img src={attachment} alt={`Attachment ${index + 1}`}
+                                           className="max-w-full h-auto"/>
+                                    </li>
+                                  ) : <a href={attachment} target="_blank" rel="noopener noreferrer">
+                                    {attachment}
+                                  </a>
+                                  }
+
                                 </li>
-                              ) : <a href={attachment} target="_blank" rel="noopener noreferrer">
-                                  {attachment}
-                                </a>
-                              }
-                                
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-                     </div>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
                     )}
-                    
+
                     <p className="text-sm text-gray-500 mt-1 text-right">
                       {notice.sentAt ? format(new Date(notice.sentAt), "MMM d, yyyy, h:mm a") : "N/A"}
                     </p>
@@ -135,37 +136,38 @@ const EmailClient = () => {
                   <p className="font-semibold text-gray-700">
                     To: {notice.classSections.map(cs => cs.sectionName).join(', ')}
                   </p>
-                  <p className="font-semibold text-gray-700">From: {notice.sender?.replace(" aic7640","")}</p>
+                  <p className="font-semibold text-gray-700">From: {notice.sender} - {notice.name}</p>
                   <p className="text-lg font-medium text-gray-900">{notice.subject}</p>
-                  
+
                   {/* Conditional rendering for the body */}
                   {expandedNoticeId === notice.id && (
                     <div className="mt-2 text-gray-800">
-  <div dangerouslySetInnerHTML={{ __html: notice.body }} />          
-  {notice.attachments && notice.attachments.length > 0 && (
+                      <div dangerouslySetInnerHTML={{__html: notice.body}}/>
+                      {notice.attachments && notice.attachments.length > 0 && (
                         <div className="mt-2">
                           <h3 className="font-semibold text-gray-700">Attachments:</h3>
                           <ul className="list-disc list-inside">
                             {notice.attachments.map((attachment, index) => (
-                             
+
                               <li key={index} className="text-blue-600 hover:underline">
-                                 {attachment.includes(".jpg") || attachment.includes(".png") ? (
-                                <li key={index} className="text-blue-600 hover:underline">
-                                  <img src={attachment} alt={`Attachment ${index + 1}`} className="max-w-full h-auto" />
-                                </li>
-                              ) : <a href={attachment} target="_blank" rel="noopener noreferrer">
+                                {attachment.includes(".jpg") || attachment.includes(".png") ? (
+                                  <li key={index} className="text-blue-600 hover:underline">
+                                    <img src={attachment} alt={`Attachment ${index + 1}`}
+                                         className="max-w-full h-auto"/>
+                                  </li>
+                                ) : <a href={attachment} target="_blank" rel="noopener noreferrer">
                                   {attachment}
                                 </a>
-                              }
-                                
+                                }
+
                               </li>
                             ))}
                           </ul>
                         </div>
                       )}
-            </div>
+                    </div>
                   )}
-                  
+
                   <p className="text-sm text-gray-500 mt-1 text-right">
                     {notice.sentAt ? format(new Date(notice.sentAt), "MMM d, yyyy, h:mm a") : "N/A"}
                   </p>
@@ -177,7 +179,7 @@ const EmailClient = () => {
           </div>
         );
       case "compose":
-        return <EmailForm institutionId={institutionId} />;
+        return <EmailForm institutionId={institutionId}/>;
       default:
         return null;
     }
@@ -192,11 +194,11 @@ const EmailClient = () => {
             onClick={() => setCurrentView("compose")}
             className="w-full py-3 px-6 mb-6 text-white font-semibold rounded-full bg-blue-600 hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
           >
-            <MdAddCircleOutline className="text-xl" />
-            New Email
+            <MdAddCircleOutline className="text-xl"/>
+            Compose
           </button>
           <ul className="w-full space-y-2">
-           
+
             <li>
               <button
                 onClick={() => setCurrentView("sent")}
@@ -206,11 +208,11 @@ const EmailClient = () => {
                     : "text-gray-600 hover:bg-gray-100"
                 }`}
               >
-                <MdSend className="text-xl" />
+                <MdSend className="text-xl"/>
                 Sent
               </button>
             </li>
-             <li>
+            <li>
               <button
                 onClick={() => setCurrentView("inbox")}
                 className={`w-full text-left py-3 px-4 rounded-lg font-medium flex items-center gap-3 transition-colors ${
@@ -219,13 +221,12 @@ const EmailClient = () => {
                     : "text-gray-600 hover:bg-gray-100"
                 }`}
               >
-                <MdOutlineEmail className="text-xl" />
+                <MdOutlineEmail className="text-xl"/>
                 System Inbox
               </button>
             </li>
           </ul>
         </div>
-        {/* Main Content Area */}
         <div className="w-3/4 p-8">{renderView()}</div>
       </div>
     </div>

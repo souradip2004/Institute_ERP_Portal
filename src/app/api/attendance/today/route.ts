@@ -1,12 +1,20 @@
+// File: app/api/attendance-sessions/today/route.ts
+import { NextRequest, NextResponse } from 'next/server';
+import { TodayAttendanceController } from '@/controllers/TodayAttendanceController';
 import prisma from "@/lib/prisma";
-import { TodayClass } from "@/types/dashboard";
 
-export class TodayAttendanceService {
-  async getStudentTodaySessions(
-    studentId: string,
-    date: string
-  ): Promise<TodayClass[]> {
-    // Fetch student's class enrollments
+export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url);
+  const studentId = searchParams.get('studentId');
+  const date = searchParams.get('date') || new Date().toISOString().split('T')[0];
+
+  if (!studentId) {
+    return NextResponse.json({ error: 'Student ID is required' }, { status: 400 });
+  }
+
+  try {
+    const controller = new TodayAttendanceController();
+    // const sessions = await controller.getStudentTodaySessions(studentId, date);
     const enrollments = await prisma.studentClassEnrollment.findMany({
       where: { studentId },
       select: { classSectionId: true },
@@ -40,7 +48,7 @@ export class TodayAttendanceService {
     });
 
     // Process sessions into TodayClass format
-    return sessions.map((session) => {
+    const sessionResponse = sessions.map((session) => {
       const record = attendanceRecords.find(
         (r) => r.attendanceSessionId === session.id
       );
@@ -71,5 +79,10 @@ export class TodayAttendanceService {
         attendanceStatus: record ? record.status : "NOT_RECORDED",
       };
     });
+
+    return NextResponse.json(sessionResponse, {status: 200});
+  } catch (error) {
+    console.error('Error fetching today\'s sessions:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

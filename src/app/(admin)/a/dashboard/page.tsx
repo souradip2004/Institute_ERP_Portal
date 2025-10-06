@@ -21,8 +21,6 @@ import { cookies } from 'next/headers'; // <-- Import cookies from next/headers
 import { FaEdit } from "react-icons/fa";
 import EditDashboardPage from "@/components/admin/EditInstitute"
 
-import { buttonVariants } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 import { redirect } from "next/navigation";
 
 export default async function DashboardPage() {

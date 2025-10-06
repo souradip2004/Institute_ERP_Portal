@@ -1,16 +1,14 @@
 "use client";
 
-import { useState, ReactNode, useEffect } from "react";
-import { signIn } from "next-auth/react";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
-import { FormDivider } from "./form-divider";
-import { SocialLoginButtons } from "./social-login-buttons";
-import { Eye, EyeOff } from "lucide-react";
-import { set } from "mongoose";
+import {useState, ReactNode, useEffect} from "react";
+import {signIn} from "next-auth/react";
+import {Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle} from "@/components/ui/card";
+import {Button} from "@/components/ui/button";
+import {Input} from "@/components/ui/input";
+import {Label} from "@/components/ui/label";
+import {Checkbox} from "@/components/ui/checkbox";
+import {FormDivider} from "./form-divider";
+import {Eye, EyeOff} from "lucide-react";
 
 interface AuthCardProps {
   title: string;
@@ -37,7 +35,6 @@ export function AuthCard({
   const [otpvalidation, setOtpValidation] = useState(false); // For OTP validation state
   const [success, setSuccess] = useState(""); // For success messages
   const [loading, setLoading] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false); // For login
   const [user, setUser] = useState<string | null>(null);
   const [queryParams, setQueryParams] = useState<URLSearchParams | null>(null);
   const [showPassword, setShowPassword] = useState(false); // For password visibility
@@ -77,18 +74,17 @@ export function AuthCard({
       // Use the appropriate credentials provider based on input type
       const providerId = isEmail ? "credentials-email" : "credentials-username";
 
-      // Prepare credentials based on the provider
       const credentials = isEmail
-        ? { email, password }
-        : { username: email, password };
+        ? {email, password}
+        : {username: email, password};
 
       console.log(`Logging in with ${providerId}`, credentials);
 
       // Handle login with NextAuth
-      const result = await signIn(providerId, {
-        ...credentials,
-        redirect: false, // Handle redirect manually
-      });
+       const result = await signIn(providerId, {
+         ...credentials,
+         redirect: false,
+       });
 
       console.log("Login result:", result);
       if (result?.error) {
@@ -126,7 +122,7 @@ export function AuthCard({
       }
     } else {
       // Additional validation for registration
-      if(otp!== rotp) {
+      if (otp !== rotp) {
         setError("Invalid OTP");
         setLoading(false);
         return;
@@ -137,14 +133,14 @@ export function AuthCard({
         return;
       }
       console.log("Creating account...");
-      console.log(email+" "+password+" "+name+" "+rotp);
+      console.log(email + " " + password + " " + name + " " + rotp);
 
       // Handle registration via API
       try {
         const response = await fetch("/api/auth/register", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password, name }),
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({email, password, name}),
         });
 
         if (!response.ok) {
@@ -156,8 +152,8 @@ export function AuthCard({
         localStorage.setItem('auth_success', 'Account created successfully. Please sign in.');
         const sendemail = await fetch("/api/emails/welcome", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email }),
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({email}),
         });
         if (!sendemail.ok) {
           const data = await sendemail.json();
@@ -192,7 +188,8 @@ export function AuthCard({
           <CardDescription>{description}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {success && <p className="text-green-600 text-sm bg-green-50 p-2 rounded border border-green-200">{success}</p>}
+          {success &&
+						<p className="text-green-600 text-sm bg-green-50 p-2 rounded border border-green-200">{success}</p>}
           {error && <p className="text-red-500 text-sm bg-red-50 p-2 rounded border border-red-200">{error}</p>}
           <form onSubmit={handleSubmit} className="space-y-4">
             {type === "register" && (
@@ -200,7 +197,7 @@ export function AuthCard({
                 <Label htmlFor="name">Name</Label>
                 <Input
                   id="name"
-                  disabled={!otpvalidation?false:true}
+                  disabled={!otpvalidation ? false : true}
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="John Doe"
@@ -213,8 +210,7 @@ export function AuthCard({
               <Input
                 id="email"
                 type="text"
-                                  disabled={!otpvalidation?false:true}
-
+                disabled={!otpvalidation ? false : true}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="Enter email or username"
@@ -237,7 +233,7 @@ export function AuthCard({
                 <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
-                                    disabled={!otpvalidation?false:true}
+                  disabled={!otpvalidation ? false : true}
 
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -249,18 +245,18 @@ export function AuthCard({
                   className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
                   tabIndex={-1}
                 >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  {showPassword ? <EyeOff size={18}/> : <Eye size={18}/>}
                 </button>
               </div>
             </div>
-           
+
             {type === "register" && (
               <div className="space-y-2">
                 <Label htmlFor="confirmPassword">Confirm Password</Label>
                 <div className="relative">
                   <Input
                     id="confirmPassword"
-                                      disabled={!otpvalidation?false:true}
+                    disabled={!otpvalidation ? false : true}
 
                     type={showConfirmPassword ? "text" : "password"}
                     value={confirmPassword}
@@ -274,12 +270,12 @@ export function AuthCard({
                     className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
                     tabIndex={-1}
                   >
-                    {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    {showConfirmPassword ? <EyeOff size={18}/> : <Eye size={18}/>}
                   </button>
                 </div>
               </div>
             )}
-             {type === "register" && otpvalidation && (
+            {type === "register" && otpvalidation && (
               <div className="space-y-2">
                 <Label htmlFor="otp"> OTP </Label>
                 <div className="relative">
@@ -290,22 +286,7 @@ export function AuthCard({
                     onChange={(e) => setRotp(e.target.value)}
                     required
                   />
-                  </div>
-                  </div>
-)}
-            {type === "login" && (
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="remember"
-                  checked={rememberMe}
-                  onCheckedChange={(checked: boolean) => setRememberMe(checked as boolean)}
-                />
-                <label
-                  htmlFor="remember"
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                >
-                  Remember me
-                </label>
+                </div>
               </div>
             )}
             {type === "login" && (
@@ -319,28 +300,29 @@ export function AuthCard({
               </Button>
             )}
             {type === "register" && !otpvalidation && (
-              <Button className="w-full" 
-                  type="button" 
-              onClick={async () => {
-                if(password !== confirmPassword) {
-                  setError("Passwords do not match");
-                  return;
-                }
-                const otpCode = Math.floor(1000 + Math.random() * 9000).toString();
-                setOtp(otpCode);
-                const sendemail = await fetch("/api/emails/otp", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ email, otp: otpCode}),
-                });
-                if (!sendemail.ok) {
-                  const data = await sendemail.json();
-                  console.log("Error sending welcome email:", data.error);
-                } else {
-                  setOtpValidation(true);
-                  alert("OTP sent to your email. Please check your inbox.");
-                }
-              }}>
+              <Button
+                className="w-full"
+                type="button"
+                onClick={async () => {
+                  if (password !== confirmPassword) {
+                    setError("Passwords do not match");
+                    return;
+                  }
+                  const otpCode = Math.floor(1000 + Math.random() * 9000).toString();
+                  setOtp(otpCode);
+                  const sendemail = await fetch("/api/emails/otp", {
+                    method: "POST",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify({email, otp: otpCode}),
+                  });
+                  if (!sendemail.ok) {
+                    const data = await sendemail.json();
+                    console.log("Error sending welcome email:", data.error);
+                  } else {
+                    setOtpValidation(true);
+                    alert("OTP sent to your email. Please check your inbox.");
+                  }
+                }}>
                 Send OTP
               </Button>
             )}
@@ -348,7 +330,7 @@ export function AuthCard({
 
           {showSocialLogin && (
             <>
-              <FormDivider />
+              <FormDivider/>
             </>
           )}
 

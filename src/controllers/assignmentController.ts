@@ -95,6 +95,8 @@ export class AssignmentController {
         groupId,
         attachments = [],
       } = data;
+
+      console.log("Assignment Data:", data);
       console.log("User ID:", userId);
       console.log("Teacher ID:", teacherId);
       console.log("classSectionId:", classSectionId);
@@ -157,7 +159,7 @@ export class AssignmentController {
     try {
       const formData = await request.formData();
       const assignmentId = formData.get("assignmentId") as string;
-      const file = formData.get("file") as File | null;
+      const file = formData.get("file") as File;
       const user = JSON.parse(formData.get("user"));
       console.log("User ID:", user.studentId);
       if (!assignmentId) {
@@ -170,6 +172,7 @@ export class AssignmentController {
       const assignment = await AssignmentService.getAssignmentById(
         assignmentId
       );
+
       if (!assignment) {
         return NextResponse.json(
           {error: "Assignment not found"},
@@ -178,20 +181,12 @@ export class AssignmentController {
       }
 
 
-      let fileData;
-      if (file) {
-        const buffer = Buffer.from(await file.arrayBuffer());
-        fileData = {
-          buffer,
-          originalName: file.name,
-          mimetype: file.type,
-        };
-      }
       const studentExists = await prisma.student.findUnique({
         where: {
           id: user.studentId,
-        },
+        }
       });
+
       if (!studentExists) {
         console.log("Student not found");
         return NextResponse.json(
@@ -204,7 +199,7 @@ export class AssignmentController {
         userId: user.id,
         assignmentId,
         studentId: user.studentId,
-        file: fileData,
+        file
       });
 
       return NextResponse.json(submission, {status: 201});
@@ -219,8 +214,6 @@ export class AssignmentController {
 
   static async getAssignments(request: NextRequest): Promise<NextResponse> {
     try {
-
-
       const classSectionId =
         request.nextUrl.searchParams.get("classSectionId") || undefined;
 

@@ -36,11 +36,8 @@ interface FormData {
   email: string;
   website: string;
   userId: string;
-  logoUrl: string; // This will store the Cloudinary URL
+  logoUrl: string;
   primaryColor: string;
-  //approxStudents: number;
-  //numTeachers: number;
-  //institutionDocument: File | null;
 }
 interface Verification {
   approxStudents: number;
@@ -109,22 +106,13 @@ export default function CreateInstitutionForm({ userId, email }: CreateInstituti
     }
   };
 
-  const uploadImageToCloudinary = useCallback(async (file: File): Promise<string> => {
+  const uploadImageToS3 = useCallback(async (file: File): Promise<string> => {
     try {
-      const arrayBuffer = await file.arrayBuffer();
-      const buffer = Buffer.from(arrayBuffer);
-
-      // Upload to S3
-      const key = await S3Utils.uploadFile(buffer, file.name, file.type);
-
-      // Get both URLs
-      const signedUrl = await S3Utils.getFileUrl(key);
+      const key = await S3Utils.uploadFile(file, file.name, file.type);
       const publicUrl = S3Utils.getPublicUrl(key);
-
-      console.log(publicUrl)
-      return publicUrl; // Return the public URL for the image
+      return publicUrl;
     } catch (err) {
-      console.error("Cloudinary upload error:", err);
+      console.error("S3 upload error:", err);
       throw new Error("Image upload failed. Please try again.");
     }
   }, []);
@@ -138,7 +126,7 @@ export default function CreateInstitutionForm({ userId, email }: CreateInstituti
       let uploadedLogoUrl = data.logoUrl;
 
       if (logoFile) {
-        uploadedLogoUrl = await uploadImageToCloudinary(logoFile);
+        uploadedLogoUrl = await uploadImageToS3(logoFile);
       }
 
       const submissionData = {
@@ -150,7 +138,7 @@ export default function CreateInstitutionForm({ userId, email }: CreateInstituti
       console.log("Submitting Institution Data:", submissionData);
 
       // Step 1: Create Institution
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/institutions`, {
+      const res = await fetch(`/api/institutions`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(submissionData),
@@ -162,7 +150,7 @@ export default function CreateInstitutionForm({ userId, email }: CreateInstituti
 
       if (!institution.id) throw new Error("Institution ID is missing from the response.");
 
-      const updateUserRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/${userId}`, {
+      const updateUserRes = await fetch(`/api/users/${userId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ institutionId: institution.id }),
@@ -185,7 +173,7 @@ export default function CreateInstitutionForm({ userId, email }: CreateInstituti
           userId: userId,
           institutionid: institution.id,
           institutionName: data.name,
-          document: institutionDocumentFile ? await uploadImageToCloudinary(institutionDocumentFile) : "",
+          document: institutionDocumentFile ? await uploadImageToS3(institutionDocumentFile) : "",
           studentcounts: verify.getValues("approxStudents"),
           teachercount: verify.getValues("numTeachers"),
         }),

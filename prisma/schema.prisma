@@ -385,7 +385,8 @@ model EmailForm {
   id            String         @id @default(cuid())
   subject       String
   body          String         @db.Text
-  sender        String
+  sender        Sender
+  name          String
   attachments   String[]       @map("attachments")
   createdAt     DateTime       @default(now()) @map("created_at")
   updatedAt     DateTime       @updatedAt @map("updated_at")
@@ -1433,6 +1434,11 @@ enum PaymentStatus {
   OVERDUE
   REFUNDED
   PARTIAL
+}
+
+enum Sender {
+  TEACHER
+  ADMIN
 }
 
 enum PaymentTerms {
