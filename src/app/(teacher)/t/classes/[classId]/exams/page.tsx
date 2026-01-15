@@ -1,16 +1,26 @@
 // pages/teacher/exams.tsx (frontend page)
 "use client";
-import React, { useState, useEffect,useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { v4 as uuidV4 } from "uuid";
 import { format } from "date-fns";
-import Loader from '@/components/ui/Loader';
-import { Calendar, Clock, CheckCheck, X, FileText, BookOpen, GraduationCap, XCircle, PlusCircle } from 'lucide-react';
+import Loader from "@/components/ui/Loader";
+import {
+  Calendar,
+  Clock,
+  CheckCheck,
+  X,
+  FileText,
+  BookOpen,
+  GraduationCap,
+  XCircle,
+  PlusCircle,
+} from "lucide-react";
 import { forceLogout as logoutAndRedirect } from "@/lib/logout-utils";
 import { FaCopy } from "react-icons/fa";
 import { useRouter } from "next/navigation";
 import { uploadImageToS3 } from "@/utils/uploadImageToS3";
-function useDebounce(value, delay:number) {
+function useDebounce(value, delay: number) {
   // State to store debounced value
   const [debouncedValue, setDebouncedValue] = useState(value);
 
@@ -36,7 +46,7 @@ interface Question {
   answer: string | string[] | null;
   options?: string[]; // Options are still part of the interface as manual entry can be MCQ
   isSelected: boolean;
-  questionType: 'MCQ' | 'LONG_ANSWER' | "Both"; // Added questionType
+  questionType: "MCQ" | "LONG_ANSWER" | "Both"; // Added questionType
   diagramImgURL?: string[];
 }
 
@@ -120,8 +130,10 @@ interface Exam {
 export default function ExamsPage() {
   const router = useRouter();
 
-  const [activeTab, setActiveTab] = useState<'view' | 'create' | 'copy-check'>('view');
-const [topic, setTopic] = useState('');
+  const [activeTab, setActiveTab] = useState<"view" | "create" | "copy-check">(
+    "view"
+  );
+  const [topic, setTopic] = useState("");
   // Use the custom hook here
   const debouncedTopic = useDebounce(topic, 500); // 500ms debounce
   const [fetchedPdfs, setFetchedPdfs] = useState([]);
@@ -138,7 +150,7 @@ const [topic, setTopic] = useState('');
   const [loading, setLoading] = useState(false);
   const [numLongQuestions, setNumLongQuestions] = useState<string>("0");
   const [numMCQQuestions, setNumMCQQuestions] = useState<string>("0");
-  const [questionMode, setQuestionMode] = useState(true) // false for AI, true for Manual
+  const [questionMode, setQuestionMode] = useState(true); // false for AI, true for Manual
 
   // New states for additional exam fields
   const [classSections, setClassSections] = useState<TeacherClassSection[]>([]);
@@ -158,22 +170,27 @@ const [topic, setTopic] = useState('');
   const [loadingExamDetails, setLoadingExamDetails] = useState(false);
   const [creditsData, setcreditsData] = useState<any>(null);
 
-  const [difficulty, setDifficulty] = useState<'Easy' | 'Medium' | 'Hard'>("Hard");
-
+  const [difficulty, setDifficulty] = useState<"Easy" | "Medium" | "Hard">(
+    "Hard"
+  );
 
   const [selectedPages, setSelectedPages] = useState<number[]>([]);
 
-  const [selectedQuestionType, setSelectedQuestionType] = useState<'MCQ' | 'LONG_ANSWER' | 'Both'>('MCQ');
+  const [selectedQuestionType, setSelectedQuestionType] = useState<
+    "MCQ" | "LONG_ANSWER" | "Both"
+  >("MCQ");
 
   const [pdfPageImages, setPdfPageImages] = useState<string[]>([]);
   const [isProcessingPdf, setIsProcessingPdf] = useState(false);
-  const [startPage, setStartPage] = useState<string>('1');
-  const [endPage, setEndPage] = useState<string>('');
+  const [startPage, setStartPage] = useState<string>("1");
+  const [endPage, setEndPage] = useState<string>("");
   const [instituteId, setInstituteId] = useState();
   const [instituteAdminId, setInstituteAdminId] = useState();
 
   const [uploadingDiagram, setUploadingDiagram] = useState(false);
-  const [selectedQuestionForDiagram, setSelectedQuestionForDiagram] = useState<number | null>(null);
+  const [selectedQuestionForDiagram, setSelectedQuestionForDiagram] = useState<
+    number | null
+  >(null);
 
   useEffect(() => {
     console.log("All questions: ", questions);
@@ -186,20 +203,23 @@ const [topic, setTopic] = useState('');
     if (endDate < startDate) {
       endDate.setDate(endDate.getDate() + 1);
     }
-
   }, [startTime, endTime, examDate]);
-const fetchPdfsForTopic = useCallback(async () => {
+  const fetchPdfsForTopic = useCallback(async () => {
     // Only fetch if a topic is typed and no file is uploaded
     if (debouncedTopic.trim().length > 0) {
       setLoadingPdfs(true);
       setFetchedPdfs([]);
-      setPdfUrl('');
+      setPdfUrl("");
       setSelectedPdf(null);
       setShowPdfOptions(true);
 
       try {
-        const encodedTopic = encodeURIComponent(debouncedTopic + " question bank");
-        const response = await axios.get(`https://api.aiclassroom.in/api/v1/videoData/generateaPdfLink/${encodedTopic}`);
+        const encodedTopic = encodeURIComponent(
+          debouncedTopic + " question bank"
+        );
+        const response = await axios.get(
+          `https://api.aiclassroom.in/api/v1/videoData/generateaPdfLink/${encodedTopic}`
+        );
         const pdfs = response.data?.pdfLinks || [];
         setFetchedPdfs(pdfs);
       } catch (err) {
@@ -227,10 +247,9 @@ const fetchPdfsForTopic = useCallback(async () => {
     // You can also immediately process the selected PDF if needed
     // await processPdfForPreview(pdfLink);
     setPdfUrl(pdfLink.link);
-            setShowPdfOptions(false);
+    setShowPdfOptions(false);
 
-      await processPdfForPreview(pdfLink.link);
-
+    await processPdfForPreview(pdfLink.link);
   };
   useEffect(() => {
     if (localStorage.getItem("user")) {
@@ -238,12 +257,17 @@ const fetchPdfsForTopic = useCallback(async () => {
         const now = new Date();
         const month = now.getMonth() + 1; // getMonth() is zero-based
         const year = now.getFullYear();
-        const result = await fetch(`/api/credits/${JSON.parse(localStorage.getItem("user")!).institutionId}?month=${month}&year=${year}`, {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json"
+        const result = await fetch(
+          `/api/credits/${
+            JSON.parse(localStorage.getItem("user")!).institutionId
+          }?month=${month}&year=${year}`,
+          {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+            },
           }
-        })
+        );
         if (result.ok) {
           const res = await result.json();
           setcreditsData(res);
@@ -251,38 +275,52 @@ const fetchPdfsForTopic = useCallback(async () => {
         } else {
           alert("Error in fetching credits data");
         }
-      }
+      };
       // getData();
     }
-  }, [])
+  }, []);
 
   const updateCoins = async (QuestionCount: Number) => {
     const now = new Date();
     const month = now.getMonth() + 1; // getMonth() is zero-based
     const year = now.getFullYear();
-    console.log("Current Credit Balance", creditsData)
+    console.log("Current Credit Balance", creditsData);
 
-    const result = await fetch(`/api/credits/${JSON.parse(localStorage.getItem("user")!).institutionId}?month=${month}&year=${year}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        questionPaperCreditsBalance: creditsData ? Number(creditsData?.questionPaperCreditsBalance) + (questionMode ? 0.5 * Number(QuestionCount) : Number(QuestionCount)) : 0,
-        total: creditsData ? Number(creditsData?.total) + (questionMode ? 0.5 * Number(QuestionCount) : Number(QuestionCount)) : 0
-      })
-
-    })
+    const result = await fetch(
+      `/api/credits/${
+        JSON.parse(localStorage.getItem("user")!).institutionId
+      }?month=${month}&year=${year}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          questionPaperCreditsBalance: creditsData
+            ? Number(creditsData?.questionPaperCreditsBalance) +
+              (questionMode
+                ? 0.5 * Number(QuestionCount)
+                : Number(QuestionCount))
+            : 0,
+          total: creditsData
+            ? Number(creditsData?.total) +
+              (questionMode
+                ? 0.5 * Number(QuestionCount)
+                : Number(QuestionCount))
+            : 0,
+        }),
+      }
+    );
     if (result.ok) {
       const res = await result.json();
     } else {
       // Handle error updating credits
     }
-  }
+  };
 
   // Force logout and redirect to login
   const forceLogout = () => {
-    const errorMessage = 'Your session was invalid. Please log in again.';
+    const errorMessage = "Your session was invalid. Please log in again.";
     // Use the utility function with a custom error message and delay
     logoutAndRedirect(errorMessage, 2000);
   };
@@ -290,7 +328,7 @@ const fetchPdfsForTopic = useCallback(async () => {
   const uploadFileToS3 = async (file: File) => {
     try {
       const formData = new FormData();
-      formData.append('pdf', file);
+      formData.append("pdf", file);
 
       // Create a custom XMLHttpRequest to track upload progress
       return new Promise<{
@@ -301,9 +339,11 @@ const fetchPdfsForTopic = useCallback(async () => {
       }>((resolve, reject) => {
         const xhr = new XMLHttpRequest();
 
-        xhr.upload.addEventListener('progress', (event) => {
+        xhr.upload.addEventListener("progress", (event) => {
           if (event.lengthComputable) {
-            const percentComplete = Math.round((event.loaded / event.total) * 100);
+            const percentComplete = Math.round(
+              (event.loaded / event.total) * 100
+            );
             // You can update a progress bar here if needed
           }
         });
@@ -317,10 +357,10 @@ const fetchPdfsForTopic = useCallback(async () => {
                   url: response.url,
                   fileName: response.fileName,
                   fileType: response.fileType,
-                  fileSize: response.fileSize
+                  fileSize: response.fileSize,
                 });
               } else {
-                reject(new Error(response.message || 'Upload failed'));
+                reject(new Error(response.message || "Upload failed"));
               }
             } else {
               reject(new Error(`Upload failed with status: ${xhr.status}`));
@@ -328,7 +368,7 @@ const fetchPdfsForTopic = useCallback(async () => {
           }
         };
 
-        xhr.open('POST', '/api/upload/pdf', true);
+        xhr.open("POST", "/api/upload/pdf", true);
         xhr.send(formData);
       });
     } catch (error) {
@@ -343,8 +383,8 @@ const fetchPdfsForTopic = useCallback(async () => {
       setError("");
 
       const splitRes = await axios.post(`https://py.aiclassroom.in/process/`, {
-        "file_url": fileUrl,
-        "file_uid": uuidV4()
+        file_url: fileUrl,
+        file_uid: uuidV4(),
       });
 
       const pageImages = splitRes.data["Pdf_Pages_Data"];
@@ -357,14 +397,16 @@ const fetchPdfsForTopic = useCallback(async () => {
       setPdfPageImages(pageImages);
 
       // MODIFIED: Set the new state variables to default to the full document range.
-      const allPageNumbers = Array.from({ length: pageImages.length }, (_, i) => i + 1);
+      const allPageNumbers = Array.from(
+        { length: pageImages.length },
+        (_, i) => i + 1
+      );
       setSelectedPages(allPageNumbers);
-      setSelectedQuestionType('MCQ'); // Reset question type to default
+      setSelectedQuestionType("MCQ"); // Reset question type to default
 
       // Automatically set the page range inputs to the full document range
-      setStartPage('1');
+      setStartPage("1");
       setEndPage(String(pageImages.length));
-
     } catch (err) {
       console.error("Error processing PDF:", err);
       setError("Failed to process PDF for preview. Please try another file.");
@@ -372,7 +414,6 @@ const fetchPdfsForTopic = useCallback(async () => {
       setPdfPageImages([]);
     } finally {
       setIsProcessingPdf(false);
-
     }
   };
 
@@ -382,8 +423,16 @@ const fetchPdfsForTopic = useCallback(async () => {
     const end = parseInt(endPage, 10);
     const totalPages = pdfPageImages.length;
 
-    if (isNaN(start) || isNaN(end) || start < 1 || end > totalPages || start > end) {
-      setError(`Invalid page range. Please enter numbers between 1 and ${totalPages}.`);
+    if (
+      isNaN(start) ||
+      isNaN(end) ||
+      start < 1 ||
+      end > totalPages ||
+      start > end
+    ) {
+      setError(
+        `Invalid page range. Please enter numbers between 1 and ${totalPages}.`
+      );
       setSelectedPages([]); // Clear selection on error
       return;
     }
@@ -403,7 +452,7 @@ const fetchPdfsForTopic = useCallback(async () => {
       console.log("Checking authentication status...");
 
       // First try to get user data from localStorage
-      const storedUser = localStorage.getItem('user');
+      const storedUser = localStorage.getItem("user");
       let userData = null;
 
       if (storedUser) {
@@ -412,8 +461,10 @@ const fetchPdfsForTopic = useCallback(async () => {
           console.log("Found stored user data:", userData);
 
           // If we have valid teacher data in localStorage, we can proceed
-          if (userData?.role === 'TEACHER' && userData?.teacherId) {
-            console.log("User is authenticated as a teacher based on localStorage");
+          if (userData?.role === "TEACHER" && userData?.teacherId) {
+            console.log(
+              "User is authenticated as a teacher based on localStorage"
+            );
             return true;
           }
         } catch (e) {
@@ -424,8 +475,8 @@ const fetchPdfsForTopic = useCallback(async () => {
       // If we don't have valid data in localStorage or it's not a teacher,
       // check with the server
       console.log("Checking authentication with server...");
-      const response = await axios.get('/api/auth/session', {
-        withCredentials: true
+      const response = await axios.get("/api/auth/session", {
+        withCredentials: true,
       });
 
       if (!response.data?.user?.role) {
@@ -435,7 +486,7 @@ const fetchPdfsForTopic = useCallback(async () => {
         return false;
       }
 
-      if (response.data.user.role !== 'TEACHER') {
+      if (response.data.user.role !== "TEACHER") {
         console.error(`User role is ${response.data.user.role}, not TEACHER`);
         setError("Only teachers can access this page");
         forceLogout();
@@ -445,8 +496,8 @@ const fetchPdfsForTopic = useCallback(async () => {
       // Fetch teacher details to get the teacherId if not already in the user data
       if (!response.data.user.teacherId) {
         try {
-          const teacherResponse = await axios.get('/api/teacher/profile', {
-            withCredentials: true
+          const teacherResponse = await axios.get("/api/teacher/profile", {
+            withCredentials: true,
           });
 
           if (teacherResponse.data && teacherResponse.data.id) {
@@ -467,10 +518,9 @@ const fetchPdfsForTopic = useCallback(async () => {
       }
 
       // Update localStorage with current user data
-      localStorage.setItem('user', JSON.stringify(response.data.user));
+      localStorage.setItem("user", JSON.stringify(response.data.user));
       console.log("User is authenticated as a teacher via API");
       return true;
-
     } catch (err) {
       console.error("Authentication check failed:", err);
       setError("Authentication failed. Please try logging in again.");
@@ -498,14 +548,14 @@ const fetchPdfsForTopic = useCallback(async () => {
   const fetchClassSections = async () => {
     try {
       // Get the user data from localStorage to extract teacherId
-      const storedUser = localStorage.getItem('user');
-      let teacherId = '';
+      const storedUser = localStorage.getItem("user");
+      let teacherId = "";
 
       if (storedUser) {
         try {
           const userData = JSON.parse(storedUser);
           teacherId = userData?.teacherId;
-          setInstituteId(userData?.institutionId)
+          setInstituteId(userData?.institutionId);
           if (!teacherId) {
             setError("Teacher ID not found");
             return;
@@ -522,7 +572,7 @@ const fetchPdfsForTopic = useCallback(async () => {
 
       // Call the new API endpoint with the teacherId
       const response = await axios.get(`/api/teachers/${teacherId}/section`, {
-        withCredentials: true
+        withCredentials: true,
       });
 
       // Update state with the response data
@@ -532,7 +582,6 @@ const fetchPdfsForTopic = useCallback(async () => {
       if (response.data.length > 0) {
         setSelectedClassSection(response.data[0].section.id);
       }
-
     } catch (err: any) {
       console.error("Error fetching class sections:", err);
       setError(err.response?.data?.error || "Failed to fetch class sections");
@@ -540,7 +589,7 @@ const fetchPdfsForTopic = useCallback(async () => {
   };
 
   const fetchExams = async () => {
-    const storedData = localStorage.getItem('user');
+    const storedData = localStorage.getItem("user");
     const userData = storedData ? JSON.parse(storedData) : null;
     try {
       setLoadingExams(true);
@@ -558,7 +607,7 @@ const fetchPdfsForTopic = useCallback(async () => {
     }
   };
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = new Date().toISOString().split("T")[0];
 
   // NEW: Handler for when the duration is changed
   const handleDurationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -567,12 +616,15 @@ const fetchPdfsForTopic = useCallback(async () => {
 
     // If a start time is already set, automatically calculate the end time
     if (startTime && newDuration && parseInt(newDuration) > 0) {
-      const [hours, minutes] = startTime.split(':').map(Number);
+      const [hours, minutes] = startTime.split(":").map(Number);
       const startDate = new Date();
       startDate.setHours(hours, minutes, 0, 0);
       startDate.setMinutes(startDate.getMinutes() + parseInt(newDuration, 10));
 
-      const newEndTime = `${String(startDate.getHours()).padStart(2, '0')}:${String(startDate.getMinutes()).padStart(2, '0')}`;
+      const newEndTime = `${String(startDate.getHours()).padStart(
+        2,
+        "0"
+      )}:${String(startDate.getMinutes()).padStart(2, "0")}`;
       setEndTime(newEndTime);
     }
   };
@@ -584,12 +636,17 @@ const fetchPdfsForTopic = useCallback(async () => {
 
     // If a duration is already set, automatically calculate the end time
     if (newStartTime && durationMinutes && parseInt(durationMinutes) > 0) {
-      const [hours, minutes] = newStartTime.split(':').map(Number);
+      const [hours, minutes] = newStartTime.split(":").map(Number);
       const startDate = new Date();
       startDate.setHours(hours, minutes, 0, 0);
-      startDate.setMinutes(startDate.getMinutes() + parseInt(durationMinutes, 10));
+      startDate.setMinutes(
+        startDate.getMinutes() + parseInt(durationMinutes, 10)
+      );
 
-      const newEndTime = `${String(startDate.getHours()).padStart(2, '0')}:${String(startDate.getMinutes()).padStart(2, '0')}`;
+      const newEndTime = `${String(startDate.getHours()).padStart(
+        2,
+        "0"
+      )}:${String(startDate.getMinutes()).padStart(2, "0")}`;
       setEndTime(newEndTime);
     }
   };
@@ -641,18 +698,18 @@ const fetchPdfsForTopic = useCallback(async () => {
     //   console.log(err);
     // }
 
-
     // alert("failed create exam");
     // return;
 
     setError("");
-    const selectedQuestions = questions.filter((q) => q.isSelected)
+    const selectedQuestions = questions
+      .filter((q) => q.isSelected)
       .map(({ question, answer, options, questionType, diagramImgURL }) => ({
         question,
         answer,
         options,
         questionType,
-        diagramImgURL
+        diagramImgURL,
       }));
 
     if (selectedQuestions.length === 0) {
@@ -667,26 +724,41 @@ const fetchPdfsForTopic = useCallback(async () => {
         return;
       }
 
-      if (!q.answer || (Array.isArray(q.answer) && q.answer.length === 0) || (typeof q.answer === 'string' && !q.answer.trim())) {
+      if (
+        !q.answer ||
+        (Array.isArray(q.answer) && q.answer.length === 0) ||
+        (typeof q.answer === "string" && !q.answer.trim())
+      ) {
         setError(`Question "${q.question}" must have an answer.`);
         return;
       }
 
-      if (q.questionType === 'MCQ') {
-        if (!q.options || q.options.length < 2 || q.options.some(opt => !opt.trim())) {
-          setError(`MCQ question "${q.question}" must have at least two non-empty options.`);
+      if (q.questionType === "MCQ") {
+        if (
+          !q.options ||
+          q.options.length < 2 ||
+          q.options.some((opt) => !opt.trim())
+        ) {
+          setError(
+            `MCQ question "${q.question}" must have at least two non-empty options.`
+          );
           return;
         }
 
         // For MCQ, ensure the answer is one of the options (case-insensitive and trim)
-        if (typeof q.answer === 'string' && !q.options.map(opt => opt.trim().toLowerCase()).includes(q.answer.trim().toLowerCase())) {
-
-          setError(`MCQ question ${q.question}'s answer must be one of the provided options.`);
+        if (
+          typeof q.answer === "string" &&
+          !q.options
+            .map((opt) => opt.trim().toLowerCase())
+            .includes(q.answer.trim().toLowerCase())
+        ) {
+          setError(
+            `MCQ question ${q.question}'s answer must be one of the provided options.`
+          );
           return;
         }
       }
     }
-
 
     if (!examTitle.trim()) {
       setError("Please enter an exam title");
@@ -765,7 +837,7 @@ const fetchPdfsForTopic = useCallback(async () => {
       const response = await axios.post(
         "/api/exam/create", // Ensure this path is correct based on your API route file
         {
-          userId: JSON.parse(localStorage.getItem('user')!),
+          userId: JSON.parse(localStorage.getItem("user")!),
           title: examTitle,
           questions: selectedQuestions,
           classSectionId: selectedClassSection,
@@ -796,7 +868,7 @@ const fetchPdfsForTopic = useCallback(async () => {
         setPassingMarks("");
         setNumLongQuestions("2");
         setError("");
-        setActiveTab('view');
+        setActiveTab("view");
 
         fetchExams();
       }
@@ -807,55 +879,71 @@ const fetchPdfsForTopic = useCallback(async () => {
       setLoading(false);
     }
   };
-const takeoutQuestions = (response: any): Question[] => {
-  const questions: Question[] = [];
-  if (response && response.questions && Array.isArray(response.questions)) {
-    response.questions.forEach((q: any) => {
-      if (q.title) {
-        const question: Question = {
-          question: q.title,
-          options: q.options,
-          answer: q.correct,
-          isSelected: false,
-          questionType: q.options.length > 0 ? 'MCQ' : 'LONG_ANSWER',
-        };
-        questions.push(question);
-      }
-    });
-  }
-  return questions;
-};
+  const takeoutQuestions = (response: any): Question[] => {
+    const questions: Question[] = [];
+    if (response && response.questions && Array.isArray(response.questions)) {
+      response.questions.forEach((q: any) => {
+        if (q.title) {
+          const question: Question = {
+            question: q.title,
+            options: q.options,
+            answer: q.correct,
+            isSelected: false,
+            questionType: q.options.length > 0 ? "MCQ" : "LONG_ANSWER",
+          };
+          questions.push(question);
+        }
+      });
+    }
+    return questions;
+  };
 
   const mapApiResponseToQuestions = (response: any): Question[] => {
     setError("");
     const mappedQuestions: Question[] = [];
     const questionCount = response.question_count;
 
-    if (!questionCount || typeof questionCount !== 'number' || questionCount <= 0) {
+    if (
+      !questionCount ||
+      typeof questionCount !== "number" ||
+      questionCount <= 0
+    ) {
       return [];
     }
 
-    const firstQuestionData = response['q_1'];
+    const firstQuestionData = response["q_1"];
 
-    const questionType: 'MCQ' | 'LONG_ANSWER' =
-      firstQuestionData && Array.isArray(firstQuestionData.options) && firstQuestionData.options.length > 0
-        ? 'MCQ'
-        : 'LONG_ANSWER';
+    const questionType: "MCQ" | "LONG_ANSWER" =
+      firstQuestionData &&
+      Array.isArray(firstQuestionData.options) &&
+      firstQuestionData.options.length > 0
+        ? "MCQ"
+        : "LONG_ANSWER";
 
     for (let i = 1; i <= questionCount; i++) {
       const key = `q_${i}`;
       const rawQuestion = response[key];
 
       if (!rawQuestion) {
-        console.warn(`Skipping question q_${i}: Data is missing in the API response.`);
+        console.warn(
+          `Skipping question q_${i}: Data is missing in the API response.`
+        );
         continue;
       }
 
       let newQuestion: Question | null = null;
 
-      if (questionType === 'MCQ') {
-        if (!rawQuestion.title || !rawQuestion.correct || !Array.isArray(rawQuestion.options) || rawQuestion.options.length === 0) {
-          console.warn(`Skipping invalid MCQ q_${i}: Missing title, correct answer, or options.`, rawQuestion);
+      if (questionType === "MCQ") {
+        if (
+          !rawQuestion.title ||
+          !rawQuestion.correct ||
+          !Array.isArray(rawQuestion.options) ||
+          rawQuestion.options.length === 0
+        ) {
+          console.warn(
+            `Skipping invalid MCQ q_${i}: Missing title, correct answer, or options.`,
+            rawQuestion
+          );
           continue;
         }
 
@@ -864,23 +952,32 @@ const takeoutQuestions = (response: any): Question[] => {
         const optionText = rawQuestion.options[index];
 
         if (!optionText) {
-          console.warn(`Skipping invalid MCQ q_${i}: Correct answer letter '${correctLetter}' does not correspond to a valid option.`, rawQuestion);
+          console.warn(
+            `Skipping invalid MCQ q_${i}: Correct answer letter '${correctLetter}' does not correspond to a valid option.`,
+            rawQuestion
+          );
           continue;
         }
 
-        const correctAnswerText = optionText.substring(optionText.indexOf(' ') + 1).trim();
-        const cleanedOptions = rawQuestion.options.map((opt: string) => opt.replace(/^[a-zA-Z][\.\)]\s*/, '').trim());
+        const correctAnswerText = optionText
+          .substring(optionText.indexOf(" ") + 1)
+          .trim();
+        const cleanedOptions = rawQuestion.options.map((opt: string) =>
+          opt.replace(/^[a-zA-Z][\.\)]\s*/, "").trim()
+        );
         newQuestion = {
           question: rawQuestion.title,
           options: cleanedOptions,
           answer: correctAnswerText,
           isSelected: false,
-          questionType: 'MCQ',
+          questionType: "MCQ",
         };
-
       } else {
         if (!rawQuestion.title || !rawQuestion.correct) {
-          console.warn(`Skipping invalid Long Answer q_${i}: Missing title or correct answer.`, rawQuestion);
+          console.warn(
+            `Skipping invalid Long Answer q_${i}: Missing title or correct answer.`,
+            rawQuestion
+          );
           continue;
         }
 
@@ -889,7 +986,7 @@ const takeoutQuestions = (response: any): Question[] => {
           options: [],
           answer: rawQuestion.correct,
           isSelected: false,
-          questionType: 'LONG_ANSWER',
+          questionType: "LONG_ANSWER",
         };
       }
 
@@ -897,11 +994,15 @@ const takeoutQuestions = (response: any): Question[] => {
         newQuestion &&
         newQuestion.question?.trim() &&
         newQuestion.answer &&
-        (typeof newQuestion.answer === 'string' && newQuestion.answer.trim() !== '')
+        typeof newQuestion.answer === "string" &&
+        newQuestion.answer.trim() !== ""
       ) {
         mappedQuestions.push(newQuestion);
       } else {
-        console.warn(`Discarding a malformed question object due to empty title or answer after processing. Original data:`, rawQuestion);
+        console.warn(
+          `Discarding a malformed question object due to empty title or answer after processing. Original data:`,
+          rawQuestion
+        );
       }
     }
 
@@ -916,8 +1017,13 @@ const takeoutQuestions = (response: any): Question[] => {
     try {
       setError("");
       // All previous validations remain
-      if ((Number(numLongQuestions) < 2 && Number(numMCQQuestions) === 0) || (Number(numLongQuestions) === 0 && Number(numMCQQuestions) < 2)) {
-        setError("Please select at least one question type for AI generated questions (MCQ/Long Question). You can select multiple pages for each question type.");
+      if (
+        (Number(numLongQuestions) < 2 && Number(numMCQQuestions) === 0) ||
+        (Number(numLongQuestions) === 0 && Number(numMCQQuestions) < 2)
+      ) {
+        setError(
+          "Please select at least one question type for AI generated questions (MCQ/Long Question). You can select multiple pages for each question type."
+        );
         return;
       }
       if (!examTitle.trim()) {
@@ -946,8 +1052,11 @@ const takeoutQuestions = (response: any): Question[] => {
       }
 
       // New validation for PDF and question type setup
-      if (!pdfUrl || selectedPages.length === 0) { // New check
-        setError("Please upload a PDF and apply a page range before creating the exam.");
+      if (!pdfUrl || selectedPages.length === 0) {
+        // New check
+        setError(
+          "Please upload a PDF and apply a page range before creating the exam."
+        );
         return;
       }
 
@@ -959,18 +1068,20 @@ const takeoutQuestions = (response: any): Question[] => {
       let longPageImages: string[] = [];
 
       // Check the single dropdown's value to decide which lists to populate
-      if (selectedQuestionType === 'MCQ' || selectedQuestionType === 'Both') {
+      if (selectedQuestionType === "MCQ" || selectedQuestionType === "Both") {
         // Get image URLs for all selected pages for MCQs
-        mcqPageImages = selectedPages.map(pgNum => pdfPageImages[pgNum - 1]);
+        mcqPageImages = selectedPages.map((pgNum) => pdfPageImages[pgNum - 1]);
       }
 
-      if (selectedQuestionType === 'LONG_ANSWER' || selectedQuestionType === 'Both') {
+      if (
+        selectedQuestionType === "LONG_ANSWER" ||
+        selectedQuestionType === "Both"
+      ) {
         // Get image URLs for all selected pages for Long Answers
-        longPageImages = selectedPages.map(pgNum => pdfPageImages[pgNum - 1]);
+        longPageImages = selectedPages.map((pgNum) => pdfPageImages[pgNum - 1]);
       }
 
       let allQuestions: Array<Question> = [];
-
 
       // Generate MCQ questions if pages were selected for it
       // if (mcqPageImages.length > 0) {
@@ -987,48 +1098,62 @@ const takeoutQuestions = (response: any): Question[] => {
       //   allQuestions = [...allQuestions, ...mapApiResponseToQuestions(generateMcqQuestions.data)];
       // }
 
-
       //coin things
-      console.log('instituteid --- ', instituteId);
+      console.log("instituteid --- ", instituteId);
       try {
-        const instResponse = await axios.get(`/api/institutions/${instituteId}/getadmin`);
-        console.log('instResponse ---', instResponse);
-        console.log('instResponse id ---', instResponse?.data?.id);
+        const instResponse = await axios.get(
+          `/api/institutions/${instituteId}/getadmin`
+        );
+        console.log("instResponse ---", instResponse);
+        console.log("instResponse id ---", instResponse?.data?.id);
 
         const coinRes = await axios.get(`/api/coins/${instResponse?.data?.id}`);
-        console.log('coinRes ---', coinRes);
+        console.log("coinRes ---", coinRes);
 
         let coinsToDeduct = allQuestions.length * 0.2;
 
         if (coinRes.data.coins < coinsToDeduct) {
-          alert('Institute dosenot have enough Coins! Please Contact Institute Admin.');
+          alert(
+            "Institute dosenot have enough Coins! Please Contact Institute Admin."
+          );
           return;
         }
 
-        const resul1 = await axios.post(`/api/coins/${instResponse?.data?.id}?coins=${coinsToDeduct}`, null, {
-          headers: {
-            "Content-Type": "application/json"
+        const resul1 = await axios.post(
+          `/api/coins/${instResponse?.data?.id}?coins=${coinsToDeduct}`,
+          null,
+          {
+            headers: {
+              "Content-Type": "application/json",
+            },
           }
-        });
+        );
 
-        const coinRes2 = await axios.get(`/api/coins/${instResponse?.data?.id}`);
-        console.log('coinRes ---', coinRes2);
-
+        const coinRes2 = await axios.get(
+          `/api/coins/${instResponse?.data?.id}`
+        );
+        console.log("coinRes ---", coinRes2);
       } catch (err) {
         console.log(err);
       }
- if( mcqPageImages.length >= 0 || longPageImages.length >= 0) {
-        const generateMixedQuestions = await axios.post(`https://py.aiclassroom.in/generate_questions_mixed`, {
-          image_urls: [...mcqPageImages, ...longPageImages],
-          total_mcq: parseInt(numMCQQuestions),
-          total_long: parseInt(numLongQuestions),
-          question_type_long: `${difficulty} Level long questions for General Test`,
-          question_type_mcq: `${difficulty} Level MCQ questions for General Test`
-        }, {
-        });
+      if (mcqPageImages.length >= 0 || longPageImages.length >= 0) {
+        const generateMixedQuestions = await axios.post(
+          `https://py.aiclassroom.in/generate_questions_mixed`,
+          {
+            image_urls: [...mcqPageImages, ...longPageImages],
+            total_mcq: parseInt(numMCQQuestions),
+            total_long: parseInt(numLongQuestions),
+            question_type_long: `${difficulty} Level long questions for General Test`,
+            question_type_mcq: `${difficulty} Level MCQ questions for General Test`,
+          },
+          {}
+        );
         console.log("Mixed questions ", generateMixedQuestions.data);
-        allQuestions = [...allQuestions, ...takeoutQuestions(generateMixedQuestions.data)];
-      }else{
+        allQuestions = [
+          ...allQuestions,
+          ...takeoutQuestions(generateMixedQuestions.data),
+        ];
+      } else {
         setError("Please select at least one page for question generation.");
         setLoading(false);
         return;
@@ -1052,7 +1177,9 @@ const takeoutQuestions = (response: any): Question[] => {
       // }
 
       if (allQuestions.length === 0) {
-        setError("No questions could be generated. This might be due to the content of the PDF or the page selections. Please review and try again.");
+        setError(
+          "No questions could be generated. This might be due to the content of the PDF or the page selections. Please review and try again."
+        );
         setLoading(false);
         return;
       }
@@ -1062,27 +1189,27 @@ const takeoutQuestions = (response: any): Question[] => {
       setQuestions(allQuestions);
 
       setLoading(false);
-
     } catch (err: any) {
       console.error("Error creating exam:", err);
       setError(err.response?.data?.error || "Failed to create exam");
     } finally {
       setLoading(false);
     }
-  }
+  };
 
   const handleCreateAiExams = async () => {
     // console.log('instituteid --- ', instituteId);
     // alert("failed ai exam");
     // return;
     try {
-      const selectedQuestions = questions.filter((q) => q.isSelected)
+      const selectedQuestions = questions
+        .filter((q) => q.isSelected)
         .map(({ question, answer, options, questionType, diagramImgURL }) => ({
           question,
           answer,
           options,
           questionType,
-          diagramImgURL
+          diagramImgURL,
         })); // Include questionType
 
       if (selectedQuestions.length === 0) {
@@ -1097,27 +1224,49 @@ const takeoutQuestions = (response: any): Question[] => {
           return;
         }
 
-        if (!q.answer || (Array.isArray(q.answer) && q.answer.length === 0) || (typeof q.answer === 'string' && !q.answer.trim())) {
+        if (
+          !q.answer ||
+          (Array.isArray(q.answer) && q.answer.length === 0) ||
+          (typeof q.answer === "string" && !q.answer.trim())
+        ) {
           setError(`Question "${q.question}" must have an answer.`);
           return;
         }
 
-        if (q.questionType === 'MCQ') {
-          if (!q.options || q.options.length < 2 || q.options.some(opt => !opt.trim())) {
-            setError(`MCQ question "${q.question}" must have at least two non-empty options.`);
+        if (q.questionType === "MCQ") {
+          if (
+            !q.options ||
+            q.options.length < 2 ||
+            q.options.some((opt) => !opt.trim())
+          ) {
+            setError(
+              `MCQ question "${q.question}" must have at least two non-empty options.`
+            );
             return;
           }
-          console.log("Line 526 ", q.options, "  ", q.answer)
+          console.log("Line 526 ", q.options, "  ", q.answer);
           // For MCQ, ensure the answer is one of the options (case-insensitive and trim)
-          if (typeof q.answer === 'string' && !q.options.map(opt => opt.trim().toLowerCase()).includes(q.answer.trim().toLowerCase())) {
-            setError(`MCQ question ${q.question}'s answer must be one of the provided options.`);
+          if (
+            typeof q.answer === "string" &&
+            !q.options
+              .map((opt) => opt.trim().toLowerCase())
+              .includes(q.answer.trim().toLowerCase())
+          ) {
+            setError(
+              `MCQ question ${q.question}'s answer must be one of the provided options.`
+            );
             return;
           }
         }
       }
 
-      if ((Number(numLongQuestions) < 2 && Number(numMCQQuestions) === 0) || (Number(numLongQuestions) === 0 && Number(numMCQQuestions) < 2)) {
-        setError("Please select at least one question type for AI generated questions (MCQ/Long Question). You can select multiple pages for each question type.");
+      if (
+        (Number(numLongQuestions) < 2 && Number(numMCQQuestions) === 0) ||
+        (Number(numLongQuestions) === 0 && Number(numMCQQuestions) < 2)
+      ) {
+        setError(
+          "Please select at least one question type for AI generated questions (MCQ/Long Question). You can select multiple pages for each question type."
+        );
         return;
       }
 
@@ -1148,7 +1297,9 @@ const takeoutQuestions = (response: any): Question[] => {
 
       // New validation for PDF and question type setup
       if (!pdfUrl || selectedPages.length === 0) {
-        setError("Please upload a PDF and apply a page range before creating the exam.");
+        setError(
+          "Please upload a PDF and apply a page range before creating the exam."
+        );
         return;
       }
 
@@ -1162,7 +1313,7 @@ const takeoutQuestions = (response: any): Question[] => {
       const startTimeISO = startDate.toISOString();
       const endTimeISO = endDate.toISOString();
       const response = await axios.post("/api/exam/create", {
-        userId: JSON.parse(localStorage.getItem('user')!),
+        userId: JSON.parse(localStorage.getItem("user")!),
         title: examTitle,
         questions: selectedQuestions, // Use the locally generated list, not the state variable
         classSectionId: selectedClassSection,
@@ -1181,25 +1332,24 @@ const takeoutQuestions = (response: any): Question[] => {
         setExamTitle("");
         setQuestions([]);
         setPdfUrl("");
-        setPdfPageImages([]);      // Reset new state
-        setSelectedQuestionType('MCQ');   // Reset new state
+        setPdfPageImages([]); // Reset new state
+        setSelectedQuestionType("MCQ"); // Reset new state
         setDurationMinutes("60");
         setTotalMarks("");
         setPassingMarks("");
         setNumLongQuestions("1");
         setNumMCQQuestions("1");
         setError("");
-        setActiveTab('view');
+        setActiveTab("view");
         fetchExams();
       }
-
     } catch (err: any) {
       console.error("Error creating exam:", err);
       setError(err.response?.data?.error || "Failed to create exam");
     } finally {
       setLoading(false);
     }
-  }
+  };
 
   const toggleQuestionSelection = (index: number) => {
     setQuestions(
@@ -1209,8 +1359,12 @@ const takeoutQuestions = (response: any): Question[] => {
     );
   };
 
-  const handleOptionChange = (qIndex: number, oIndex: number, value: string) => {
-    setQuestions(prevQuestions => {
+  const handleOptionChange = (
+    qIndex: number,
+    oIndex: number,
+    value: string
+  ) => {
+    setQuestions((prevQuestions) => {
       const newQuestions = [...prevQuestions];
       if (newQuestions[qIndex].options) {
         newQuestions[qIndex].options![oIndex] = value;
@@ -1220,18 +1374,18 @@ const takeoutQuestions = (response: any): Question[] => {
   };
 
   const handleAddOption = (qIndex: number) => {
-    setQuestions(prevQuestions => {
+    setQuestions((prevQuestions) => {
       const newQuestions = [...prevQuestions];
       if (!newQuestions[qIndex].options) {
         newQuestions[qIndex].options = [];
       }
-      newQuestions[qIndex].options!.push('');
+      newQuestions[qIndex].options!.push("");
       return newQuestions;
     });
   };
 
   const handleRemoveOption = (qIndex: number, oIndex: number) => {
-    setQuestions(prevQuestions => {
+    setQuestions((prevQuestions) => {
       const newQuestions = [...prevQuestions];
       if (newQuestions[qIndex].options) {
         newQuestions[qIndex].options!.splice(oIndex, 1);
@@ -1240,7 +1394,10 @@ const takeoutQuestions = (response: any): Question[] => {
     });
   };
 
-  const handleDiagramUpload = async (event: React.ChangeEvent<HTMLInputElement>, questionIndex: number) => {
+  const handleDiagramUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+    questionIndex: number
+  ) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -1250,65 +1407,79 @@ const takeoutQuestions = (response: any): Question[] => {
     try {
       const imageUrl = await uploadImageToS3(file);
 
-      setQuestions(prevQuestions => prevQuestions.map((q, idx) => {
-        if (idx === questionIndex) {
-          const diagramImgURL = [...(q.diagramImgURL || []), imageUrl];
-          return { ...q, diagramImgURL };
-        }
-        return q;
-      }));
+      setQuestions((prevQuestions) =>
+        prevQuestions.map((q, idx) => {
+          if (idx === questionIndex) {
+            const diagramImgURL = [...(q.diagramImgURL || []), imageUrl];
+            return { ...q, diagramImgURL };
+          }
+          return q;
+        })
+      );
     } catch (error) {
       console.error("Failed to upload diagram:", error);
       setError("Failed to upload diagram. Please try again.");
     } finally {
       setUploadingDiagram(false);
       setSelectedQuestionForDiagram(null);
-      event.target.value = ''; // Reset file input
+      event.target.value = ""; // Reset file input
     }
   };
 
   const handleRemoveDiagram = (questionIndex: number, diagramIndex: number) => {
-    setQuestions(prevQuestions => prevQuestions.map((q, idx) => {
-      if (idx === questionIndex && q.diagramImgURL) {
-        const diagramImgURL = q.diagramImgURL.filter((_, i) => i !== diagramIndex);
-        return { ...q, diagramImgURL };
-      }
-      return q;
-    }));
+    setQuestions((prevQuestions) =>
+      prevQuestions.map((q, idx) => {
+        if (idx === questionIndex && q.diagramImgURL) {
+          const diagramImgURL = q.diagramImgURL.filter(
+            (_, i) => i !== diagramIndex
+          );
+          return { ...q, diagramImgURL };
+        }
+        return q;
+      })
+    );
   };
 
-  const handleQuestionTypeChange = (qIndex: number, type: 'MCQ' | 'LONG_ANSWER') => {
-    setQuestions(prevQuestions => {
+  const handleQuestionTypeChange = (
+    qIndex: number,
+    type: "MCQ" | "LONG_ANSWER"
+  ) => {
+    setQuestions((prevQuestions) => {
       const newQuestions = [...prevQuestions];
       newQuestions[qIndex].questionType = type;
       // Clear options if switching to LONG_ANSWER, or initialize for MCQ if needed
-      if (type === 'LONG_ANSWER') {
+      if (type === "LONG_ANSWER") {
         newQuestions[qIndex].options = []; // Clear options for long answer
         if (Array.isArray(newQuestions[qIndex].answer)) {
-          newQuestions[qIndex].answer = ''; // Long answer expects a single string answer
+          newQuestions[qIndex].answer = ""; // Long answer expects a single string answer
         }
       } else {
         // Ensure options array exists and has some initial empty options for MCQ
-        if (!newQuestions[qIndex].options || newQuestions[qIndex].options.length === 0) {
-          newQuestions[qIndex].options = ['', '', '', ''];
+        if (
+          !newQuestions[qIndex].options ||
+          newQuestions[qIndex].options.length === 0
+        ) {
+          newQuestions[qIndex].options = ["", "", "", ""];
         }
         // If current answer is array (e.g., from a past long answer type that allowed multiple lines),
         // convert to string or clear it for MCQ.
         if (Array.isArray(newQuestions[qIndex].answer)) {
-          newQuestions[qIndex].answer = newQuestions[qIndex].answer[0] || ''; // Take first element or empty
+          newQuestions[qIndex].answer = newQuestions[qIndex].answer[0] || ""; // Take first element or empty
         }
       }
       return newQuestions;
     });
   };
 
-
   const fetchExamDetails = async (examId: string) => {
     try {
       setLoadingExamDetails(true);
-      const response = await axios.get(`/api/exam/${examId}/${JSON.parse(localStorage.getItem('user')!).id}`, {
-        withCredentials: true,
-      });
+      const response = await axios.get(
+        `/api/exam/${examId}/${JSON.parse(localStorage.getItem("user")!).id}`,
+        {
+          withCredentials: true,
+        }
+      );
       setSelectedExam(response.data.exam);
     } catch (err: any) {
       console.error("Error fetching exam details:", err);
@@ -1319,14 +1490,18 @@ const takeoutQuestions = (response: any): Question[] => {
   };
 
   const handleExamDelete = async (examId: string) => {
-    if (!confirm('Are you sure you want to delete this exam? This action cannot be undone.')) {
+    if (
+      !confirm(
+        "Are you sure you want to delete this exam? This action cannot be undone."
+      )
+    ) {
       return;
     }
 
     try {
-      const temp = localStorage.getItem('user');
+      const temp = localStorage.getItem("user");
       if (!temp) {
-        setError('User information not found');
+        setError("User information not found");
         return;
       }
 
@@ -1334,22 +1509,21 @@ const takeoutQuestions = (response: any): Question[] => {
       const teacherId = userData.teacherId || userData.id;
 
       if (!teacherId) {
-        setError('Teacher ID not found');
+        setError("Teacher ID not found");
         return;
       }
 
       const response = await axios.delete(`/api/exam/${examId}/${teacherId}`);
-      console.log('delete response ---', response);
+      console.log("delete response ---", response);
 
       // Refresh the exams list after successful deletion
       fetchExams();
 
       // Show success message (optional)
       // You could add a success state if you want to show a success message
-
     } catch (err: any) {
-      console.error('Error deleting exam:', err);
-      setError(err.response?.data?.error || 'Failed to delete exam');
+      console.error("Error deleting exam:", err);
+      setError(err.response?.data?.error || "Failed to delete exam");
     }
   };
 
@@ -1362,15 +1536,18 @@ const takeoutQuestions = (response: any): Question[] => {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
         <div>
           <h1 className="text-3xl font-bold text-gray-800">Exam Management</h1>
-          <p className="text-gray-600 mt-1">Create and manage exams for your classes</p>
+          <p className="text-gray-600 mt-1">
+            Create and manage exams for your classes
+          </p>
         </div>
         <div className="bg-white rounded-lg shadow-sm p-1 inline-flex">
           <button
-            onClick={() => setActiveTab('view')}
-            className={`px-4 py-2 rounded-md font-medium transition-colors ${activeTab === 'view'
-              ? 'bg-purple-100 text-purple-700'
-              : 'text-gray-600 hover:bg-gray-100'
-              }`}
+            onClick={() => setActiveTab("view")}
+            className={`px-4 py-2 rounded-md font-medium transition-colors ${
+              activeTab === "view"
+                ? "bg-purple-100 text-purple-700"
+                : "text-gray-600 hover:bg-gray-100"
+            }`}
           >
             <span className="flex items-center gap-2">
               <BookOpen className="h-5 w-5" />
@@ -1378,11 +1555,12 @@ const takeoutQuestions = (response: any): Question[] => {
             </span>
           </button>
           <button
-            onClick={() => setActiveTab('create')}
-            className={`px-4 py-2 rounded-md font-medium transition-colors ${activeTab === 'create'
-              ? 'bg-purple-100 text-purple-700'
-              : 'text-gray-600 hover:bg-gray-100'
-              }`}
+            onClick={() => setActiveTab("create")}
+            className={`px-4 py-2 rounded-md font-medium transition-colors ${
+              activeTab === "create"
+                ? "bg-purple-100 text-purple-700"
+                : "text-gray-600 hover:bg-gray-100"
+            }`}
           >
             <span className="flex items-center gap-2">
               <FileText className="h-5 w-5" />
@@ -1391,12 +1569,14 @@ const takeoutQuestions = (response: any): Question[] => {
           </button>
 
           <button
-            onClick={() => setActiveTab('copy-check')}
-            className={`px-4 py-2 rounded-md font-medium transition-colors ${activeTab === 'copy-check'
-              ? 'bg-purple-100 text-purple-700'
-              : 'text-gray-600 hover:bg-gray-100'}
-            `}>
-
+            onClick={() => setActiveTab("copy-check")}
+            className={`px-4 py-2 rounded-md font-medium transition-colors ${
+              activeTab === "copy-check"
+                ? "bg-purple-100 text-purple-700"
+                : "text-gray-600 hover:bg-gray-100"
+            }
+            `}
+          >
             <span className="flex items-center gap-2">
               <FaCopy className="h-5 w-5" />
               Copy Check
@@ -1414,12 +1594,11 @@ const takeoutQuestions = (response: any): Question[] => {
         </div>
       )}
 
-      {activeTab === 'create' && (
+      {activeTab === "create" && (
         // Create Exam Form
         <div className="bg-white shadow-md rounded-lg overflow-visible">
-
           <div className="p-6 border-b border-gray-200">
-         {/*   <div className="flex justify-end mb-4">
+            {/*   <div className="flex justify-end mb-4">
               <button
                 type="button"
                 onClick={() => {
@@ -1436,8 +1615,12 @@ const takeoutQuestions = (response: any): Question[] => {
                 {!questionMode ? "Switch to Manual Entry" : "Switch to AI Generator"}
               </button>
             </div>*/}
-            <h2 className="text-xl font-semibold text-gray-800">Create New Exam</h2>
-            <p className="text-gray-500 text-sm mt-1">Fill the form below to create a new exam</p>
+            <h2 className="text-xl font-semibold text-gray-800">
+              Create New Exam
+            </h2>
+            <p className="text-gray-500 text-sm mt-1">
+              Fill the form below to create a new exam
+            </p>
           </div>
 
           <div className="p-6">
@@ -1577,10 +1760,11 @@ const takeoutQuestions = (response: any): Question[] => {
 
               {!questionMode && (
                 <div className="bg-gray-50 p-4 rounded-lg border h-fit border-gray-200">
-                  <h3 className="font-medium text-gray-700 mb-3">Question Generator (AI)</h3>
+                  <h3 className="font-medium text-gray-700 mb-3">
+                    Question Generator (AI)
+                  </h3>
                   {/* The main grid container now correctly holds three child divs for a 3-column layout */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-
                     {/* Column 2: Number of Questions */}
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1590,7 +1774,7 @@ const takeoutQuestions = (response: any): Question[] => {
                         type="number"
                         value={numLongQuestions}
                         min={0}
-                       // disabled={selectedQuestionType !== 'LONG_ANSWER' && selectedQuestionType !== 'Both'}
+                        // disabled={selectedQuestionType !== 'LONG_ANSWER' && selectedQuestionType !== 'Both'}
                         onChange={(e) => setNumLongQuestions(e.target.value)}
                         className="w-full px-4 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors"
                       />
@@ -1603,7 +1787,10 @@ const takeoutQuestions = (response: any): Question[] => {
                         type="number"
                         value={numMCQQuestions}
                         min={0}
-                        disabled={selectedQuestionType !== 'MCQ' && selectedQuestionType !== 'Both'}
+                        disabled={
+                          selectedQuestionType !== "MCQ" &&
+                          selectedQuestionType !== "Both"
+                        }
                         onChange={(e) => setNumMCQQuestions(e.target.value)}
                         className="w-full px-4 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors"
                       />
@@ -1611,67 +1798,69 @@ const takeoutQuestions = (response: any): Question[] => {
 
                     {/* Column 1: Upload PDF */}
                     <div>
-      {/* Search Input for Topic */}
-      <div className="mb-4">
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Search PDF by Topic
-        </label>
-        <input
-          type="text"
-          value={topic}
-          onChange={(e) => {
-            setTopic(e.target.value);
-            setPdfUrl(''); // Clear uploaded PDF when a user starts typing a topic
-          }}
-          placeholder="e.g., Computer Science Fundamentals"
-          className="w-full px-4 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors bg-white"
-        />
-      </div>
+                      {/* Search Input for Topic */}
+                      <div className="mb-4">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Search PDF by Topic
+                        </label>
+                        <input
+                          type="text"
+                          value={topic}
+                          onChange={(e) => {
+                            setTopic(e.target.value);
+                            setPdfUrl(""); // Clear uploaded PDF when a user starts typing a topic
+                          }}
+                          placeholder="e.g., Computer Science Fundamentals"
+                          className="w-full px-4 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors bg-white"
+                        />
+                      </div>
 
-      {/* Conditional rendering for fetched PDFs */}
-      {showPdfOptions && (
-        <div className="my-4">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Select from Found PDFs
-          </label>
-          {loadingPdfs ? (
-            <div className="text-gray-500">Loading PDFs...</div>
-          ) : fetchedPdfs.length > 0 ? (
-            <div className="space-y-2">
-              {fetchedPdfs.map((pdfLink, index) => (
-                <div
-                  key={index}
-                  onClick={() => handleSelectFetchedPdf(pdfLink)}
-                  className={`cursor-pointer p-3 border rounded-md transition-colors ${
-                    selectedPdf === pdfLink
-                      ? 'border-purple-500 bg-purple-50'
-                      : 'border-gray-300 hover:bg-gray-100'
-                  }`}
-                >
-                   <p className="text-sm font-semibold text-gray-900 truncate">
-              {pdfLink.title}
-            </p>
-            {/* Display the Snippet/Description */}
-            <p className="mt-1 text-xs text-gray-500 line-clamp-2">
-              {pdfLink.snippet}
-            </p>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-gray-500">No PDFs found for this topic.</div>
-          )}
-        </div>
-      )}
+                      {/* Conditional rendering for fetched PDFs */}
+                      {showPdfOptions && (
+                        <div className="my-4">
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Select from Found PDFs
+                          </label>
+                          {loadingPdfs ? (
+                            <div className="text-gray-500">Loading PDFs...</div>
+                          ) : fetchedPdfs.length > 0 ? (
+                            <div className="space-y-2">
+                              {fetchedPdfs.map((pdfLink, index) => (
+                                <div
+                                  key={index}
+                                  onClick={() =>
+                                    handleSelectFetchedPdf(pdfLink)
+                                  }
+                                  className={`cursor-pointer p-3 border rounded-md transition-colors ${
+                                    selectedPdf === pdfLink
+                                      ? "border-purple-500 bg-purple-50"
+                                      : "border-gray-300 hover:bg-gray-100"
+                                  }`}
+                                >
+                                  <p className="text-sm font-semibold text-gray-900 truncate">
+                                    {pdfLink.title}
+                                  </p>
+                                  {/* Display the Snippet/Description */}
+                                  <p className="mt-1 text-xs text-gray-500 line-clamp-2">
+                                    {pdfLink.snippet}
+                                  </p>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="text-gray-500">
+                              No PDFs found for this topic.
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
 
-      </div>
-
-<div></div>
-                                        <div className="mx-4 text-center text-gray-500">OR</div>
-<div></div>
-      {/* Separator */}
+                    <div></div>
+                    <div className="mx-4 text-center text-gray-500">OR</div>
+                    <div></div>
+                    {/* Separator */}
                     <div>
-
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Upload PDF
                       </label>
@@ -1680,7 +1869,6 @@ const takeoutQuestions = (response: any): Question[] => {
                         accept="application/pdf"
                         // --- MODIFIED onChange Handler ---
                         className="w-full px-4 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors bg-white"
-
                         onChange={async (e) => {
                           const file = e.target.files?.[0];
                           if (file) {
@@ -1689,16 +1877,16 @@ const takeoutQuestions = (response: any): Question[] => {
                               setError("");
                               setPdfPageImages([]); // Reset previous PDF states
                               setSelectedPages([]);
-                              setSelectedQuestionType('MCQ');
+                              setSelectedQuestionType("MCQ");
                               const result = await uploadFileToS3(file);
                               setPdfUrl(result.url); // Set URL
                               await processPdfForPreview(result.url); // Immediately process it
-
                             } catch (err) {
-                              setPdfUrl("")
-                              setError("Failed to upload PDF. Please try again.");
+                              setPdfUrl("");
+                              setError(
+                                "Failed to upload PDF. Please try again."
+                              );
                             } finally {
-
                               setLoading(false);
                               setIsProcessingPdf(false);
                             }
@@ -1728,7 +1916,11 @@ const takeoutQuestions = (response: any): Question[] => {
                       {/* The input has been changed to a select dropdown */}
                       <select
                         value={difficulty}
-                        onChange={(e) => setDifficulty(e.target.value as 'Easy' | 'Medium' | 'Hard')}
+                        onChange={(e) =>
+                          setDifficulty(
+                            e.target.value as "Easy" | "Medium" | "Hard"
+                          )
+                        }
                         className="w-full px-4 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors bg-white"
                       >
                         <option value="Easy">Easy</option>
@@ -1739,116 +1931,136 @@ const takeoutQuestions = (response: any): Question[] => {
                     {/* --- MODIFICATION END --- */}
                   </div>
 
-
                   {/* --- NEW UI: PDF Preview and Page Configuration --- */}
                   {isProcessingPdf && (
                     <div className="text-center p-4 my-4 bg-white rounded-lg border">
                       <Loader size="medium" />
-                      <p className="mt-2 text-gray-600 animate-pulse">Processing your PDF, please
-                        wait...</p>
+                      <p className="mt-2 text-gray-600 animate-pulse">
+                        Processing your PDF, please wait...
+                      </p>
                     </div>
                   )}
 
-                 {pdfPageImages.length > 0 && (
-  <div className="mt-6 border-t pt-6">
-    <h3 className="text-lg font-semibold text-gray-800 mb-4 text-center">PDF
-      Preview & Page
-      Configuration</h3>
-    <div className="grid grid-cols-12 gap-6">
-      {/* Left Side: PDF Preview */}
-      {/* On mobile, this will be full width (col-span-12). */}
-      {/* On medium screens and up, it will take up 7 columns (md:col-span-7). */}
-      <div
-        className="col-span-12 md:col-span-7 bg-white p-4 border rounded-lg max-h-[75vh] shadow-inner overflow-y-scroll">
-        <div className="space-y-4">
-          {pdfPageImages.map((imgSrc, index) => (
-            <div key={index} id={`page-preview-${index + 1}`}
-              className="border rounded-lg p-2">
-              <img src={imgSrc} alt={`Page ${index + 1}`}
-                className="w-full h-auto rounded shadow" />
-              <p className="text-center text-sm font-medium text-gray-600 mt-2">Page {index + 1}</p>
-            </div>
-          ))}
-        </div>
-      </div>
+                  {pdfPageImages.length > 0 && (
+                    <div className="mt-6 border-t pt-6">
+                      <h3 className="text-lg font-semibold text-gray-800 mb-4 text-center">
+                        PDF Preview & Page Configuration
+                      </h3>
+                      <div className="grid grid-cols-12 gap-6">
+                        {/* Left Side: PDF Preview */}
+                        {/* On mobile, this will be full width (col-span-12). */}
+                        {/* On medium screens and up, it will take up 7 columns (md:col-span-7). */}
+                        <div className="col-span-12 md:col-span-7 bg-white p-4 border rounded-lg max-h-[75vh] shadow-inner overflow-y-scroll">
+                          <div className="space-y-4">
+                            {pdfPageImages.map((imgSrc, index) => (
+                              <div
+                                key={index}
+                                id={`page-preview-${index + 1}`}
+                                className="border rounded-lg p-2"
+                              >
+                                <img
+                                  src={imgSrc}
+                                  alt={`Page ${index + 1}`}
+                                  className="w-full h-auto rounded shadow"
+                                />
+                                <p className="text-center text-sm font-medium text-gray-600 mt-2">
+                                  Page {index + 1}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
 
-      {/* Right Side: Page Configuration */}
-      {/* On mobile, this will also be full width (col-span-12). */}
-      {/* On medium screens and up, it will take up 5 columns (md:col-span-5). */}
-      {/* It will now stack below the PDF preview on small screens. */}
-      <div
-        className="col-span-12 md:col-span-5 flex flex-col gap-4">
-        {/* --- Page Range and Type Selection UI --- */}
-        <div
-          className="p-4 bg-gray-50 border rounded-lg shadow-sm space-y-4">
-          <div>
-            <h4 className="font-semibold text-gray-700 mb-3">Select Page
-              Range</h4>
-            <div className="flex items-center gap-2 mb-3">
-              <input
-                type="number"
-                value={startPage}
-                onChange={(e) => setStartPage(e.target.value)}
-                className="w-full px-3 py-1.5 rounded-md border border-gray-300 text-center"
-                placeholder="Start"
-                min="1"
-              />
-              <span className="text-gray-600">to</span>
-              <input
-                type="number"
-                value={endPage}
-                onChange={(e) => setEndPage(e.target.value)}
-                className="w-full px-3 py-1.5 rounded-md border border-gray-300 text-center"
-                placeholder="End"
-                max={pdfPageImages.length}
-              />
-            </div>
-            <button
-              onClick={handleApplyPageRange}
-              className="w-full bg-indigo-600 text-white font-medium py-2 px-4 rounded-md hover:bg-indigo-700 transition-colors"
-            >
-              Apply Range
-            </button>
-            {selectedPages.length > 0 && (
-              <p className="text-sm text-center text-green-700 mt-2">
-                Active range:
-                Page {selectedPages[0]} to {selectedPages[selectedPages.length - 1]}
-              </p>
-            )}
-          </div>
+                        {/* Right Side: Page Configuration */}
+                        {/* On mobile, this will also be full width (col-span-12). */}
+                        {/* On medium screens and up, it will take up 5 columns (md:col-span-5). */}
+                        {/* It will now stack below the PDF preview on small screens. */}
+                        <div className="col-span-12 md:col-span-5 flex flex-col gap-4">
+                          {/* --- Page Range and Type Selection UI --- */}
+                          <div className="p-4 bg-gray-50 border rounded-lg shadow-sm space-y-4">
+                            <div>
+                              <h4 className="font-semibold text-gray-700 mb-3">
+                                Select Page Range
+                              </h4>
+                              <div className="flex items-center gap-2 mb-3">
+                                <input
+                                  type="number"
+                                  value={startPage}
+                                  onChange={(e) => setStartPage(e.target.value)}
+                                  className="w-full px-3 py-1.5 rounded-md border border-gray-300 text-center"
+                                  placeholder="Start"
+                                  min="1"
+                                />
+                                <span className="text-gray-600">to</span>
+                                <input
+                                  type="number"
+                                  value={endPage}
+                                  onChange={(e) => setEndPage(e.target.value)}
+                                  className="w-full px-3 py-1.5 rounded-md border border-gray-300 text-center"
+                                  placeholder="End"
+                                  max={pdfPageImages.length}
+                                />
+                              </div>
+                              <button
+                                onClick={handleApplyPageRange}
+                                className="w-full bg-indigo-600 text-white font-medium py-2 px-4 rounded-md hover:bg-indigo-700 transition-colors"
+                              >
+                                Apply Range
+                              </button>
+                              {selectedPages.length > 0 && (
+                                <p className="text-sm text-center text-green-700 mt-2">
+                                  Active range: Page {selectedPages[0]} to{" "}
+                                  {selectedPages[selectedPages.length - 1]}
+                                </p>
+                              )}
+                            </div>
 
-          <hr />
+                            <hr />
 
-          <div>
-            <h4 className="font-semibold text-gray-700 mb-3">Select
-              Question Type</h4>
-            <select
-              value={selectedQuestionType}
-              onChange={(e) => setSelectedQuestionType(e.target.value as 'MCQ' | 'LONG_ANSWER' | 'Both')}
-              className="w-full px-3 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-purple-500"
-            >
-              <option value="MCQ">MCQ Questions</option>
-              <option value="LONG_ANSWER">Long Answer Questions
-              </option>
-              <option value="Both">Both MCQ and Long Answer</option>
-            </select>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-)}
+                            <div>
+                              <h4 className="font-semibold text-gray-700 mb-3">
+                                Select Question Type
+                              </h4>
+                              <select
+                                value={selectedQuestionType}
+                                onChange={(e) =>
+                                  setSelectedQuestionType(
+                                    e.target.value as
+                                      | "MCQ"
+                                      | "LONG_ANSWER"
+                                      | "Both"
+                                  )
+                                }
+                                className="w-full px-3 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-purple-500"
+                              >
+                                <option value="MCQ">MCQ Questions</option>
+                                <option value="LONG_ANSWER">
+                                  Long Answer Questions
+                                </option>
+                                <option value="Both">
+                                  Both MCQ and Long Answer
+                                </option>
+                              </select>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
-
               {questionMode && (
                 <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                  <h3 className="font-medium text-gray-700 mb-3">Manual Question Entry</h3>
+                  <h3 className="font-medium text-gray-700 mb-3">
+                    Manual Question Entry
+                  </h3>
                   <div className="space-y-4">
                     {questions.map((q, idx) => (
-
-                      <div key={idx} className="bg-white p-4 rounded-md shadow-sm border border-gray-200">
+                      <div
+                        key={idx}
+                        className="bg-white p-4 rounded-md shadow-sm border border-gray-200"
+                      >
                         <div className="flex justify-between items-center mb-3">
                           <label className="block text-sm font-medium text-gray-700">
                             Question {idx + 1}
@@ -1856,7 +2068,11 @@ const takeoutQuestions = (response: any): Question[] => {
                           <button
                             type="button"
                             className="text-red-500 hover:text-red-700"
-                            onClick={() => setQuestions(questions.filter((_, i) => i !== idx))}
+                            onClick={() =>
+                              setQuestions(
+                                questions.filter((_, i) => i !== idx)
+                              )
+                            }
                           >
                             <X className="h-5 w-5" />
                           </button>
@@ -1864,7 +2080,7 @@ const takeoutQuestions = (response: any): Question[] => {
                         <input
                           type="text"
                           value={q.question}
-                          onChange={e => {
+                          onChange={(e) => {
                             const updated = [...questions];
                             updated[idx].question = e.target.value;
                             setQuestions(updated);
@@ -1880,7 +2096,12 @@ const takeoutQuestions = (response: any): Question[] => {
                           </label>
                           <select
                             value={q.questionType}
-                            onChange={e => handleQuestionTypeChange(idx, e.target.value as 'MCQ' | 'LONG_ANSWER')}
+                            onChange={(e) =>
+                              handleQuestionTypeChange(
+                                idx,
+                                e.target.value as "MCQ" | "LONG_ANSWER"
+                              )
+                            }
                             className="w-full px-3 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors"
                           >
                             <option value="MCQ">MCQ (Multiple Choice)</option>
@@ -1889,23 +2110,35 @@ const takeoutQuestions = (response: any): Question[] => {
                         </div>
 
                         {/* Options for MCQ - conditionally rendered */}
-                        {q.questionType === 'MCQ' && (
+                        {q.questionType === "MCQ" && (
                           <div className="space-y-2 mb-3">
-                            <label
-                              className="block text-sm font-medium text-gray-700">Options:</label>
+                            <label className="block text-sm font-medium text-gray-700">
+                              Options:
+                            </label>
                             {q.options?.map((option, oIndex) => (
-                              <div key={oIndex} className="flex items-center gap-2">
+                              <div
+                                key={oIndex}
+                                className="flex items-center gap-2"
+                              >
                                 <input
                                   type="text"
                                   value={option}
-                                  onChange={e => handleOptionChange(idx, oIndex, e.target.value)}
+                                  onChange={(e) =>
+                                    handleOptionChange(
+                                      idx,
+                                      oIndex,
+                                      e.target.value
+                                    )
+                                  }
                                   className="flex-1 px-3 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors"
                                   placeholder={`Option ${oIndex + 1}`}
                                 />
                                 <button
                                   type="button"
                                   className="text-red-500 hover:text-red-700"
-                                  onClick={() => handleRemoveOption(idx, oIndex)}
+                                  onClick={() =>
+                                    handleRemoveOption(idx, oIndex)
+                                  }
                                 >
                                   <X className="h-5 w-5" />
                                 </button>
@@ -1926,11 +2159,13 @@ const takeoutQuestions = (response: any): Question[] => {
                           <label className="block text-sm font-medium text-gray-700 mb-1">
                             Correct Answer
                           </label>
-                          {q.questionType === 'MCQ' ? (
+                          {q.questionType === "MCQ" ? (
                             <input
                               type="text"
-                              value={typeof q.answer === "string" ? q.answer : ""}
-                              onChange={e => {
+                              value={
+                                typeof q.answer === "string" ? q.answer : ""
+                              }
+                              onChange={(e) => {
                                 const updated = [...questions];
                                 updated[idx].answer = e.target.value;
                                 setQuestions(updated);
@@ -1940,8 +2175,10 @@ const takeoutQuestions = (response: any): Question[] => {
                             />
                           ) : (
                             <textarea
-                              value={typeof q.answer === "string" ? q.answer : ""}
-                              onChange={e => {
+                              value={
+                                typeof q.answer === "string" ? q.answer : ""
+                              }
+                              onChange={(e) => {
                                 const updated = [...questions];
                                 updated[idx].answer = e.target.value;
                                 setQuestions(updated);
@@ -1963,10 +2200,10 @@ const takeoutQuestions = (response: any): Question[] => {
                           {
                             question: "",
                             answer: "",
-                            options: ['', '', '', ''],
+                            options: ["", "", "", ""],
                             isSelected: true,
-                            questionType: 'LONG_ANSWER'
-                          } // Default new question to LONG_ANSWER
+                            questionType: "LONG_ANSWER",
+                          }, // Default new question to LONG_ANSWER
                         ])
                       }
                     >
@@ -1981,14 +2218,22 @@ const takeoutQuestions = (response: any): Question[] => {
                   <div className="p-4 bg-purple-50 border-b border-gray-200">
                     <div className="flex items-center justify-between">
                       <h3 className="font-semibold text-purple-800">
-                        {questionMode ? "Manual Entry Questions" : "Generated Questions"} ({questions.filter(q => q.isSelected).length}/{questions.length} selected)
+                        {questionMode
+                          ? "Manual Entry Questions"
+                          : "Generated Questions"}{" "}
+                        ({questions.filter((q) => q.isSelected).length}/
+                        {questions.length} selected)
                       </h3>
                       <button
                         className="text-xs text-purple-700 hover:text-purple-900"
-                        onClick={() => setQuestions(questions.map(q => ({
-                          ...q,
-                          isSelected: true
-                        })))}
+                        onClick={() =>
+                          setQuestions(
+                            questions.map((q) => ({
+                              ...q,
+                              isSelected: true,
+                            }))
+                          )
+                        }
                       >
                         Select All
                       </button>
@@ -1998,7 +2243,9 @@ const takeoutQuestions = (response: any): Question[] => {
                     {questions.map((q: Question, index) => (
                       <div
                         key={index}
-                        className={`p-4 transition-colors border-b border-gray-200 last:border-b-0 ${q.isSelected ? "bg-purple-50" : "hover:bg-gray-50"}`}
+                        className={`p-4 transition-colors border-b border-gray-200 last:border-b-0 ${
+                          q.isSelected ? "bg-purple-50" : "hover:bg-gray-50"
+                        }`}
                       >
                         <label className="flex items-start gap-3 cursor-pointer w-full">
                           <input
@@ -2008,33 +2255,43 @@ const takeoutQuestions = (response: any): Question[] => {
                             className="mt-1 h-4 w-4 text-purple-600 rounded border-gray-300 focus:ring-purple-500"
                           />
                           <div className="w-full">
-                            <p className="font-medium text-gray-800">Q{index + 1}: {q.question}</p>
-                            <p className="text-sm text-gray-500 italic">Type: {q.questionType.replace('_', ' ')}</p>
+                            <p className="font-medium text-gray-800">
+                              Q{index + 1}: {q.question}
+                            </p>
+                            <p className="text-sm text-gray-500 italic">
+                              Type: {q.questionType.replace("_", " ")}
+                            </p>
 
                             {/* Existing MCQ options display */}
-                            {q.questionType === 'MCQ' && q.options && q.options.length > 0 && (
-                              <div className="text-sm text-gray-600 mt-1 pl-4">
-                                <span className="font-medium">Options: </span>
-                                <ul className="list-disc pl-5 mt-1 space-y-1">
-                                  {q.options.map((option, i) => (
-                                    <li key={i}>{option}</li>
-                                  ))}
-                                </ul>
-                              </div>
-                            )}
+                            {q.questionType === "MCQ" &&
+                              q.options &&
+                              q.options.length > 0 && (
+                                <div className="text-sm text-gray-600 mt-1 pl-4">
+                                  <span className="font-medium">Options: </span>
+                                  <ul className="list-disc pl-5 mt-1 space-y-1">
+                                    {q.options.map((option, i) => (
+                                      <li key={i}>{option}</li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
 
                             {/* Existing Answer display */}
                             <div className="text-sm text-gray-600 mt-1 pl-4">
                               <span className="font-medium">Answer: </span>
                               {q.answer ? (
-                                <p className="pl-2 border-l-2 border-gray-300 mt-1">{q.answer}</p>
+                                <p className="pl-2 border-l-2 border-gray-300 mt-1">
+                                  {q.answer}
+                                </p>
                               ) : (
-                                <span className="italic">No answer available</span>
+                                <span className="italic">
+                                  No answer available
+                                </span>
                               )}
                             </div>
 
                             {/* --- NEW: Diagram Upload Section --- */}
-                            {q.questionType === 'LONG_ANSWER' && (
+                            {q.questionType === "LONG_ANSWER" && (
                               <div className="mt-4 pl-4">
                                 <div className="flex items-center gap-4">
                                   <button
@@ -2042,49 +2299,70 @@ const takeoutQuestions = (response: any): Question[] => {
                                     onClick={(e) => {
                                       e.preventDefault(); // Prevent label click from toggling checkbox
                                       setSelectedQuestionForDiagram(index);
-                                      document.getElementById(`diagram-upload-${index}`)?.click();
+                                      document
+                                        .getElementById(
+                                          `diagram-upload-${index}`
+                                        )
+                                        ?.click();
                                     }}
-                                    disabled={(uploadingDiagram && selectedQuestionForDiagram === index) || q.diagramImgURL?.length == 1}
+                                    disabled={
+                                      (uploadingDiagram &&
+                                        selectedQuestionForDiagram === index) ||
+                                      q.diagramImgURL?.length == 1
+                                    }
                                     className={`inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 
-                                    ${(uploadingDiagram && selectedQuestionForDiagram === index) || q.diagramImgURL?.length == 1 && 'disabled:opacity-50 cursor-not-allowed'}
+                                    ${
+                                      (uploadingDiagram &&
+                                        selectedQuestionForDiagram === index) ||
+                                      (q.diagramImgURL?.length == 1 &&
+                                        "disabled:opacity-50 cursor-not-allowed")
+                                    }
                                     `}
                                   >
-                                    {uploadingDiagram && selectedQuestionForDiagram === index ? 'Uploading...' : 'Add Diagram'}
+                                    {uploadingDiagram &&
+                                    selectedQuestionForDiagram === index
+                                      ? "Uploading..."
+                                      : "Add Diagram"}
                                   </button>
                                   <input
                                     type="file"
                                     id={`diagram-upload-${index}`}
                                     className="hidden"
                                     accept="image/*"
-                                    onChange={(e) => handleDiagramUpload(e, index)}
+                                    onChange={(e) =>
+                                      handleDiagramUpload(e, index)
+                                    }
                                   />
                                 </div>
 
                                 {/* Diagram Previews */}
-                                {q.diagramImgURL && q.diagramImgURL.length > 0 && (
-                                  <div className="mt-3 flex flex-wrap gap-3">
-                                    {q.diagramImgURL.map((url, i) => (
-                                      <div key={i} className="relative group">
-                                        <img src={url} alt={`Diagram ${i + 1}`}
-                                          className="h-24 w-24 object-cover rounded-lg border-2 border-purple-200" />
-                                        <button
-                                          type="button"
-                                          onClick={(e) => {
-                                            e.preventDefault();
-                                            handleRemoveDiagram(index, i)
-                                          }}
-                                          className="absolute top-0 right-0 transform translate-x-1/2 -translate-y-1/2 bg-red-600 text-white rounded-full h-5 w-5 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity focus:outline-none"
-                                        >
-                                          &times;
-                                        </button>
-                                      </div>
-                                    ))}
-                                  </div>
-                                )}
+                                {q.diagramImgURL &&
+                                  q.diagramImgURL.length > 0 && (
+                                    <div className="mt-3 flex flex-wrap gap-3">
+                                      {q.diagramImgURL.map((url, i) => (
+                                        <div key={i} className="relative group">
+                                          <img
+                                            src={url}
+                                            alt={`Diagram ${i + 1}`}
+                                            className="h-24 w-24 object-cover rounded-lg border-2 border-purple-200"
+                                          />
+                                          <button
+                                            type="button"
+                                            onClick={(e) => {
+                                              e.preventDefault();
+                                              handleRemoveDiagram(index, i);
+                                            }}
+                                            className="absolute top-0 right-0 transform translate-x-1/2 -translate-y-1/2 bg-red-600 text-white rounded-full h-5 w-5 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity focus:outline-none"
+                                          >
+                                            &times;
+                                          </button>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
                               </div>
                             )}
                             {/* --- END: Diagram Upload Section --- */}
-
                           </div>
                         </label>
                       </div>
@@ -2099,28 +2377,57 @@ const takeoutQuestions = (response: any): Question[] => {
             <div className="flex justify-start">
               {!questionMode ? (
                 <button
-                  onClick={questions && questions.length > 0 ? handleCreateAiExams : handleGenerateAiQuestions}
-                  disabled={loading || isProcessingPdf || !pdfUrl || pdfPageImages.length === 0}
+                  onClick={
+                    questions && questions.length > 0
+                      ? handleCreateAiExams
+                      : handleGenerateAiQuestions
+                  }
+                  disabled={
+                    loading ||
+                    isProcessingPdf ||
+                    !pdfUrl ||
+                    pdfPageImages.length === 0
+                  }
                   className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center shadow-lg"
                 >
                   {loading ? (
                     <>
                       {/* SVG Spinner */}
-                      <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                      <svg
+                        className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
                         xmlns="http://www.w3.org/2000/svg"
-                        fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
                           stroke="currentColor"
-                          strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor"
-                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
-                        </path>
+                          strokeWidth="4"
+                        ></circle>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        ></path>
                       </svg>
                       {/* Text */}
-                      <span>{questions && questions.length > 0 ? "Creating Exam..." : isProcessingPdf ? "Processing pdf..." : "Generating Questions....."}</span>
+                      <span>
+                        {questions && questions.length > 0
+                          ? "Creating Exam..."
+                          : isProcessingPdf
+                          ? "Processing pdf..."
+                          : "Generating Questions....."}
+                      </span>
                     </>
                   ) : (
-                    <>{questions && questions.length > 0 ? "Create Exam" : "Generate Questions"}</>
+                    <>
+                      {questions && questions.length > 0
+                        ? "Create Exam"
+                        : "Generate Questions"}
+                    </>
                   )}
                 </button>
               ) : (
@@ -2137,22 +2444,29 @@ const takeoutQuestions = (response: any): Question[] => {
         </div>
       )}
 
-      {(activeTab === 'view' || activeTab === 'copy-check') && (
+      {(activeTab === "view" || activeTab === "copy-check") && (
         // Exam List
         <div>
           {loadingExams ? (
             <div className="flex items-center justify-center h-64">
-              {activeTab === 'view' && (<Loader size="large" message="Loading exams..." />)}
-              {activeTab === 'copy-check' && (
-                <Loader size="large" message="Fetching submitted exams..." />)}
+              {activeTab === "view" && (
+                <Loader size="large" message="Loading exams..." />
+              )}
+              {activeTab === "copy-check" && (
+                <Loader size="large" message="Fetching submitted exams..." />
+              )}
             </div>
           ) : exams.length === 0 ? (
             <div className="bg-white rounded-lg shadow-md p-8 text-center">
               <FileText className="h-16 w-16 mx-auto text-gray-400 mb-4" />
-              <h3 className="text-xl font-medium text-gray-700 mb-2">No exams created yet</h3>
-              <p className="text-gray-500 mb-6">Start by creating your first exam for this class</p>
+              <h3 className="text-xl font-medium text-gray-700 mb-2">
+                No exams created yet
+              </h3>
+              <p className="text-gray-500 mb-6">
+                Start by creating your first exam for this class
+              </p>
               <button
-                onClick={() => setActiveTab('create')}
+                onClick={() => setActiveTab("create")}
                 className="bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-6 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition-colors"
               >
                 Create Your First Exam
@@ -2167,16 +2481,19 @@ const takeoutQuestions = (response: any): Question[] => {
                 >
                   <div className="p-6">
                     <div className="flex justify-between items-start mb-4">
-                      <h2 className="text-xl font-bold text-gray-800">{exam.title}</h2>
+                      <h2 className="text-xl font-bold text-gray-800">
+                        {exam.title}
+                      </h2>
                       <span
-                        className={`px-3 py-1 rounded-full text-xs font-semibold ${exam.status === "DRAFT"
-                          ? "bg-yellow-100 text-yellow-800"
-                          : exam.status === "PUBLISHED"
+                        className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                          exam.status === "DRAFT"
+                            ? "bg-yellow-100 text-yellow-800"
+                            : exam.status === "PUBLISHED"
                             ? "bg-green-100 text-green-800"
                             : exam.status === "COMPLETED"
-                              ? "bg-blue-100 text-blue-800"
-                              : "bg-gray-100 text-gray-800"
-                          }`}
+                            ? "bg-blue-100 text-blue-800"
+                            : "bg-gray-100 text-gray-800"
+                        }`}
                       >
                         {exam.status}
                       </span>
@@ -2186,7 +2503,8 @@ const takeoutQuestions = (response: any): Question[] => {
                       <div className="flex items-center text-gray-600">
                         <GraduationCap className="h-5 w-5 mr-2 text-gray-500" />
                         <span>
-                          {exam.classSection.batch.name} | {exam.classSection.semester.name}
+                          {exam.classSection.batch.name} |{" "}
+                          {exam.classSection.semester.name}
                         </span>
                       </div>
 
@@ -2221,7 +2539,8 @@ const takeoutQuestions = (response: any): Question[] => {
                         <div className="flex items-center text-gray-600 mt-1">
                           <Clock className="h-4 w-4 mr-1 text-gray-500" />
                           <span>
-                            {format(new Date(exam.startTime),"p")} - {format(new Date(exam.endTime), "p")}
+                            {format(new Date(exam.startTime), "p")} -{" "}
+                            {format(new Date(exam.endTime), "p")}
                           </span>
                         </div>
                       </div>
@@ -2236,20 +2555,28 @@ const takeoutQuestions = (response: any): Question[] => {
                       >
                         Delete
                       </button>
-                      {activeTab === 'view' && (<button
-                        onClick={() => fetchExamDetails(exam.id)}
-                        className="px-3 py-1 bg-white border border-gray-300 rounded text-gray-600 text-sm hover:bg-gray-50 transition-colors"
-                      >
-                        View Details
-                      </button>
+                      {activeTab === "view" && (
+                        <button
+                          onClick={() => fetchExamDetails(exam.id)}
+                          className="px-3 py-1 bg-white border border-gray-300 rounded text-gray-600 text-sm hover:bg-gray-50 transition-colors"
+                        >
+                          View Details
+                        </button>
                       )}
 
-                      {activeTab === 'copy-check' && (<button
-                        className="px-3 py-1 bg-white border border-gray-300 rounded text-gray-600 text-sm hover:bg-gray-50 transition-colors"
-                        onClick={() => router.push(`exams/submissions?examId=${exam.id}&teacherId=${JSON.parse(localStorage.getItem('user')!).id}`)}
-                      >
-                        View Submissions
-                      </button>
+                      {activeTab === "copy-check" && (
+                        <button
+                          className="px-3 py-1 bg-white border border-gray-300 rounded text-gray-600 text-sm hover:bg-gray-50 transition-colors"
+                          onClick={() =>
+                            router.push(
+                              `exams/submissions?examId=${exam.id}&teacherId=${
+                                JSON.parse(localStorage.getItem("user")!).id
+                              }`
+                            )
+                          }
+                        >
+                          View Submissions
+                        </button>
                       )}
                     </div>
                   </div>
@@ -2266,10 +2593,11 @@ const takeoutQuestions = (response: any): Question[] => {
 */}
       {selectedExam && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div
-            className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
             <div className="p-6 border-b border-gray-200 flex justify-between items-center">
-              <h2 className="text-2xl font-bold text-gray-800">{selectedExam.title}</h2>
+              <h2 className="text-2xl font-bold text-gray-800">
+                {selectedExam.title}
+              </h2>
               <button
                 onClick={closeExamDetails}
                 className="text-gray-500 hover:text-gray-700"
@@ -2284,17 +2612,21 @@ const takeoutQuestions = (response: any): Question[] => {
                   <div className="flex items-center text-gray-600 mb-2">
                     <GraduationCap className="h-5 w-5 mr-2 text-gray-500" />
                     <span>
-                      {selectedExam.classSection.batch.name} | {selectedExam.classSection.semester.name}
+                      {selectedExam.classSection.batch.name} |{" "}
+                      {selectedExam.classSection.semester.name}
                     </span>
                   </div>
                   <div className="flex items-center text-gray-600 mb-2">
                     <Calendar className="h-4 w-4 mr-1 text-gray-500" />
-                    <span>{format(new Date(selectedExam.examDate), "PPP")}</span>
+                    <span>
+                      {format(new Date(selectedExam.examDate), "PPP")}
+                    </span>
                   </div>
                   <div className="flex items-center text-gray-600">
                     <Clock className="h-4 w-4 mr-1 text-gray-500" />
                     <span>
-                      {format(new Date(selectedExam.startTime), "p")} - {format(new Date(selectedExam.endTime), "p")}
+                      {format(new Date(selectedExam.startTime), "p")} -{" "}
+                      {format(new Date(selectedExam.endTime), "p")}
                     </span>
                   </div>
                 </div>
@@ -2322,51 +2654,71 @@ const takeoutQuestions = (response: any): Question[] => {
                 </div>
               ) : (
                 <div className="space-y-6">
-                  <h3 className="text-xl font-semibold text-gray-800">Exam Questions
-                    ({selectedExam.questions.length})</h3>
+                  <h3 className="text-xl font-semibold text-gray-800">
+                    Exam Questions ({selectedExam.questions.length})
+                  </h3>
 
                   {selectedExam.questions.map((question, index) => (
-                    <div key={question.id}
-                      className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+                    <div
+                      key={question.id}
+                      className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm"
+                    >
                       <div className="mb-2 flex justify-between">
-                        <h4 className="font-medium text-gray-800">Question {index + 1}</h4>
+                        <h4 className="font-medium text-gray-800">
+                          Question {index + 1}
+                        </h4>
                         <span className="text-sm text-gray-500">
-                          {question.marks} {question.marks === 1 ? 'mark' : 'marks'}
-                          {question.difficultyLevel ? ` • ${question.difficultyLevel}` : ''}
+                          {question.marks}{" "}
+                          {question.marks === 1 ? "mark" : "marks"}
+                          {question.difficultyLevel
+                            ? ` • ${question.difficultyLevel}`
+                            : ""}
                         </span>
                       </div>
-                      <p className="text-gray-700 mb-3">{question.questionText}</p>
-                      <p
-                        className="text-sm text-gray-500 italic">Type: {question.questionType?.replace('_', ' ')}</p> {/* Display type */}
-
-
-                      {question.questionType === 'MCQ' && question.options && question.options.length > 0 && (
-                        <div className="mt-2">
-                          <p className="text-sm font-medium text-gray-700 mb-1">Options:</p>
-                          <ul className="space-y-1 ml-5 list-disc">
-                            {question.options.map((option, i) => (
-                              <li key={i} className="text-sm text-gray-600">{option}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-
-                      {question.correctAnswer && question.correctAnswer.length > 0 && (
-                        <div className="mt-3 pt-2 border-t border-gray-100">
-                          <p className="text-sm font-medium text-gray-700 mb-1">Correct
-                            Answer:</p>
-                          {question.correctAnswer.length === 1 ? (
-                            <p className="text-sm text-gray-800">{question.correctAnswer[0]}</p>
-                          ) : (
+                      <p className="text-gray-700 mb-3">
+                        {question.questionText}
+                      </p>
+                      <p className="text-sm text-gray-500 italic">
+                        Type: {question.questionType?.replace("_", " ")}
+                      </p>{" "}
+                      {/* Display type */}
+                      {question.questionType === "MCQ" &&
+                        question.options &&
+                        question.options.length > 0 && (
+                          <div className="mt-2">
+                            <p className="text-sm font-medium text-gray-700 mb-1">
+                              Options:
+                            </p>
                             <ul className="space-y-1 ml-5 list-disc">
-                              {question.correctAnswer.map((answer, i) => (
-                                <li key={i}
-                                  className="text-sm text-gray-800">{answer}</li>
+                              {question.options.map((option, i) => (
+                                <li key={i} className="text-sm text-gray-600">
+                                  {option}
+                                </li>
                               ))}
                             </ul>
-                          )}
-                        </div>
-                      )}
+                          </div>
+                        )}
+                      {question.correctAnswer &&
+                        question.correctAnswer.length > 0 && (
+                          <div className="mt-3 pt-2 border-t border-gray-100">
+                            <p className="text-sm font-medium text-gray-700 mb-1">
+                              Correct Answer:
+                            </p>
+                            {question.correctAnswer.length === 1 ? (
+                              <p className="text-sm text-gray-800">
+                                {question.correctAnswer[0]}
+                              </p>
+                            ) : (
+                              <ul className="space-y-1 ml-5 list-disc">
+                                {question.correctAnswer.map((answer, i) => (
+                                  <li key={i} className="text-sm text-gray-800">
+                                    {answer}
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                          </div>
+                        )}
                     </div>
                   ))}
                 </div>

@@ -1,56 +1,6 @@
-// app/admin/page.tsx
-import { auth } from "@/auth";
-import Link from "next/link";
-import Sider from "@/components/admin/navigator";
+// app/(admin)/a/page.tsx
 import { redirect } from "next/navigation";
 
-
-export default async function AdminPage() {
-  const session = await auth();
-
-  const userId = session?.user?.id;
-
-  console.log(session)
-  if (!userId) {
-    redirect("/login");
-  }
-
-  // Fetch user details
-  const userRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/${userId}`, { cache: "no-store" });
-  const userData = await userRes.json();
-  const userVerfied = userData.isVerified;
-  const coins = userData.coins || 0; // Default to 0 if coins are not set
-  let institutionData = null;
-
-  // Fetch institution details if institutionId exists
-  if (userData?.institutionId) {
-    const institutionRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/institutions/${userData.institutionId}`, {
-      cache: "no-store",
-    });
-    institutionData = await institutionRes.json();
-  }
-  const institutielogo = institutionData?.logoUrl || null;
-  console.log(userData)
-  if (!institutionData) {
-    return (
-      <div style={{ textAlign: "center", padding: "20px" }}>
-        <h1 style={{ color: "red" }}>No institution found. Please create one.</h1>
-        <Link href="/a/dashboard">Create Institution</Link>
-      </div>
-    );
-  }
-  console.log(institutionData)
-  const id = institutionData.id
-  /*  const teachers = await fetchTeachers(institutionData.id);
-    const students = await fetchStudents();
-    const classes = await fetchClasses();*/
-
-  return (
-    // Removed the outer <div> with display: "flex"
-    <>
-      <div className="">
-        <Sider id={id} userId={userId} logo={institutielogo} name={institutionData.name} primaryColor={institutionData.primaryColor} verified={userVerfied} coins={coins} />
-      </div>
-    </>
-  );
+export default function AdminPage() {
+  redirect("/a/teachers");
 }

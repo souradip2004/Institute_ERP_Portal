@@ -6,7 +6,7 @@
     "skipLibCheck": true,
     "strict": true,
     "noEmit": true,
-    "baseUrl": ".",
+    // "baseUrl": ".",
     "esModuleInterop": true,
     "module": "esnext",
     "moduleResolution": "bundler",
@@ -23,6 +23,15 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "prisma/seed.mts", "prisma/seed.js", "src/bullmq/workers/instituionworker.js", "src/components/hod/AddHodComponent.jsx"],
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    "prisma/seed.mts",
+    "prisma/seed.js",
+    "src/bullmq/workers/instituionworker.js",
+    "src/components/hod/AddHodComponent.jsx"
+  ],
   "exclude": ["node_modules"]
 }
