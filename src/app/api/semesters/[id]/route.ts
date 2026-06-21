@@ -3,7 +3,8 @@ import { SemesterController } from '@/controllers/semesterController';
 
 const semesterController = new SemesterController();
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     if (!params.id) {
       return NextResponse.json({ error: 'Invalid Semester ID' }, { status: 400 });
@@ -16,7 +17,8 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   }
 }
 
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     if (!params.id) {
       return NextResponse.json({ error: 'Invalid Semester ID' }, { status: 400 });
@@ -29,7 +31,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   }
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     if (!params.id) {
       return NextResponse.json({ error: 'Invalid Semester ID' }, { status: 400 });

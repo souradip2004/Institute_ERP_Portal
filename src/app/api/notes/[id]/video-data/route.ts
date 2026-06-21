@@ -2,10 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { NoteController } from "../../../../../controllers/noteController";
 
 // GET endpoint to retrieve video data for a specific note
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function GET(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const result = await NoteController.getNoteWithVideoData(request, {
       params,
@@ -50,10 +48,8 @@ export async function GET(
 }
 
 // PUT endpoint to update video data for a specific note
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function PUT(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const updatedVideoData = await NoteController.updateVideoData(request, {
       params,
@@ -77,10 +73,8 @@ export async function PUT(
 }
 
 // HEAD endpoint to check if video data exists for a note
-export async function HEAD(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function HEAD(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const result = await NoteController.checkVideoDataExists(request, {
       params,

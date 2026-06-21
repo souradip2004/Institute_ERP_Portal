@@ -5,10 +5,8 @@ const prisma = new PrismaClient();
 
 type DetailedAttendanceStatus = AttendanceStatus | 'NOT_MARKED';
 
-export async function GET(
-  request: Request,
-  {params}: { params: { studentId: string } }
-) {
+export async function GET(request: Request, props: { params: Promise<{ studentId: string }> }) {
+  const params = await props.params;
   // 1. Extract IDs and optional filters from the request
   const {studentId} = params;
   const {searchParams} = new URL(request.url);

@@ -1,14 +1,14 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, use } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 interface DeleteAssignmentPageProps {
-  params: {
+  params: Promise<{
     classId: string;
     assignmentId: string;
-  };
+  }>;
 }
 
 interface Assignment {
@@ -19,9 +19,10 @@ interface Assignment {
   submissions: { id: string }[];
 }
 
-export default function DeleteAssignmentPage({ params }: DeleteAssignmentPageProps) {
+export default function DeleteAssignmentPage(props: DeleteAssignmentPageProps) {
+  const params = use(props.params);
   const { classId, assignmentId } = params;
-  
+
   const router = useRouter();
   const [assignment, setAssignment] = useState<Assignment | null>(null);
   const [loading, setLoading] = useState(true);

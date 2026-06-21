@@ -3,18 +3,19 @@ import { InstitutionController } from '@/controllers/institutionController';
 
 const institutionController = new InstitutionController();
 
-export const GET = async (req: NextRequest, context : { params: { id: string } }) => {
-  const { params } = context;
+export const GET = async (req: NextRequest, context : { params: Promise<{ id: string }> }) => {
+  const params = await context.params;
   return institutionController.getInstitutionById(params.id);
 };
 
-export const PATCH = async (req: NextRequest, context: { params: { id: string } }) => {
-  const { params } = await context;
+export const PATCH = async (req: NextRequest, context: { params: Promise<{ id: string }> }) => {
+  const params = await context.params;
   return institutionController.updateInstitution(params.id, req);
 };
 
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const institutionId = params?.id;
 

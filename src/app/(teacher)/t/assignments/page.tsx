@@ -4,7 +4,6 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { useRouter } from 'next/navigation';
-import { set } from 'mongoose';
 
 interface ClassData {
   id: string;

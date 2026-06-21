@@ -37,15 +37,16 @@ interface ApiAssignment extends Omit<Assignment, 'submissions'> {
 }
 
 interface TeacherAssignmentsPageProps {
-  params: {
+  params: Promise<{
     classId: string;
-  };
+  }>;
 }
 
-export default function TeacherAssignmentsPage({params}: TeacherAssignmentsPageProps) {
+export default function TeacherAssignmentsPage(props: TeacherAssignmentsPageProps) {
+  const params = use(props.params);
   const resolvedParams = React.use(params as any) as { classId: string };
   const {classId} = resolvedParams;
-  
+
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [loading, setLoading] = useState(true);
   const [institutionType, setInstitutionType] = useState<string | null>(null);
@@ -176,7 +177,7 @@ export default function TeacherAssignmentsPage({params}: TeacherAssignmentsPageP
       .finally(() => notify.dismiss(loadingId));
     }
   }, [classId]);
-  
+
   const handleAssignmentCreated = () => {
     // Re-fetch assignments after a new one is created
     const loadingId = notify.loading('Reloading assignments...');
@@ -184,7 +185,7 @@ export default function TeacherAssignmentsPage({params}: TeacherAssignmentsPageP
       .finally(() => notify.dismiss(loadingId));
     
   };
-  
+
   return (
     <div className="min-h-screen bg-gray-100">
       <div className="container mx-auto px-4 py-6">

@@ -1,14 +1,14 @@
 "use client";
 
-import React, { useState, useEffect, FormEvent } from 'react';
+import React, { useState, useEffect, FormEvent, use } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 interface GradeSubmissionPageProps {
-  params: {
+  params: Promise<{
     classId: string;
     submissionId: string;
-  };
+  }>;
 }
 
 interface Submission {
@@ -37,9 +37,10 @@ interface Submission {
   }[];
 }
 
-export default function GradeSubmissionPage({ params }: GradeSubmissionPageProps) {
+export default function GradeSubmissionPage(props: GradeSubmissionPageProps) {
+  const params = use(props.params);
   const { classId, submissionId } = params;
-  
+
   const router = useRouter();
   const [submission, setSubmission] = useState<Submission | null>(null);
   const [loading, setLoading] = useState(true);

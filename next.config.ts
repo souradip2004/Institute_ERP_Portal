@@ -1,4 +1,4 @@
-import type {NextConfig} from "next";
+import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   reactStrictMode: false,
@@ -11,10 +11,9 @@ const nextConfig: NextConfig = {
 
   /* config options here */
   experimental: {
-    nodeMiddleware: true,
     serverActions: {
-      bodySizeLimit: "5mb"
-    }
+      bodySizeLimit: "5mb",
+    },
   },
 
   images: {
@@ -35,13 +34,10 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "smartcampuserp.s3.ap-south-1.amazonaws.com",
         pathname: "/**",
-      }
+      },
     ],
   },
   output: "standalone",
-  turbopack: {
-    resolveExtensions: ['.mdx', '.tsx', '.ts', '.jsx', '.js', '.mjs', '.json'],
-  },
 };
 
 export default nextConfig;

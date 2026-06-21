@@ -1,16 +1,17 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, use } from 'react';
 import AttendanceSessionWindow from '@/components/teacher/AttendanceSessionWindow';
 import Loader from '@/components/ui/Loader';
 import React from 'react';
 
 interface SessionPageProps {
-  params: {
+  params: Promise<{
     sessionId: string;
-  };
+  }>;
 }
 
-export default function SessionPage({ params }: SessionPageProps) {
+export default function SessionPage(props: SessionPageProps) {
+  const params = use(props.params);
   const resolvedParams = React.use(params as any) as { sessionId: string };
   const { sessionId } = resolvedParams;
 

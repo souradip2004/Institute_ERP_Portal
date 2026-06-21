@@ -6,7 +6,8 @@ import {
   getClassSections,
 } from '@/services/teacherCourseSectionService';
 
-export async function POST(request: Request, {params}: { params: { adminId: string } }) {
+export async function POST(request: Request, props: { params: Promise<{ adminId: string }> }) {
+  const params = await props.params;
   try {
     const {adminId} = params;
 

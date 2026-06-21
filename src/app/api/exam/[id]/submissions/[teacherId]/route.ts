@@ -6,8 +6,9 @@ const SECRET_KEY = process.env.JWT_SECRET || 'your-secret-key';
 
 export async function GET(
   req: NextRequest,
-  {params}: { params: { id: string; teacherId: string } }
+  props: { params: Promise<{ id: string; teacherId: string }> }
 ) {
+  const params = await props.params;
   try {
 
     // Get teacher record

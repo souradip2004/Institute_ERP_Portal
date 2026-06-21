@@ -3,9 +3,9 @@ import { MotherClassEnrollmentController } from '@/controllers/motherClassContro
 
 const motherClassController = new MotherClassEnrollmentController();
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+    const params = await props.params;
     console.log('motherclass');
     const { id } = params;
     return await motherClassController.getClassByInstitution(id);
-
 }

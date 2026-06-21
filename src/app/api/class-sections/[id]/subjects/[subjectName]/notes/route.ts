@@ -3,8 +3,9 @@ import { NoteController } from "@/controllers/noteController";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string; subjectName: string } }
+  props: { params: Promise<{ id: string; subjectName: string }> }
 ) {
+  const params = await props.params;
   return NoteController.getNotesBySubject(req, {
     params: { classSectionId: params.id, subjectName: params.subjectName },
   });

@@ -3,10 +3,8 @@ import { AuthUtils } from "@/utils/authUtils";
 import { Role } from "@prisma/client";
 import prisma from "@/lib/prisma";
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { submissionId: string } }
-) {
+export async function GET(request: NextRequest, props: { params: Promise<{ submissionId: string }> }) {
+  const params = await props.params;
   try {
     
     const submissionId = params.submissionId;

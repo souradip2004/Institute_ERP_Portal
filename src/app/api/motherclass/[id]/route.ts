@@ -4,19 +4,22 @@ import prisma from '@/lib/prisma';
 
 const motherClassController = new MotherClassEnrollmentController();
 
-export async function GET(req: NextRequest, {params}: { params: { id: string } }) {
+export async function GET(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   console.log('motherclass');
   const {id} = params;
   return await motherClassController.getClassById(id);
 }
 
-export async function POST(req: NextRequest, {params}: { params: { id: string } }) {
+export async function POST(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   console.log('motherclass post');
   const {id} = params;
   return await motherClassController.updateClass(id, req);
 }
 
-export async function DELETE(req: NextRequest, {params}: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const {id} = params;
     if (!id) {

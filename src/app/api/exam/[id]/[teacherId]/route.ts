@@ -6,8 +6,9 @@ const SECRET_KEY = process.env.JWT_SECRET || 'your-secret-key';
 
 export async function GET(
   req: NextRequest,
-  {params}: { params: { id: string; teacherId: string } }
+  props: { params: Promise<{ id: string; teacherId: string }> }
 ) {
+  const params = await props.params;
   try {
 
     // Get teacher record
@@ -65,8 +66,9 @@ export async function GET(
 
 export async function DELETE(
   req: NextRequest,
-  {params}: { params: { id: string; teacherId: string } }
+  props: { params: Promise<{ id: string; teacherId: string }> }
 ) {
+  const params = await props.params;
   try {
     if (!params.id || !params.teacherId) {
       return NextResponse.json({error: "examId an teacherId required!"}, {status: 400});

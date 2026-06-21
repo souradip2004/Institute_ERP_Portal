@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { creditController } from '@/controllers/creditController';
 const transaction=new creditController()
-export async function GET(req: NextRequest, context: { params: { id: string } }) {
+export async function GET(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   try{
-      const { id } = context.params;
+      const { id } = (await context.params);
 
       if(!id){
         return NextResponse.json({error:"ID is Missing"},{status:500});
@@ -25,9 +25,9 @@ export async function GET(req: NextRequest, context: { params: { id: string } })
   }
 }
 
-export async function POST(req:NextRequest,context:{params:{id:string}}){
+export async function POST(req:NextRequest,context:{params: Promise<{id:string}>}){
   try{
-       const { id } = context.params;
+       const { id } = (await context.params);
       const data1 = await req.json();
       if(!id){
         return NextResponse.json({error:"ID is Missing"},{status:500});

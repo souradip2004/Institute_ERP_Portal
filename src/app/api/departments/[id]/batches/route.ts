@@ -3,7 +3,8 @@ import { BatchController } from "@/controllers/batchController";
 
 const batchController = new BatchController();
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+    const params = await props.params;
     try {
         const { id } = params;
         const batches = await batchController.getBatchesByDepartment(id);
